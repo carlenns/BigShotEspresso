@@ -10,7 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ShotList() {
   const [search, setSearch] = useState("");
-  const { data: shots, isLoading } = useListShots({ search, limit: "50" });
+  const { data, isLoading } = useListShots({ search, limit: "50" });
+  const shots = data?.shots;
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
