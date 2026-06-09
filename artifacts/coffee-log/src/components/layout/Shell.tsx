@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, BookOpen, Coffee, LayoutDashboard, Plus, Settings } from "lucide-react";
+import { BookOpen, Coffee, Database, LayoutDashboard, Plus, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,6 +15,8 @@ const navItems: NavItem[] = [
   { title: "Dashboard", href: "/", icon: LayoutDashboard },
   { title: "Shot Log", href: "/shots", icon: BookOpen },
   { title: "Reference Shots", href: "/reference", icon: Coffee },
+  { title: "CSV Import Audit", href: "/audit", icon: Database },
+  { title: "Defaults & Settings", href: "/settings", icon: Settings },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -82,9 +84,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
-      {/* Mobile Bottom Nav */}
+      {/* Mobile Bottom Nav — show first 3 items only */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 border-t bg-background px-2 pb-safe md:hidden">
-        {navItems.map((item) => {
+        {navItems.slice(0, 4).map((item) => {
           const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
           return (
             <Link
@@ -96,7 +98,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               )}
             >
               <item.icon className={cn("h-5 w-5", isActive && "fill-primary/10")} />
-              <span>{item.title}</span>
+              <span className="hidden sm:block">{item.title}</span>
             </Link>
           );
         })}

@@ -9,6 +9,8 @@ import ShotList from "@/pages/ShotList";
 import ShotForm from "@/pages/ShotForm";
 import ShotDetail from "@/pages/ShotDetail";
 import ReferenceShots from "@/pages/ReferenceShots";
+import ImportAudit from "@/pages/ImportAudit";
+import Settings from "@/pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +23,8 @@ function Router() {
         <Route path="/shots/new" component={ShotForm} />
         <Route path="/shots/:id" component={ShotDetail} />
         <Route path="/reference" component={ReferenceShots} />
+        <Route path="/audit" component={ImportAudit} />
+        <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
     </Shell>

@@ -38,6 +38,35 @@ router.get("/shots/reference", async (req, res): Promise<void> => {
   res.json(shots);
 });
 
+// --- GET /shots/audit ---
+router.get("/shots/audit", async (req, res): Promise<void> => {
+  const shots = await db
+    .select()
+    .from(shotsTable)
+    .orderBy(sql`${shotsTable.shotDate} ASC`);
+
+  const totalColumns = shots[0]?.rawRow ? Object.keys(shots[0].rawRow).length : 0;
+  const uniqueBags = [...new Set(shots.map((s) => s.bag).filter(Boolean))].sort();
+  const uniqueStatuses = [...new Set(shots.map((s) => s.status).filter(Boolean))].sort();
+  const uniqueFaultStatuses = [...new Set(shots.map((s) => s.faultStatus).filter(Boolean))].sort();
+  const refShots = shots.filter((s) => s.isReference);
+  const nonRefShots = shots.filter((s) => !s.isReference);
+
+  const summary = {
+    totalRows: shots.length,
+    totalColumns,
+    earliestDate: shots[0]?.shotDate ?? null,
+    latestDate: shots[shots.length - 1]?.shotDate ?? null,
+    uniqueBags,
+    uniqueStatuses,
+    uniqueFaultStatuses,
+    referenceShots: refShots.length,
+    nonReferenceShots: nonRefShots.length,
+  };
+
+  res.json({ summary, shots });
+});
+
 // --- POST /shots/import-csv ---
 router.post("/shots/import-csv", async (req, res): Promise<void> => {
   const parsed = ImportShotsCsvBody.safeParse(req.body);
@@ -49,7 +78,13 @@ router.post("/shots/import-csv", async (req, res): Promise<void> => {
   const { csvText } = parsed.data;
   const result = parseCsvAndImport(csvText);
   const rows = result.rows;
+  const headers = result.headers;
   const errors = result.errors;
+
+  if (errors.length > 0 && rows.length === 0) {
+    res.status(400).json({ error: errors[0], errors });
+    return;
+  }
 
   let imported = 0;
   let skipped = 0;
@@ -57,11 +92,6 @@ router.post("/shots/import-csv", async (req, res): Promise<void> => {
 
   for (const row of rows) {
     try {
-      if (!row.shotDate) { skipped++; continue; }
-      // Skip non-shot rows (hopper refill, maintenance, etc.) by checking status
-      const skipStatuses = ["Hopper Refill", "Maintenance - Grinder", "Reconciliation to Zero Out Hopper"];
-      if (row.status && skipStatuses.includes(row.status)) { skipped++; continue; }
-
       await db.insert(shotsTable).values(row);
       imported++;
     } catch (err) {
@@ -71,7 +101,27 @@ router.post("/shots/import-csv", async (req, res): Promise<void> => {
     }
   }
 
-  res.json({ imported, skipped, errors: insertErrors });
+  // Validate expected count
+  const EXPECTED_ROWS = 132;
+  const warning = imported !== EXPECTED_ROWS
+    ? `Warning: imported ${imported} rows but expected ${EXPECTED_ROWS}. Check for missing/duplicate rows.`
+    : null;
+
+  // Build summary
+  const allShots = await db.select().from(shotsTable).orderBy(sql`${shotsTable.shotDate} ASC`);
+  const summary = {
+    totalRows: imported,
+    totalColumns: headers.length,
+    earliestDate: allShots[0]?.shotDate ?? null,
+    latestDate: allShots[allShots.length - 1]?.shotDate ?? null,
+    uniqueBags: [...new Set(allShots.map((s) => s.bag).filter(Boolean))].sort(),
+    uniqueStatuses: [...new Set(allShots.map((s) => s.status).filter(Boolean))].sort(),
+    uniqueFaultStatuses: [...new Set(allShots.map((s) => s.faultStatus).filter(Boolean))].sort(),
+    referenceShots: allShots.filter((s) => s.isReference).length,
+    nonReferenceShots: allShots.filter((s) => !s.isReference).length,
+  };
+
+  res.json({ imported, skipped, errors: insertErrors, warning, summary });
 });
 
 // --- GET /shots ---
@@ -120,7 +170,12 @@ router.get("/shots", async (req, res): Promise<void> => {
     .limit(limit)
     .offset(offset);
 
-  res.json(shots);
+  const total = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(shotsTable)
+    .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+  res.json({ shots, total: Number(total[0]?.count ?? 0) });
 });
 
 // --- POST /shots ---
@@ -130,8 +185,8 @@ router.post("/shots", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [shot] = await db.insert(shotsTable).values(parsed.data).returning();
-  res.status(201).json(shot);
+  const shot = await db.insert(shotsTable).values(parsed.data).returning();
+  res.status(201).json(shot[0]);
 });
 
 // --- GET /shots/:id ---
@@ -141,38 +196,9 @@ router.get("/shots/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const [shot] = await db.select().from(shotsTable).where(eq(shotsTable.id, params.data.id));
-  if (!shot) { res.status(404).json({ error: "Shot not found" }); return; }
-  res.json(shot);
-});
-
-// --- PATCH /shots/:id ---
-router.patch("/shots/:id", async (req, res): Promise<void> => {
-  const params = UpdateShotParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
-  const parsed = UpdateShotBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-  const [shot] = await db.update(shotsTable).set(parsed.data).where(eq(shotsTable.id, params.data.id)).returning();
-  if (!shot) { res.status(404).json({ error: "Shot not found" }); return; }
-  res.json(shot);
-});
-
-// --- DELETE /shots/:id ---
-router.delete("/shots/:id", async (req, res): Promise<void> => {
-  const params = DeleteShotParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
-  const [shot] = await db.delete(shotsTable).where(eq(shotsTable.id, params.data.id)).returning();
-  if (!shot) { res.status(404).json({ error: "Shot not found" }); return; }
-  res.sendStatus(204);
+  const shot = await db.select().from(shotsTable).where(eq(shotsTable.id, Number(params.data.id)));
+  if (!shot[0]) { res.status(404).json({ error: "Shot not found" }); return; }
+  res.json(shot[0]);
 });
 
 // --- GET /shots/:id/similar ---
@@ -182,22 +208,22 @@ router.get("/shots/:id/similar", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const [base] = await db.select().from(shotsTable).where(eq(shotsTable.id, params.data.id));
-  if (!base) { res.status(404).json({ error: "Shot not found" }); return; }
+  const base = await db.select().from(shotsTable).where(eq(shotsTable.id, Number(params.data.id)));
+  if (!base[0]) { res.status(404).json({ error: "Shot not found" }); return; }
 
-  const conditions = [sql`${shotsTable.id} != ${params.data.id}`];
-  if (base.bean) conditions.push(ilike(shotsTable.bean, `%${base.bean}%`));
-  if (base.dose != null) {
-    conditions.push(gte(shotsTable.dose, base.dose - 0.5));
-    conditions.push(lte(shotsTable.dose, base.dose + 0.5));
+  const conditions = [sql`${shotsTable.id} != ${Number(params.data.id)}`];
+  if (base[0].bean) conditions.push(eq(shotsTable.bean, base[0].bean));
+  if (base[0].grindSetting != null) {
+    conditions.push(gte(shotsTable.grindSetting, base[0].grindSetting - 0.15));
+    conditions.push(lte(shotsTable.grindSetting, base[0].grindSetting + 0.15));
   }
-  if (base.yield != null) {
-    conditions.push(gte(shotsTable.yield, base.yield - 2.0));
-    conditions.push(lte(shotsTable.yield, base.yield + 2.0));
+  if (base[0].dose != null) {
+    conditions.push(gte(shotsTable.dose, base[0].dose - 0.5));
+    conditions.push(lte(shotsTable.dose, base[0].dose + 0.5));
   }
-  if (base.pourDelay != null) {
-    conditions.push(gte(shotsTable.pourDelay, base.pourDelay - 3));
-    conditions.push(lte(shotsTable.pourDelay, base.pourDelay + 3));
+  if (base[0].pourDelay != null) {
+    conditions.push(gte(shotsTable.pourDelay, base[0].pourDelay - 3));
+    conditions.push(lte(shotsTable.pourDelay, base[0].pourDelay + 3));
   }
 
   const similar = await db.select().from(shotsTable)
@@ -208,6 +234,34 @@ router.get("/shots/:id/similar", async (req, res): Promise<void> => {
   res.json(similar);
 });
 
+// --- PATCH /shots/:id ---
+router.patch("/shots/:id", async (req, res): Promise<void> => {
+  const params = UpdateShotParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  const body = UpdateShotBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+  const shot = await db.update(shotsTable).set(body.data).where(eq(shotsTable.id, Number(params.data.id))).returning();
+  if (!shot[0]) { res.status(404).json({ error: "Shot not found" }); return; }
+  res.json(shot[0]);
+});
+
+// --- DELETE /shots/:id ---
+router.delete("/shots/:id", async (req, res): Promise<void> => {
+  const params = DeleteShotParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+  await db.delete(shotsTable).where(eq(shotsTable.id, Number(params.data.id)));
+  res.status(204).end();
+});
+
 // ---- CSV parsing helper ----
 type ShotRow = {
   shotDate: string;
@@ -216,7 +270,17 @@ type ShotRow = {
   grindSetting?: number | null;
   grindTime?: number | null;
   initialGrindWeight?: number | null;
+  totalOutput?: number | null;
   dose?: number | null;
+  timeAdj?: number | null;
+  topUpGrind?: number | null;
+  overGrindRemoved?: number | null;
+  beanDelta?: number | null;
+  grindWaste?: number | null;
+  beansAdded?: number | null;
+  doseCorrectionType?: string | null;
+  doseCorrection?: number | null;
+  outputDelta?: number | null;
   yield?: number | null;
   ratio?: string | null;
   temperature?: number | null;
@@ -225,73 +289,103 @@ type ShotRow = {
   scaleTime?: number | null;
   rating?: number | null;
   preferenceRating?: number | null;
-  status?: string | null;
-  faultStatus?: string | null;
-  isReference: boolean;
+  ratingDifference?: number | null;
+  avgWeightedRating?: number | null;
+  rated?: boolean | null;
   isForOthers?: boolean | null;
+  isReference: boolean;
+  signatureShot?: boolean | null;
+  drinkType?: string | null;
+  status?: string | null;
+  shotClassification?: string | null;
+  faultStatus?: string | null;
+  referenceType?: string | null;
+  expressionStyle?: string | null;
+  dailyDriverCount?: number | null;
+  includeInAnalysis?: boolean | null;
   notes?: string | null;
-  sensoryNotes?: string | null;
+  faultNotes?: string | null;
+  bagOpenedDate?: string | null;
+  hopperPhase?: string | null;
   grindAdjusted?: string | null;
-  doseCorrection?: number | null;
-  doseCorrectionType?: string | null;
   shotsLeftEst?: number | null;
+  finishedShot?: boolean | null;
+  sensoryNotes?: string | null;
+  rawRow?: Record<string, string>;
 };
 
-function parseCsvAndImport(csvText: string): { rows: ShotRow[]; errors: string[] } {
+function parseCsvAndImport(csvText: string): { rows: ShotRow[]; headers: string[]; errors: string[] } {
   const rows: ShotRow[] = [];
   const errors: string[] = [];
 
-  // Parse CSV with quoted fields support
   const records = parseCSV(csvText);
-  if (records.length < 2) return { rows, errors: ["No data rows found"] };
+  if (records.length < 2) return { rows, headers: [], errors: ["No data rows found"] };
 
-  const header = records[0];
-  const colIdx = (name: string) => header.findIndex(h => h.trim().toLowerCase() === name.toLowerCase());
+  // Strip BOM from first header if present
+  const rawHeaders = records[0].map((h, i) => i === 0 ? h.replace(/^\uFEFF/, "").trim() : h.trim());
 
-  const idxDate = 0;
-  const idxBag = 1;
-  const idxShotsLeft = 2;
-  const idxGrindSetting = 3;
-  const idxGrindAdjusted = 4;
-  const idxGrindTime = 5;
-  const idxInitialOutput = 6;
-  const idxDose = 8;
-  const idxDoseCorrType = 15;
-  const idxCorrectionAmount = 16;
-  const idxTemp = 18;
-  const idxPourDelay = 19;
-  const idxPourTime = 20;
-  const idxScaleTime = 21;
-  const idxYield = 22;
-  const idxRatio = 23;
-  const idxRating = 25;
-  const idxPrefRating = 26;
-  const idxForOthers = 30;
-  const idxReference = 31;
-  const idxShotStatus = 34;
-  const idxFaultStatus = 36;
-  const idxNotes = 41;
+  // Build column index map from actual headers
+  const colIdx = (name: string) => rawHeaders.findIndex(h => h.toLowerCase() === name.toLowerCase());
 
-  void colIdx; // suppress unused warning
+  const idxDate          = colIdx("Date");
+  const idxBag           = colIdx("Bag");
+  const idxShotsLeft     = colIdx("Shots Left (est)");
+  const idxGrindSetting  = colIdx("Grinder Setting");
+  const idxGrindAdjusted = colIdx("Grind Adjusted");
+  const idxGrindTime     = colIdx("Grind Time");
+  const idxInitialOutput = colIdx("Initial Output (g)");
+  const idxTotalOutput   = colIdx("Total Output (g)");
+  const idxDose          = colIdx("Dose (g)");
+  const idxTimeAdj       = colIdx("Time Adj (sec)");
+  const idxTopUpGrind    = colIdx("Top-Up Grind (g)");
+  const idxOverGrind     = colIdx("Over Grind Removed (g)");
+  const idxBeanDelta     = colIdx("Bean Delta");
+  const idxGrindWaste    = colIdx("Grind Waste (g)");
+  const idxBeansAdded    = colIdx("Beans Added (g)");
+  const idxDoseCorrType  = colIdx("Dose Correction Type");
+  const idxCorrAmount    = colIdx("Correction Amount (g)");
+  const idxOutputDelta   = colIdx("Output Delta (g)");
+  const idxTemp          = colIdx("Temp");
+  const idxPourDelay     = colIdx("Pour Delay");
+  const idxPourTime      = colIdx("Pour Time (sec)");
+  const idxScaleTime     = colIdx("Scale Time");
+  const idxYield         = colIdx("Yield (g)");
+  const idxRatio         = colIdx("Ratio");
+  const idxFinished      = colIdx("Finished Shot");
+  const idxRating        = colIdx("Rating");
+  const idxPrefRating    = colIdx("Preference Rating");
+  const idxRatingDiff    = colIdx("Rating Difference");
+  const idxAvgRating     = colIdx("Average Rating and Preference Rating weighted to Preference");
+  const idxRated         = colIdx("Rated");
+  const idxForOthers     = colIdx("For Others");
+  const idxReference     = colIdx("Reference Shot");
+  const idxSignature     = colIdx("Signature Shot");
+  const idxDrinkType     = colIdx("Drink Type");
+  const idxShotStatus    = colIdx("Shot Status");
+  const idxShotClass     = colIdx("Shot Classification");
+  const idxFaultStatus   = colIdx("Fault Status");
+  const idxRefType       = colIdx("Reference Shot Type");
+  const idxExpStyle      = colIdx("Expression Style");
+  const idxDailyDriver   = colIdx("Daily Driver Count");
+  const idxInclude       = colIdx("Include in Analysis");
+  const idxNotes         = colIdx("Notes");
+  const idxFaultNotes    = colIdx("Fault Notes");
+  const idxBagOpenedDate = colIdx("Bag Opened Date");
+  const idxHopperPhase   = colIdx("Hopper Phase");
 
   for (let i = 1; i < records.length; i++) {
     const r = records[i];
-    if (!r || r.length < 5) continue;
+    if (!r || r.length < 2) continue;
 
     const dateStr = r[idxDate]?.trim();
     if (!dateStr) continue;
 
-    // Parse date - the format is like "2026-04-21 4:40am"
-    // Convert to ISO-like string
+    // Parse date
     let shotDate = dateStr;
     try {
       const d = new Date(dateStr.replace(/(\d+)(am|pm)/i, "$1 $2"));
-      if (!isNaN(d.getTime())) {
-        shotDate = d.toISOString();
-      }
-    } catch {
-      // keep as-is
-    }
+      if (!isNaN(d.getTime())) shotDate = d.toISOString();
+    } catch { /* keep raw string */ }
 
     const num = (v: string | undefined): number | null => {
       if (v == null || v.trim() === "") return null;
@@ -303,15 +397,17 @@ function parseCsvAndImport(csvText: string): { rows: ShotRow[]; errors: string[]
       const n = parseInt(v.trim(), 10);
       return isNaN(n) ? null : n;
     };
-    const bool = (v: string | undefined): boolean => {
-      return v?.trim().toLowerCase() === "checked";
+    const bool = (v: string | undefined): boolean => v?.trim().toLowerCase() === "checked";
+    const boolOrNull = (v: string | undefined): boolean | null => {
+      if (v == null || v.trim() === "") return null;
+      return v.trim().toLowerCase() === "checked";
     };
     const str = (v: string | undefined): string | null => {
       const s = v?.trim();
       return s && s !== "" ? s : null;
     };
 
-    // Derive bean name from bag number based on known bag history
+    // Derive bean from bag number
     const bagNum = str(r[idxBag]);
     const beanByBag: Record<string, string> = {
       "2": "MH Brazil",
@@ -320,6 +416,12 @@ function parseCsvAndImport(csvText: string): { rows: ShotRow[]; errors: string[]
     };
     const beanName = bagNum ? (beanByBag[bagNum] ?? `MH Bag ${bagNum}`) : null;
 
+    // Store all 87 columns verbatim
+    const rawRow: Record<string, string> = {};
+    for (let c = 0; c < rawHeaders.length; c++) {
+      rawRow[rawHeaders[c]] = r[c] ?? "";
+    }
+
     const row: ShotRow = {
       shotDate,
       bag: bagNum,
@@ -327,7 +429,17 @@ function parseCsvAndImport(csvText: string): { rows: ShotRow[]; errors: string[]
       grindSetting: num(r[idxGrindSetting]),
       grindTime: num(r[idxGrindTime]),
       initialGrindWeight: num(r[idxInitialOutput]),
+      totalOutput: num(r[idxTotalOutput]),
       dose: num(r[idxDose]),
+      timeAdj: num(r[idxTimeAdj]),
+      topUpGrind: num(r[idxTopUpGrind]),
+      overGrindRemoved: num(r[idxOverGrind]),
+      beanDelta: num(r[idxBeanDelta]),
+      grindWaste: num(r[idxGrindWaste]),
+      beansAdded: num(r[idxBeansAdded]),
+      doseCorrectionType: str(r[idxDoseCorrType]),
+      doseCorrection: num(r[idxCorrAmount]),
+      outputDelta: num(r[idxOutputDelta]),
       yield: num(r[idxYield]),
       ratio: str(r[idxRatio]),
       temperature: int(r[idxTemp]),
@@ -336,22 +448,35 @@ function parseCsvAndImport(csvText: string): { rows: ShotRow[]; errors: string[]
       scaleTime: int(r[idxScaleTime]),
       rating: num(r[idxRating]),
       preferenceRating: num(r[idxPrefRating]),
-      status: str(r[idxShotStatus]),
-      faultStatus: str(r[idxFaultStatus]),
+      ratingDifference: num(r[idxRatingDiff]),
+      avgWeightedRating: num(r[idxAvgRating]),
+      rated: boolOrNull(r[idxRated]),
+      isForOthers: boolOrNull(r[idxForOthers]),
       isReference: bool(r[idxReference]),
-      isForOthers: bool(r[idxForOthers]) || null,
+      signatureShot: boolOrNull(r[idxSignature]),
+      drinkType: str(r[idxDrinkType]),
+      status: str(r[idxShotStatus]),
+      shotClassification: str(r[idxShotClass]),
+      faultStatus: str(r[idxFaultStatus]),
+      referenceType: str(r[idxRefType]),
+      expressionStyle: str(r[idxExpStyle]),
+      dailyDriverCount: int(r[idxDailyDriver]),
+      includeInAnalysis: boolOrNull(r[idxInclude]),
       notes: str(r[idxNotes]),
-      sensoryNotes: null,
+      faultNotes: str(r[idxFaultNotes]),
+      bagOpenedDate: str(r[idxBagOpenedDate]),
+      hopperPhase: str(r[idxHopperPhase]),
       grindAdjusted: str(r[idxGrindAdjusted]),
-      doseCorrection: num(r[idxCorrectionAmount]),
-      doseCorrectionType: str(r[idxDoseCorrType]),
       shotsLeftEst: num(r[idxShotsLeft]),
+      finishedShot: boolOrNull(r[idxFinished]),
+      sensoryNotes: null,
+      rawRow,
     };
 
     rows.push(row);
   }
 
-  return { rows, errors };
+  return { rows, headers: rawHeaders, errors };
 }
 
 /**
@@ -371,11 +496,9 @@ function parseCSV(text: string): string[][] {
     if (inQuotes) {
       if (ch === '"') {
         if (i + 1 < n && text[i + 1] === '"') {
-          // Escaped quote
           field += '"';
           i += 2;
         } else {
-          // End of quoted field
           inQuotes = false;
           i++;
         }
@@ -407,8 +530,7 @@ function parseCSV(text: string): string[][] {
     }
   }
 
-  // Last field/row
-  if (field || row.length > 0) {
+  if (field !== "" || row.length > 0) {
     row.push(field);
     if (row.some(f => f.trim() !== "")) results.push(row);
   }

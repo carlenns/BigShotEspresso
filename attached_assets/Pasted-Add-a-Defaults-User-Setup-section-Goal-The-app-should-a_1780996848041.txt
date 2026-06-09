@@ -1,0 +1,114 @@
+Add a Defaults / User Setup section.
+
+Goal:
+The app should allow users to define default values for repeated fields so shot entry is faster and more consistent.
+
+Create a Settings area called “Defaults”.
+
+Default categories:
+
+1. User Defaults
+- Default brew method
+- Default rating system
+- Default unit system
+- Default time format
+- Default temperature unit
+
+2. Espresso Recipe Defaults
+- Default dose
+- Default target yield
+- Default brew ratio
+- Default brew temperature
+- Default target pour time
+- Default target first pour delay
+- Default basket size
+- Default puck screen use
+
+3. Grinder Defaults
+- Default grinder
+- Default grind setting
+- Default grind time
+- Default timer mode
+- Default hopper fullness tracking on/off
+- Default hopper fullness value if user wants one
+
+Important:
+Grind setting should be remembered and carried forward until the user changes it.
+If the user changes grind setting on a shot, offer:
+- Use only for this shot
+- Update default grind setting
+
+4. Equipment Defaults
+- Default espresso machine
+- Default regular grinder
+- Default decaf grinder
+- Default pour-over grinder
+- Default basket
+- Default scale
+- Default tamper
+- Default puck screen
+
+5. Bean / Bag Defaults
+When a user selects an active bag, auto-fill:
+- Bean
+- Bag
+- Roast date
+- Open date
+- Days since opening
+- Roast level
+- Origin
+- Process
+
+6. Shot Entry Behavior
+On new shot entry:
+- Auto-fill defaults.
+- Allow user to override any default.
+- Do not overwrite stored defaults unless user chooses to update them.
+- Remember the last used grinder setting.
+- Remember the last used temperature.
+- Remember the last selected active bag.
+- Remember the last selected template.
+
+7. Template Defaults
+Each logging template may have its own defaults.
+
+Examples:
+Daily Espresso:
+- Default dose: 18g
+- Default target yield: 35–36g
+- Default machine: Profitec Go
+- Default grinder: Eureka Magnifico
+- Default temperature: 94°C
+
+Decaf Espresso:
+- Different grinder
+- Different default dose
+- Different active bag
+
+Pour-over:
+- Different grinder
+- Different brew method
+- Different dose/yield structure
+
+8. Defaults Display
+Show a clear “Current Defaults” panel before or during shot entry.
+
+Example:
+Current Defaults:
+- Bean: Costa Rica
+- Bag: Bag 4
+- Grinder: Eureka Magnifico
+- Grind setting: 2.33
+- Grind time: 8.1 sec
+- Dose: 18g
+- Target yield: 35g
+- Temperature: 94°C
+- Template: Daily Espresso
+
+9. Data Integrity
+Defaults are only convenience values.
+They must never replace the actual recorded shot values.
+Each shot must store the actual values used for that shot.
+
+10. Future Airtable Compatibility
+Design defaults so they can later map to Airtable fields or a User Settings table.
