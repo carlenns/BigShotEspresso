@@ -311,10 +311,19 @@ function parseCsvAndImport(csvText: string): { rows: ShotRow[]; errors: string[]
       return s && s !== "" ? s : null;
     };
 
+    // Derive bean name from bag number based on known bag history
+    const bagNum = str(r[idxBag]);
+    const beanByBag: Record<string, string> = {
+      "2": "MH Brazil",
+      "3": "MH Guatemala",
+      "4": "MH Costa Rica",
+    };
+    const beanName = bagNum ? (beanByBag[bagNum] ?? `MH Bag ${bagNum}`) : null;
+
     const row: ShotRow = {
       shotDate,
-      bag: str(r[idxBag]),
-      bean: "MH Brazil", // Default bean name from context
+      bag: bagNum,
+      bean: beanName,
       grindSetting: num(r[idxGrindSetting]),
       grindTime: num(r[idxGrindTime]),
       initialGrindWeight: num(r[idxInitialOutput]),
