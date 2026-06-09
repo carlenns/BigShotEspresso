@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Coffee Log"
+version = "1.0.0"
+id = "artifacts/coffee-log"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18161
+
+[services.development]
+run = "pnpm --filter @workspace/coffee-log run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/coffee-log", "run", "build" ]
+publicDir = "artifacts/coffee-log/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18161"
+BASE_PATH = "/"

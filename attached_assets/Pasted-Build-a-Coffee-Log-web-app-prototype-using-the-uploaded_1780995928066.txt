@@ -1,0 +1,158 @@
+Build a Coffee Log web app prototype using the uploaded CSV as the starting dataset.
+
+Project goal:
+Create a practical espresso logging and analysis app based on my Coffee Log system. The app should help me enter shots, filter shots, compare reference shots, and detect patterns in espresso extraction, grinder behavior, and taste.
+
+Core concept:
+This is not just a coffee journal. It is an espresso analysis tool focused on:
+- Shot repeatability
+- Grinder timer output
+- Hopper fill level / column pressure
+- Dose consistency
+- First pour delay
+- Pour time
+- Scale time
+- Yield
+- Shot quality
+- Fault status
+- Bean and bag performance
+- Sensory notes as coffee cools
+
+Use the uploaded CSV as the first data source.
+
+Required pages:
+
+1. Dashboard
+Show practical summary cards:
+- Total shots
+- Reference shots
+- Average dose
+- Average yield
+- Average pour time
+- Average first pour delay
+- Best-rated shots
+- Most-used beans
+- Recent shots
+
+2. Shot List
+Create a searchable, filterable table.
+Filters should include:
+- Bean
+- Bag
+- Shot status
+- Fault status
+- Reference shot / non-reference shot
+- Rating range
+- First pour delay range
+- Pour time range
+- Dose range
+- Yield range
+- Hopper fullness range
+- Date range
+
+3. Shot Detail Page
+Show all details for one shot:
+- Bean / bag
+- Date and time
+- Grinder setting
+- Grind time
+- Initial grind weight
+- Basket dose
+- Adjustment / trim
+- Brew temperature
+- First pour delay
+- Pour time
+- Scale time
+- Yield
+- Rating
+- Shot status
+- Fault status
+- Notes
+- Sensory notes
+
+4. Shot Entry Form
+Allow new shots to be entered.
+Make fields practical and fast for daily use.
+Use sensible defaults:
+- Dose around 18g
+- Yield around 35–36g
+- Temperature 94°C
+- Grinder and machine can be saved as defaults
+
+5. Reference Shot Analysis
+Create a special view for reference shots only.
+Allow filtering by:
+- First pour delay
+- Bean
+- Bag
+- Rating
+- Yield
+- Pour time
+
+Show:
+- Best reference shots
+- Common ranges among high-rated reference shots
+- Similar shots
+
+6. Similar Shot Finder
+When viewing a shot, show other shots with similar:
+- Bean
+- Dose
+- Yield
+- First pour delay
+- Pour time
+- Grind setting
+
+This is more important than fancy charts.
+
+7. Insight Panel
+Generate plain-language insights such as:
+- “Your best shots tend to occur between 6–8 seconds first pour delay.”
+- “This bean performs best around 35g yield.”
+- “Shots marked sour often have shorter pour times.”
+- “Reference shots for this bag cluster around this recipe.”
+
+Important design philosophy:
+Prioritize filtering, comparison, and practical insight over decorative dashboards.
+Charts are secondary.
+The main value is helping me ask questions of the data.
+
+Visual design:
+Clean, simple, mobile-friendly.
+Use a calm coffee-inspired interface.
+Make it usable on iPhone.
+
+Technical requirements:
+- Use the uploaded CSV as seed data.
+- Store data locally first using a simple database.
+- Make the app easy to later connect to Airtable API.
+- Keep code organized and easy to modify.
+- Add comments where helpful.
+- Do not over-engineer.
+
+Future Airtable integration:
+Design the data model so that later it can connect to these Airtable tables:
+- Beans
+- Bags
+- Shots
+- Shot Fault Rules
+- Project Notes
+- 10-Point Rating System
+
+Important interpretation rule:
+Dose means actual basket dose, not total grinder output.
+If initial grind weight differs from basket dose because of spillage, trimming, or overflow, analyze the shot using basket dose and treat the discrepancy separately.
+
+Reference shot logic:
+A reference shot does not have to be my favourite.
+It means the shot is mechanically valid and useful for comparison.
+However, if a shot is unpleasant because of likely extraction fault, it should not automatically be considered reference-worthy.
+
+Build the first working version with:
+- CSV import
+- Shot table
+- Filters
+- Shot detail page
+- Basic dashboard
+- Reference shot view
+- Similar shot finder

@@ -3,13 +3,20 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Coffee Log API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: shots
+    description: Espresso shot operations
+  - name: dashboard
+    description: Dashboard summaries
+  - name: insights
+    description: Pattern insights
+
 paths:
   /healthz:
     get:
@@ -24,6 +31,318 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /shots:
+    get:
+      operationId: listShots
+      tags: [shots]
+      summary: List all shots with optional filters
+      parameters:
+        - name: bean
+          in: query
+          schema: { type: string }
+        - name: bag
+          in: query
+          schema: { type: ["string", "null"] }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: faultStatus
+          in: query
+          schema: { type: string }
+        - name: isReference
+          in: query
+          schema: { type: string }
+        - name: ratingMin
+          in: query
+          schema: { type: string }
+        - name: ratingMax
+          in: query
+          schema: { type: string }
+        - name: pourDelayMin
+          in: query
+          schema: { type: string }
+        - name: pourDelayMax
+          in: query
+          schema: { type: string }
+        - name: pourTimeMin
+          in: query
+          schema: { type: string }
+        - name: pourTimeMax
+          in: query
+          schema: { type: string }
+        - name: doseMin
+          in: query
+          schema: { type: string }
+        - name: doseMax
+          in: query
+          schema: { type: string }
+        - name: yieldMin
+          in: query
+          schema: { type: string }
+        - name: yieldMax
+          in: query
+          schema: { type: string }
+        - name: dateFrom
+          in: query
+          schema: { type: string }
+        - name: dateTo
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: string }
+        - name: offset
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: List of shots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Shot"
+
+    post:
+      operationId: createShot
+      tags: [shots]
+      summary: Create a new shot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShotInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shot"
+
+  /shots/import-csv:
+    post:
+      operationId: importShotsCsv
+      tags: [shots]
+      summary: Import shots from CSV text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CsvImportInput"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CsvImportResult"
+
+  /shots/{id}:
+    get:
+      operationId: getShot
+      tags: [shots]
+      summary: Get a single shot by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Shot details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shot"
+        "404":
+          description: Not found
+
+    patch:
+      operationId: updateShot
+      tags: [shots]
+      summary: Update a shot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShotUpdate"
+      responses:
+        "200":
+          description: Updated shot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shot"
+        "404":
+          description: Not found
+
+    delete:
+      operationId: deleteShot
+      tags: [shots]
+      summary: Delete a shot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  /shots/{id}/similar:
+    get:
+      operationId: getSimilarShots
+      tags: [shots]
+      summary: Get shots similar to the given shot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Similar shots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Shot"
+        "404":
+          description: Not found
+
+  /shots/reference:
+    get:
+      operationId: listReferenceShots
+      tags: [shots]
+      summary: List reference shots with optional filters
+      parameters:
+        - name: bean
+          in: query
+          schema: { type: string }
+        - name: bag
+          in: query
+          schema: { type: string }
+        - name: ratingMin
+          in: query
+          schema: { type: string }
+        - name: yieldMin
+          in: query
+          schema: { type: string }
+        - name: yieldMax
+          in: query
+          schema: { type: string }
+        - name: pourTimeMin
+          in: query
+          schema: { type: string }
+        - name: pourTimeMax
+          in: query
+          schema: { type: string }
+        - name: pourDelayMin
+          in: query
+          schema: { type: string }
+        - name: pourDelayMax
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Reference shots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Shot"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Dashboard summary statistics
+      responses:
+        "200":
+          description: Summary stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/recent:
+    get:
+      operationId: getRecentShots
+      tags: [dashboard]
+      summary: Most recent shots
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Recent shots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Shot"
+
+  /dashboard/best-rated:
+    get:
+      operationId: getBestRatedShots
+      tags: [dashboard]
+      summary: Best-rated shots
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Best-rated shots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Shot"
+
+  /insights:
+    get:
+      operationId: getInsights
+      tags: [insights]
+      summary: Plain-language pattern insights from shot data
+      parameters:
+        - name: bean
+          in: query
+          schema: { type: string }
+        - name: bag
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Insights
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Insight"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +353,246 @@ components:
       required:
         - status
 
+    Shot:
+      type: object
+      required: [id, shotDate, createdAt]
+      properties:
+        id:
+          type: integer
+        shotDate:
+          type: string
+        bean:
+          type: ["string", "null"]
+        bag:
+          type: ["string", "null"]
+        grindSetting:
+          type: ["number", "null"]
+        grindTime:
+          type: ["number", "null"]
+        initialGrindWeight:
+          type: ["number", "null"]
+        dose:
+          type: ["number", "null"]
+        yield:
+          type: ["number", "null"]
+        ratio:
+          type: ["string", "null"]
+        temperature:
+          type: ["integer", "null"]
+        pourDelay:
+          type: ["integer", "null"]
+        pourTime:
+          type: ["integer", "null"]
+        scaleTime:
+          type: ["integer", "null"]
+        rating:
+          type: ["number", "null"]
+        preferenceRating:
+          type: ["number", "null"]
+        status:
+          type: ["string", "null"]
+        faultStatus:
+          type: ["string", "null"]
+        isReference:
+          type: boolean
+        isForOthers:
+          type: ["boolean", "null"]
+        notes:
+          type: ["string", "null"]
+        sensoryNotes:
+          type: ["string", "null"]
+        grindAdjusted:
+          type: ["string", "null"]
+        doseCorrection:
+          type: ["number", "null"]
+        doseCorrectionType:
+          type: ["string", "null"]
+        shotsLeftEst:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+
+    ShotInput:
+      type: object
+      required: [shotDate]
+      properties:
+        shotDate:
+          type: string
+        bean:
+          type: string
+        bag:
+          type: string
+        grindSetting:
+          type: ["number", "null"]
+        grindTime:
+          type: ["number", "null"]
+        initialGrindWeight:
+          type: ["number", "null"]
+        dose:
+          type: ["number", "null"]
+        yield:
+          type: ["number", "null"]
+        ratio:
+          type: ["string", "null"]
+        temperature:
+          type: ["integer", "null"]
+        pourDelay:
+          type: ["integer", "null"]
+        pourTime:
+          type: ["integer", "null"]
+        scaleTime:
+          type: ["integer", "null"]
+        rating:
+          type: ["number", "null"]
+        preferenceRating:
+          type: ["number", "null"]
+        status:
+          type: string
+        faultStatus:
+          type: string
+        isReference:
+          type: boolean
+        isForOthers:
+          type: boolean
+        notes:
+          type: string
+        sensoryNotes:
+          type: string
+        grindAdjusted:
+          type: string
+        doseCorrection:
+          type: ["number", "null"]
+        doseCorrectionType:
+          type: string
+        shotsLeftEst:
+          type: ["number", "null"]
+
+    ShotUpdate:
+      type: object
+      properties:
+        shotDate:
+          type: string
+        bean:
+          type: string
+        bag:
+          type: string
+        grindSetting:
+          type: ["number", "null"]
+        grindTime:
+          type: ["number", "null"]
+        initialGrindWeight:
+          type: ["number", "null"]
+        dose:
+          type: ["number", "null"]
+        yield:
+          type: ["number", "null"]
+        ratio:
+          type: ["string", "null"]
+        temperature:
+          type: ["integer", "null"]
+        pourDelay:
+          type: ["integer", "null"]
+        pourTime:
+          type: ["integer", "null"]
+        scaleTime:
+          type: ["integer", "null"]
+        rating:
+          type: ["number", "null"]
+        preferenceRating:
+          type: ["number", "null"]
+        status:
+          type: string
+        faultStatus:
+          type: string
+        isReference:
+          type: boolean
+        isForOthers:
+          type: boolean
+        notes:
+          type: string
+        sensoryNotes:
+          type: string
+        grindAdjusted:
+          type: string
+        doseCorrection:
+          type: ["number", "null"]
+        doseCorrectionType:
+          type: string
+        shotsLeftEst:
+          type: ["number", "null"]
+
+    CsvImportInput:
+      type: object
+      required: [csvText]
+      properties:
+        csvText:
+          type: string
+
+    CsvImportResult:
+      type: object
+      required: [imported, skipped, errors]
+      properties:
+        imported:
+          type: integer
+        skipped:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+
+    DashboardSummary:
+      type: object
+      required: [totalShots, referenceShots, avgDose, avgYield, avgPourTime, avgPourDelay, topBeans]
+      properties:
+        totalShots:
+          type: integer
+        referenceShots:
+          type: integer
+        avgDose:
+          type: ["number", "null"]
+        avgYield:
+          type: ["number", "null"]
+        avgPourTime:
+          type: ["number", "null"]
+        avgPourDelay:
+          type: ["number", "null"]
+        topBeans:
+          type: array
+          items:
+            $ref: "#/components/schemas/BeanCount"
+        statusBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatusCount"
+
+    BeanCount:
+      type: object
+      required: [bean, count]
+      properties:
+        bean:
+          type: string
+        count:
+          type: integer
+
+    StatusCount:
+      type: object
+      required: [status, count]
+      properties:
+        status:
+          type: string
+        count:
+          type: integer
+
+    Insight:
+      type: object
+      required: [id, text, category]
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        category:
+          type: string
+        confidence:
+          type: ["string", "null"]
