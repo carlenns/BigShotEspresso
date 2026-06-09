@@ -1,6 +1,6 @@
 import React from "react";
 import { useRoute, Link, useLocation } from "wouter";
-import { useGetShot, useGetSimilarShots, useDeleteShot, getListShotsQueryKey, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
+import { useGetShot, useGetSimilarShots, useDeleteShot, getListShotsQueryKey, getGetDashboardSummaryQueryKey, getGetShotQueryKey, getGetSimilarShotsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,8 +17,8 @@ export default function ShotDetail() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: shot, isLoading, isError } = useGetShot(id, { query: { enabled: !!id }});
-  const { data: similarShots } = useGetSimilarShots(id, { query: { enabled: !!id }});
+  const { data: shot, isLoading, isError } = useGetShot(id, { query: { enabled: !!id, queryKey: getGetShotQueryKey(id) }});
+  const { data: similarShots } = useGetSimilarShots(id, { query: { enabled: !!id, queryKey: getGetSimilarShotsQueryKey(id) }});
   const deleteShot = useDeleteShot();
 
   if (isLoading) {

@@ -1,12 +1,18 @@
 import { pgTable, serial, text, real, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { bagsTable } from "./bags";
+import { grindersTable } from "./equipment";
+import { machinesTable } from "./equipment";
 
 export const shotsTable = pgTable("shots", {
   id: serial("id").primaryKey(),
   shotDate: text("shot_date").notNull(),
+  bagId: integer("bag_id").references(() => bagsTable.id),
   bean: text("bean"),
   bag: text("bag"),
+  grinderId: integer("grinder_id").references(() => grindersTable.id),
+  machineId: integer("machine_id").references(() => machinesTable.id),
   grindSetting: real("grind_setting"),
   grindTime: real("grind_time"),
   initialGrindWeight: real("initial_grind_weight"),

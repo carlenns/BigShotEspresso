@@ -10,8 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ShotList() {
   const [search, setSearch] = useState("");
-  const { data, isLoading } = useListShots({ search, limit: "50" });
-  const shots = data?.shots;
+  const { data: rawData, isLoading } = useListShots({ search, limit: "50" });
+  const shots = (rawData as unknown as { shots: typeof rawData; total: number } | undefined)?.shots;
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -50,7 +50,7 @@ export default function ShotList() {
             No shots found matching your criteria.
           </div>
         ) : (
-          shots?.map((shot) => (
+          shots?.map((shot: NonNullable<typeof shots>[number]) => (
             <Link key={shot.id} href={`/shots/${shot.id}`}>
               <Card className="hover:border-primary/50 transition-colors cursor-pointer">
                 <CardContent className="p-4 flex flex-col sm:flex-row justify-between gap-4">

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, gte, lte, ilike, or, sql } from "drizzle-orm";
-import { db, shotsTable } from "@workspace/db";
+import { db, shotsTable, bagsTable, beansTable } from "@workspace/db";
 import {
   ListShotsQueryParams,
   CreateShotBody,
@@ -76,7 +76,18 @@ router.post("/shots/import-csv", async (req, res): Promise<void> => {
   }
 
   const { csvText } = parsed.data;
-  const result = parseCsvAndImport(csvText);
+
+  // Build bag lookup from DB so the parser never infers bean names inline
+  const allBags = await db
+    .select({ id: bagsTable.id, bagNumber: bagsTable.bagNumber, beanName: beansTable.name })
+    .from(bagsTable)
+    .leftJoin(beansTable, eq(bagsTable.beanId, beansTable.id));
+  const bagLookup = new Map<string, { bagId: number; beanName: string | null }>();
+  for (const b of allBags) {
+    if (b.bagNumber) bagLookup.set(b.bagNumber, { bagId: b.id, beanName: b.beanName ?? null });
+  }
+
+  const result = parseCsvAndImport(csvText, bagLookup);
   const rows = result.rows;
   const headers = result.headers;
   const errors = result.errors;
@@ -265,6 +276,7 @@ router.delete("/shots/:id", async (req, res): Promise<void> => {
 // ---- CSV parsing helper ----
 type ShotRow = {
   shotDate: string;
+  bagId?: number | null;
   bag?: string | null;
   bean?: string | null;
   grindSetting?: number | null;
@@ -314,7 +326,10 @@ type ShotRow = {
   rawRow?: Record<string, string>;
 };
 
-function parseCsvAndImport(csvText: string): { rows: ShotRow[]; headers: string[]; errors: string[] } {
+function parseCsvAndImport(
+  csvText: string,
+  bagLookup: Map<string, { bagId: number; beanName: string | null }> = new Map()
+): { rows: ShotRow[]; headers: string[]; errors: string[] } {
   const rows: ShotRow[] = [];
   const errors: string[] = [];
 
@@ -407,14 +422,11 @@ function parseCsvAndImport(csvText: string): { rows: ShotRow[]; headers: string[
       return s && s !== "" ? s : null;
     };
 
-    // Derive bean from bag number
+    // Resolve bag/bean via the bags table — no hardcoded inference
     const bagNum = str(r[idxBag]);
-    const beanByBag: Record<string, string> = {
-      "2": "MH Brazil",
-      "3": "MH Guatemala",
-      "4": "MH Costa Rica",
-    };
-    const beanName = bagNum ? (beanByBag[bagNum] ?? `MH Bag ${bagNum}`) : null;
+    const bagRecord = bagNum ? bagLookup.get(bagNum) : undefined;
+    const beanName = bagRecord?.beanName ?? null;
+    const bagIdVal = bagRecord?.bagId ?? null;
 
     // Store all 87 columns verbatim
     const rawRow: Record<string, string> = {};
@@ -424,6 +436,7 @@ function parseCsvAndImport(csvText: string): { rows: ShotRow[]; headers: string[
 
     const row: ShotRow = {
       shotDate,
+      bagId: bagIdVal,
       bag: bagNum,
       bean: beanName,
       grindSetting: num(r[idxGrindSetting]),

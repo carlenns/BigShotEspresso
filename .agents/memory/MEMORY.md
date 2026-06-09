@@ -1,0 +1,3 @@
+- [Generated hook queryKey](generated-hook-querykey.md) — Orval-generated hooks require explicit `queryKey` in `{ query: { queryKey } }` options to satisfy TypeScript.
+- [ShotList data shape mismatch](shotlist-data-shape.md) — `useListShots` is typed as `Shot[]` but API returns `{ shots, total }` — cast with `as unknown as { shots: typeof data; total: number }`.
+- [CSV import bag lookup](csv-import-bag-lookup.md) — Import route fetches bags+beans from DB before parsing; never infers bean names inline. Bag seeding must happen before CSV import.

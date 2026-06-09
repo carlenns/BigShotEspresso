@@ -1,0 +1,338 @@
+Coffee Log Architecture Revision
+
+This application is evolving from a coffee logger into a coffee analysis platform.
+
+The goal is not simply storing shot data.
+
+The goal is helping users discover repeatable recipes, identify patterns, compare equipment, compare beans, and reproduce their best shots.
+
+--------------------------------------------------
+CORE DESIGN PRINCIPLE
+--------------------------------------------------
+
+The primary value of the application is:
+
+- Filtering
+- Comparison
+- Similar Shot Search
+- Reference Shot Analysis
+- Pattern Discovery
+
+Charts and dashboards are secondary.
+
+--------------------------------------------------
+DATABASE STRUCTURE
+--------------------------------------------------
+
+Maintain these primary entities:
+
+Beans
+- Master bean information
+
+Bags
+- Purchased bags linked to beans
+
+Shots
+- Individual shot records
+
+Shot Fault Rules
+- Fault classifications
+
+Project Notes
+- Long-term observations
+
+Rating System
+- Rating definitions
+
+Sessions
+- Groups of related shots
+
+Templates
+- User-defined logging templates
+
+Equipment
+- Grinders
+- Machines/Brewers
+- Accessories
+
+--------------------------------------------------
+BAGS
+--------------------------------------------------
+
+Each Bag should support:
+
+- Starting grind setting
+- Current grind setting
+- Starting grind time
+- Current grind time
+- Default dose
+- Default yield
+- Default temperature
+- Dial-in notes
+
+When a bag is selected:
+
+Auto-fill:
+- Current grind setting
+- Current grind time
+- Default dose
+- Default yield
+- Default temperature
+
+If user changes grind setting:
+
+Ask:
+- Use for this shot only
+- Update bag defaults
+- Update grinder defaults
+
+--------------------------------------------------
+MULTIPLE GRINDERS
+--------------------------------------------------
+
+Support multiple grinders.
+
+Examples:
+
+- Espresso grinder
+- Decaf grinder
+- Pour-over grinder
+- Hand grinder
+
+Each grinder should support:
+
+- Name
+- Brand
+- Model
+- Burr size
+- Burr type
+- Notes
+
+Users can set defaults.
+
+--------------------------------------------------
+MULTIPLE MACHINES
+--------------------------------------------------
+
+Support multiple machines and brew methods.
+
+Examples:
+
+- Profitec Go
+- Lever machine
+- V60
+- AeroPress
+- French Press
+
+Users can set defaults.
+
+--------------------------------------------------
+ACCESSORIES
+--------------------------------------------------
+
+Support accessories.
+
+Types:
+
+- Basket
+- Tamper
+- Puck Screen
+- WDT Tool
+- Dosing Funnel
+- Blind Shaker
+- Scale
+- Distributor
+- Portafilter
+
+Common fields:
+
+- Brand
+- Model
+- Notes
+
+Puck Screens:
+
+- Brand
+- Thickness
+- Diameter
+
+Accessories should support:
+
+- Default setup
+- Per-shot override
+
+--------------------------------------------------
+DEFAULTS
+--------------------------------------------------
+
+Create a Defaults section.
+
+Allow defaults for:
+
+- Machine
+- Grinder
+- Basket
+- Puck Screen
+- WDT Tool
+- Bag
+- Dose
+- Yield
+- Temperature
+- Template
+
+Show:
+
+Current Setup
+
+before shot entry.
+
+--------------------------------------------------
+TEMPLATES
+--------------------------------------------------
+
+Support templates.
+
+Examples:
+
+- Simple Coffee Log
+- Espresso Basics
+- Dial-In
+- Advanced Analysis
+- Grinder Study
+- Guest Session
+
+Templates control:
+
+- Visible fields
+- Required fields
+- Default values
+
+Templates should never delete stored data.
+
+--------------------------------------------------
+SHOT ENTRY
+--------------------------------------------------
+
+The app should be optimized for speed.
+
+Most users should not have to select:
+
+- Grinder
+- Machine
+- Basket
+- Puck Screen
+
+every shot.
+
+Defaults should be used.
+
+Allow override when needed.
+
+--------------------------------------------------
+CSV IMPORT
+--------------------------------------------------
+
+The uploaded CSV is authoritative.
+
+Requirements:
+
+- Import all rows
+- Import all columns
+- Do not sample
+- Do not invent data
+- Do not generate representative records
+
+Create:
+
+CSV Import Audit
+
+showing:
+
+- Row count
+- Column count
+- Date range
+- Reference shot count
+- Bag count
+
+--------------------------------------------------
+HIGH PRIORITY ANALYSIS
+--------------------------------------------------
+
+Build:
+
+1. Similar Shot Finder
+
+Given a shot:
+
+Find similar shots based on:
+
+- Bag
+- Bean
+- Dose
+- Yield
+- Grind Setting
+- First Pour
+- Pour Time
+
+Return:
+
+- Best matches
+- Highest rated matches
+- Reference matches
+
+2. Reference Shot Analysis
+
+Allow filtering:
+
+- Bean
+- Bag
+- First Pour
+- Yield
+- Rating
+
+Show clusters and common ranges.
+
+3. Bag Analysis
+
+Show:
+
+- Average rating
+- Reference shot count
+- Consistency
+
+--------------------------------------------------
+FUTURE FEATURE
+--------------------------------------------------
+
+Target Shot Mode
+
+User describes desired outcome:
+
+Examples:
+
+- Sweet and balanced
+- Bright and fruity
+- Full-bodied
+- Low acidity
+
+System analyzes historical data and recommends:
+
+- Grind range
+- First pour range
+- Yield range
+- Temperature range
+- Similar successful shots
+
+This feature is future roadmap and does not need to be implemented now.
+
+--------------------------------------------------
+SUCCESS CRITERIA
+--------------------------------------------------
+
+The application succeeds when a user can answer:
+
+"What recipe produced my best shots?"
+
+and
+
+"What should I do to reproduce them?"
