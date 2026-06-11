@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,9 @@ import { cn } from "@/lib/utils";
 interface Bean { id: number; name: string; }
 interface Bag {
   id: number; beanId: number | null; beanName: string | null; bagNumber: string | null;
-  openedDate: string | null; isActive: boolean;
+  bagName: string | null; purchaseDate: string | null; roastDate: string | null;
+  openedDate: string | null; bagWeight: number | null; remainingEstimate: number | null;
+  cost: number | null; isActive: boolean;
   startGrindSetting: number | null; currentGrindSetting: number | null;
   startGrindTime: number | null; currentGrindTime: number | null;
   defaultDose: number | null; defaultYield: number | null; defaultTemp: number | null;
@@ -38,14 +40,12 @@ export default function Bags() {
   const [editing, setEditing] = useState<Bag | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
 
-  const openNew = () => {
-    setEditing(null);
-    setForm({ beanId: "", bagNumber: "", openedDate: "", isActive: "false", startGrindSetting: "", currentGrindSetting: "", startGrindTime: "", currentGrindTime: "", defaultDose: "", defaultYield: "", defaultTemp: "", dialInNotes: "", notes: "" });
-    setOpen(true);
-  };
+  const blankForm = () => ({ beanId: "", bagNumber: "", bagName: "", purchaseDate: "", roastDate: "", openedDate: "", bagWeight: "", remainingEstimate: "", cost: "", isActive: "false", startGrindSetting: "", currentGrindSetting: "", startGrindTime: "", currentGrindTime: "", defaultDose: "", defaultYield: "", defaultTemp: "", dialInNotes: "", notes: "" });
+
+  const openNew = () => { setEditing(null); setForm(blankForm()); setOpen(true); };
   const openEdit = (b: Bag) => {
     setEditing(b);
-    setForm({ beanId: String(b.beanId ?? ""), bagNumber: b.bagNumber ?? "", openedDate: b.openedDate ?? "", isActive: String(b.isActive), startGrindSetting: String(b.startGrindSetting ?? ""), currentGrindSetting: String(b.currentGrindSetting ?? ""), startGrindTime: String(b.startGrindTime ?? ""), currentGrindTime: String(b.currentGrindTime ?? ""), defaultDose: String(b.defaultDose ?? ""), defaultYield: String(b.defaultYield ?? ""), defaultTemp: String(b.defaultTemp ?? ""), dialInNotes: b.dialInNotes ?? "", notes: b.notes ?? "" });
+    setForm({ beanId: String(b.beanId ?? ""), bagNumber: b.bagNumber ?? "", bagName: b.bagName ?? "", purchaseDate: b.purchaseDate ?? "", roastDate: b.roastDate ?? "", openedDate: b.openedDate ?? "", bagWeight: String(b.bagWeight ?? ""), remainingEstimate: String(b.remainingEstimate ?? ""), cost: String(b.cost ?? ""), isActive: String(b.isActive), startGrindSetting: String(b.startGrindSetting ?? ""), currentGrindSetting: String(b.currentGrindSetting ?? ""), startGrindTime: String(b.startGrindTime ?? ""), currentGrindTime: String(b.currentGrindTime ?? ""), defaultDose: String(b.defaultDose ?? ""), defaultYield: String(b.defaultYield ?? ""), defaultTemp: String(b.defaultTemp ?? ""), dialInNotes: b.dialInNotes ?? "", notes: b.notes ?? "" });
     setOpen(true);
   };
 
@@ -55,10 +55,10 @@ export default function Bags() {
       const method = editing ? "PATCH" : "POST";
       const body: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(form)) {
-        if (v === "" || v === "null") continue;
+        if (v === "" || v === "null" || v === "undefined") continue;
         if (k === "isActive") body[k] = v === "true";
-        else if (["beanId", "defaultTemp"].includes(k)) body[k] = parseInt(v, 10);
-        else if (["startGrindSetting", "currentGrindSetting", "startGrindTime", "currentGrindTime", "defaultDose", "defaultYield"].includes(k)) body[k] = parseFloat(v);
+        else if (k === "beanId" || k === "defaultTemp") body[k] = parseInt(v, 10);
+        else if (["startGrindSetting", "currentGrindSetting", "startGrindTime", "currentGrindTime", "defaultDose", "defaultYield", "bagWeight", "remainingEstimate", "cost"].includes(k)) body[k] = parseFloat(v);
         else body[k] = v;
       }
       const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -70,6 +70,9 @@ export default function Bags() {
   });
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const activeBags = bags.filter((b) => b.isActive);
+  const inactiveBags = bags.filter((b) => !b.isActive);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -84,9 +87,7 @@ export default function Bags() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
-        </div>
+        <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div>
       ) : bags.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Package className="h-10 w-10 mx-auto mb-3 opacity-30" />
@@ -94,55 +95,24 @@ export default function Bags() {
           <p className="text-sm mt-1">Add a bag to link shots to a specific bean purchase.</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {bags.map((bag) => (
-            <Card key={bag.id} className={cn("transition-colors hover:border-primary/40", bag.isActive && "border-primary/50 bg-primary/5")}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-lg">{bag.beanName ?? "Unknown Bean"}</span>
-                      <Badge variant="outline" className="text-xs">Bag #{bag.bagNumber ?? bag.id}</Badge>
-                      {bag.isActive && <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Active</Badge>}
-                    </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-muted-foreground">
-                      {bag.openedDate && <span>Opened: {bag.openedDate}</span>}
-                      {bag.currentGrindSetting != null && <span>Grind: <strong className="text-foreground">{bag.currentGrindSetting}</strong></span>}
-                      {bag.defaultDose != null && <span>Dose: <strong className="text-foreground">{bag.defaultDose}g</strong></span>}
-                      {bag.defaultYield != null && <span>Yield: <strong className="text-foreground">{bag.defaultYield}g</strong></span>}
-                      {bag.defaultTemp != null && <span>Temp: <strong className="text-foreground">{bag.defaultTemp}°C</strong></span>}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <div className="text-right text-sm">
-                      <p className="text-muted-foreground">{bag.shotCount} shots · {bag.referenceCount} refs</p>
-                      {bag.avgRating != null && (
-                        <p className="flex items-center gap-1 text-amber-600 font-medium justify-end">
-                          <Star className="h-3.5 w-3.5 fill-current" />{Number(bag.avgRating).toFixed(1)} avg
-                        </p>
-                      )}
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => openEdit(bag)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" asChild>
-                      <Link href={`/bags/${bag.id}`}>
-                        <ChevronRight className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-                {bag.dialInNotes && (
-                  <p className="mt-2 text-sm text-muted-foreground border-t pt-2 truncate">{bag.dialInNotes}</p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-6">
+          {activeBags.length > 0 && (
+            <section>
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Active</h2>
+              <div className="space-y-2">{activeBags.map((b) => <BagRow key={b.id} bag={b} onEdit={openEdit} />)}</div>
+            </section>
+          )}
+          {inactiveBags.length > 0 && (
+            <section className="opacity-80">
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Previous Bags</h2>
+              <div className="space-y-2">{inactiveBags.map((b) => <BagRow key={b.id} bag={b} onEdit={openEdit} />)}</div>
+            </section>
+          )}
         </div>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Edit Bag" : "Add Bag"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-2">
             <div className="col-span-2 space-y-1.5">
@@ -155,63 +125,78 @@ export default function Bags() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>Bag Number</Label>
-              <Input value={form.bagNumber} onChange={(e) => set("bagNumber", e.target.value)} placeholder="e.g. 4" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Opened Date</Label>
-              <Input value={form.openedDate} onChange={(e) => set("openedDate", e.target.value)} placeholder="2026-05-30" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Start Grind Setting</Label>
-              <Input type="number" step="0.01" value={form.startGrindSetting} onChange={(e) => set("startGrindSetting", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Current Grind Setting</Label>
-              <Input type="number" step="0.01" value={form.currentGrindSetting} onChange={(e) => set("currentGrindSetting", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Start Grind Time (sec)</Label>
-              <Input type="number" step="0.1" value={form.startGrindTime} onChange={(e) => set("startGrindTime", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Current Grind Time (sec)</Label>
-              <Input type="number" step="0.1" value={form.currentGrindTime} onChange={(e) => set("currentGrindTime", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Default Dose (g)</Label>
-              <Input type="number" step="0.1" value={form.defaultDose} onChange={(e) => set("defaultDose", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Default Yield (g)</Label>
-              <Input type="number" step="0.1" value={form.defaultYield} onChange={(e) => set("defaultYield", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Default Temp (°C)</Label>
-              <Input type="number" value={form.defaultTemp} onChange={(e) => set("defaultTemp", e.target.value)} />
-            </div>
+            <div className="space-y-1.5"><Label>Bag Number</Label><Input value={form.bagNumber} onChange={(e) => set("bagNumber", e.target.value)} placeholder="e.g. 4" /></div>
+            <div className="space-y-1.5"><Label>Bag Name / Label</Label><Input value={form.bagName} onChange={(e) => set("bagName", e.target.value)} placeholder="e.g. Summer 2026" /></div>
+            <div className="space-y-1.5"><Label>Purchase Date</Label><Input value={form.purchaseDate} onChange={(e) => set("purchaseDate", e.target.value)} placeholder="2026-05-20" /></div>
+            <div className="space-y-1.5"><Label>Roast Date</Label><Input value={form.roastDate} onChange={(e) => set("roastDate", e.target.value)} placeholder="2026-05-15" /></div>
+            <div className="space-y-1.5"><Label>Opened Date</Label><Input value={form.openedDate} onChange={(e) => set("openedDate", e.target.value)} placeholder="2026-05-22" /></div>
+            <div className="space-y-1.5"><Label>Bag Weight (g)</Label><Input type="number" value={form.bagWeight} onChange={(e) => set("bagWeight", e.target.value)} placeholder="250" /></div>
+            <div className="space-y-1.5"><Label>Remaining Est. (g)</Label><Input type="number" value={form.remainingEstimate} onChange={(e) => set("remainingEstimate", e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Cost</Label><Input type="number" step="0.01" value={form.cost} onChange={(e) => set("cost", e.target.value)} placeholder="25.00" /></div>
+            <div className="col-span-2"><hr className="border-border" /></div>
+            <div className="space-y-1.5"><Label>Start Grind Setting</Label><Input type="number" step="0.01" value={form.startGrindSetting} onChange={(e) => set("startGrindSetting", e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Current Grind Setting</Label><Input type="number" step="0.01" value={form.currentGrindSetting} onChange={(e) => set("currentGrindSetting", e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Start Grind Time (s)</Label><Input type="number" step="0.1" value={form.startGrindTime} onChange={(e) => set("startGrindTime", e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Current Grind Time (s)</Label><Input type="number" step="0.1" value={form.currentGrindTime} onChange={(e) => set("currentGrindTime", e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Default Dose (g)</Label><Input type="number" step="0.1" value={form.defaultDose} onChange={(e) => set("defaultDose", e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Default Yield (g)</Label><Input type="number" step="0.1" value={form.defaultYield} onChange={(e) => set("defaultYield", e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Default Temp (°C)</Label><Input type="number" value={form.defaultTemp} onChange={(e) => set("defaultTemp", e.target.value)} /></div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <Label className="font-normal">Active Bag</Label>
               <Switch checked={form.isActive === "true"} onCheckedChange={(v) => set("isActive", String(v))} />
             </div>
-            <div className="col-span-2 space-y-1.5">
-              <Label>Dial-in Notes</Label>
-              <Input value={form.dialInNotes} onChange={(e) => set("dialInNotes", e.target.value)} placeholder="Key observations during dial-in…" />
-            </div>
-            <div className="col-span-2 space-y-1.5">
-              <Label>Notes</Label>
-              <Input value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="General notes…" />
-            </div>
+            <div className="col-span-2 space-y-1.5"><Label>Dial-in Notes</Label><Input value={form.dialInNotes} onChange={(e) => set("dialInNotes", e.target.value)} placeholder="Key observations during dial-in…" /></div>
+            <div className="col-span-2 space-y-1.5"><Label>Notes</Label><Input value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-              {saveMutation.isPending ? "Saving…" : editing ? "Save" : "Add Bag"}
-            </Button>
+            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>{saveMutation.isPending ? "Saving…" : editing ? "Save" : "Add Bag"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function BagRow({ bag, onEdit }: { bag: Bag; onEdit: (b: Bag) => void }) {
+  return (
+    <Card className={cn("transition-colors hover:border-primary/40", bag.isActive && "border-primary/50 bg-primary/5")}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-lg">{bag.beanName ?? "Unknown Bean"}</span>
+              {bag.bagName && <span className="text-muted-foreground text-sm">{bag.bagName}</span>}
+              <Badge variant="outline" className="text-xs">#{bag.bagNumber ?? bag.id}</Badge>
+              {bag.isActive && <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Active</Badge>}
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-muted-foreground">
+              {bag.roastDate && <span>Roasted: {bag.roastDate}</span>}
+              {bag.openedDate && <span>Opened: {bag.openedDate}</span>}
+              {bag.currentGrindSetting != null && <span>Grind: <strong className="text-foreground">{bag.currentGrindSetting}</strong></span>}
+              {bag.defaultDose != null && <span>Dose: <strong className="text-foreground">{bag.defaultDose}g</strong></span>}
+              {bag.defaultYield != null && <span>Yield: <strong className="text-foreground">{bag.defaultYield}g</strong></span>}
+              {bag.bagWeight != null && <span>{bag.bagWeight}g bag</span>}
+              {bag.cost != null && <span>${Number(bag.cost).toFixed(2)}</span>}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="text-right text-sm">
+              <p className="text-muted-foreground">{bag.shotCount} shots · {bag.referenceCount} refs</p>
+              {bag.avgRating != null && (
+                <p className="flex items-center gap-1 text-amber-600 font-medium justify-end">
+                  <Star className="h-3.5 w-3.5 fill-current" />{Number(bag.avgRating).toFixed(1)}
+                </p>
+              )}
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(bag)}><Pencil className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+              <Link href={`/bags/${bag.id}`}><ChevronRight className="h-4 w-4" /></Link>
+            </Button>
+          </div>
+        </div>
+        {bag.dialInNotes && <p className="mt-2 text-sm text-muted-foreground border-t pt-2 truncate">{bag.dialInNotes}</p>}
+      </CardContent>
+    </Card>
   );
 }

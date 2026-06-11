@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import {
   BookOpen, Coffee, Database, LayoutDashboard,
-  Package, Plus, Settings, Sprout, Wrench
+  Package, Settings, Sprout, Wrench, Tag, Layers
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,14 +25,17 @@ const libraryNav: NavItem[] = [
   { title: "Beans", href: "/beans", icon: Sprout },
   { title: "Bags", href: "/bags", icon: Package },
   { title: "Equipment", href: "/equipment", icon: Wrench },
+  { title: "Accessories", href: "/accessories", icon: Layers },
+];
+
+const tasteNav: NavItem[] = [
+  { title: "Taste Selectors", href: "/taste-selectors", icon: Tag },
 ];
 
 const systemNav: NavItem[] = [
   { title: "CSV Import Audit", href: "/audit", icon: Database },
-  { title: "Defaults & Settings", href: "/settings", icon: Settings },
+  { title: "Settings", href: "/settings", icon: Settings },
 ];
-
-const allNavItems = [...primaryNav, ...libraryNav, ...systemNav];
 
 function NavGroup({ items, label }: { items: NavItem[]; label?: string }) {
   const [location] = useLocation();
@@ -72,22 +75,24 @@ export function Shell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-[100dvh] w-full flex-col md:flex-row bg-background text-foreground selection:bg-primary/20 selection:text-primary">
       {/* Mobile Top Bar */}
       <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md md:hidden">
-        <div className="flex items-center gap-2 font-serif text-lg font-medium text-foreground">
-          <Coffee className="h-5 w-5 text-primary" />
-          Coffee Log
+        <div className="flex flex-col leading-none">
+          <span className="font-serif text-base font-semibold text-foreground tracking-tight">BigShot<span className="text-primary">Espresso</span></span>
+          <span className="text-[10px] text-muted-foreground leading-none">Log · Analyse · Repeat</span>
         </div>
-        <Button variant="ghost" size="icon" asChild className="rounded-full">
+        <Button variant="default" size="sm" asChild className="rounded-full px-3 h-8 text-xs gap-1">
           <Link href="/shots/new">
-            <Plus className="h-5 w-5" />
+            <Coffee className="h-3.5 w-3.5" /> Log Shot
           </Link>
         </Button>
       </header>
 
       {/* Desktop Sidebar */}
       <aside className="hidden w-64 flex-col border-r bg-sidebar md:flex">
-        <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6 font-serif text-xl font-medium text-sidebar-foreground">
-          <Coffee className="h-6 w-6 text-sidebar-primary" />
-          Coffee Log
+        <div className="flex h-16 flex-col justify-center border-b border-sidebar-border px-5">
+          <span className="font-serif text-lg font-semibold text-sidebar-foreground tracking-tight leading-tight">
+            BigShot<span className="text-sidebar-primary">Espresso</span>
+          </span>
+          <span className="text-[11px] text-sidebar-foreground/40 leading-none mt-0.5">Log · Analyse · Repeat</span>
         </div>
 
         <ScrollArea className="flex-1 py-4">
@@ -96,6 +101,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <Separator className="opacity-50" />
             <NavGroup items={libraryNav} label="Library" />
             <Separator className="opacity-50" />
+            <NavGroup items={tasteNav} label="Flavour" />
+            <Separator className="opacity-50" />
             <NavGroup items={systemNav} label="System" />
           </nav>
         </ScrollArea>
@@ -103,7 +110,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="p-4 border-t border-sidebar-border">
           <Button className="w-full justify-start gap-2 shadow-sm" asChild>
             <Link href="/shots/new">
-              <Plus className="h-4 w-4" />
+              <Coffee className="h-4 w-4" />
               Log New Shot
             </Link>
           </Button>
@@ -117,9 +124,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
-      {/* Mobile Bottom Nav — primary 4 items */}
+      {/* Mobile Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 border-t bg-background px-1 pb-safe md:hidden">
-        {primaryNav.concat(libraryNav.slice(0, 1)).map((item) => {
+        {[...primaryNav, libraryNav[1]].map((item) => {
           const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
           return (
             <Link

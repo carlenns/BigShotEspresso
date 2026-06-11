@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -6,12 +6,15 @@ export const beansTable = pgTable("beans", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   origin: text("origin"),
+  region: text("region"),
   roaster: text("roaster"),
   roastLevel: text("roast_level"),
   process: text("process"),
   variety: text("variety"),
   altitude: text("altitude"),
+  roasterNotes: text("roaster_notes"),
   notes: text("notes"),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

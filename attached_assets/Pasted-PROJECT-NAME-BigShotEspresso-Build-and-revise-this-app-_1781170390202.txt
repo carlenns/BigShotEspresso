@@ -1,0 +1,940 @@
+PROJECT NAME: BigShotEspresso
+
+Build and revise this app as BigShotEspresso, using my existing Coffee Log system as the foundation.
+
+BigShotEspresso is not a generic coffee journal. It is an espresso logging, filtering, comparison, and repeatability platform.
+
+The app should help users answer:
+
+- What produced my best shots?
+- How do I reproduce them?
+- What changed?
+- Which beans, bags, recipes, and equipment setups work best?
+- What shot style do I personally prefer?
+
+The brand/domain is:
+
+BigShotEspresso
+bigshotespresso.com
+
+Display the name prominently but tastefully. The app should feel premium, practical, and espresso-focused.
+
+--------------------------------------------------
+CORE PRODUCT PHILOSOPHY
+--------------------------------------------------
+
+The primary value is not charts.
+
+The primary value is:
+
+- Fast logging
+- Filtering
+- Comparison
+- Similar-shot lookup
+- Reference-shot analysis
+- Bean/bag performance
+- Personal taste discovery
+- Reproduction of successful shots
+
+Charts are useful, but secondary.
+
+Do not overbuild decorative dashboards before the filtering and analysis workflow is solid.
+
+--------------------------------------------------
+DATA MODEL
+--------------------------------------------------
+
+Base the system on these core entities:
+
+1. Beans
+2. Bags
+3. Shots
+4. Equipment
+5. Accessories
+6. Templates
+7. Sessions
+8. Taste Selectors
+9. Rating System
+10. Shot Fault Rules
+11. Project Notes / Observations
+12. Import Tools
+
+--------------------------------------------------
+BEANS
+--------------------------------------------------
+
+Beans are the master coffee record.
+
+Fields should include:
+
+- Bean name
+- Roaster
+- Origin
+- Region
+- Process
+- Roast level
+- Roaster tasting notes
+- User notes
+- Active / inactive
+
+--------------------------------------------------
+BAGS
+--------------------------------------------------
+
+Bags are specific purchased bags linked to Beans.
+
+Fields should include:
+
+- Linked Bean
+- Bag name / bag number
+- Purchase date
+- Roast date
+- Open date
+- Bag weight
+- Remaining estimate
+- Cost
+- Notes
+
+Bag-level dial-in defaults:
+
+- Starting grind setting
+- Current grind setting
+- Starting grind time
+- Current grind time
+- Default dose
+- Default target yield
+- Default brew temperature
+- Dial-in notes
+
+When a bag is selected in shot entry:
+
+Auto-fill:
+
+- Bean
+- Bag
+- Current grind setting
+- Current grind time
+- Default dose
+- Default target yield
+- Default temperature
+
+If user changes grind setting or grind time on a shot, ask:
+
+- Use only for this shot
+- Update current bag defaults
+- Update grinder defaults
+
+Each shot must still store the actual values used.
+
+--------------------------------------------------
+SHOTS
+--------------------------------------------------
+
+Shots are the main analytical record.
+
+Core shot fields:
+
+- Date
+- Time
+- Bean
+- Bag
+- Grinder
+- Machine / brewer
+- Basket
+- Dose
+- Yield
+- Brew ratio
+- Grind setting
+- Grind time
+- Temperature
+- Pour delay / first pour delay
+- Pour time
+- Scale time
+- Rating
+- Preference rating
+- Notes
+
+Precision requirements:
+
+- Ratings must support hundredths of a point.
+  Example: 8.78, 7.42, 9.05
+
+- Preference ratings must also support hundredths.
+  Example: 8.65
+
+- All coffee weights should support tenths of a gram.
+  Example: 18.3g, 35.4g
+
+- Grind time / dose time should support tenths of a second.
+  Example: 8.1 sec
+
+- Pour delay, pour time, and scale time may support tenths if entered, but whole seconds are acceptable.
+
+Dose interpretation rule:
+
+Dose means actual basket dose, not total grinder output.
+
+If initial grind output differs from actual basket dose due to spillage, trimming, overflow, top-up, or removal, analysis should use actual basket dose.
+
+Track grinder-output discrepancy separately.
+
+Advanced shot fields based on my CSV:
+
+- Initial Output (g)
+- Total Output (g)
+- Time Adjustment (sec)
+- Top-Up Grind (g)
+- Over Grind Removed (g)
+- Bean Delta
+- Grind Waste (g)
+- Beans Added (g)
+- Dose Correction Type
+- Correction Amount (g)
+- Output Delta (g)
+- Actual Dose Error (g)
+- Finished Shot
+- Rated
+- For Others
+- Drink Type
+- Reference Shot
+- Signature Shot
+- Shot Status
+- Shot Classification
+- Fault Status
+- Reference Shot Type
+- Expression Style
+- Include in Analysis
+- Fault Notes
+
+--------------------------------------------------
+HOPPER / GRINDER BEHAVIOUR
+--------------------------------------------------
+
+Hopper data should be optional advanced tracking.
+
+Do not make hopper fullness central to the app.
+
+Support these fields for advanced users:
+
+- Hopper phase
+- Hopper fullness
+- Hopper %
+- Hopper range
+- Hopper zone
+- Hopper threshold flag
+- Hopper behaviour
+- Hopper severity
+- Hopper impact score
+- Hopper correction rule
+
+Hopper fields should appear in:
+
+- Advanced Espresso Analysis
+- Grinder Behaviour Study
+
+They should not be required for casual users.
+
+--------------------------------------------------
+EQUIPMENT
+--------------------------------------------------
+
+Support multiple grinders and machines.
+
+Users may own:
+
+- One grinder for regular espresso
+- One grinder for decaf
+- One grinder for pour-over
+- One hand grinder
+- Multiple espresso machines or brew methods
+
+Grinders table:
+
+- Grinder name
+- Brand
+- Model
+- Burr size
+- Burr type
+- Primary use
+- Notes
+- Active / inactive
+
+Machines / Brewers table:
+
+- Machine / brewer name
+- Brand
+- Model
+- Brew method
+- Default temperature
+- Pressure notes
+- Notes
+- Active / inactive
+
+Users can set:
+
+- Default espresso grinder
+- Default decaf grinder
+- Default pour-over grinder
+- Default espresso machine
+- Default brewer
+
+Shot entry should auto-fill defaults but allow per-shot override.
+
+--------------------------------------------------
+ACCESSORIES
+--------------------------------------------------
+
+Accessories should be flexible and user-entered.
+
+Accessory types:
+
+- Basket
+- Tamper
+- Puck screen
+- WDT tool
+- Dosing funnel
+- Dosing cup
+- Blind shaker / shaker cup
+- Scale
+- Distributor / leveler
+- Portafilter
+- Other
+
+Common accessory fields:
+
+- Accessory type
+- Brand
+- Model / name
+- Size
+- Notes
+- Active / inactive
+
+Brand names should be user-entered text, not locked dropdowns.
+
+Possible examples:
+
+- Normcore
+- IMS
+- VST
+- Pullman
+- Weber
+- MHW-3Bomber
+- Acaia
+- Timemore
+- Generic
+
+Puck screen fields:
+
+- Brand
+- Model
+- Diameter
+- Thickness
+- Notes
+
+Basket fields:
+
+- Brand
+- Model
+- Size / rated dose
+- Diameter
+- Ridged / ridgeless
+- Notes
+
+Tamper fields:
+
+- Brand
+- Model
+- Diameter
+- Spring-loaded yes/no
+- Spring pressure if applicable
+- Notes
+
+WDT fields:
+
+- Brand
+- Model
+- Needle count
+- Needle thickness if known
+- Notes
+
+Blind shaker fields:
+
+- Brand
+- Model
+- Notes
+
+Allow users to set default accessories by template/workflow.
+
+Example Daily Espresso defaults:
+
+- Basket
+- Tamper
+- Puck screen
+- WDT tool
+- Dosing funnel
+- Scale
+
+Shot entry should show current setup and allow override.
+
+Do not force accessory selection every shot.
+
+--------------------------------------------------
+DEFAULTS
+--------------------------------------------------
+
+Create a Defaults / User Setup section.
+
+Defaults should include:
+
+- Default brew method
+- Default rating system
+- Default grinder
+- Default machine / brewer
+- Default basket
+- Default tamper
+- Default puck screen
+- Default WDT tool
+- Default scale
+- Default active bag
+- Default dose
+- Default target yield
+- Default temperature
+- Default grind setting
+- Default grind time
+- Default template
+
+Shot entry should show:
+
+Current Setup
+
+Example:
+
+BigShotEspresso Current Setup
+
+- Bean: Costa Rica
+- Bag: Bag 4
+- Grinder: Eureka Magnifico
+- Machine: Profitec Go
+- Basket: Stock double basket
+- Puck screen: Normcore, thickness entered by user
+- Grind setting: 2.33
+- Grind time: 8.1 sec
+- Dose: 18.0g
+- Target yield: 35.0g
+- Temperature: 94°C
+- Template: Daily Espresso
+
+Defaults are convenience values only.
+
+They must never overwrite actual recorded shot values unless the user chooses to update defaults.
+
+--------------------------------------------------
+TEMPLATES / USER TIERS
+--------------------------------------------------
+
+The app should support different user tiers and logging depth.
+
+Users should select their brew method and logging template.
+
+Templates control:
+
+- Visible fields
+- Required fields
+- Optional fields
+- Defaults
+- Field order
+
+Templates should never delete stored data.
+
+Tier 1: Simple Coffee Log
+
+For casual users.
+
+Fields:
+
+- Bean
+- Brew method
+- Dose
+- Yield
+- Brew time
+- Rating
+- Notes
+
+Tier 2: Espresso Basics
+
+For normal espresso users.
+
+Fields:
+
+- Bean
+- Bag
+- Grinder
+- Machine
+- Dose
+- Yield
+- Grind setting
+- Pour time
+- Rating
+- Notes
+- Shot status
+
+Tier 3: Dial-In Mode
+
+For users adjusting shots.
+
+Fields:
+
+- Bean
+- Bag
+- Grinder
+- Machine
+- Dose
+- Yield
+- Grind setting
+- Grind time
+- Temperature
+- Pour delay
+- Pour time
+- Scale time
+- Rating
+- Preference rating
+- Taste notes
+- Adjustment notes
+- Shot status
+
+Tier 4: Advanced Espresso Analysis
+
+For serious espresso tracking.
+
+Fields:
+
+- Bean
+- Bag
+- Grinder
+- Machine
+- Basket
+- Puck screen
+- Grind setting
+- Grind time
+- Initial output
+- Total output
+- Dose
+- Trim / spillage
+- Top-up grind
+- Yield
+- Ratio
+- Temperature
+- Pour delay
+- Pour time
+- Scale time
+- Rating
+- Preference rating
+- Reference shot
+- Signature shot
+- Shot status
+- Fault status
+- Expression style
+- Taste selectors
+- Cooling notes
+- Include in analysis
+
+Tier 5: Grinder Behaviour Study
+
+For users studying grinder mechanics.
+
+Fields:
+
+- Bean
+- Bag
+- Grinder
+- Grind setting
+- Grind time
+- Initial output
+- Total output
+- Dose
+- Output delta
+- Dose correction type
+- Top-up grind
+- Over grind removed
+- Hopper phase
+- Hopper fullness
+- Hopper %
+- Hopper range
+- Hopper behaviour
+- Hopper threshold flag
+- First shot of session
+- Session sequence
+- Pour delay
+- Pour time
+- Yield
+- Rating
+- Notes
+
+Tier 6: Guest / Entertaining Session
+
+For back-to-back shots.
+
+Fields:
+
+- Bean
+- Bag
+- Drink type
+- For others
+- Guest name or guest type
+- Grinder
+- Machine
+- Dose
+- Yield
+- Pour delay
+- Pour time
+- Rating
+- Guest reaction
+- Session sequence
+- Notes
+
+Users should also be able to create their own templates.
+
+--------------------------------------------------
+BREW METHOD SELECTION
+--------------------------------------------------
+
+Users should choose brew method.
+
+Examples:
+
+- Espresso
+- Americano
+- Pour-over
+- AeroPress
+- French press
+- Drip
+- Other
+
+Each brew method should show relevant fields only.
+
+Espresso should show espresso-specific fields.
+
+Pour-over should not require espresso fields like pour delay, portafilter, basket, puck screen, etc.
+
+--------------------------------------------------
+TASTE SELECTORS
+--------------------------------------------------
+
+Support standard taste selectors plus user-added selectors.
+
+Standard selectors:
+
+- Acidity
+- Sourness
+- Sweetness
+- Bitterness
+- Body
+- Balance
+- Clarity
+- Texture
+- Finish
+- Aftertaste
+- Brightness
+- Fruitiness
+- Chocolate
+- Caramel
+- Floral
+- Nutty
+- Earthy
+- Roastiness
+- Dryness
+- Astringency
+- Cooling evolution
+
+Users can add their own taste selectors.
+
+Examples:
+
+- Wine-like acidity
+- Bright expression
+- Sour edge
+- Cocoa finish
+- Caramel sweetness
+- Guest worthy
+- Daily driver
+- Too strong for guest
+
+Taste selectors should be filterable.
+
+The user should be able to filter:
+
+- Show all shots tagged bright expression
+- Show all shots tagged sour edge
+- Show all shots tagged guest worthy
+- Show all reference shots with caramel sweetness
+
+--------------------------------------------------
+RATING SYSTEM
+--------------------------------------------------
+
+Ratings must support decimal precision to hundredths.
+
+Examples:
+
+- 8.78
+- 8.25
+- 7.90
+- 9.05
+
+Support:
+
+- Rating
+- Preference Rating
+- Weighted average of rating and preference
+- Rating difference
+
+Ratings may be entered by:
+
+- Slider
+- Numeric entry
+
+The slider must allow hundredths or at minimum easy fine adjustment.
+
+Numeric entry must always allow hundredths.
+
+--------------------------------------------------
+SHOT STATUS / CLASSIFICATION
+--------------------------------------------------
+
+Support structured classification based on my system.
+
+Fields:
+
+- Shot Status
+- Shot Classification
+- Fault Status
+- Reference Shot
+- Reference Shot Type
+- Signature Shot
+- Expression Style
+- Include in Analysis
+- Shot Tier
+
+Reference shot logic:
+
+A reference shot does not have to be a favourite.
+
+It means the shot is mechanically useful and representative.
+
+However, if the shot is unpleasant due to likely extraction fault, it should not automatically be considered reference-worthy.
+
+Support candidate/reference distinction if useful:
+
+- Reference Candidate
+- Confirmed Reference
+- Not Reference
+
+--------------------------------------------------
+ANALYSIS PRIORITIES
+--------------------------------------------------
+
+Highest priority analysis:
+
+1. Similar Shot Finder
+
+Given one shot, find similar shots by:
+
+- Bean
+- Bag
+- Dose
+- Yield
+- Grind setting
+- Grind time
+- Pour delay
+- Pour time
+- Rating
+- Reference status
+
+Return:
+
+- Closest matches
+- Highest-rated similar shots
+- Reference matches
+- What changed
+
+2. Reference Shot Analysis
+
+Filter by:
+
+- Bean
+- Bag
+- Pour delay
+- Yield
+- Pour time
+- Grind setting
+- Rating
+- Preference rating
+- Taste selectors
+
+3. Bag Performance
+
+Show:
+
+- Average rating
+- Average preference rating
+- Reference shot count
+- Signature shot count
+- Best recipe range
+- Most common fault
+- Best taste selectors
+
+4. Bean Performance
+
+Show:
+
+- Best bag
+- Best shot
+- Average rating
+- Average preference rating
+- Preferred recipe range
+- Rebuy likelihood
+- Taste pattern
+
+5. Equipment Analysis
+
+Filter and compare:
+
+- Grinder
+- Machine
+- Basket
+- Puck screen
+- WDT tool
+- Blind shaker
+- Full setup
+
+6. Fault Analysis
+
+Show patterns for:
+
+- Sour shots
+- Bitter shots
+- Fast shots
+- Slow shots
+- Channeling
+- Leaks
+- User error
+- Mechanical issues
+
+--------------------------------------------------
+IMPORT TOOLS
+--------------------------------------------------
+
+BigShotEspresso is not based on CSV import as its normal workflow.
+
+It should have its own database and native entry system.
+
+CSV import is optional for users who already have historical data.
+
+Support optional imports:
+
+- CSV
+- Airtable export
+- Spreadsheet export
+
+Import requirements:
+
+- Import all rows
+- Import all columns where possible
+- Do not sample
+- Do not invent seed records
+- Do not generalize from partial data
+- Show an import audit
+
+Import audit should show:
+
+- Row count
+- Column count
+- Earliest date
+- Latest date
+- Reference shot count
+- Bag count
+- Missing field warnings
+
+--------------------------------------------------
+FUTURE ROADMAP: TARGET SHOT MODE
+--------------------------------------------------
+
+This can be built later.
+
+Target Shot Mode:
+
+User says what kind of shot they want.
+
+Examples:
+
+- Sweet and balanced
+- Full-bodied
+- Low acidity
+- Bright and fruity
+- Guest worthy
+- Daily driver
+- Americano for spouse
+- Reference shot candidate
+
+The system analyzes historical data and recommends:
+
+- Bean / bag
+- Grind setting range
+- Grind time range
+- Dose
+- Yield
+- Temperature
+- Pour delay range
+- Pour time range
+- Similar successful shots
+
+Example output:
+
+To target a sweet balanced espresso with this bag, try:
+
+- Dose: 18.0g
+- Yield: 35.0g
+- Grind setting: 2.30–2.35
+- Grind time: 8.1 sec
+- Temperature: 94°C
+- First pour delay: 7–8 sec
+- Pour time: 28–31 sec
+
+Based on your previous highest-rated similar shots.
+
+--------------------------------------------------
+DESIGN STYLE
+--------------------------------------------------
+
+The interface should feel:
+
+- Premium
+- Calm
+- Coffee-focused
+- Practical
+- Not gimmicky
+- Mobile-friendly
+- Fast to use at the espresso machine
+
+Branding:
+
+Use BigShotEspresso prominently but tastefully.
+
+Possible display:
+
+BigShotEspresso
+Espresso logging, analysis, and repeatability
+
+--------------------------------------------------
+SUCCESS CRITERIA
+--------------------------------------------------
+
+The app succeeds when the user can quickly answer:
+
+- What was my best shot with this bag?
+- What recipe produced it?
+- What did it taste like?
+- What should I try next?
+- Which shots were similar?
+- Which variables changed?
+- Which coffees match my preferences?

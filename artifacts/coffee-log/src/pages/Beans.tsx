@@ -8,38 +8,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Star, Pencil, Trash2, Sprout } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Bean {
-  id: number;
-  name: string;
-  origin: string | null;
-  roaster: string | null;
-  roastLevel: string | null;
-  process: string | null;
-  variety: string | null;
-  altitude: string | null;
-  notes: string | null;
-  createdAt: string;
-  bagCount: number;
-  shotCount: number;
-  avgRating: number | null;
-  referenceCount: number;
+  id: number; name: string; origin: string | null; region: string | null; roaster: string | null;
+  roastLevel: string | null; process: string | null; variety: string | null; altitude: string | null;
+  roasterNotes: string | null; notes: string | null; isActive: boolean; createdAt: string;
+  bagCount: number; shotCount: number; avgRating: number | null; referenceCount: number;
 }
 
-type BeanForm = { name: string; origin: string; roaster: string; roastLevel: string; process: string; variety: string; altitude: string; notes: string; };
-const BLANK: BeanForm = {
-  name: "", origin: "", roaster: "", roastLevel: "", process: "", variety: "", altitude: "", notes: "",
+type BeanForm = {
+  name: string; origin: string; region: string; roaster: string; roastLevel: string;
+  process: string; variety: string; altitude: string; roasterNotes: string; notes: string; isActive: string;
 };
 
+const BLANK: BeanForm = { name: "", origin: "", region: "", roaster: "", roastLevel: "", process: "", variety: "", altitude: "", roasterNotes: "", notes: "", isActive: "true" };
 const ROAST_LEVELS = ["Light", "Light-Medium", "Medium", "Medium-Dark", "Dark"];
 const PROCESSES = ["Washed", "Natural", "Honey", "Anaerobic", "Wet-Hulled", "Other"];
 
-function fetchBeans(): Promise<Bean[]> {
-  return fetch("/api/beans").then((r) => r.json());
-}
+function fetchBeans(): Promise<Bean[]> { return fetch("/api/beans").then((r) => r.json()); }
 
 export default function Beans() {
   const qc = useQueryClient();
@@ -50,13 +41,18 @@ export default function Beans() {
   const [form, setForm] = useState<BeanForm>({ ...BLANK });
 
   const openNew = () => { setEditing(null); setForm({ ...BLANK }); setOpen(true); };
-  const openEdit = (b: Bean) => { setEditing(b); setForm({ name: b.name, origin: b.origin ?? "", roaster: b.roaster ?? "", roastLevel: b.roastLevel ?? "", process: b.process ?? "", variety: b.variety ?? "", altitude: b.altitude ?? "", notes: b.notes ?? "" }); setOpen(true); };
+  const openEdit = (b: Bean) => {
+    setEditing(b);
+    setForm({ name: b.name, origin: b.origin ?? "", region: b.region ?? "", roaster: b.roaster ?? "", roastLevel: b.roastLevel ?? "", process: b.process ?? "", variety: b.variety ?? "", altitude: b.altitude ?? "", roasterNotes: b.roasterNotes ?? "", notes: b.notes ?? "", isActive: String(b.isActive) });
+    setOpen(true);
+  };
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const url = editing ? `/api/beans/${editing.id}` : "/api/beans";
       const method = editing ? "PATCH" : "POST";
-      const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const body = { ...form, isActive: form.isActive === "true" };
+      const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error(await r.text());
       return r.json();
     },
@@ -71,6 +67,9 @@ export default function Beans() {
 
   const set = (k: keyof BeanForm, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
+  const active = beans.filter((b) => b.isActive);
+  const inactive = beans.filter((b) => !b.isActive);
+
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -78,14 +77,14 @@ export default function Beans() {
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Sprout className="h-7 w-7 text-primary" /> Bean Catalog
           </h1>
-          <p className="text-muted-foreground mt-1">Master list of all beans you've pulled shots with.</p>
+          <p className="text-muted-foreground mt-1">Master list of all beans. Track origin, process, and performance.</p>
         </div>
         <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Bean</Button>
       </div>
 
       {isLoading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
         </div>
       ) : beans.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
@@ -94,45 +93,28 @@ export default function Beans() {
           <p className="text-sm mt-1">Add your first bean to start tracking.</p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {beans.map((b) => (
-            <Card key={b.id} className="flex flex-col">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-lg leading-snug">{b.name}</CardTitle>
-                  <div className="flex gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(b)}><Pencil className="h-3.5 w-3.5" /></Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteMutation.mutate(b.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {b.roastLevel && <Badge variant="outline" className="text-xs">{b.roastLevel}</Badge>}
-                  {b.process && <Badge variant="outline" className="text-xs">{b.process}</Badge>}
-                  {b.origin && <Badge variant="secondary" className="text-xs">{b.origin}</Badge>}
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0 flex-1 flex flex-col justify-between gap-3">
-                <div className="text-sm text-muted-foreground space-y-0.5">
-                  {b.roaster && <p>Roaster: <span className="text-foreground">{b.roaster}</span></p>}
-                  {b.variety && <p>Variety: <span className="text-foreground">{b.variety}</span></p>}
-                  {b.altitude && <p>Altitude: <span className="text-foreground">{b.altitude}</span></p>}
-                </div>
-                <div className="flex items-center justify-between pt-2 border-t text-sm">
-                  <span className="text-muted-foreground">{b.bagCount} bag{b.bagCount !== 1 ? "s" : ""} · {b.shotCount} shots · {b.referenceCount} refs</span>
-                  {b.avgRating != null && (
-                    <span className="flex items-center gap-1 text-amber-600 font-medium">
-                      <Star className="h-3.5 w-3.5 fill-current" />{Number(b.avgRating).toFixed(1)}
-                    </span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-6">
+          {active.length > 0 && (
+            <section>
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Active</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {active.map((b) => <BeanCard key={b.id} bean={b} onEdit={openEdit} onDelete={(id) => deleteMutation.mutate(id)} />)}
+              </div>
+            </section>
+          )}
+          {inactive.length > 0 && (
+            <section>
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Inactive</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 opacity-70">
+                {inactive.map((b) => <BeanCard key={b.id} bean={b} onEdit={openEdit} onDelete={(id) => deleteMutation.mutate(id)} />)}
+              </div>
+            </section>
+          )}
         </div>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Edit Bean" : "Add Bean"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-2">
             <div className="col-span-2 space-y-1.5">
@@ -142,6 +124,10 @@ export default function Beans() {
             <div className="space-y-1.5">
               <Label>Origin / Country</Label>
               <Input value={form.origin} onChange={(e) => set("origin", e.target.value)} placeholder="e.g. Costa Rica" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Region</Label>
+              <Input value={form.region} onChange={(e) => set("region", e.target.value)} placeholder="e.g. Tarrazú" />
             </div>
             <div className="space-y-1.5">
               <Label>Roaster</Label>
@@ -169,15 +155,23 @@ export default function Beans() {
             </div>
             <div className="space-y-1.5">
               <Label>Variety</Label>
-              <Input value={form.variety} onChange={(e) => set("variety", e.target.value)} placeholder="e.g. Geisha" />
+              <Input value={form.variety} onChange={(e) => set("variety", e.target.value)} placeholder="e.g. Caturra" />
             </div>
             <div className="space-y-1.5">
               <Label>Altitude</Label>
               <Input value={form.altitude} onChange={(e) => set("altitude", e.target.value)} placeholder="e.g. 1800m" />
             </div>
             <div className="col-span-2 space-y-1.5">
-              <Label>Notes</Label>
-              <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Tasting notes, sourcing info…" className="min-h-[80px]" />
+              <Label>Roaster Tasting Notes</Label>
+              <Textarea value={form.roasterNotes} onChange={(e) => set("roasterNotes", e.target.value)} placeholder="Roaster's official tasting notes…" className="min-h-[64px]" />
+            </div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>Your Notes</Label>
+              <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Personal observations, sourcing info…" className="min-h-[64px]" />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label className="font-normal">Active</Label>
+              <Switch checked={form.isActive === "true"} onCheckedChange={(v) => set("isActive", String(v))} />
             </div>
           </div>
           <DialogFooter>
@@ -189,5 +183,42 @@ export default function Beans() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function BeanCard({ bean: b, onEdit, onDelete }: { bean: Bean; onEdit: (b: Bean) => void; onDelete: (id: number) => void }) {
+  return (
+    <Card className="flex flex-col">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-lg leading-snug">{b.name}</CardTitle>
+          <div className="flex gap-1 shrink-0">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(b)}><Pencil className="h-3.5 w-3.5" /></Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(b.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1.5 mt-1">
+          {b.roastLevel && <Badge variant="outline" className="text-xs">{b.roastLevel}</Badge>}
+          {b.process && <Badge variant="outline" className="text-xs">{b.process}</Badge>}
+          {b.region ? <Badge variant="secondary" className="text-xs">{b.region}</Badge> : b.origin ? <Badge variant="secondary" className="text-xs">{b.origin}</Badge> : null}
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0 flex-1 flex flex-col justify-between gap-3">
+        <div className="text-sm text-muted-foreground space-y-0.5">
+          {b.roaster && <p>Roaster: <span className="text-foreground">{b.roaster}</span></p>}
+          {b.variety && <p>Variety: <span className="text-foreground">{b.variety}</span></p>}
+          {b.altitude && <p>Altitude: <span className="text-foreground">{b.altitude}</span></p>}
+          {b.roasterNotes && <p className="italic text-xs line-clamp-2">"{b.roasterNotes}"</p>}
+        </div>
+        <div className="flex items-center justify-between pt-2 border-t text-sm">
+          <span className="text-muted-foreground">{b.bagCount} bag{b.bagCount !== 1 ? "s" : ""} · {b.shotCount} shots</span>
+          {b.avgRating != null && (
+            <span className="flex items-center gap-1 text-amber-600 font-medium">
+              <Star className="h-3.5 w-3.5 fill-current" />{Number(b.avgRating).toFixed(1)}
+            </span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

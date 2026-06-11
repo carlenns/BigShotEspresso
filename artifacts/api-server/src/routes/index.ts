@@ -7,6 +7,8 @@ import settingsRouter from "./settings";
 import beansRouter from "./beans";
 import bagsRouter from "./bags";
 import equipmentRouter from "./equipment";
+import accessoriesRouter from "./accessories";
+import tasteSelectorRouter from "./taste-selectors";
 
 const router: IRouter = Router();
 
@@ -18,5 +20,7 @@ router.use(settingsRouter);
 router.use(beansRouter);
 router.use(bagsRouter);
 router.use(equipmentRouter);
+router.use(accessoriesRouter);
+router.use(tasteSelectorRouter);
 
 export default router;
