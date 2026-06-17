@@ -1,0 +1,186 @@
+Test and implement live Airtable sync for BigShotEspresso.
+
+Goal:
+The app currently uses CSV seed data, but it is now connected to Airtable. Update the app so it can test the Airtable connection, sync live Airtable data, and use the live/synced data for dashboard intelligence.
+
+Requirements:
+
+1. Airtable Connection Test
+
+Add a Settings page section called “Airtable Connection”.
+
+Add a button:
+
+Test Airtable Connection
+
+When clicked, verify:
+- API key/token exists
+- Base ID exists
+- Tables are reachable
+- Beans table is reachable
+- Bags table is reachable
+- Shots table is reachable
+
+Show:
+- Connected / Failed
+- Base name if available
+- Table names found
+- Error message if connection fails
+
+Do not expose the API key in the UI.
+
+2. Airtable Sync
+
+Add a button:
+
+Sync from Airtable
+
+Pull live records from:
+- Beans
+- Bags
+- Shots
+- Equipment if available
+- Accessories if available
+- Taste Selectors if available
+- Shot Fault Rules if available
+- Project Notes if available
+
+Store Airtable record IDs locally.
+
+Do not duplicate records if the Airtable record already exists locally.
+
+Update existing records when Airtable record IDs match.
+
+Show:
+- Last sync time
+- Number of Beans synced
+- Number of Bags synced
+- Number of Shots synced
+- Sync errors
+- Records skipped
+
+3. Source of Truth During Prototype
+
+For now, Airtable should be treated as the prototype source of truth.
+
+The app should use the latest synced Airtable data for:
+- Dashboard
+- Bag Intelligence
+- Bean Intelligence
+- Shot Log
+- Reference Shots
+- Reports
+
+If Airtable is unavailable, keep showing the most recently synced local data.
+
+4. Fix Dashboard Data Model
+
+The dashboard is currently too shot-centric.
+
+BigShotEspresso should understand:
+
+Bean → Bag → Shots
+
+The active bag should drive the dashboard.
+
+Fix dashboard so it reads from actual Bag records, not only grouped shot data.
+
+5. Current Bag Intelligence
+
+For the active bag, show:
+- Bean
+- Bag number
+- Bag name/label
+- Roast date
+- Open date
+- Days open
+- Roast age
+- Starting bag weight
+- Estimated remaining weight if available
+- Shots logged for this bag
+- Reference shots for this bag
+- Average rating
+- Average preference rating
+- Best rating
+- Best yield window
+- Best first pour window
+- Current grind setting
+- Current grind time
+- Starting grind setting
+- Starting grind time
+
+6. Bag Progress
+
+Add bag progress if data exists:
+- Starting weight
+- Estimated consumed
+- Estimated remaining
+- Estimated shots remaining
+- Bag completion percentage
+
+If remaining weight is missing, calculate estimate from:
+Starting bag weight minus total actual basket dose from shots linked to the bag.
+
+Use actual basket dose, not initial grinder output.
+
+7. Grind Drift Intelligence
+
+Compare current bag to previous bags.
+
+For each recent bag, show:
+- Bag number
+- Bean
+- Days open
+- Starting grind setting
+- Current/final grind setting
+- Total grind adjustment
+- Number of grind adjustments
+- Days before first adjustment
+- Average days per adjustment
+- Reference shot count
+- Best rating
+
+Do not show this section if there is not enough data.
+
+8. Current Baseline
+
+Show current baseline prominently:
+- Active bag
+- Dose
+- Target yield
+- Temperature
+- Current grind setting
+- Current grind time
+- Grinder
+- Machine
+- Basket
+- Puck screen if enabled
+
+This should be practical daily-use information.
+
+9. Timing Windows
+
+Add “Best Performing Windows” using reference shots and high-rated shots:
+- First pour delay range
+- Scale time range
+- Pump time / pour time range
+- Yield range
+
+Use current bag data first.
+If not enough current bag data exists, fall back to same bean.
+If not enough same bean data exists, fall back to all reference shots.
+
+10. Dashboard Philosophy
+
+Dashboard should answer:
+
+- What bag am I using?
+- What recipe am I using?
+- What changed?
+- What worked before?
+- Am I drifting?
+- What should I watch for next?
+
+Avoid generic lifetime statistics unless they are lower priority.
+
+Every dashboard element should help the user find their best shot and repeat it.

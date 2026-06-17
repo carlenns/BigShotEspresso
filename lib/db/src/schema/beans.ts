@@ -15,6 +15,7 @@ export const beansTable = pgTable("beans", {
   roasterNotes: text("roaster_notes"),
   notes: text("notes"),
   isActive: boolean("is_active").notNull().default(true),
+  airtableRecordId: text("airtable_record_id").unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

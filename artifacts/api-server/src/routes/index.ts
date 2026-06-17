@@ -9,6 +9,7 @@ import bagsRouter from "./bags";
 import equipmentRouter from "./equipment";
 import accessoriesRouter from "./accessories";
 import tasteSelectorRouter from "./taste-selectors";
+import airtableRouter from "./airtable";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(bagsRouter);
 router.use(equipmentRouter);
 router.use(accessoriesRouter);
 router.use(tasteSelectorRouter);
+router.use(airtableRouter);
 
 export default router;

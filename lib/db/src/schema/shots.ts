@@ -57,6 +57,7 @@ export const shotsTable = pgTable("shots", {
   shotsLeftEst: real("shots_left_est"),
   finishedShot: boolean("finished_shot"),
   sensoryNotes: text("sensory_notes"),
+  airtableRecordId: text("airtable_record_id").unique(),
   rawRow: jsonb("raw_row").$type<Record<string, string>>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

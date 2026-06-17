@@ -24,6 +24,7 @@ export const bagsTable = pgTable("bags", {
   defaultTemp: integer("default_temp"),
   dialInNotes: text("dial_in_notes"),
   notes: text("notes"),
+  airtableRecordId: text("airtable_record_id").unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
