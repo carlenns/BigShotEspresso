@@ -1,6 +1,10 @@
 import { Router, type IRouter } from "express";
 import { eq, isNotNull, sql } from "drizzle-orm";
-import { db, beansTable, bagsTable, shotsTable, settingsTable } from "@workspace/db";
+import {
+  db, beansTable, bagsTable, shotsTable, settingsTable,
+  grindersTable, machinesTable, accessoriesTable,
+  tasteSelectorsTable, shotTasteSelectorsTable,
+} from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -48,7 +52,6 @@ function bool(v: unknown): boolean | undefined {
   return undefined;
 }
 
-// First string in a linked-record array
 function linkedId(v: unknown): string | undefined {
   if (Array.isArray(v) && v.length > 0) return String(v[0]);
   return undefined;
@@ -78,13 +81,40 @@ async function saveSetting(key: string, value: string) {
     .onConflictDoUpdate({ target: settingsTable.key, set: { value, updatedAt: new Date() } });
 }
 
+// ── GET /api/airtable/status ───────────────────────────────────────────────
+router.get("/airtable/status", async (_req, res): Promise<void> => {
+  const rows = await db.select().from(settingsTable);
+  const s: Record<string, string> = {};
+  for (const r of rows) s[r.key] = r.value;
+  res.json({
+    hasToken: !!process.env.AIRTABLE_API_KEY,
+    hasBaseId: !!process.env.AIRTABLE_BASE_ID,
+    lastSync: s.airtableLastSync ?? null,
+    lastSyncResult: s.airtableLastSyncResult ? JSON.parse(s.airtableLastSyncResult) : null,
+    lastClear: s.airtableLastClear ?? null,
+    lastClearResult: s.airtableLastClearResult ? JSON.parse(s.airtableLastClearResult) : null,
+  });
+});
+
+// ── GET /api/airtable/counts ───────────────────────────────────────────────
+router.get("/airtable/counts", async (_req, res): Promise<void> => {
+  const [beans] = await db.select({ total: sql<number>`count(*)::int`, fromAirtable: sql<number>`count(*) filter (where ${beansTable.airtableRecordId} is not null)::int` }).from(beansTable);
+  const [bags] = await db.select({ total: sql<number>`count(*)::int`, fromAirtable: sql<number>`count(*) filter (where ${bagsTable.airtableRecordId} is not null)::int` }).from(bagsTable);
+  const [shots] = await db.select({ total: sql<number>`count(*)::int`, fromAirtable: sql<number>`count(*) filter (where ${shotsTable.airtableRecordId} is not null)::int` }).from(shotsTable);
+  const [grinders] = await db.select({ total: sql<number>`count(*)::int` }).from(grindersTable);
+  const [machines] = await db.select({ total: sql<number>`count(*)::int` }).from(machinesTable);
+  const [accessories] = await db.select({ total: sql<number>`count(*)::int` }).from(accessoriesTable);
+  const [tasteSelectors] = await db.select({ total: sql<number>`count(*)::int` }).from(tasteSelectorsTable);
+  res.json({ beans, bags, shots, grinders, machines, accessories, tasteSelectors });
+});
+
 // ── POST /api/airtable/test ────────────────────────────────────────────────
 router.post("/airtable/test", async (_req, res): Promise<void> => {
   const token = process.env.AIRTABLE_API_KEY;
   const baseId = process.env.AIRTABLE_BASE_ID;
 
   if (!token || !baseId) {
-    res.status(200).json({
+    res.json({
       connected: false,
       error: "Missing environment variables. Set AIRTABLE_API_KEY and AIRTABLE_BASE_ID in your Replit Secrets.",
       hasToken: !!token,
@@ -106,26 +136,59 @@ router.post("/airtable/test", async (_req, res): Promise<void> => {
 
     const meta = await metaRes.json() as { tables: { id: string; name: string }[] };
     const tables = meta.tables.map((t) => t.name);
-
     const wantedTables = ["Shots", "Beans", "Bags", "Equipment", "Accessories", "Taste Selectors"];
     const found: string[] = [];
     const missing: string[] = [];
     for (const t of wantedTables) {
-      const exists = tables.some((n) => normalize(n) === normalize(t));
-      (exists ? found : missing).push(t);
+      (tables.some((n) => normalize(n) === normalize(t)) ? found : missing).push(t);
     }
 
-    res.json({
-      connected: true,
-      baseId,
-      tableCount: tables.length,
-      allTables: tables,
-      found,
-      missing,
-    });
+    res.json({ connected: true, baseId, tableCount: tables.length, allTables: tables, found, missing });
   } catch (e) {
     res.json({ connected: false, error: String(e) });
   }
+});
+
+// ── POST /api/airtable/clear ───────────────────────────────────────────────
+router.post("/airtable/clear", async (req, res): Promise<void> => {
+  const body = req.body as { confirm?: boolean };
+  if (!body.confirm) {
+    res.status(400).json({ error: "Send { confirm: true } to confirm deletion of all coffee data." });
+    return;
+  }
+
+  const deleted: Record<string, number> = {};
+
+  // Delete in FK-safe order
+  const stj = await db.delete(shotTasteSelectorsTable);
+  deleted.shotTasteSelectors = (stj as any).rowCount ?? 0;
+
+  const sh = await db.delete(shotsTable);
+  deleted.shots = (sh as any).rowCount ?? 0;
+
+  const bg = await db.delete(bagsTable);
+  deleted.bags = (bg as any).rowCount ?? 0;
+
+  const bn = await db.delete(beansTable);
+  deleted.beans = (bn as any).rowCount ?? 0;
+
+  const gr = await db.delete(grindersTable);
+  deleted.grinders = (gr as any).rowCount ?? 0;
+
+  const mc = await db.delete(machinesTable);
+  deleted.machines = (mc as any).rowCount ?? 0;
+
+  const ac = await db.delete(accessoriesTable);
+  deleted.accessories = (ac as any).rowCount ?? 0;
+
+  const ts = await db.delete(tasteSelectorsTable);
+  deleted.tasteSelectors = (ts as any).rowCount ?? 0;
+
+  const clearedAt = new Date().toISOString();
+  await saveSetting("airtableLastClear", clearedAt);
+  await saveSetting("airtableLastClearResult", JSON.stringify(deleted));
+
+  res.json({ clearedAt, deleted });
 });
 
 // ── POST /api/airtable/sync ────────────────────────────────────────────────
@@ -138,7 +201,6 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
     return;
   }
 
-  // Discover table names
   const metaRes = await fetch(`https://api.airtable.com/v0/meta/bases/${baseId}/tables`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -160,18 +222,17 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
   const initStat = () => ({ inserted: 0, updated: 0, skipped: 0, errors: [] as string[] });
 
   // ── 1. Sync Beans ────────────────────────────────────────────────────────
-  const beansTable_ = resolveTable("Beans", "Bean");
-  if (beansTable_) {
+  const beansTableName = resolveTable("Beans", "Bean");
+  if (beansTableName) {
     stats.beans = initStat();
     try {
-      const records = await fetchAllRecords(baseId, beansTable_, token);
+      const records = await fetchAllRecords(baseId, beansTableName, token);
       for (const r of records) {
         const f = r.fields;
         const name = str(findField(f, ["Name", "Bean", "Bean Name", "Coffee"]));
         if (!name) { stats.beans.skipped++; continue; }
         try {
-          const existing = await db.select({ id: beansTable.id })
-            .from(beansTable).where(eq(beansTable.airtableRecordId, r.id));
+          const existing = await db.select({ id: beansTable.id }).from(beansTable).where(eq(beansTable.airtableRecordId, r.id));
           const vals = {
             name,
             origin: str(findField(f, ["Origin", "Country", "Country of Origin"])),
@@ -198,24 +259,23 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
     } catch (e) { stats.beans = { ...initStat(), errors: [String(e)] }; }
   }
 
-  // Build airtableId → localId maps for linking
+  // Build airtableId → localId maps
   const beanIdMap = new Map<string, number>();
   const localBeans = await db.select({ id: beansTable.id, atId: beansTable.airtableRecordId }).from(beansTable).where(isNotNull(beansTable.airtableRecordId));
   for (const b of localBeans) if (b.atId) beanIdMap.set(b.atId, b.id);
 
   // ── 2. Sync Bags ─────────────────────────────────────────────────────────
-  const bagsTable_ = resolveTable("Bags", "Bag");
-  if (bagsTable_) {
+  const bagsTableName = resolveTable("Bags", "Bag");
+  if (bagsTableName) {
     stats.bags = initStat();
     try {
-      const records = await fetchAllRecords(baseId, bagsTable_, token);
+      const records = await fetchAllRecords(baseId, bagsTableName, token);
       for (const r of records) {
         const f = r.fields;
         try {
           const beanAtId = linkedId(findField(f, ["Bean", "Beans", "Coffee"]));
           const beanId = beanAtId ? (beanIdMap.get(beanAtId) ?? null) : null;
-          const existing = await db.select({ id: bagsTable.id })
-            .from(bagsTable).where(eq(bagsTable.airtableRecordId, r.id));
+          const existing = await db.select({ id: bagsTable.id }).from(bagsTable).where(eq(bagsTable.airtableRecordId, r.id));
           const vals = {
             beanId,
             bagNumber: str(findField(f, ["Bag Number", "Bag #", "Number", "Bag No"])),
@@ -255,11 +315,11 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
   for (const b of localBags) if (b.atId) bagIdMap.set(b.atId, b.id);
 
   // ── 3. Sync Shots ────────────────────────────────────────────────────────
-  const shotsTable_ = resolveTable("Shots", "Shot Log", "Shot");
-  if (shotsTable_) {
+  const shotsTableName = resolveTable("Shots", "Shot Log", "Shot");
+  if (shotsTableName) {
     stats.shots = initStat();
     try {
-      const records = await fetchAllRecords(baseId, shotsTable_, token);
+      const records = await fetchAllRecords(baseId, shotsTableName, token);
       for (const r of records) {
         const f = r.fields;
         const shotDate = str(findField(f, ["Shot Date", "Date", "Timestamp", "Created", "Date/Time"]));
@@ -267,8 +327,7 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
         try {
           const bagAtId = linkedId(findField(f, ["Bag", "Bags", "Current Bag"]));
           const bagId = bagAtId ? (bagIdMap.get(bagAtId) ?? null) : null;
-          const existing = await db.select({ id: shotsTable.id })
-            .from(shotsTable).where(eq(shotsTable.airtableRecordId, r.id));
+          const existing = await db.select({ id: shotsTable.id }).from(shotsTable).where(eq(shotsTable.airtableRecordId, r.id));
           const vals = {
             shotDate,
             bagId,
@@ -313,26 +372,11 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
     } catch (e) { stats.shots = { ...initStat(), errors: [String(e)] }; }
   }
 
-  // Save sync timestamp
   const syncTime = new Date().toISOString();
   await saveSetting("airtableLastSync", syncTime);
+  await saveSetting("airtableLastSyncResult", JSON.stringify(stats));
 
-  res.json({
-    syncedAt: syncTime,
-    stats,
-    tablesFound: Object.values(tableMap),
-  });
-});
-
-// ── GET /api/airtable/status ───────────────────────────────────────────────
-router.get("/airtable/status", async (_req, res): Promise<void> => {
-  const rows = await db.select().from(settingsTable).where(eq(settingsTable.key, "airtableLastSync"));
-  const lastSync = rows[0]?.value ?? null;
-  res.json({
-    hasToken: !!process.env.AIRTABLE_API_KEY,
-    hasBaseId: !!process.env.AIRTABLE_BASE_ID,
-    lastSync,
-  });
+  res.json({ syncedAt: syncTime, stats, tablesFound: Object.values(tableMap) });
 });
 
 export default router;

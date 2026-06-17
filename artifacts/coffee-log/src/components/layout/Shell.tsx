@@ -33,7 +33,7 @@ const tasteNav: NavItem[] = [
 ];
 
 const systemNav: NavItem[] = [
-  { title: "CSV Import Audit", href: "/audit", icon: Database },
+  { title: "Sync Audit", href: "/audit", icon: Database },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
 

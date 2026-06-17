@@ -1,0 +1,124 @@
+Replace all existing coffee demo/CSV/sample data with live Airtable-synced data only.
+
+Goal:
+BigShotEspresso should no longer display or rely on old CSV seed data, fake demo data, or previously generated sample coffee data.
+
+Airtable is the temporary source of truth during prototype testing.
+Replit Postgres is the app database.
+Airtable sync should populate Postgres.
+The app should read from Postgres after sync.
+
+Required behavior:
+
+1. Remove old coffee data
+
+Delete or archive all existing app coffee records that came from:
+- CSV import
+- demo seed data
+- generated sample data
+- placeholder data
+- fake Brazil/Guatemala/Costa Rica records created by the AI
+- any non-Airtable source
+
+This applies to:
+- Beans
+- Bags
+- Shots
+- Equipment if sample-generated
+- Accessories if sample-generated
+- Taste selectors if sample-generated
+- Reference shots if sample-generated
+- Dashboard records
+- Reports records
+
+2. Preserve schema and app structure
+
+Do not delete:
+- database tables
+- fields
+- relationships
+- UI pages
+- dashboard components
+- forms
+- settings
+- sync logic
+- user account/auth structure
+
+Only replace the actual coffee data records.
+
+3. Airtable sync becomes authoritative
+
+After clearing old data, run Airtable sync.
+
+Pull live records from Airtable tables:
+- Beans
+- Bags
+- Shots
+- Equipment if available
+- Accessories if available
+- Taste Selectors if available
+- Shot Fault Rules if available
+- Project Notes if available
+
+Store Airtable record IDs locally.
+
+4. No duplicate records
+
+Use Airtable record ID as the unique external key.
+
+If a record with the same Airtable ID exists:
+- update it
+
+If no record exists:
+- create it
+
+Do not create duplicates.
+
+5. Dashboard data source
+
+After sync, all dashboard cards, bag intelligence, bean intelligence, shot lists, reference shots, and reports must use the Postgres records created from Airtable sync.
+
+Do not use CSV memory, seed arrays, mock data, fallback demo data, or hardcoded sample records.
+
+6. Empty state
+
+If Airtable sync has not run yet, show:
+
+“No Airtable data synced yet.”
+
+Do not show sample coffee data.
+
+7. Sync audit page
+
+Add or update a sync audit section showing:
+- Last sync time
+- Beans synced
+- Bags synced
+- Shots synced
+- Equipment synced
+- Accessories synced
+- Taste selectors synced
+- Records deleted/replaced
+- Sync errors
+
+8. Safety confirmation
+
+Before deleting old coffee records, show a confirmation message:
+
+“This will replace all existing coffee data in BigShotEspresso with live Airtable data. App structure, tables, and settings will remain.”
+
+9. Development note
+
+For this prototype, Airtable is the source of truth.
+Postgres is the app database.
+CSV import should remain optional only for future users, but it should not currently populate the demo/project data unless explicitly requested.
+
+10. Final verification
+
+After sync, verify:
+- No old CSV/demo coffee records remain
+- Beans match Airtable
+- Bags match Airtable
+- Shots match Airtable
+- Shots are linked to correct bags
+- Dashboard reflects Airtable-synced data only

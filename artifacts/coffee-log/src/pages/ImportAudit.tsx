@@ -1,335 +1,455 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Database, Search } from "lucide-react";
+import {
+  Database, CheckCircle2, XCircle, RefreshCw, Loader2,
+  AlertTriangle, Trash2, Info, Package, Coffee, Layers,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface AuditSummary {
-  totalRows: number;
-  totalColumns: number;
-  earliestDate: string | null;
-  latestDate: string | null;
-  uniqueBags: string[];
-  uniqueStatuses: string[];
-  uniqueFaultStatuses: string[];
-  referenceShots: number;
-  nonReferenceShots: number;
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface AirtableStatus {
+  hasToken: boolean;
+  hasBaseId: boolean;
+  lastSync: string | null;
+  lastSyncResult: Record<string, { inserted: number; updated: number; skipped: number; errors: string[] }> | null;
+  lastClear: string | null;
+  lastClearResult: Record<string, number> | null;
 }
 
-interface AuditShot {
-  id: number;
-  shotDate: string;
-  bean: string | null;
-  bag: string | null;
-  status: string | null;
-  faultStatus: string | null;
-  rating: number | null;
-  isReference: boolean;
-  dose: number | null;
-  yield: number | null;
-  pourTime: number | null;
-  notes: string | null;
-  rawRow: Record<string, string> | null;
+interface DbCounts {
+  beans: { total: number; fromAirtable: number };
+  bags: { total: number; fromAirtable: number };
+  shots: { total: number; fromAirtable: number };
+  grinders: { total: number };
+  machines: { total: number };
+  accessories: { total: number };
+  tasteSelectors: { total: number };
 }
 
-function fetchAudit(): Promise<{ summary: AuditSummary; shots: AuditShot[] }> {
-  return fetch("/api/shots/audit").then((r) => r.json());
+interface SyncStats {
+  inserted: number;
+  updated: number;
+  skipped: number;
+  errors: string[];
 }
 
-const EXPECTED_ROWS = 132;
-const EXPECTED_COLS = 87;
+// ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ImportAudit() {
-  const { data, isLoading } = useQuery({ queryKey: ["audit"], queryFn: fetchAudit });
-  const [search, setSearch] = useState("");
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+export default function SyncAudit() {
+  const queryClient = useQueryClient();
 
-  const summary = data?.summary;
-  const shots = data?.shots ?? [];
-
-  const filtered = shots.filter((s) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      s.bean?.toLowerCase().includes(q) ||
-      s.status?.toLowerCase().includes(q) ||
-      s.faultStatus?.toLowerCase().includes(q) ||
-      s.notes?.toLowerCase().includes(q) ||
-      s.shotDate?.toLowerCase().includes(q)
-    );
+  const { data: status, isLoading: loadingStatus, refetch: refetchStatus } = useQuery<AirtableStatus>({
+    queryKey: ["airtable-status"],
+    queryFn: () => fetch("/api/airtable/status").then((r) => r.json()),
+    refetchOnWindowFocus: false,
   });
 
-  const rowsOk = summary ? summary.totalRows === EXPECTED_ROWS : null;
-  const colsOk = summary ? summary.totalColumns === EXPECTED_COLS : null;
+  const { data: counts, isLoading: loadingCounts, refetch: refetchCounts } = useQuery<DbCounts>({
+    queryKey: ["airtable-counts"],
+    queryFn: () => fetch("/api/airtable/counts").then((r) => r.json()),
+    refetchOnWindowFocus: false,
+  });
+
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ syncedAt: string; stats: Record<string, SyncStats> } | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  const [clearPhase, setClearPhase] = useState<"idle" | "confirm" | "clearing" | "done">("idle");
+  const [clearResult, setClearResult] = useState<{ clearedAt: string; deleted: Record<string, number> } | null>(null);
+  const [clearError, setClearError] = useState<string | null>(null);
+
+  const credsMissing = status && (!status.hasToken || !status.hasBaseId);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    setSyncError(null);
+    try {
+      const res = await fetch("/api/airtable/sync", { method: "POST" });
+      const data = await res.json();
+      if (data.error) {
+        setSyncError(data.error);
+      } else {
+        setSyncResult(data);
+        refetchStatus();
+        refetchCounts();
+        queryClient.invalidateQueries({ queryKey: ["dashboard-intelligence"] });
+        queryClient.invalidateQueries({ queryKey: ["shots"] });
+        queryClient.invalidateQueries({ queryKey: ["beans"] });
+        queryClient.invalidateQueries({ queryKey: ["bags"] });
+      }
+    } catch (e) {
+      setSyncError(String(e));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleClear = async () => {
+    setClearPhase("clearing");
+    setClearResult(null);
+    setClearError(null);
+    try {
+      const res = await fetch("/api/airtable/clear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: true }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setClearError(data.error);
+        setClearPhase("idle");
+      } else {
+        setClearResult(data);
+        setClearPhase("done");
+        refetchStatus();
+        refetchCounts();
+        queryClient.invalidateQueries();
+      }
+    } catch (e) {
+      setClearError(String(e));
+      setClearPhase("idle");
+    }
+  };
+
+  const totalSyncedFromAirtable = (counts?.beans.fromAirtable ?? 0) + (counts?.bags.fromAirtable ?? 0) + (counts?.shots.fromAirtable ?? 0);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
           <Database className="h-7 w-7 text-primary" />
-          CSV Import Audit
+          Sync Audit
         </h1>
         <p className="text-muted-foreground mt-1">
-          Inspect every row imported from the CSV exactly as parsed.
+          Airtable is the prototype source of truth. Sync populates Postgres; the app reads from Postgres.
         </p>
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
-        </div>
-      ) : summary ? (
-        <>
-          {/* Validation Banner */}
-          <div className={cn(
-            "rounded-lg border p-4 flex items-start gap-3",
-            rowsOk && colsOk ? "bg-green-500/5 border-green-500/20" : "bg-red-500/5 border-red-500/20"
-          )}>
-            {rowsOk && colsOk ? (
-              <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-            ) : (
-              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
-            )}
-            <div className="text-sm space-y-1">
-              <p className="font-semibold">
-                {rowsOk && colsOk
-                  ? "Import validated — all expected rows and columns present."
-                  : "Import mismatch detected."}
-              </p>
-              {!rowsOk && (
-                <p className="text-red-700">
-                  Rows: imported <strong>{summary.totalRows}</strong>, expected <strong>{EXPECTED_ROWS}</strong>
-                </p>
-              )}
-              {!colsOk && (
-                <p className="text-red-700">
-                  Columns: found <strong>{summary.totalColumns}</strong>, expected <strong>{EXPECTED_COLS}</strong>
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Summary Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <SummaryCard label="Total Rows" value={summary.totalRows} expected={EXPECTED_ROWS} />
-            <SummaryCard label="Total Columns" value={summary.totalColumns} expected={EXPECTED_COLS} />
-            <SummaryCard
-              label="Earliest Date"
-              value={summary.earliestDate ? format(new Date(summary.earliestDate), "MMM d, yyyy") : "—"}
-            />
-            <SummaryCard
-              label="Latest Date"
-              value={summary.latestDate ? format(new Date(summary.latestDate), "MMM d, yyyy") : "—"}
-            />
-            <SummaryCard label="Reference Shots" value={summary.referenceShots} />
-            <SummaryCard label="Non-Reference" value={summary.nonReferenceShots} />
-            <SummaryCard label="Unique Bags" value={summary.uniqueBags.length} detail={summary.uniqueBags.join(", ")} />
-            <SummaryCard label="Unique Statuses" value={summary.uniqueStatuses.length} detail={summary.uniqueStatuses.join(", ")} />
-          </div>
-
-          {/* Status breakdown */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Status Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {summary.uniqueStatuses.map((s) => (
-                  <Badge key={s} variant="outline" className="text-xs">{s}</Badge>
-                ))}
-              </div>
-              {summary.uniqueFaultStatuses.length > 0 && (
-                <div className="mt-3">
-                  <p className="text-xs text-muted-foreground mb-2">Fault statuses:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {summary.uniqueFaultStatuses.map((s) => (
-                      <Badge key={s} variant="outline" className="text-xs border-red-300 text-red-700">{s}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </>
-      ) : null}
-
-      {/* Row Viewer */}
+      {/* Credentials status */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <CardTitle>All Imported Rows</CardTitle>
-              <CardDescription>
-                {filtered.length} of {shots.length} rows — expand a row to see all 87 columns
-              </CardDescription>
-            </div>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder="Filter by bean, status, notes…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
+          <CardTitle className="text-sm">Airtable Credentials</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-6 space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-8"></TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Bean</TableHead>
-                    <TableHead>Bag</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Dose</TableHead>
-                    <TableHead>Yield</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Rating</TableHead>
-                    <TableHead>Ref</TableHead>
-                    <TableHead>Fault</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((shot) => (
-                    <React.Fragment key={shot.id}>
-                      <TableRow
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => setExpandedId(expandedId === shot.id ? null : shot.id)}
-                      >
-                        <TableCell className="text-muted-foreground">
-                          {expandedId === shot.id
-                            ? <ChevronDown className="h-4 w-4" />
-                            : <ChevronRight className="h-4 w-4" />}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs whitespace-nowrap">
-                          {shot.shotDate ? format(new Date(shot.shotDate), "MMM d, yyyy h:mma") : "—"}
-                        </TableCell>
-                        <TableCell className="text-sm">{shot.bean ?? "—"}</TableCell>
-                        <TableCell className="text-sm">{shot.bag ?? "—"}</TableCell>
-                        <TableCell>
-                          {shot.status ? (
-                            <Badge variant="outline" className="text-xs">{shot.status}</Badge>
-                          ) : "—"}
-                        </TableCell>
-                        <TableCell className="text-sm font-mono">{shot.dose != null ? `${shot.dose}g` : "—"}</TableCell>
-                        <TableCell className="text-sm font-mono">{shot.yield != null ? `${shot.yield}g` : "—"}</TableCell>
-                        <TableCell className="text-sm font-mono">{shot.pourTime != null ? `${shot.pourTime}s` : "—"}</TableCell>
-                        <TableCell className="text-sm">
-                          {shot.rating != null ? (
-                            <span className="text-amber-600 font-medium">{shot.rating}</span>
-                          ) : "—"}
-                        </TableCell>
-                        <TableCell>
-                          {shot.isReference ? (
-                            <Badge className="text-xs bg-primary/10 text-primary border-primary/20">REF</Badge>
-                          ) : "—"}
-                        </TableCell>
-                        <TableCell className="text-xs text-red-600">{shot.faultStatus ?? ""}</TableCell>
-                      </TableRow>
-                      {expandedId === shot.id && shot.rawRow && (
-                        <TableRow>
-                          <TableCell colSpan={11} className="bg-muted/30 p-4">
-                            <RawRowViewer rawRow={shot.rawRow} />
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </React.Fragment>
-                  ))}
-                  {filtered.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
-                        No rows match your filter.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-3">
+            <CredBadge label="AIRTABLE_API_KEY" present={status?.hasToken ?? false} />
+            <CredBadge label="AIRTABLE_BASE_ID" present={status?.hasBaseId ?? false} />
+          </div>
+          {credsMissing && (
+            <div className="flex items-start gap-2 rounded-lg bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/50 p-3">
+              <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Set <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">AIRTABLE_API_KEY</code> and{" "}
+                <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">AIRTABLE_BASE_ID</code>{" "}
+                in Replit Secrets (padlock icon in the sidebar) before syncing.
+              </p>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Live DB counts */}
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Database Contents</h2>
+        {loadingCounts ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
+          </div>
+        ) : counts ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <CountCard icon={Coffee} label="Beans" total={counts.beans.total} fromAirtable={counts.beans.fromAirtable} />
+            <CountCard icon={Package} label="Bags" total={counts.bags.total} fromAirtable={counts.bags.fromAirtable} />
+            <CountCard icon={Layers} label="Shots" total={counts.shots.total} fromAirtable={counts.shots.fromAirtable} />
+            <CountCard icon={Database} label="Other records" total={(counts.grinders.total + counts.machines.total + counts.accessories.total + counts.tasteSelectors.total)} />
+          </div>
+        ) : null}
+
+        {counts && totalSyncedFromAirtable === 0 && (
+          <div className="mt-3 flex items-center gap-2 rounded-lg border bg-muted/30 px-4 py-3">
+            <Info className="h-4 w-4 text-muted-foreground shrink-0" />
+            <p className="text-sm text-muted-foreground">No Airtable data synced yet. Run a sync to populate the app with your live Airtable data.</p>
+          </div>
+        )}
+      </section>
+
+      {/* Last sync summary */}
+      {status?.lastSync && (
+        <section>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Last Sync</h2>
+          <Card>
+            <CardContent className="p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span className="font-medium text-sm">Completed</span>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {format(new Date(status.lastSync), "d MMM yyyy, HH:mm")}
+                </span>
+              </div>
+              {status.lastSyncResult && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {Object.entries(status.lastSyncResult).map(([table, stat]) => (
+                    <SyncStatCard key={table} table={table} stat={stat} />
+                  ))}
+                </div>
+              )}
+              {status.lastSyncResult && Object.values(status.lastSyncResult).some((s) => s.errors.length > 0) && (
+                <SyncErrors result={status.lastSyncResult} />
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
+      {/* Sync action */}
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Sync from Airtable</h2>
+        <Card>
+          <CardContent className="p-5 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Pulls all records from Airtable (Beans → Bags → Shots). Updates existing records by Airtable ID, inserts new ones. Safe to run multiple times.
+            </p>
+            <Button onClick={handleSync} disabled={syncing || !!credsMissing} className="gap-2">
+              {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {syncing ? "Syncing…" : "Sync from Airtable"}
+            </Button>
+
+            {syncError && (
+              <div className="flex items-start gap-2 rounded-lg bg-red-50/50 border border-red-200/60 p-3">
+                <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                <p className="text-xs text-red-600 font-mono break-all">{syncError}</p>
+              </div>
+            )}
+
+            {syncResult && (
+              <div className="rounded-lg border bg-green-50/30 dark:bg-green-950/20 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span className="font-semibold text-sm">Sync complete — {format(new Date(syncResult.syncedAt), "d MMM yyyy, HH:mm")}</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {Object.entries(syncResult.stats).map(([table, stat]) => (
+                    <SyncStatCard key={table} table={table} stat={stat} />
+                  ))}
+                </div>
+                {Object.values(syncResult.stats).some((s) => s.errors.length > 0) && (
+                  <SyncErrors result={syncResult.stats} />
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Clear & Replace */}
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Clear Coffee Data</h2>
+        <Card className={cn(clearPhase === "confirm" && "border-destructive/50")}>
+          <CardContent className="p-5 space-y-4">
+
+            {clearPhase === "idle" && (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Permanently removes all Beans, Bags, Shots, Equipment, Accessories, and Taste Selectors from the database.
+                  Schema, settings, and app structure are preserved. Use before a fresh Airtable sync to start clean.
+                </p>
+                {status?.lastClear && (
+                  <p className="text-xs text-muted-foreground">
+                    Last cleared: {format(new Date(status.lastClear), "d MMM yyyy, HH:mm")}
+                    {status.lastClearResult && ` (${Object.values(status.lastClearResult).reduce((a, b) => a + b, 0)} records deleted)`}
+                  </p>
+                )}
+                <Button variant="destructive" onClick={() => setClearPhase("confirm")} className="gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Clear All Coffee Data…
+                </Button>
+              </>
+            )}
+
+            {clearPhase === "confirm" && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 space-y-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+                  <div className="space-y-1">
+                    <p className="font-semibold text-sm">This will replace all existing coffee data in BigShotEspresso with live Airtable data.</p>
+                    <p className="text-sm text-muted-foreground">App structure, tables, and settings will remain intact. All beans, bags, shots, equipment, accessories, and taste selectors will be deleted from Postgres.</p>
+                    {counts && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Currently in DB: {counts.beans.total} beans · {counts.bags.total} bags · {counts.shots.total} shots · {counts.grinders.total + counts.machines.total} equipment · {counts.accessories.total} accessories · {counts.tasteSelectors.total} taste selectors
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="destructive" onClick={handleClear} className="gap-2">
+                    <Trash2 className="h-4 w-4" />
+                    Yes, delete all coffee data
+                  </Button>
+                  <Button variant="outline" onClick={() => setClearPhase("idle")}>Cancel</Button>
+                </div>
+              </div>
+            )}
+
+            {clearPhase === "clearing" && (
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="text-sm">Clearing all coffee data…</span>
+              </div>
+            )}
+
+            {clearPhase === "done" && clearResult && (
+              <div className="space-y-4">
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <span className="font-semibold text-sm">All coffee data cleared — {format(new Date(clearResult.clearedAt), "d MMM yyyy, HH:mm")}</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    {Object.entries(clearResult.deleted).map(([table, count]) => (
+                      <div key={table} className="rounded bg-background border px-2.5 py-2">
+                        <p className="text-muted-foreground capitalize">{table}</p>
+                        <p className="font-bold">{count} deleted</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">Now run a sync to pull your live Airtable data into the app.</p>
+                <div className="flex gap-3">
+                  <Button onClick={handleSync} disabled={syncing || !!credsMissing} className="gap-2">
+                    {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    {syncing ? "Syncing…" : "Sync from Airtable now"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setClearPhase("idle")}>Done</Button>
+                </div>
+                {syncError && (
+                  <div className="flex items-start gap-2 rounded-lg bg-red-50/50 border border-red-200/60 p-3">
+                    <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                    <p className="text-xs text-red-600 font-mono break-all">{syncError}</p>
+                  </div>
+                )}
+                {syncResult && (
+                  <div className="rounded-lg border bg-green-50/30 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="font-semibold text-sm">Sync complete — {format(new Date(syncResult.syncedAt), "d MMM yyyy, HH:mm")}</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {Object.entries(syncResult.stats).map(([table, stat]) => (
+                        <SyncStatCard key={table} table={table} stat={stat} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {clearError && (
+              <div className="flex items-start gap-2 rounded-lg bg-red-50/50 border border-red-200/60 p-3">
+                <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                <p className="text-xs text-red-600 break-all">{clearError}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Last clear summary */}
+      {status?.lastClearResult && status.lastClear && clearPhase === "idle" && (
+        <section>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Last Clear Event</h2>
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Trash2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Cleared {format(new Date(status.lastClear), "d MMM yyyy, HH:mm")}</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                {Object.entries(status.lastClearResult).map(([table, count]) => (
+                  <div key={table} className="rounded bg-muted/40 px-2.5 py-2">
+                    <p className="text-muted-foreground capitalize">{table}</p>
+                    <p className="font-bold">{count} deleted</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      )}
     </div>
   );
 }
 
-function SummaryCard({
-  label,
-  value,
-  expected,
-  detail,
-}: {
-  label: string;
-  value: string | number;
-  expected?: number;
-  detail?: string;
-}) {
-  const isNum = typeof value === "number" && expected !== undefined;
-  const ok = isNum ? value === expected : true;
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function CredBadge({ label, present }: { label: string; present: boolean }) {
   return (
-    <Card className={cn("", isNum && !ok && "border-red-300")}>
-      <CardHeader className="pb-1 pt-4 px-4">
-        <CardTitle className="text-xs text-muted-foreground font-normal">{label}</CardTitle>
-      </CardHeader>
-      <CardContent className="px-4 pb-4">
-        <p className={cn("text-2xl font-bold", isNum && !ok ? "text-red-600" : "")}>
-          {value}
-        </p>
-        {isNum && expected !== undefined && (
-          <p className="text-xs text-muted-foreground">expected {expected}</p>
+    <div className={cn("flex items-center gap-1.5 text-xs rounded-full px-2.5 py-1 border font-mono",
+      present ? "bg-green-50 dark:bg-green-950/30 border-green-200/60 text-green-700 dark:text-green-400"
+               : "bg-muted border-border text-muted-foreground")}>
+      {present ? <CheckCircle2 className="h-3 w-3 text-green-600" /> : <XCircle className="h-3 w-3 text-muted-foreground" />}
+      {label}
+    </div>
+  );
+}
+
+function CountCard({ icon: Icon, label, total, fromAirtable }: { icon: React.ElementType; label: string; total: number; fromAirtable?: number }) {
+  const allFromAirtable = fromAirtable !== undefined && total > 0 && fromAirtable === total;
+  const noneFromAirtable = fromAirtable !== undefined && total > 0 && fromAirtable === 0;
+  return (
+    <Card className={cn(allFromAirtable && "border-green-300/50", noneFromAirtable && total > 0 && "border-amber-300/50")}>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">{label}</p>
+        </div>
+        <p className="text-2xl font-bold tabular-nums">{total}</p>
+        {fromAirtable !== undefined && (
+          <p className={cn("text-xs mt-0.5", allFromAirtable ? "text-green-600" : noneFromAirtable ? "text-amber-600" : "text-muted-foreground")}>
+            {fromAirtable} from Airtable{noneFromAirtable && total > 0 ? " — may be CSV data" : ""}
+          </p>
         )}
-        {detail && <p className="text-xs text-muted-foreground mt-1 truncate" title={detail}>{detail}</p>}
       </CardContent>
     </Card>
   );
 }
 
-function RawRowViewer({ rawRow }: { rawRow: Record<string, string> }) {
-  const [showEmpty, setShowEmpty] = useState(false);
-  const entries = Object.entries(rawRow).filter(([, v]) => showEmpty || v.trim() !== "");
+function SyncStatCard({ table, stat }: { table: string; stat: SyncStats }) {
+  const total = stat.inserted + stat.updated + stat.skipped;
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-medium text-muted-foreground">
-          All {Object.keys(rawRow).length} columns — {Object.values(rawRow).filter(v => v.trim()).length} non-empty
-        </p>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-xs h-6"
-          onClick={() => setShowEmpty((v) => !v)}
-        >
-          {showEmpty ? "Hide empty" : "Show empty"}
-        </Button>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 max-h-96 overflow-y-auto pr-1">
-        {entries.map(([col, val]) => (
-          <div key={col} className="flex flex-col gap-0.5 bg-background rounded px-2 py-1.5 border text-xs">
-            <span className="text-muted-foreground truncate" title={col}>{col}</span>
-            <span className="font-mono font-medium break-words">{val || <span className="text-muted-foreground italic">empty</span>}</span>
-          </div>
-        ))}
+    <div className="rounded-lg bg-background border p-3">
+      <p className="text-xs font-semibold capitalize mb-1.5">{table}</p>
+      <div className="space-y-0.5 text-xs text-muted-foreground">
+        <p><span className="text-green-600 font-medium">{stat.inserted}</span> inserted</p>
+        <p><span className="text-blue-600 font-medium">{stat.updated}</span> updated</p>
+        {stat.skipped > 0 && <p>{stat.skipped} skipped</p>}
+        {stat.errors.length > 0 && <p className="text-red-500 font-medium">{stat.errors.length} error{stat.errors.length > 1 ? "s" : ""}</p>}
+        <p className="text-muted-foreground pt-0.5 border-t mt-1">{total} total</p>
       </div>
     </div>
+  );
+}
+
+function SyncErrors({ result }: { result: Record<string, SyncStats> }) {
+  return (
+    <details className="text-xs">
+      <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Show sync errors</summary>
+      <div className="mt-2 space-y-1 font-mono">
+        {Object.entries(result).flatMap(([table, stat]) =>
+          stat.errors.map((e, i) => (
+            <p key={`${table}-${i}`} className="text-red-500 break-all">[{table}] {e}</p>
+          ))
+        )}
+      </div>
+    </details>
   );
 }
