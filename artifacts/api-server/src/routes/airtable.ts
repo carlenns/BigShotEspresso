@@ -231,6 +231,7 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
   const initStat = () => ({ inserted: 0, updated: 0, skipped: 0, errors: [] as string[] });
 
   // ── 1. Sync Beans ────────────────────────────────────────────────────────
+  // Actual Airtable field: "Beans" (primary field, plain string with roaster — bean name)
   const beansTableName = resolveTable("Beans", "Bean");
   if (beansTableName) {
     stats.beans = initStat();
@@ -238,22 +239,18 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
       const records = await fetchAllRecords(baseId, beansTableName, token);
       for (const r of records) {
         const f = r.fields;
-        const name = str(findField(f, ["Name", "Bean", "Bean Name", "Coffee"]));
+        // Primary field is "Beans" (e.g. "De Luca's — (Brazil)")
+        const name = str(findField(f, ["Beans", "Name", "Bean", "Bean Name", "Coffee"]));
         if (!name) { stats.beans.skipped++; continue; }
         try {
           const existing = await db.select({ id: beansTable.id }).from(beansTable).where(eq(beansTable.airtableRecordId, r.id));
           const vals = {
             name,
-            origin: str(findField(f, ["Origin", "Country", "Country of Origin"])),
-            region: str(findField(f, ["Region"])),
+            origin: str(findField(f, ["Country", "Origin", "Country of Origin"])),
             roaster: str(findField(f, ["Roaster", "Roaster Name"])),
-            roastLevel: str(findField(f, ["Roast Level", "Roast", "Roast Style"])),
-            process: str(findField(f, ["Process", "Processing", "Processing Method"])),
-            variety: str(findField(f, ["Variety", "Cultivar", "Varietals"])),
-            altitude: str(findField(f, ["Altitude", "Elevation"])),
-            roasterNotes: str(findField(f, ["Roaster Notes", "Tasting Notes", "Flavor Notes", "Roaster Tasting Notes"])),
-            notes: str(findField(f, ["Notes", "User Notes", "My Notes"])),
-            isActive: bool(findField(f, ["Active", "Is Active", "Status"])) ?? true,
+            roastLevel: str(findField(f, ["Roast Level ( ChatGPT )", "Roast Level", "Roast"])),
+            notes: str(findField(f, ["Notes", "User Notes"])),
+            isActive: true,
             airtableRecordId: r.id,
           };
           if (existing.length) {
@@ -274,6 +271,9 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
   for (const b of localBeans) if (b.atId) beanIdMap.set(b.atId, b.id);
 
   // ── 2. Sync Bags ─────────────────────────────────────────────────────────
+  // Actual Airtable fields: "Bag Label", "Bag ID", "Beans" (linked), "Roast Date",
+  // "Opened Date", "Bag Size (g)", "Bag Cost", "Target Dose (g)", "Initial Grinder Setting",
+  // "Average Grinder Setting", "Initial Grind Time (sec)", "Status"
   const bagsTableName = resolveTable("Bags", "Bag");
   if (bagsTableName) {
     stats.bags = initStat();
@@ -282,28 +282,25 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
       for (const r of records) {
         const f = r.fields;
         try {
-          const beanAtId = linkedId(findField(f, ["Bean", "Beans", "Coffee"]));
+          const beanAtId = linkedId(findField(f, ["Beans", "Bean", "Coffee"]));
           const beanId = beanAtId ? (beanIdMap.get(beanAtId) ?? null) : null;
           const existing = await db.select({ id: bagsTable.id }).from(bagsTable).where(eq(bagsTable.airtableRecordId, r.id));
+          const bagIdNum = num(findField(f, ["Bag ID"]));
+          const status = str(findField(f, ["Status"]));
           const vals = {
             beanId,
-            bagNumber: str(findField(f, ["Bag Number", "Bag #", "Number", "Bag No"])),
-            bagName: str(findField(f, ["Bag Name", "Label", "Name"])),
-            purchaseDate: str(findField(f, ["Purchase Date", "Bought", "Order Date"])),
-            roastDate: str(findField(f, ["Roast Date", "Roasted", "Roast On"])),
-            openedDate: str(findField(f, ["Opened Date", "Open Date", "Bag Opened", "Date Opened"])),
-            bagWeight: num(findField(f, ["Bag Weight", "Starting Weight", "Total Weight", "Weight (g)"])),
-            remainingEstimate: num(findField(f, ["Remaining", "Remaining Estimate", "Remaining Weight"])),
-            cost: num(findField(f, ["Cost", "Price", "Amount"])),
-            isActive: bool(findField(f, ["Active", "Is Active", "Current Bag"])) ?? false,
-            startGrindSetting: num(findField(f, ["Start Grind Setting", "Starting Grind Setting", "Initial Grind"])),
-            currentGrindSetting: num(findField(f, ["Current Grind Setting", "Grind Setting", "Current Grind"])),
-            startGrindTime: num(findField(f, ["Start Grind Time", "Starting Grind Time", "Initial Grind Time"])),
-            currentGrindTime: num(findField(f, ["Current Grind Time", "Grind Time", "Current Grind Time"])),
-            defaultDose: num(findField(f, ["Default Dose", "Target Dose", "Dose"])),
-            defaultYield: num(findField(f, ["Default Yield", "Target Yield", "Yield"])),
-            defaultTemp: num(findField(f, ["Default Temp", "Temperature", "Brew Temp"])) as number | undefined,
-            dialInNotes: str(findField(f, ["Dial In Notes", "Dial-in Notes", "Notes"])),
+            bagNumber: bagIdNum != null ? String(bagIdNum) : str(findField(f, ["Bag Number", "Bag #"])),
+            bagName: str(findField(f, ["Bag Label", "Bag Name", "Label", "Name"])),
+            roastDate: str(findField(f, ["Roast Date"])),
+            openedDate: str(findField(f, ["Opened Date", "Open Date"])),
+            bagWeight: num(findField(f, ["Bag Size (g)", "Bag Weight", "Starting Weight"])),
+            cost: num(findField(f, ["Bag Cost", "Cost", "Price"])),
+            isActive: status ? status.toLowerCase() === "active" : false,
+            startGrindSetting: num(findField(f, ["Initial Grinder Setting", "Start Grind Setting"])),
+            currentGrindSetting: num(findField(f, ["Average Grinder Setting", "Current Grind Setting"])),
+            startGrindTime: num(findField(f, ["Initial Grind Time (sec)", "Start Grind Time"])),
+            defaultDose: num(findField(f, ["Target Dose (g)", "Default Dose"])),
+            dialInNotes: str(findField(f, ["Notes", "Dial In Notes"])),
             airtableRecordId: r.id,
           };
           if (existing.length) {
@@ -324,6 +321,7 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
   for (const b of localBags) if (b.atId) bagIdMap.set(b.atId, b.id);
 
   // ── 3. Sync Shots ────────────────────────────────────────────────────────
+  // Actual Airtable fields confirmed from live data inspection
   const shotsTableName = resolveTable("Shots", "Shot Log", "Shot");
   if (shotsTableName) {
     stats.shots = initStat();
@@ -331,42 +329,54 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
       const records = await fetchAllRecords(baseId, shotsTableName, token);
       for (const r of records) {
         const f = r.fields;
-        const shotDate = str(findField(f, ["Shot Date", "Date", "Timestamp", "Created", "Date/Time"]));
+        const shotDate = str(findField(f, ["Date", "Shot Date", "Timestamp", "Created", "Date/Time"]));
         if (!shotDate) { stats.shots.skipped++; continue; }
         try {
           const bagAtId = linkedId(findField(f, ["Bag", "Bags", "Current Bag"]));
           const bagId = bagAtId ? (bagIdMap.get(bagAtId) ?? null) : null;
           const existing = await db.select({ id: shotsTable.id }).from(shotsTable).where(eq(shotsTable.airtableRecordId, r.id));
+
+          // Shot Classification is an array in Airtable — join to string
+          const classRaw = findField(f, ["Shot Classification", "Classification"]);
+          const shotClassification = Array.isArray(classRaw) ? classRaw.join(", ") : str(classRaw);
+
+          // Fault Status is an array in Airtable
+          const faultRaw = findField(f, ["Fault Status", "Fault"]);
+          const faultStatus = Array.isArray(faultRaw) ? faultRaw.join(", ") : str(faultRaw);
+
+          // Bag Label is an array of strings in Airtable
+          const bagLabelRaw = findField(f, ["Bag Label"]);
+          const bagLabel = Array.isArray(bagLabelRaw) ? bagLabelRaw[0] as string : str(bagLabelRaw);
+
+          // Include in Analysis: Airtable stores as 0/1 number
+          const includeRaw = findField(f, ["Include in Analysis", "Include In Analysis"]);
+          const includeInAnalysis = includeRaw != null ? Number(includeRaw) === 1 : undefined;
+
           const vals = {
             shotDate,
             bagId,
-            bean: str(findField(f, ["Bean", "Bean Name", "Coffee", "Beans"])),
-            bag: str(findField(f, ["Bag", "Bag Number", "Bag Label"])),
-            grindSetting: num(findField(f, ["Grind Setting", "Grind", "Grind Size", "Setting"])),
-            grindTime: num(findField(f, ["Grind Time", "Grind Duration", "Grind Seconds"])),
-            initialGrindWeight: num(findField(f, ["Initial Output", "Initial Grind Weight", "Initial Weight"])),
-            totalOutput: num(findField(f, ["Total Output", "Total Grind Weight"])),
-            dose: num(findField(f, ["Dose", "Actual Dose", "Basket Dose", "Dose (g)"])),
-            yield: num(findField(f, ["Yield", "Output", "Shot Yield", "Yield (g)"])),
-            temperature: num(findField(f, ["Temperature", "Temp", "Brew Temp", "Brew Temperature"])) as number | undefined,
-            pourDelay: num(findField(f, ["Pour Delay", "First Pour Delay", "Pre-infusion", "Pour Delay (s)"])) as number | undefined,
-            pourTime: num(findField(f, ["Pour Time", "Pump Time", "Extraction Time", "Time (s)"])) as number | undefined,
-            scaleTime: num(findField(f, ["Scale Time", "Total Time", "Overall Time"])) as number | undefined,
-            rating: num(findField(f, ["Rating", "Score", "Shot Rating"])),
-            preferenceRating: num(findField(f, ["Preference Rating", "Preference", "My Rating", "Pref Rating"])),
-            isReference: bool(findField(f, ["Reference Shot", "Is Reference", "Reference", "Ref Shot"])) ?? false,
-            signatureShot: bool(findField(f, ["Signature Shot", "Signature", "Is Signature"])),
-            status: str(findField(f, ["Status", "Shot Status", "Result"])),
-            shotClassification: str(findField(f, ["Shot Classification", "Classification", "Type"])),
-            faultStatus: str(findField(f, ["Fault Status", "Fault", "Fault Type"])),
-            expressionStyle: str(findField(f, ["Expression Style", "Expression", "Style"])),
-            notes: str(findField(f, ["Notes", "Tasting Notes", "Observations"])),
-            faultNotes: str(findField(f, ["Fault Notes", "Fault Description"])),
-            sensoryNotes: str(findField(f, ["Sensory Notes", "Sensory", "Flavour Notes", "Flavor Notes"])),
-            hopperPhase: str(findField(f, ["Hopper Phase", "Hopper"])),
-            grindAdjusted: str(findField(f, ["Grind Adjusted", "Grind Change", "Adjustment"])),
-            drinkType: str(findField(f, ["Drink Type", "Type", "Coffee Style"])),
-            includeInAnalysis: bool(findField(f, ["Include In Analysis", "Include", "Analyse"])),
+            bag: bagLabel,
+            grindSetting: num(findField(f, ["Grinder Setting", "Grind Setting"])),
+            grindTime: num(findField(f, ["Grind Time"])),
+            initialGrindWeight: num(findField(f, ["Initial Output (g)", "Initial Output"])),
+            totalOutput: num(findField(f, ["Total Output (g)", "Total Output"])),
+            dose: num(findField(f, ["Dose (g)", "Dose", "Target Dose (g)"])),
+            yield: num(findField(f, ["Yield (g)", "Yield"])),
+            temperature: num(findField(f, ["Temp", "Temperature"])) as number | undefined,
+            pourDelay: num(findField(f, ["Pour Delay", "Pour Delay (s)"])) as number | undefined,
+            pourTime: num(findField(f, ["Pour Time (sec)", "Pour Time"])) as number | undefined,
+            scaleTime: num(findField(f, ["Scale Time", "Total Time"])) as number | undefined,
+            rating: num(findField(f, ["Rating", "Rating ( Valid Only )"])),
+            preferenceRating: num(findField(f, ["Preference Rating"])),
+            isReference: bool(findField(f, ["Reference Shot"])) ?? false,
+            status: str(findField(f, ["Shot Status", "Status"])),
+            shotClassification,
+            faultStatus,
+            expressionStyle: str(findField(f, ["Expression Style"])),
+            notes: str(findField(f, ["Notes"])),
+            hopperPhase: str(findField(f, ["Hopper Phase"])),
+            drinkType: str(findField(f, ["Effective Drink Type", "Drink Type"])),
+            includeInAnalysis,
             airtableRecordId: r.id,
           };
           if (existing.length) {
