@@ -113,6 +113,13 @@ router.post("/airtable/test", async (_req, res): Promise<void> => {
   const token = process.env.AIRTABLE_API_KEY;
   const baseId = process.env.AIRTABLE_BASE_ID;
 
+  const tokenDiag = token ? {
+    length: token.length,
+    prefix: token.slice(0, 4),
+    hasLeadingSpace: token[0] === " ",
+    hasTrailingSpace: token[token.length - 1] === " ",
+  } : null;
+
   if (!token || !baseId) {
     res.json({
       connected: false,
@@ -123,14 +130,16 @@ router.post("/airtable/test", async (_req, res): Promise<void> => {
     return;
   }
 
+  const cleanToken = token.trim();
+
   try {
     const metaRes = await fetch(`https://api.airtable.com/v0/meta/bases/${baseId}/tables`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${cleanToken}` },
     });
 
     if (!metaRes.ok) {
       const body = await metaRes.text();
-      res.json({ connected: false, error: `Airtable API error (${metaRes.status}): ${body.slice(0, 300)}` });
+      res.json({ connected: false, error: `Airtable API error (${metaRes.status}): ${body.slice(0, 300)}`, tokenDiag });
       return;
     }
 
