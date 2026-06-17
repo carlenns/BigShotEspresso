@@ -1,169 +1,438 @@
 import React from "react";
 import { Link } from "wouter";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Coffee, TrendingUp, Clock, Target, Plus, Star, Award } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import {
+  Coffee, Plus, Star, Target, AlertTriangle,
+  CheckCircle2, Info, TrendingUp, TrendingDown,
+  Minus, Clock, Thermometer, Gauge, Timer, Flame
+} from "lucide-react";
 import { format } from "date-fns";
 import {
-  useGetDashboardSummary,
   useGetRecentShots,
   useGetBestRatedShots,
-  useGetInsights
 } from "@workspace/api-client-react";
+import { cn } from "@/lib/utils";
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+interface Intelligence {
+  activeBag: {
+    id: number; beanName: string | null; beanOrigin: string | null;
+    bagNumber: string | null; bagName: string | null; openedDate: string | null;
+    openDays: number | null; shotCount: number;
+    defaultDose: number | null; defaultYield: number | null; defaultTemp: number | null;
+    currentGrindSetting: number | null; startGrindSetting: number | null;
+    currentGrindTime: number | null; dialInNotes: string | null;
+  } | null;
+  bagIntelligence: {
+    totalShots: number; referenceShots: number; avgRating: number | null;
+    bestYieldRange: { min: number; max: number } | null;
+    bestPourDelayRange: { min: number; max: number } | null;
+    bestShot: { id: number; rating: number | null; dose: number | null; yield: number | null; grindSetting: number | null; pourTime: number | null; shotDate: string } | null;
+    last3Avg: number | null;
+  } | null;
+  grindDrift: {
+    startSetting: number | null; currentSetting: number | null;
+    earlyAvg: number | null; recentAvg: number | null;
+    drift: number | null; direction: "coarser" | "finer" | "stable" | null;
+    previousBagAvg: number | null; shotCount: number;
+  } | null;
+  watchlist: { type: "success" | "warning" | "info"; message: string }[];
+  totalShots: number;
+  referenceShots: number;
+}
+
+function fetchIntelligence(): Promise<Intelligence> {
+  return fetch("/api/dashboard/intelligence").then((r) => r.json());
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
-  const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
+  const { data: intel, isLoading } = useQuery({
+    queryKey: ["dashboard-intelligence"],
+    queryFn: fetchIntelligence,
+    refetchOnWindowFocus: true,
+  });
   const { data: recentShots, isLoading: isLoadingRecent } = useGetRecentShots({ limit: "5" });
   const { data: bestShots, isLoading: isLoadingBest } = useGetBestRatedShots({ limit: "5" });
-  const { data: insights, isLoading: isLoadingInsights } = useGetInsights();
+
+  const bag = intel?.activeBag;
+  const bi = intel?.bagIntelligence;
+  const gd = intel?.grindDrift;
 
   return (
-    <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Overview of your recent espresso extractions.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-0.5 text-sm">
+            {bag ? `${bag.beanName ?? "Active bag"} · Bag #${bag.bagNumber ?? bag.id}` : "Your espresso control centre"}
+          </p>
         </div>
-        <Button asChild>
-          <Link href="/shots/new">
-            <Plus className="mr-2 h-4 w-4" /> Log Shot
-          </Link>
+        <Button asChild className="gap-2 shadow-sm">
+          <Link href="/shots/new"><Plus className="h-4 w-4" /> Log Shot</Link>
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Shots"
-          value={summary?.totalShots}
-          icon={Coffee}
-          isLoading={isLoadingSummary}
-        />
-        <StatCard
-          title="Reference Shots"
-          value={summary?.referenceShots}
-          icon={Target}
-          isLoading={isLoadingSummary}
-        />
-        <StatCard
-          title="Avg Dose"
-          value={summary?.avgDose != null ? `${Number(summary.avgDose).toFixed(1)}g` : null}
-          icon={TrendingUp}
-          isLoading={isLoadingSummary}
-        />
-        <StatCard
-          title="Avg Pour Time"
-          value={summary?.avgPourTime != null ? `${Number(summary.avgPourTime).toFixed(1)}s` : null}
-          icon={Clock}
-          isLoading={isLoadingSummary}
-        />
-      </div>
+      {/* ── Section 1: Current Baseline ──────────────────────────────────── */}
+      <section>
+        <SectionLabel>Current Baseline</SectionLabel>
+        {isLoading ? (
+          <Skeleton className="h-40 w-full" />
+        ) : !bag ? (
+          <Card className="border-dashed">
+            <CardContent className="py-10 text-center text-muted-foreground">
+              <Coffee className="h-8 w-8 mx-auto mb-3 opacity-30" />
+              <p className="font-medium">No active bag set.</p>
+              <p className="text-sm mt-1">Go to Bags and mark one as active to see your setup here.</p>
+              <Button variant="outline" className="mt-4" asChild><Link href="/bags">Go to Bags</Link></Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+            <CardContent className="p-5">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                {/* Bag identity */}
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xl font-bold">{bag.beanName ?? "Unknown Bean"}</span>
+                    <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">Bag #{bag.bagNumber ?? bag.id}</Badge>
+                    {bag.bagName && <span className="text-sm text-muted-foreground">{bag.bagName}</span>}
+                  </div>
+                  {bag.beanOrigin && <p className="text-sm text-muted-foreground mt-0.5">{bag.beanOrigin}</p>}
+                  {bag.openDays != null && (
+                    <p className={cn("text-xs mt-1 font-medium", bag.openDays >= 28 ? "text-destructive" : bag.openDays >= 21 ? "text-amber-600" : "text-muted-foreground")}>
+                      Open {bag.openDays} day{bag.openDays !== 1 ? "s" : ""}
+                      {bag.openedDate ? ` · since ${format(new Date(bag.openedDate), "d MMM")}` : ""}
+                    </p>
+                  )}
+                </div>
+                <Button variant="outline" size="sm" asChild className="shrink-0">
+                  <Link href={`/bags/${bag.id}`}>View bag →</Link>
+                </Button>
+              </div>
 
-      {insights && insights.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <Award className="h-5 w-5 text-primary" /> Insights
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {insights.map((insight) => (
-              <Card key={insight.id} className="bg-primary/5 border-primary/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-primary uppercase tracking-wider">{insight.category}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm">{insight.text}</p>
+              {/* Recipe grid */}
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mt-5">
+                <RecipeStat icon={Coffee} label="Dose" value={bag.defaultDose != null ? `${bag.defaultDose}g` : "—"} />
+                <RecipeStat icon={TrendingUp} label="Yield" value={bag.defaultYield != null ? `${bag.defaultYield}g` : "—"} />
+                <RecipeStat icon={Thermometer} label="Temp" value={bag.defaultTemp != null ? `${bag.defaultTemp}°C` : "—"} />
+                <RecipeStat icon={Gauge} label="Grind" value={bag.currentGrindSetting != null ? String(bag.currentGrindSetting) : "—"} highlight />
+                <RecipeStat icon={Timer} label="Grind Time" value={bag.currentGrindTime != null ? `${bag.currentGrindTime}s` : "—"} />
+                <RecipeStat icon={Target} label="Shots" value={String(bag.shotCount)} />
+              </div>
+
+              {bag.dialInNotes && (
+                <p className="mt-3 text-xs text-muted-foreground border-t pt-3 italic">
+                  Dial-in note: {bag.dialInNotes}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </section>
+
+      {/* ── Sections 2 & 3: Bag Intelligence + Grind Drift ──────────────── */}
+      {(bi || gd) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          {/* Section 2: Bag Intelligence */}
+          <section className="flex flex-col gap-3">
+            <SectionLabel>Current Bag Intelligence</SectionLabel>
+            {isLoading ? <Skeleton className="h-52 w-full" /> : bi ? (
+              <Card className="flex-1">
+                <CardContent className="p-5 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <IntelStat label="Shots" value={String(bi.totalShots)} />
+                    <IntelStat label="Reference shots" value={String(bi.referenceShots)} accent={bi.referenceShots > 0} />
+                    <IntelStat
+                      label="Avg rating"
+                      value={bi.avgRating != null ? bi.avgRating.toFixed(2) : "—"}
+                      accent={bi.avgRating != null && bi.avgRating >= 8}
+                      icon={bi.avgRating != null ? Star : undefined}
+                    />
+                    <IntelStat
+                      label="Last 3 avg"
+                      value={bi.last3Avg != null ? bi.last3Avg.toFixed(1) : "—"}
+                      dim={bi.last3Avg != null && bi.last3Avg < 7.5}
+                    />
+                  </div>
+
+                  {bi.bestYieldRange && (
+                    <div className="rounded-lg bg-muted/40 px-3 py-2.5">
+                      <p className="text-xs text-muted-foreground mb-0.5">Best yield range (rated 8+)</p>
+                      <p className="font-semibold tabular-nums">
+                        {bi.bestYieldRange.min === bi.bestYieldRange.max
+                          ? `${bi.bestYieldRange.min}g`
+                          : `${bi.bestYieldRange.min}g – ${bi.bestYieldRange.max}g`}
+                      </p>
+                    </div>
+                  )}
+
+                  {bi.bestPourDelayRange && (
+                    <div className="rounded-lg bg-muted/40 px-3 py-2.5">
+                      <p className="text-xs text-muted-foreground mb-0.5">Best first pour delay (rated 8+)</p>
+                      <p className="font-semibold tabular-nums">
+                        {bi.bestPourDelayRange.min === bi.bestPourDelayRange.max
+                          ? `${bi.bestPourDelayRange.min}s`
+                          : `${bi.bestPourDelayRange.min}s – ${bi.bestPourDelayRange.max}s`}
+                      </p>
+                    </div>
+                  )}
+
+                  {bi.bestShot && (
+                    <div className="flex items-center justify-between rounded-lg border px-3 py-2.5 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/30">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Best shot</p>
+                        <p className="text-sm font-medium tabular-nums">
+                          {bi.bestShot.dose}g → {bi.bestShot.yield}g
+                          {bi.bestShot.grindSetting != null && ` · Grind ${bi.bestShot.grindSetting}`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 text-amber-600 font-bold">
+                        <Star className="h-4 w-4 fill-current" />
+                        {Number(bi.bestShot.rating).toFixed(2)}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            ) : null}
+          </section>
+
+          {/* Section 3: Grind Drift */}
+          <section className="flex flex-col gap-3">
+            <SectionLabel>Grind Drift Intelligence</SectionLabel>
+            {isLoading ? <Skeleton className="h-52 w-full" /> : (
+              <Card className="flex-1">
+                <CardContent className="p-5 space-y-4">
+                  {!gd ? (
+                    <p className="text-sm text-muted-foreground py-6 text-center">Log shots with grind settings to see drift analysis.</p>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <DriftIndicator direction={gd.direction} />
+                        <div>
+                          <p className="font-semibold capitalize">{gd.direction ?? "Stable"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {gd.drift != null && Math.abs(gd.drift) > 0.001
+                              ? `${gd.drift > 0 ? "+" : ""}${gd.drift.toFixed(3)} from early shots`
+                              : "No significant drift detected"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        {gd.startSetting != null && (
+                          <IntelStat label="Start setting" value={String(gd.startSetting)} />
+                        )}
+                        {gd.currentSetting != null && (
+                          <IntelStat label="Current setting" value={String(gd.currentSetting)} highlight />
+                        )}
+                        {gd.earlyAvg != null && (
+                          <IntelStat label="Early avg" value={String(gd.earlyAvg)} />
+                        )}
+                        {gd.recentAvg != null && (
+                          <IntelStat label="Recent avg" value={String(gd.recentAvg)} />
+                        )}
+                      </div>
+
+                      {gd.previousBagAvg != null && (
+                        <div className="rounded-lg bg-muted/40 px-3 py-2.5">
+                          <p className="text-xs text-muted-foreground mb-0.5">Previous bags avg grind</p>
+                          <p className="font-semibold tabular-nums">{gd.previousBagAvg.toFixed(3)}</p>
+                          {gd.currentSetting != null && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {gd.currentSetting > gd.previousBagAvg
+                                ? `This bag runs ${(gd.currentSetting - gd.previousBagAvg).toFixed(3)} coarser`
+                                : gd.currentSetting < gd.previousBagAvg
+                                ? `This bag runs ${(gd.previousBagAvg - gd.currentSetting).toFixed(3)} finer`
+                                : "Same as previous bags"}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      <p className="text-xs text-muted-foreground">Based on {gd.shotCount} shot{gd.shotCount !== 1 ? "s" : ""} with grind data</p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </section>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Recent Shots</h2>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/shots">View all</Link>
-            </Button>
-          </div>
-          <div className="grid gap-3">
-            {isLoadingRecent ? (
-              Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)
-            ) : recentShots?.length === 0 ? (
-              <p className="text-muted-foreground text-sm italic">No recent shots logged.</p>
-            ) : (
-              recentShots?.map((shot) => (
-                <ShotListItem key={shot.id} shot={shot} />
-              ))
-            )}
-          </div>
-        </div>
+      {/* ── Section 4: Next Shot Watchlist ──────────────────────────────── */}
+      {intel?.watchlist && intel.watchlist.length > 0 && (
+        <section>
+          <SectionLabel>Next Shot Watchlist</SectionLabel>
+          <Card>
+            <CardContent className="p-4 space-y-2">
+              {intel.watchlist.map((item, i) => (
+                <WatchlistItem key={i} type={item.type} message={item.message} />
+              ))}
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" /> Best Rated
-            </h2>
-          </div>
-          <div className="grid gap-3">
-            {isLoadingBest ? (
-              Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)
-            ) : bestShots?.length === 0 ? (
-              <p className="text-muted-foreground text-sm italic">No rated shots yet.</p>
-            ) : (
-              bestShots?.map((shot) => (
-                <ShotListItem key={shot.id} shot={shot} />
-              ))
-            )}
-          </div>
+      {/* ── Global counters ──────────────────────────────────────────────── */}
+      {intel && (
+        <div className="grid grid-cols-2 gap-3">
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <Coffee className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-2xl font-bold tabular-nums">{intel.totalShots}</p>
+                <p className="text-xs text-muted-foreground">Total shots</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <Target className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-2xl font-bold tabular-nums">{intel.referenceShots}</p>
+                <p className="text-xs text-muted-foreground">Reference shots</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
+      )}
+
+      {/* ── Recent + Best Rated ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <SectionLabel className="mb-0">Recent Shots</SectionLabel>
+            <Button variant="ghost" size="sm" asChild><Link href="/shots">View all</Link></Button>
+          </div>
+          {isLoadingRecent
+            ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)
+            : !recentShots?.length
+            ? <p className="text-sm text-muted-foreground italic">No shots logged yet.</p>
+            : (recentShots as any[]).map((shot) => <ShotRow key={shot.id} shot={shot} />)
+          }
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <SectionLabel className="mb-0">
+              <Star className="h-3.5 w-3.5 inline-block text-amber-500 fill-amber-500 mr-1" />
+              Best Rated
+            </SectionLabel>
+          </div>
+          {isLoadingBest
+            ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)
+            : !bestShots?.length
+            ? <p className="text-sm text-muted-foreground italic">No rated shots yet.</p>
+            : (bestShots as any[]).map((shot) => <ShotRow key={shot.id} shot={shot} />)
+          }
+        </section>
       </div>
     </div>
   );
 }
 
-function StatCard({ title, value, icon: Icon, isLoading }: { title: string, value: string | number | undefined | null, icon: any, isLoading: boolean }) {
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <Skeleton className="h-8 w-20" />
-        ) : (
-          <div className="text-2xl font-bold">{value ?? "—"}</div>
-        )}
-      </CardContent>
-    </Card>
+    <h2 className={cn("text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2", className)}>
+      {children}
+    </h2>
   );
 }
 
-function ShotListItem({ shot }: { shot: any }) {
+function RecipeStat({ icon: Icon, label, value, highlight }: { icon: React.ElementType; label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className={cn("rounded-lg px-3 py-2.5 text-center", highlight ? "bg-primary/10 border border-primary/20" : "bg-background/60 border")}>
+      <Icon className={cn("h-3.5 w-3.5 mx-auto mb-1", highlight ? "text-primary" : "text-muted-foreground")} />
+      <p className={cn("text-base font-bold tabular-nums leading-tight", highlight && "text-primary")}>{value}</p>
+      <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
+    </div>
+  );
+}
+
+function IntelStat({ label, value, accent, dim, icon: Icon, highlight }: { label: string; value: string; accent?: boolean; dim?: boolean; icon?: React.ElementType; highlight?: boolean }) {
+  return (
+    <div className={cn("rounded-lg px-3 py-2.5", highlight ? "bg-primary/10" : "bg-muted/40")}>
+      <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">{label}</p>
+      <p className={cn("font-bold tabular-nums flex items-center gap-1", accent && "text-primary", dim && "text-destructive")}>
+        {Icon && <Icon className="h-3.5 w-3.5 fill-current" />}
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function DriftIndicator({ direction }: { direction: "coarser" | "finer" | "stable" | null }) {
+  if (direction === "coarser") return (
+    <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-950 flex items-center justify-center shrink-0">
+      <TrendingUp className="h-5 w-5 text-amber-600" />
+    </div>
+  );
+  if (direction === "finer") return (
+    <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-950 flex items-center justify-center shrink-0">
+      <TrendingDown className="h-5 w-5 text-blue-600" />
+    </div>
+  );
+  return (
+    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+      <Minus className="h-5 w-5 text-muted-foreground" />
+    </div>
+  );
+}
+
+function WatchlistItem({ type, message }: { type: "success" | "warning" | "info"; message: string }) {
+  const config = {
+    success: { icon: CheckCircle2, class: "text-green-600 dark:text-green-400", bg: "bg-green-50/50 dark:bg-green-950/20 border-green-200/50 dark:border-green-800/30" },
+    warning: { icon: AlertTriangle, class: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/30" },
+    info: { icon: Info, class: "text-muted-foreground", bg: "bg-muted/30 border-border/50" },
+  }[type];
+  const Icon = config.icon;
+  return (
+    <div className={cn("flex items-start gap-2.5 rounded-lg border px-3 py-2.5", config.bg)}>
+      <Icon className={cn("h-4 w-4 mt-0.5 shrink-0", config.class)} />
+      <p className="text-sm">{message}</p>
+    </div>
+  );
+}
+
+function ShotRow({ shot }: { shot: any }) {
   return (
     <Link href={`/shots/${shot.id}`}>
-      <Card className="hover:bg-accent/50 transition-colors cursor-pointer border border-border/50 shadow-sm">
-        <CardContent className="p-4 flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="font-medium text-sm flex items-center gap-2">
-              {shot.bean || "Unknown Bean"}
-              {shot.rating && (
-                <span className="flex items-center text-xs text-yellow-600 bg-yellow-500/10 px-1.5 py-0.5 rounded-md">
-                  <Star className="h-3 w-3 mr-1 fill-current" /> {shot.rating}/10
+      <Card className="hover:bg-accent/40 transition-colors cursor-pointer">
+        <CardContent className="p-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-medium text-sm truncate">{shot.bean || "Unknown"}</span>
+              {shot.rating != null && (
+                <span className="flex items-center gap-0.5 text-xs text-amber-600 font-semibold shrink-0">
+                  <Star className="h-3 w-3 fill-current" />{Number(shot.rating).toFixed(2)}
                 </span>
               )}
             </div>
-            <div className="text-xs text-muted-foreground font-mono">
-              {shot.dose}g in → {shot.yield}g out • {shot.pourTime}s
-            </div>
+            <p className="text-xs text-muted-foreground font-mono mt-0.5">
+              {shot.dose != null ? `${shot.dose}g` : "—"} → {shot.yield != null ? `${shot.yield}g` : "—"}
+              {shot.pourTime != null ? ` · ${shot.pourTime}s` : ""}
+              {shot.grindSetting != null ? ` · ⚙${shot.grindSetting}` : ""}
+            </p>
           </div>
-          <div className="text-xs text-muted-foreground text-right space-y-1">
-            <div>{format(new Date(shot.shotDate), "MMM d")}</div>
-            <div className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] inline-block">
-              {shot.status || "Unspecified"}
-            </div>
+          <div className="text-right shrink-0 space-y-1">
+            <p className="text-xs text-muted-foreground">{format(new Date(shot.shotDate), "d MMM")}</p>
+            {shot.status && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0">{shot.status}</Badge>
+            )}
           </div>
         </CardContent>
       </Card>
