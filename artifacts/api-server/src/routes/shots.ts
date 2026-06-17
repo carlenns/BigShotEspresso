@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, gte, lte, ilike, or, sql } from "drizzle-orm";
+import { eq, and, gte, lte, ilike, or, sql, isNotNull } from "drizzle-orm";
 import { db, shotsTable, bagsTable, beansTable } from "@workspace/db";
 import {
   ListShotsQueryParams,
@@ -23,7 +23,7 @@ router.get("/shots/reference", async (req, res): Promise<void> => {
     return;
   }
   const p = params.data;
-  const conditions = [eq(shotsTable.isReference, true)];
+  const conditions = [eq(shotsTable.isReference, true), isNotNull(shotsTable.airtableRecordId)];
   if (p.bean) conditions.push(ilike(shotsTable.bean, `%${p.bean}%`));
   if (p.bag) conditions.push(ilike(shotsTable.bag, `%${p.bag}%`));
   if (p.ratingMin) conditions.push(gte(shotsTable.rating, Number(p.ratingMin)));
@@ -143,7 +143,7 @@ router.get("/shots", async (req, res): Promise<void> => {
     return;
   }
   const p = params.data;
-  const conditions = [];
+  const conditions = [isNotNull(shotsTable.airtableRecordId)];
   if (p.bean) conditions.push(ilike(shotsTable.bean, `%${p.bean}%`));
   if (p.bag) conditions.push(ilike(shotsTable.bag, `%${p.bag}%`));
   if (p.status) conditions.push(eq(shotsTable.status, p.status));

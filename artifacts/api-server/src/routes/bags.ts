@@ -32,6 +32,7 @@ router.get("/bags", async (_req, res): Promise<void> => {
     })
     .from(bagsTable)
     .leftJoin(beansTable, eq(bagsTable.beanId, beansTable.id))
+    .where(isNotNull(bagsTable.airtableRecordId))
     .orderBy(bagsTable.bagNumber);
 
   const stats = await db

@@ -40,14 +40,14 @@ router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
     })
     .from(bagsTable)
     .leftJoin(beansTable, eq(bagsTable.beanId, beansTable.id))
-    .where(eq(bagsTable.isActive, true))
+    .where(and(eq(bagsTable.isActive, true), isNotNull(bagsTable.airtableRecordId)))
     .limit(1);
 
   // ── Global totals ─────────────────────────────────────────────────────────
   const [globals] = await db.select({
     totalShots: sql<number>`count(*)::int`,
     referenceShots: sql<number>`count(*) filter (where ${shotsTable.isReference} = true)::int`,
-  }).from(shotsTable);
+  }).from(shotsTable).where(isNotNull(shotsTable.airtableRecordId));
 
   if (!activeBagRow) {
     res.json({
@@ -71,7 +71,7 @@ router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
 
   // ── Shots for active bag ──────────────────────────────────────────────────
   const activeBagShots = await db.select().from(shotsTable)
-    .where(eq(shotsTable.bagId, activeBagRow.id))
+    .where(and(eq(shotsTable.bagId, activeBagRow.id), isNotNull(shotsTable.airtableRecordId)))
     .orderBy(desc(sql`${shotsTable.shotDate}`));
 
   const ratedShots = activeBagShots.filter((s) => s.rating != null);
@@ -131,7 +131,7 @@ router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
     const sameBeanIds = sameBeanBags.map((b) => b.id);
     if (sameBeanIds.length > 1) {
       const sameBeanShots = await db.select().from(shotsTable)
-        .where(and(isNotNull(shotsTable.bagId), sql`${shotsTable.bagId} = ANY(${sameBeanIds})`))
+        .where(and(isNotNull(shotsTable.bagId), isNotNull(shotsTable.airtableRecordId), sql`${shotsTable.bagId} = ANY(${sameBeanIds})`))
         .orderBy(desc(sql`${shotsTable.shotDate}`));
       timingPool = sameBeanShots.filter((s) => s.rating != null && Number(s.rating) >= 8);
       timingSource = "same_bean";
@@ -139,7 +139,7 @@ router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
   }
   if (timingPool.length < 3) {
     // Fall back to all reference shots
-    const allRef = await db.select().from(shotsTable).where(eq(shotsTable.isReference, true));
+    const allRef = await db.select().from(shotsTable).where(and(eq(shotsTable.isReference, true), isNotNull(shotsTable.airtableRecordId)));
     timingPool = allRef;
     timingSource = "all_reference";
   }
@@ -174,7 +174,7 @@ router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
   const driftDir = drift == null ? null : drift > 0.02 ? "coarser" : drift < -0.02 ? "finer" : "stable";
 
   const [prevGrind] = await db.select({ avg: sql<number | null>`round(avg(${shotsTable.grindSetting})::numeric, 3)` })
-    .from(shotsTable).where(and(isNotNull(shotsTable.grindSetting), sql`${shotsTable.bagId} != ${activeBagRow.id}`));
+    .from(shotsTable).where(and(isNotNull(shotsTable.grindSetting), isNotNull(shotsTable.airtableRecordId), sql`${shotsTable.bagId} != ${activeBagRow.id}`));
 
   // ── Bag comparison (grind drift per bag) ──────────────────────────────────
   const allBagsGrind = await db.select({
@@ -192,7 +192,7 @@ router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
     .from(shotsTable)
     .leftJoin(bagsTable, eq(shotsTable.bagId, bagsTable.id))
     .leftJoin(beansTable, eq(bagsTable.beanId, beansTable.id))
-    .where(isNotNull(shotsTable.grindSetting))
+    .where(and(isNotNull(shotsTable.grindSetting), isNotNull(shotsTable.airtableRecordId)))
     .groupBy(shotsTable.bagId, bagsTable.bagNumber, beansTable.name, bagsTable.openedDate)
     .orderBy(desc(sql`count(*)`))
     .limit(5);
@@ -295,7 +295,7 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
     avgDose: sql<number | null>`round(avg(${shotsTable.dose})::numeric, 2)`,
     avgYield: sql<number | null>`round(avg(${shotsTable.yield})::numeric, 2)`,
     avgPourTime: sql<number | null>`round(avg(${shotsTable.pourTime})::numeric, 1)`,
-  }).from(shotsTable);
+  }).from(shotsTable).where(isNotNull(shotsTable.airtableRecordId));
   res.json({ totalShots: aggs?.totalShots ?? 0, referenceShots: aggs?.referenceShots ?? 0, avgDose: aggs?.avgDose ?? null, avgYield: aggs?.avgYield ?? null, avgPourTime: aggs?.avgPourTime ?? null });
 });
 
@@ -303,7 +303,7 @@ router.get("/dashboard/recent", async (req, res): Promise<void> => {
   const params = GetRecentShotsQueryParams.safeParse(req.query);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const limit = params.data.limit ? Number(params.data.limit) : 10;
-  const shots = await db.select().from(shotsTable).orderBy(desc(sql`${shotsTable.shotDate}`)).limit(limit);
+  const shots = await db.select().from(shotsTable).where(isNotNull(shotsTable.airtableRecordId)).orderBy(desc(sql`${shotsTable.shotDate}`)).limit(limit);
   res.json(shots);
 });
 
@@ -311,7 +311,7 @@ router.get("/dashboard/best-rated", async (req, res): Promise<void> => {
   const params = GetBestRatedShotsQueryParams.safeParse(req.query);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const limit = params.data.limit ? Number(params.data.limit) : 10;
-  const shots = await db.select().from(shotsTable).where(isNotNull(shotsTable.rating)).orderBy(desc(shotsTable.rating)).limit(limit);
+  const shots = await db.select().from(shotsTable).where(and(isNotNull(shotsTable.rating), isNotNull(shotsTable.airtableRecordId))).orderBy(desc(shotsTable.rating)).limit(limit);
   res.json(shots);
 });
 
