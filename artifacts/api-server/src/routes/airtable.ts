@@ -113,13 +113,6 @@ router.post("/airtable/test", async (_req, res): Promise<void> => {
   const token = process.env.AIRTABLE_API_KEY;
   const baseId = process.env.AIRTABLE_BASE_ID;
 
-  const tokenDiag = token ? {
-    length: token.length,
-    prefix: token.slice(0, 4),
-    hasLeadingSpace: token[0] === " ",
-    hasTrailingSpace: token[token.length - 1] === " ",
-  } : null;
-
   if (!token || !baseId) {
     res.json({
       connected: false,
@@ -139,7 +132,7 @@ router.post("/airtable/test", async (_req, res): Promise<void> => {
 
     if (!metaRes.ok) {
       const body = await metaRes.text();
-      res.json({ connected: false, error: `Airtable API error (${metaRes.status}): ${body.slice(0, 300)}`, tokenDiag });
+      res.json({ connected: false, error: `Airtable API error (${metaRes.status}): ${body.slice(0, 300)}` });
       return;
     }
 
@@ -231,7 +224,7 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
   const initStat = () => ({ inserted: 0, updated: 0, skipped: 0, errors: [] as string[] });
 
   // ── 1. Sync Beans ────────────────────────────────────────────────────────
-  // Actual Airtable field: "Beans" (primary field, plain string with roaster — bean name)
+  // Primary field: "Beans" (e.g. "De Luca's — (Brazil)"). Reconstruct if missing.
   const beansTableName = resolveTable("Beans", "Bean");
   if (beansTableName) {
     stats.beans = initStat();
@@ -239,16 +232,38 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
       const records = await fetchAllRecords(baseId, beansTableName, token);
       for (const r of records) {
         const f = r.fields;
-        // Primary field is "Beans" (e.g. "De Luca's — (Brazil)")
-        const name = str(findField(f, ["Beans", "Name", "Bean", "Bean Name", "Coffee"]));
-        if (!name) { stats.beans.skipped++; continue; }
+        const roaster  = str(findField(f, ["Roaster", "Roaster Name"]));
+        const country  = str(findField(f, ["Country", "Origin", "Country of Origin"]));
+        const region   = str(findField(f, ["Region"]));
+        const process  = str(findField(f, ["Process", "Processing"]));
+        const primary  = str(findField(f, ["Beans", "Name", "Bean Name", "Bean", "Coffee Name", "Coffee"]));
+
+        // Reconstruct display name in priority order
+        let name: string;
+        if (primary) {
+          name = primary;
+        } else if (roaster && country) {
+          name = `${roaster} — ${country}`;
+        } else if (country && process) {
+          name = `${country}, ${process}`;
+        } else if (country || region) {
+          name = (country ?? region)!;
+        } else if (roaster) {
+          name = roaster;
+        } else {
+          stats.beans.skipped++;
+          continue;
+        }
+
         try {
           const existing = await db.select({ id: beansTable.id }).from(beansTable).where(eq(beansTable.airtableRecordId, r.id));
           const vals = {
             name,
-            origin: str(findField(f, ["Country", "Origin", "Country of Origin"])),
-            roaster: str(findField(f, ["Roaster", "Roaster Name"])),
+            origin: country,
+            region,
+            roaster,
             roastLevel: str(findField(f, ["Roast Level ( ChatGPT )", "Roast Level", "Roast"])),
+            process,
             notes: str(findField(f, ["Notes", "User Notes"])),
             isActive: true,
             airtableRecordId: r.id,
@@ -265,15 +280,22 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
     } catch (e) { stats.beans = { ...initStat(), errors: [String(e)] }; }
   }
 
-  // Build airtableId → localId maps
-  const beanIdMap = new Map<string, number>();
-  const localBeans = await db.select({ id: beansTable.id, atId: beansTable.airtableRecordId }).from(beansTable).where(isNotNull(beansTable.airtableRecordId));
-  for (const b of localBeans) if (b.atId) beanIdMap.set(b.atId, b.id);
+  // Build enriched bean maps: airtableId → localId + display name
+  const beanIdMap   = new Map<string, number>(); // atId → localId
+  const beanNameMap = new Map<string, string>(); // atId → display name
+  {
+    const rows = await db
+      .select({ id: beansTable.id, atId: beansTable.airtableRecordId, name: beansTable.name })
+      .from(beansTable).where(isNotNull(beansTable.airtableRecordId));
+    for (const b of rows) {
+      if (b.atId) { beanIdMap.set(b.atId, b.id); beanNameMap.set(b.atId, b.name); }
+    }
+  }
 
   // ── 2. Sync Bags ─────────────────────────────────────────────────────────
-  // Actual Airtable fields: "Bag Label", "Bag ID", "Beans" (linked), "Roast Date",
-  // "Opened Date", "Bag Size (g)", "Bag Cost", "Target Dose (g)", "Initial Grinder Setting",
-  // "Average Grinder Setting", "Initial Grind Time (sec)", "Status"
+  // Key fields: "Bag Label" (primary), "Bag ID", "Beans" (linked), "Status",
+  // "Roast Date", "Opened Date", "Bag Size (g)", "Bag Cost", "Target Dose (g)",
+  // "Initial Grinder Setting", "Average Grinder Setting", "Initial Grind Time (sec)"
   const bagsTableName = resolveTable("Bags", "Bag");
   if (bagsTableName) {
     stats.bags = initStat();
@@ -283,14 +305,29 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
         const f = r.fields;
         try {
           const beanAtId = linkedId(findField(f, ["Beans", "Bean", "Coffee"]));
-          const beanId = beanAtId ? (beanIdMap.get(beanAtId) ?? null) : null;
+          const beanId   = beanAtId ? (beanIdMap.get(beanAtId)  ?? null) : null;
+          const beanName = beanAtId ? (beanNameMap.get(beanAtId) ?? null) : null;
+
+          const bagIdNum = num(findField(f, ["Bag ID", "Bag Number", "Bag #"]));
+          const status   = str(findField(f, ["Status"]));
+
+          // Reconstruct bag display name
+          // Strip literal double-quotes that Airtable sometimes wraps around bean names in labels
+          const primaryLabel = str(findField(f, ["Bag Label", "Bag Name", "Label", "Name"]))?.replace(/"/g, "");
+          let bagName: string | undefined;
+          if (primaryLabel) {
+            bagName = primaryLabel;
+          } else if (bagIdNum != null && beanName) {
+            bagName = `Bag ${bagIdNum} — ${beanName}`;
+          } else if (bagIdNum != null) {
+            bagName = `Bag ${bagIdNum}`;
+          }
+
           const existing = await db.select({ id: bagsTable.id }).from(bagsTable).where(eq(bagsTable.airtableRecordId, r.id));
-          const bagIdNum = num(findField(f, ["Bag ID"]));
-          const status = str(findField(f, ["Status"]));
           const vals = {
             beanId,
-            bagNumber: bagIdNum != null ? String(bagIdNum) : str(findField(f, ["Bag Number", "Bag #"])),
-            bagName: str(findField(f, ["Bag Label", "Bag Name", "Label", "Name"])),
+            bagNumber: bagIdNum != null ? String(bagIdNum) : undefined,
+            bagName,
             roastDate: str(findField(f, ["Roast Date"])),
             openedDate: str(findField(f, ["Opened Date", "Open Date"])),
             bagWeight: num(findField(f, ["Bag Size (g)", "Bag Weight", "Starting Weight"])),
@@ -315,13 +352,31 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
     } catch (e) { stats.bags = { ...initStat(), errors: [String(e)] }; }
   }
 
-  // Build bag ID map
-  const bagIdMap = new Map<string, number>();
-  const localBags = await db.select({ id: bagsTable.id, atId: bagsTable.airtableRecordId }).from(bagsTable).where(isNotNull(bagsTable.airtableRecordId));
-  for (const b of localBags) if (b.atId) bagIdMap.set(b.atId, b.id);
+  // Build enriched bag maps: airtableId → localId + bean name + display label
+  const bagIdMap       = new Map<string, number>(); // bagAtId → localId
+  const bagBeanNameMap = new Map<string, string>(); // bagAtId → bean display name
+  const bagLabelMap    = new Map<string, string>(); // bagAtId → bag display label
+  {
+    // Need bean name via beanId reverse lookup
+    const beanLocalIdToName = new Map<number, string>();
+    for (const [atId, localId] of beanIdMap) beanLocalIdToName.set(localId, beanNameMap.get(atId) ?? "");
+
+    const rows = await db
+      .select({ id: bagsTable.id, atId: bagsTable.airtableRecordId, bagName: bagsTable.bagName, beanId: bagsTable.beanId })
+      .from(bagsTable).where(isNotNull(bagsTable.airtableRecordId));
+    for (const b of rows) {
+      if (b.atId) {
+        bagIdMap.set(b.atId, b.id);
+        if (b.bagName) bagLabelMap.set(b.atId, b.bagName);
+        if (b.beanId) bagBeanNameMap.set(b.atId, beanLocalIdToName.get(b.beanId) ?? "");
+      }
+    }
+  }
 
   // ── 3. Sync Shots ────────────────────────────────────────────────────────
-  // Actual Airtable fields confirmed from live data inspection
+  // Key fields: "Date", "Bag" (linked), "Bean Helper" (linked → direct bean atId),
+  // "Bag Label" (lookup string array — use bagLabelMap instead for clean label),
+  // "Dose (g)", "Yield (g)", "Grinder Setting", "Pour Time (sec)", etc.
   const shotsTableName = resolveTable("Shots", "Shot Log", "Shot");
   if (shotsTableName) {
     stats.shots = initStat();
@@ -332,30 +387,37 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
         const shotDate = str(findField(f, ["Date", "Shot Date", "Timestamp", "Created", "Date/Time"]));
         if (!shotDate) { stats.shots.skipped++; continue; }
         try {
-          const bagAtId = linkedId(findField(f, ["Bag", "Bags", "Current Bag"]));
-          const bagId = bagAtId ? (bagIdMap.get(bagAtId) ?? null) : null;
-          const existing = await db.select({ id: shotsTable.id }).from(shotsTable).where(eq(shotsTable.airtableRecordId, r.id));
+          const bagAtId  = linkedId(findField(f, ["Bag", "Bags", "Current Bag"]));
+          const bagId    = bagAtId ? (bagIdMap.get(bagAtId) ?? null) : null;
 
-          // Shot Classification is an array in Airtable — join to string
+          // Bean display: prefer direct "Bean Helper" link, then Bag→Bean path
+          const beanAtIdDirect = linkedId(findField(f, ["Bean Helper", "Bean", "Beans"]));
+          const beanDisplayName =
+            (beanAtIdDirect ? beanNameMap.get(beanAtIdDirect) : undefined) ??
+            (bagAtId ? bagBeanNameMap.get(bagAtId) : undefined) ??
+            undefined;
+
+          // Bag display: use our clean synced bag label (avoids escaped quotes from Airtable lookups)
+          const bagDisplayLabel = bagAtId ? bagLabelMap.get(bagAtId) : undefined;
+
+          // Shot Classification is an array — join to string
           const classRaw = findField(f, ["Shot Classification", "Classification"]);
           const shotClassification = Array.isArray(classRaw) ? classRaw.join(", ") : str(classRaw);
 
-          // Fault Status is an array in Airtable
+          // Fault Status is an array — join to string
           const faultRaw = findField(f, ["Fault Status", "Fault"]);
           const faultStatus = Array.isArray(faultRaw) ? faultRaw.join(", ") : str(faultRaw);
 
-          // Bag Label is an array of strings in Airtable
-          const bagLabelRaw = findField(f, ["Bag Label"]);
-          const bagLabel = Array.isArray(bagLabelRaw) ? bagLabelRaw[0] as string : str(bagLabelRaw);
-
-          // Include in Analysis: Airtable stores as 0/1 number
+          // Include in Analysis: stored as 0/1 number in Airtable
           const includeRaw = findField(f, ["Include in Analysis", "Include In Analysis"]);
           const includeInAnalysis = includeRaw != null ? Number(includeRaw) === 1 : undefined;
 
+          const existing = await db.select({ id: shotsTable.id }).from(shotsTable).where(eq(shotsTable.airtableRecordId, r.id));
           const vals = {
             shotDate,
             bagId,
-            bag: bagLabel,
+            bean: beanDisplayName,
+            bag: bagDisplayLabel,
             grindSetting: num(findField(f, ["Grinder Setting", "Grind Setting"])),
             grindTime: num(findField(f, ["Grind Time"])),
             initialGrindWeight: num(findField(f, ["Initial Output (g)", "Initial Output"])),

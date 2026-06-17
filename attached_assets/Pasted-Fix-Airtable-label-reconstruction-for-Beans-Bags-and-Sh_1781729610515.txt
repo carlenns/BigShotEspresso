@@ -1,0 +1,141 @@
+Fix Airtable label reconstruction for Beans, Bags, and Shots.
+
+The app is syncing live Airtable data, but some records display as “Unknown Bean” because Airtable labels/primary fields are constructed from multiple fields.
+
+Do not assume a missing label means the relationship is broken.
+
+Requirements:
+
+1. Inspect synced Airtable fields
+
+For Beans, Bags, and Shots, inspect the available fields returned by Airtable.
+
+Log safe diagnostics:
+- Airtable record ID
+- field names present
+- linked record IDs present
+- whether primary display field is present
+- do not log secrets
+
+2. Bean display name reconstruction
+
+If the Bean primary label is missing or incomplete, reconstruct bean display name from available fields.
+
+Use best available fields in this priority order:
+
+- Bean Name
+- Name
+- Coffee Name
+- Origin
+- Country
+- Region
+- Process
+- Roaster
+
+Examples:
+If roaster + origin exist:
+“De Luca's — Costa Rica”
+
+If origin + process exist:
+“Costa Rica, Washed”
+
+If only origin exists:
+“Costa Rica”
+
+If nothing useful exists:
+“Unknown Bean”
+
+3. Bag display name reconstruction
+
+If Bag label is missing or incomplete, reconstruct bag display name from:
+
+- Bag Number
+- Bag Name / Label
+- Bean
+- Roaster
+- Origin
+- Process
+
+Example:
+“Bag 4 — De Luca's — Costa Rica”
+
+If only bag number exists:
+“Bag 4”
+
+4. Shot display name reconstruction
+
+For shots, reconstruct display using:
+
+- linked Bag
+- linked Bean through Bag if available
+- shot date
+- dose
+- yield
+- rating
+
+Example:
+“Bag 4 — Costa Rica — 18g → 35.3g — Jun 15”
+
+5. Relationship resolution
+
+If a Shot links to a Bag, and the Bag links to a Bean, then display the Bean through:
+
+Shot → Bag → Bean
+
+even if the Shot itself does not directly contain a Bean label.
+
+6. Preserve Airtable IDs
+
+Continue storing:
+- Airtable Bean record ID
+- Airtable Bag record ID
+- Airtable Shot record ID
+
+Use IDs for relationships.
+Use reconstructed labels only for display.
+
+7. Avoid hardcoded field assumptions
+
+Airtable field names may vary.
+
+Implement a field alias/helper system so the app can look for multiple possible field names.
+
+Example:
+beanNameAliases = [
+  "Bean Name",
+  "Name",
+  "Coffee",
+  "Coffee Name",
+  "Origin"
+]
+
+bagNumberAliases = [
+  "Bag Number",
+  "Bag #",
+  "Number"
+]
+
+8. Fix display areas
+
+Apply reconstructed labels to:
+- Dashboard
+- Recent Shots
+- Best Rated
+- Reference Shots
+- Bean Catalog
+- Bag Catalog
+- Shot detail page
+- Search/filter dropdowns
+
+9. Do not overwrite actual Airtable data
+
+Reconstructed display labels are for the app UI only unless explicitly saved to a local display_name field.
+
+10. Add fallback display_name fields locally
+
+Add or use local fields:
+- beans.display_name
+- bags.display_name
+- shots.display_name
+
+These should be generated after sync for UI display.
