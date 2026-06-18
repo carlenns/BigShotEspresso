@@ -1,0 +1,286 @@
+Dashboard redesign and intelligence refinement.
+
+Goal:
+
+Transform the Dashboard from a reporting page into a decision-making page that answers:
+
+"What do I need to know before making my next coffee?"
+
+Use modern premium SaaS design principles (Linear, Raycast, Notion, Apple). Less reporting, more intelligence.
+
+--------------------------------------------------
+DASHBOARD CLEANUP
+--------------------------------------------------
+
+Remove from Dashboard:
+
+- Total Shots card
+- Reference Shots card
+- Recent Shots list
+- Best Rated list
+
+These belong on:
+- Shot Log
+- Reference Shots
+- Future Reports page
+
+The Dashboard should focus on the active bag and today's coffee decisions.
+
+--------------------------------------------------
+CURRENT BASELINE REDESIGN
+--------------------------------------------------
+
+Replace the large hero card with a compact elegant setup bar.
+
+Display:
+
+Current Bean
+Current Bag
+Days Open
+Roast Age
+
+Dose
+Target Yield
+Temperature
+Current Grind
+Dose Adjustment Increment
+
+Equipment summary:
+
+Machine
+Grinder
+Basket
+Puck Screen
+
+Use minimal vertical space.
+
+Example style:
+
+Costa Rica • Bag #4 • Open 19d • Roast Age 23d
+
+18g | 35g Target | 94°C | Grind 2.23 | +0.2s Dose Adj
+
+Profitec Go | Magnifico | Stock Double | Puck Screen
+
+--------------------------------------------------
+GRIND DRIFT INTELLIGENCE REDESIGN
+--------------------------------------------------
+
+Current Grind Drift card is too data-heavy and not intuitive.
+
+Replace with:
+
+Grind Journey
+
+Display:
+
+Starting Grind
+Current Grind
+Net Change
+Trend
+Days Open
+
+Example:
+
+2.33 → 2.23
+
+Grinding Finer
+
+Net Change:
+-0.10
+
+Days Open:
+19
+
+Add a small sparkline/trend chart if possible.
+
+Focus on telling a story rather than displaying raw numbers.
+
+User should understand drift in 2 seconds.
+
+--------------------------------------------------
+CURRENT BAG INTELLIGENCE
+--------------------------------------------------
+
+Keep:
+
+- Shots
+- Reference Shots
+- Avg Rating
+- Avg Preference
+- Best Rating
+
+Add future-ready placeholders:
+
+- Reference Rate %
+- Signature Shot Count
+
+Do not implement advanced calculations yet if data is insufficient.
+
+--------------------------------------------------
+BEST PERFORMING WINDOWS
+--------------------------------------------------
+
+Keep this section.
+
+However:
+
+Do NOT calculate windows using simple min/max values.
+
+Use robust statistics.
+
+Requirements:
+
+- Use reference shots first
+- Use highly rated shots second
+- Weight preference ratings where available
+- Remove obvious outliers
+- Prefer median and clustering analysis
+- Do not allow a single extreme value to define a window
+
+Example:
+
+If first pour delays are:
+
+5, 6, 6, 7, 7, 8, 12
+
+Display:
+
+6–8s
+
+NOT:
+
+5–12s
+
+Goal:
+
+Display the user's true sweet spot.
+
+--------------------------------------------------
+BAG-SPECIFIC WINDOWS
+--------------------------------------------------
+
+Best Performing Windows must be calculated per bag.
+
+Each bag should have its own:
+
+- Best Yield Window
+- Best First Pour Delay Window
+- Best Scale Time Window
+- Best Pump Time Window
+- Best Grind Setting Range (future)
+- Best Grind Time Range (future)
+
+Also display:
+
+- Qualifying shots used
+- Outliers removed
+- Confidence level
+
+Example:
+
+Based on:
+16 reference shots
+
+Outliers Removed:
+2
+
+Confidence:
+Medium
+
+Priority order:
+
+1. Current Bag
+2. Historical Bags of same Bean
+3. Same Roast Level
+4. Global Reference Data
+
+Bag-level intelligence is the primary source.
+
+--------------------------------------------------
+NEXT SHOT WATCHLIST
+--------------------------------------------------
+
+Keep.
+
+Rewrite observations into recommendations.
+
+Example:
+
+Instead of:
+
+"Last 3 shots averaged 6.0"
+
+Use:
+
+"Recent performance declining"
+
+Suggested checks:
+
+- Grind
+- Bean age
+- Workflow consistency
+
+Make recommendations actionable.
+
+--------------------------------------------------
+ADD TODAY'S COFFEE BRIEF
+--------------------------------------------------
+
+Create a compact card.
+
+Display:
+
+Current Bean
+Days Open
+Best Yield Window
+Best First Pour Window
+Current Grind Trend
+Most Important Watchlist Item
+
+Purpose:
+
+One-glance brewing summary.
+
+--------------------------------------------------
+FUTURE INTELLIGENCE PLACEHOLDERS
+--------------------------------------------------
+
+Do not fully implement yet.
+
+Reserve space in architecture for:
+
+- DIM (Dial In Master)
+- GSP (Great Shot Potential)
+- Signature Shot %
+- Signature Shot Density
+- Magic Shot Index
+- Repeatability Score
+- Aging Performance Score
+- Rebuy Confidence
+- Bag Age Performance Matrix
+- Starting Grind Intelligence
+- Hopper Intelligence
+
+No major database changes required at this time.
+
+--------------------------------------------------
+IMPORTANT
+--------------------------------------------------
+
+Preserve:
+
+- Airtable sync
+- Existing Postgres structure
+- Bean → Bag → Shot relationships
+- Current logging workflows
+
+Do not rebuild architecture.
+
+Focus on:
+- Dashboard refinement
+- Better intelligence presentation
+- Better bag-level analysis
+- Cleaner user experience
+
+The Dashboard should feel like a premium coffee briefing, not a spreadsheet.

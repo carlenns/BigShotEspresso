@@ -1,0 +1,411 @@
+BigShotEspresso Product Backlog & Future Intelligence Ideas. #BSE 
+
+## Vision
+
+**BigShotEspresso**
+**Find Your Best Shot. Repeat It.**
+
+BigShotEspresso is not a coffee logger.
+
+It is an espresso intelligence system designed to help users:
+
+- Dial in faster
+- Waste less coffee
+- Understand why a shot succeeded or failed
+- Repeat great shots consistently
+- Buy coffee more intelligently
+
+Every feature must answer:
+
+**"Does this help the user find and repeat their best espresso?"**
+
+---
+
+# Core Philosophy
+
+Most coffee apps tell users:
+
+- What happened
+
+BigShotEspresso should tell users:
+
+- Why it happened
+- What is likely to happen next
+- What they should do
+
+---
+
+# The BigShot Intelligence Layer
+
+The long-term value of BigShotEspresso is not logging.
+
+The value is proprietary intelligence generated from:
+
+Bean → Bag → Shot
+
+relationships.
+
+---
+
+# DIM — Dial In Master
+
+## Purpose
+
+Measure how easy a coffee is to dial in and keep producing excellent shots.
+
+DIM becomes one of BigShotEspresso's signature metrics.
+
+### DIM Factors
+
+- Shots until first reference shot
+- Reference shot percentage
+- Grind drift required
+- Rating consistency
+- Aging stability
+- Fault frequency
+
+### Example
+
+DIM 90–100
+
+- Extremely forgiving
+- Easy to dial in
+- Easy to repeat
+
+DIM 70–89
+
+- Good everyday coffee
+
+DIM 50–69
+
+- Requires attention
+
+DIM below 50
+
+- Finicky
+- Advanced users only
+
+---
+
+# GSP — Great Shot Potential
+
+## Purpose
+
+Measure how good a coffee can become when everything goes right.
+
+DIM asks:
+
+"How easy is it?"
+
+GSP asks:
+
+"How high can it go?"
+
+Example:
+
+Coffee A
+
+DIM 92
+GSP 80
+
+Coffee B
+
+DIM 42
+GSP 98
+
+Coffee B may be difficult but capable of producing extraordinary shots.
+
+---
+
+# Signature Shot Metrics
+
+## Signature Shot %
+
+Percentage of shots rated 9.0+ preference.
+
+Measures how often exceptional shots occur.
+
+---
+
+## Signature Shot Density
+
+9.0+ Preference Shots
+
+÷
+
+Total Shots
+
+Measures how frequently a coffee produces memorable experiences.
+
+---
+
+## Magic Shot Index
+
+Tracks:
+
+- 9+
+- 9.5+
+- 10
+
+preference shots.
+
+Purpose:
+
+Measure true espresso "magic."
+
+---
+
+# Repeatability Score
+
+Measures:
+
+How consistently a coffee produces good results.
+
+Higher repeatability is generally more valuable than occasional brilliance.
+
+---
+
+# Aging Intelligence
+
+## Aging Performance Score
+
+Measures how well a coffee performs throughout bag life.
+
+Questions answered:
+
+- Does this coffee stay good?
+- Does performance collapse after two weeks?
+- Is it suitable for 1kg purchases?
+
+---
+
+## Bag Age Performance Matrix
+
+Age buckets:
+
+- Days 0–8
+- Days 9–16
+- Days 17–20
+- Days 21–24
+- Days 25+
+
+Track:
+
+- Reference shot %
+- Avg rating
+- Avg preference
+- Fault rate
+
+Purpose:
+
+Identify ideal bag size and drinking window.
+
+---
+
+# Buying Intelligence
+
+## Rebuy Confidence
+
+Measures:
+
+- Preference ratings
+- Repeat purchases
+- Aging performance
+- Signature shot frequency
+- DIM
+
+Questions answered:
+
+- Would I buy this again?
+- How confident am I?
+
+---
+
+## Bean Summary
+
+For every bean:
+
+- Bags purchased
+- Total shots
+- Reference shot %
+- Avg rating
+- Avg preference
+- Best shot
+- Best bag
+
+Example:
+
+Guatemala
+
+2 bags purchased
+
+Avg Preference:
+8.34
+
+Reference Rate:
+41%
+
+Rebuy Confidence:
+92%
+
+---
+
+# Dial-In Intelligence
+
+## Dial-In Speed
+
+Measures:
+
+Shots required until first reference shot.
+
+Useful for:
+
+- New users
+- Bean comparisons
+- Community rankings
+
+---
+
+## Starting Grind Intelligence
+
+For a specific grinder:
+
+Track:
+
+- Starting grind
+- Best grind
+- Final grind
+- Total drift
+
+Future goal:
+
+Suggested Starting Grind
+
+based on:
+
+- Roast level
+- Origin
+- Process
+- Historical data
+
+Purpose:
+
+Reduce wasted coffee during dial-in.
+
+---
+
+# Hopper Intelligence
+
+Research metric.
+
+Track:
+
+- Reference shot %
+ by hopper level
+- Avg preference by hopper level
+- Dose consistency by hopper level
+
+Possible hopper zones:
+
+- Full
+- 75%
+- 50%
+- 25%
+- Near Empty
+
+Goal:
+
+Determine whether hopper level materially affects espresso quality.
+
+---
+
+# User Baseline Profile
+
+Every user should have a baseline profile.
+
+Example:
+
+Dose:
+18g
+
+Target Yield:
+35g
+
+Temperature:
+94°C
+
+Dose Adjustment:
+0.2 sec
+
+Grinder:
+Eureka Magnifico
+
+Machine:
+Profitec Go
+
+This becomes the reference point for all recommendations.
+
+---
+
+# Future Community Intelligence
+
+## Community Dial-In Database
+
+Users contribute:
+
+- Bean
+- Roaster
+- Process
+- Roast level
+- Grinder
+- Grind setting
+- Dose
+- Yield
+
+Generate:
+
+Suggested Starting Point
+
+for new users.
+
+---
+
+# Future AI Intelligence
+
+## AI Dial-In Assistant
+
+User enters:
+
+- Dose
+- Yield
+- Time
+- First Pour Delay
+
+AI recommends:
+
+- Grind direction
+- Magnitude of adjustment
+- Expected outcome
+
+Goal:
+
+Reduce wasted coffee.
+
+---
+
+# Long-Term Goal
+
+Become the most useful espresso intelligence platform available.
+
+Not by telling users what coffee tastes like.
+
+But by helping them answer:
+
+- Can I dial this coffee in?
+- How difficult is it?
+- Will it stay good?
+- Should I buy it again?
+- What bag size should I buy?
+- How likely am I to pull a great shot?
+
+The ultimate goal is to build the industry's most useful coffee intelligence algorithm.
