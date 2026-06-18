@@ -5,6 +5,47 @@ import { GetRecentShotsQueryParams, GetBestRatedShotsQueryParams } from "@worksp
 
 const router: IRouter = Router();
 
+// ── Robust range helper ───────────────────────────────────────────────────────
+function robustRange(vals: number[]): {
+  min: number; max: number; count: number; outliersRemoved: number;
+  confidence: "Low" | "Medium" | "High";
+} | null {
+  if (vals.length === 0) return null;
+  const sorted = [...vals].sort((a, b) => a - b);
+  const n = sorted.length;
+
+  // Interpolated quartiles
+  const q1Idx = (n - 1) * 0.25;
+  const q3Idx = (n - 1) * 0.75;
+  const q1 = sorted[Math.floor(q1Idx)]! + (q1Idx % 1) * ((sorted[Math.ceil(q1Idx)] ?? sorted[Math.floor(q1Idx)]!) - sorted[Math.floor(q1Idx)]!);
+  const q3 = sorted[Math.floor(q3Idx)]! + (q3Idx % 1) * ((sorted[Math.ceil(q3Idx)] ?? sorted[Math.floor(q3Idx)]!) - sorted[Math.floor(q3Idx)]!);
+  const iqr = q3 - q1;
+  const lower = q1 - 1.5 * iqr;
+  const upper = q3 + 1.5 * iqr;
+
+  const filtered = sorted.filter((v) => v >= lower && v <= upper);
+  if (filtered.length === 0) return null;
+
+  const count = filtered.length;
+  const outliersRemoved = n - count;
+  const confidence: "Low" | "Medium" | "High" = count >= 10 ? "High" : count >= 4 ? "Medium" : "Low";
+
+  // Return p25–p75 cluster window of the filtered set
+  const fn = filtered.length;
+  const p25Idx = (fn - 1) * 0.25;
+  const p75Idx = (fn - 1) * 0.75;
+  const p25 = filtered[Math.floor(p25Idx)]! + (p25Idx % 1) * ((filtered[Math.ceil(p25Idx)] ?? filtered[Math.floor(p25Idx)]!) - filtered[Math.floor(p25Idx)]!);
+  const p75 = filtered[Math.floor(p75Idx)]! + (p75Idx % 1) * ((filtered[Math.ceil(p75Idx)] ?? filtered[Math.floor(p75Idx)]!) - filtered[Math.floor(p75Idx)]!);
+
+  return {
+    min: Math.round(p25 * 10) / 10,
+    max: Math.round(p75 * 10) / 10,
+    count,
+    outliersRemoved,
+    confidence,
+  };
+}
+
 // ── GET /dashboard/intelligence ─────────────────────────────────────────────
 router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
   // ── Settings (for baseline extras: grinder, machine, basket) ─────────────
@@ -43,19 +84,11 @@ router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
     .where(and(eq(bagsTable.isActive, true), isNotNull(bagsTable.airtableRecordId)))
     .limit(1);
 
-  // ── Global totals ─────────────────────────────────────────────────────────
-  const [globals] = await db.select({
-    totalShots: sql<number>`count(*)::int`,
-    referenceShots: sql<number>`count(*) filter (where ${shotsTable.isReference} = true)::int`,
-  }).from(shotsTable).where(isNotNull(shotsTable.airtableRecordId));
-
   if (!activeBagRow) {
     res.json({
       activeBag: null, bagIntelligence: null, bagProgress: null,
-      grindDrift: null, timingWindows: null,
-      watchlist: [{ type: "info", message: "No active bag set. Go to Bags and mark one active." }],
-      totalShots: globals?.totalShots ?? 0,
-      referenceShots: globals?.referenceShots ?? 0,
+      grindDrift: null, timingWindows: null, todaysBrief: null,
+      watchlist: [{ type: "info", message: "No active bag — go to Bags and mark one active to get started.", suggestedChecks: [] }],
     });
     return;
   }
@@ -94,6 +127,24 @@ router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
   const topRatedSorted = [...ratedShots].sort((a, b) => Number(b.rating) - Number(a.rating));
   const bestShot = topRatedSorted[0] ?? null;
 
+  // ── New bag intelligence fields ───────────────────────────────────────────
+  const totalBagShots = activeBagShots.length;
+  const referenceRate = totalBagShots > 0
+    ? Math.round((refCount / totalBagShots) * 1000) / 10
+    : null;
+
+  const shotsWithPref = activeBagShots.filter((s) => s.preferenceRating != null);
+  const signatureShotCount = shotsWithPref.length > 0
+    ? activeBagShots.filter((s) => s.preferenceRating != null && Number(s.preferenceRating) >= 9).length
+    : null;
+
+  // dialInSpeed: shots before first reference shot (chronological order)
+  const sortedByDate = [...activeBagShots].sort((a, b) =>
+    new Date(a.shotDate).getTime() - new Date(b.shotDate).getTime()
+  );
+  const firstRefIdx = sortedByDate.findIndex((s) => s.isReference);
+  const dialInSpeed = firstRefIdx >= 0 ? firstRefIdx : null;
+
   // ── Bag Progress ──────────────────────────────────────────────────────────
   const dosesConsumed = activeBagShots.reduce((acc, s) => {
     const d = Number(s.dose ?? 0);
@@ -120,12 +171,10 @@ router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
   }
 
   // ── Timing windows ─────────────────────────────────────────────────────────
-  // Use best-rated shots from: current bag → same bean → all reference
   let timingSource: "current_bag" | "same_bean" | "all_reference" = "current_bag";
-  let timingPool = topRated; // rated 8+ from current bag
+  let timingPool = topRated;
 
   if (timingPool.length < 3 && activeBagRow.beanId) {
-    // Fall back to same bean
     const sameBeanBags = await db.select({ id: bagsTable.id })
       .from(bagsTable).where(eq(bagsTable.beanId, activeBagRow.beanId));
     const sameBeanIds = sameBeanBags.map((b) => b.id);
@@ -138,30 +187,25 @@ router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
     }
   }
   if (timingPool.length < 3) {
-    // Fall back to all reference shots
     const allRef = await db.select().from(shotsTable).where(and(eq(shotsTable.isReference, true), isNotNull(shotsTable.airtableRecordId)));
     timingPool = allRef;
     timingSource = "all_reference";
   }
 
-  const range = (vals: number[]) => vals.length >= 2
-    ? { min: Math.round(Math.min(...vals) * 10) / 10, max: Math.round(Math.max(...vals) * 10) / 10 }
-    : vals.length === 1 ? { min: vals[0], max: vals[0] } : null;
-
   const timingWindows = {
     dataSource: timingSource,
     shotCount: timingPool.length,
-    yieldRange: range(timingPool.map((s) => Number(s.yield)).filter((v) => v > 0)),
-    pourTimeRange: range(timingPool.map((s) => Number(s.pourTime)).filter((v) => v > 0)),
-    scaleTimeRange: range(timingPool.map((s) => Number(s.scaleTime)).filter((v) => v > 0)),
-    pourDelayRange: range(timingPool.map((s) => Number(s.pourDelay)).filter((v) => v > 0)),
+    yieldRange: robustRange(timingPool.map((s) => Number(s.yield)).filter((v) => v > 0)),
+    pourTimeRange: robustRange(timingPool.map((s) => Number(s.pourTime)).filter((v) => v > 0)),
+    scaleTimeRange: robustRange(timingPool.map((s) => Number(s.scaleTime)).filter((v) => v > 0)),
+    pourDelayRange: robustRange(timingPool.map((s) => Number(s.pourDelay)).filter((v) => v > 0)),
   };
 
   // ── Best yield + pour delay ranges (bag intel) ───────────────────────────
   const topYields = topRated.map((s) => Number(s.yield)).filter((v) => v > 0);
-  const bestYieldRange = range(topYields);
+  const bestYieldRange = robustRange(topYields);
   const topDelays = topRated.map((s) => Number(s.pourDelay)).filter((v) => v > 0);
-  const bestPourDelayRange = range(topDelays);
+  const bestPourDelayRange = robustRange(topDelays);
 
   // ── Grind Drift ───────────────────────────────────────────────────────────
   const grindShots = activeBagShots.filter((s) => s.grindSetting != null);
@@ -197,37 +241,92 @@ router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
     .orderBy(desc(sql`count(*)`))
     .limit(5);
 
-  // ── Watchlist ─────────────────────────────────────────────────────────────
-  type W = { type: "success" | "warning" | "info"; message: string };
+  // ── Watchlist (recommendation-style) ──────────────────────────────────────
+  type W = { type: "success" | "warning" | "info"; message: string; suggestedChecks?: string[] };
   const watchlist: W[] = [];
 
   if (openDays != null && openDays >= 28) {
-    watchlist.push({ type: "warning", message: `Bag is ${openDays} days old — flavour may be fading. Finish soon or note the change.` });
+    watchlist.push({
+      type: "warning",
+      message: `Bag is ${openDays} days old — finish it soon or adjust expectations.`,
+      suggestedChecks: ["Taste for staleness or flatness", "Grind finer to compensate for aging", "Order your next bag now"],
+    });
   } else if (openDays != null && openDays >= 21) {
-    watchlist.push({ type: "info", message: `${openDays} days in — watch for grind drift as beans age.` });
+    watchlist.push({
+      type: "info",
+      message: `${openDays} days in — watch for grind drift as the beans age.`,
+    });
   }
   if (driftDir === "coarser" && drift != null) {
-    watchlist.push({ type: "warning", message: `Grind drifting coarser (+${drift.toFixed(3)}) — check burr cleanliness or bean age.` });
+    watchlist.push({
+      type: "warning",
+      message: `Grind drifting coarser (+${drift.toFixed(3)}) — check your setup before the next pull.`,
+      suggestedChecks: ["Clean burrs and check for coffee oil buildup", "Confirm bean age (stale beans often pull coarser)", "Dial back 0.02–0.05 and taste"],
+    });
   } else if (driftDir === "finer" && drift != null) {
-    watchlist.push({ type: "info", message: `Grind trending finer (${drift.toFixed(3)}) since start of this bag.` });
+    watchlist.push({
+      type: "info",
+      message: `Grind has trended finer (${drift.toFixed(3)}) — beans may be settling in.`,
+    });
   }
   if (refCount === 0 && activeBagShots.length >= 5) {
-    watchlist.push({ type: "warning", message: "No reference shot yet for this bag. Mark your best pull as a reference." });
+    watchlist.push({
+      type: "warning",
+      message: "No reference shot yet — mark your best pull as a reference to anchor future comparisons.",
+      suggestedChecks: ["Open your best shot and tap 'Set as reference'", "Aim for a rating ≥ 8 before marking"],
+    });
   } else if (refCount > 0) {
-    watchlist.push({ type: "success", message: `${refCount} reference shot${refCount > 1 ? "s" : ""} logged for this bag.` });
+    watchlist.push({
+      type: "success",
+      message: `${refCount} reference shot${refCount > 1 ? "s" : ""} locked in — you have a solid benchmark for this bag.`,
+    });
   }
   if (last3Avg != null && last3Avg < 7.5 && last3.length === 3) {
-    watchlist.push({ type: "warning", message: `Last 3 shots averaged ${last3Avg.toFixed(1)} — consider a grind adjustment.` });
+    watchlist.push({
+      type: "warning",
+      message: `Recent performance declining (last 3 avg ${last3Avg.toFixed(1)}) — check grind and bean age.`,
+      suggestedChecks: ["Adjust grind by 0.05 in the direction of your drift", "Check brew temp and pre-infusion time", "Compare dose/yield to your reference shot"],
+    });
   } else if (avgRating != null && avgRating >= 8.5) {
-    watchlist.push({ type: "success", message: `Bag dialled in — avg ${avgRating.toFixed(2)} across ${ratedShots.length} rated shots.` });
+    watchlist.push({
+      type: "success",
+      message: `Bag dialled in — avg ${avgRating.toFixed(2)} across ${ratedShots.length} rated shot${ratedShots.length !== 1 ? "s" : ""}.`,
+    });
   }
   if (activeBagShots.length < 5) {
-    watchlist.push({ type: "info", message: `${activeBagShots.length} shot${activeBagShots.length !== 1 ? "s" : ""} logged — still dialling in.` });
+    watchlist.push({
+      type: "info",
+      message: `${activeBagShots.length} shot${activeBagShots.length !== 1 ? "s" : ""} logged — keep pulling to build a reliable picture.`,
+    });
   }
   if (estimatedShotsRemaining != null && estimatedShotsRemaining <= 5) {
-    watchlist.push({ type: "warning", message: `Approx. ${estimatedShotsRemaining} shot${estimatedShotsRemaining !== 1 ? "s" : ""} remaining — time to order the next bag.` });
+    watchlist.push({
+      type: "warning",
+      message: `Approx. ${estimatedShotsRemaining} shot${estimatedShotsRemaining !== 1 ? "s" : ""} remaining — order your next bag soon.`,
+      suggestedChecks: ["Browse your bean supplier now", "Note your best grind setting for continuity"],
+    });
   }
-  if (watchlist.length === 0) watchlist.push({ type: "info", message: "No alerts for this bag. Keep logging." });
+  if (watchlist.length === 0) watchlist.push({ type: "info", message: "Everything looks good. Keep logging." });
+
+  // ── Today's Brief ─────────────────────────────────────────────────────────
+  const grindTrend = driftDir == null
+    ? "No grind data yet"
+    : driftDir === "stable"
+    ? "Grind stable"
+    : driftDir === "coarser"
+    ? `Trending coarser (+${drift != null ? drift.toFixed(3) : "?"})`
+    : `Trending finer (${drift != null ? drift.toFixed(3) : "?"})`;
+
+  const topWatchlistItem = watchlist.find((w) => w.type === "warning") ?? watchlist[0] ?? null;
+
+  const todaysBrief = {
+    beanName: activeBagRow.beanName ?? "Unknown Bean",
+    openDays,
+    bestYieldWindow: timingWindows.yieldRange ? { min: timingWindows.yieldRange.min, max: timingWindows.yieldRange.max } : null,
+    bestPourDelayWindow: timingWindows.pourDelayRange ? { min: timingWindows.pourDelayRange.min, max: timingWindows.pourDelayRange.max } : null,
+    grindTrend,
+    topWatchlistItem: topWatchlistItem ? { type: topWatchlistItem.type, message: topWatchlistItem.message } : null,
+  };
 
   res.json({
     activeBag: {
@@ -248,6 +347,9 @@ router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
       avgPrefRating,
       bestRating,
       last3Avg,
+      referenceRate,
+      signatureShotCount,
+      dialInSpeed,
       bestYieldRange,
       bestPourDelayRange,
       bestShot: bestShot ? {
@@ -282,8 +384,7 @@ router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
         : null,
     })),
     watchlist,
-    totalShots: globals?.totalShots ?? 0,
-    referenceShots: globals?.referenceShots ?? 0,
+    todaysBrief,
   });
 });
 

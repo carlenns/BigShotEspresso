@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,18 +9,27 @@ import {
   Coffee, Plus, Star, Target, AlertTriangle,
   CheckCircle2, Info, TrendingUp, TrendingDown,
   Minus, Thermometer, Gauge, Timer, Scale,
-  Clock, Package, Wrench, Droplets,
+  Clock, Package, Wrench, Droplets, ArrowRight,
+  Zap,
 } from "lucide-react";
 import { format } from "date-fns";
-import {
-  useGetRecentShots,
-  useGetBestRatedShots,
-} from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-interface RangeVal { min: number; max: number }
+interface RangeVal {
+  min: number;
+  max: number;
+  count: number;
+  outliersRemoved: number;
+  confidence: "Low" | "Medium" | "High";
+}
+
+interface WatchlistItem {
+  type: "success" | "warning" | "info";
+  message: string;
+  suggestedChecks?: string[];
+}
 
 interface Intelligence {
   activeBag: {
@@ -41,6 +50,9 @@ interface Intelligence {
     totalShots: number; referenceShots: number;
     avgRating: number | null; avgPrefRating: number | null;
     bestRating: number | null; last3Avg: number | null;
+    referenceRate: number | null;
+    signatureShotCount: number | null;
+    dialInSpeed: number | null;
     bestYieldRange: RangeVal | null; bestPourDelayRange: RangeVal | null;
     bestShot: { id: number; rating: number | null; dose: number | null; yield: number | null; grindSetting: number | null; pourTime: number | null; shotDate: string } | null;
   } | null;
@@ -67,9 +79,15 @@ interface Intelligence {
     openDays: number | null; refCount: number; bestRating: number | null;
     isActive: boolean;
   }[];
-  watchlist: { type: "success" | "warning" | "info"; message: string }[];
-  totalShots: number;
-  referenceShots: number;
+  watchlist: WatchlistItem[];
+  todaysBrief: {
+    beanName: string;
+    openDays: number | null;
+    bestYieldWindow: { min: number; max: number } | null;
+    bestPourDelayWindow: { min: number; max: number } | null;
+    grindTrend: string;
+    topWatchlistItem: { type: "success" | "warning" | "info"; message: string } | null;
+  } | null;
 }
 
 function fetchIntelligence(): Promise<Intelligence> {
@@ -84,8 +102,6 @@ export default function Dashboard() {
     queryFn: fetchIntelligence,
     refetchOnWindowFocus: true,
   });
-  const { data: recentShots, isLoading: isLoadingRecent } = useGetRecentShots({ limit: "5" });
-  const { data: bestShots, isLoading: isLoadingBest } = useGetBestRatedShots({ limit: "5" });
 
   const bag = intel?.activeBag;
   const bi = intel?.bagIntelligence;
@@ -113,7 +129,7 @@ export default function Dashboard() {
       <section>
         <SectionLabel>Current Baseline</SectionLabel>
         {isLoading ? (
-          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-24 w-full" />
         ) : !bag ? (
           <Card className="border-dashed">
             <CardContent className="py-10 text-center text-muted-foreground">
@@ -124,76 +140,70 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
-            <CardContent className="p-5">
-              {/* Identity row */}
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xl font-bold">{bag.beanName ?? "Unknown Bean"}</span>
-                    <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
-                      Bag #{bag.bagNumber ?? bag.id}
-                    </Badge>
-                    {bag.bagName && <span className="text-sm text-muted-foreground">{bag.bagName}</span>}
-                  </div>
-                  {bag.beanOrigin && (
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {bag.beanOrigin}
-                      {bag.beanProcess && ` · ${bag.beanProcess}`}
-                      {bag.beanRoastLevel && ` · ${bag.beanRoastLevel}`}
-                    </p>
+          <Card className="border-primary/20">
+            <CardContent className="px-4 py-3 space-y-2">
+              {/* Line 1: identity */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <span className="font-semibold truncate">{bag.beanName ?? "Unknown Bean"}</span>
+                  <Badge className="bg-primary/10 text-primary border-primary/20 text-xs shrink-0">
+                    Bag #{bag.bagNumber ?? bag.id}
+                  </Badge>
+                  {bag.openDays != null && (
+                    <span className={cn("text-xs shrink-0", bag.openDays >= 28 ? "text-destructive font-medium" : bag.openDays >= 21 ? "text-amber-600" : "text-muted-foreground")}>
+                      Open {bag.openDays}d
+                    </span>
                   )}
-                  {bag.beanRoaster && (
-                    <p className="text-xs text-muted-foreground">{bag.beanRoaster}</p>
+                  {bag.roastAge != null && (
+                    <span className="text-xs text-muted-foreground shrink-0">Roast age {bag.roastAge}d</span>
                   )}
-                  <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5 text-xs">
-                    {bag.openDays != null && (
-                      <span className={cn("font-medium", bag.openDays >= 28 ? "text-destructive" : bag.openDays >= 21 ? "text-amber-600" : "text-muted-foreground")}>
-                        Open {bag.openDays} day{bag.openDays !== 1 ? "s" : ""}
-                        {bag.openedDate ? ` (since ${format(new Date(bag.openedDate), "d MMM")})` : ""}
-                      </span>
-                    )}
-                    {bag.roastAge != null && (
-                      <span className="text-muted-foreground">Roast age {bag.roastAge}d</span>
-                    )}
-                    {bag.roastDate && (
-                      <span className="text-muted-foreground">Roasted {format(new Date(bag.roastDate), "d MMM yyyy")}</span>
-                    )}
-                  </div>
                 </div>
-                <Button variant="outline" size="sm" asChild className="shrink-0">
+                <Button variant="ghost" size="sm" asChild className="text-xs h-7 px-2 shrink-0">
                   <Link href={`/bags/${bag.id}`}>View bag →</Link>
                 </Button>
               </div>
 
-              {/* Recipe grid */}
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                <RecipeStat icon={Coffee} label="Dose" value={bag.defaultDose != null ? `${bag.defaultDose}g` : "—"} />
-                <RecipeStat icon={Droplets} label="Yield" value={bag.defaultYield != null ? `${bag.defaultYield}g` : "—"} />
-                <RecipeStat icon={Thermometer} label="Temp" value={bag.defaultTemp != null ? `${bag.defaultTemp}°C` : "—"} />
-                <RecipeStat icon={Gauge} label="Grind" value={bag.currentGrindSetting != null ? String(bag.currentGrindSetting) : "—"} highlight />
-                <RecipeStat icon={Timer} label="Grind Time" value={bag.currentGrindTime != null ? `${bag.currentGrindTime}s` : "—"} />
-                <RecipeStat icon={Target} label="Shots" value={String(bag.shotCount)} />
+              {/* Line 2: recipe */}
+              <div className="flex items-center gap-3 flex-wrap text-sm">
+                {bag.defaultDose != null && (
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    <Coffee className="h-3 w-3" /><span className="font-medium text-foreground">{bag.defaultDose}g</span> dose
+                  </span>
+                )}
+                {bag.defaultYield != null && (
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    <Droplets className="h-3 w-3" /><span className="font-medium text-foreground">{bag.defaultYield}g</span> yield
+                  </span>
+                )}
+                {bag.defaultTemp != null && (
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    <Thermometer className="h-3 w-3" /><span className="font-medium text-foreground">{bag.defaultTemp}°C</span>
+                  </span>
+                )}
+                {bag.currentGrindSetting != null && (
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    <Gauge className="h-3 w-3" /><span className="font-bold text-primary">{bag.currentGrindSetting}</span> grind
+                  </span>
+                )}
+                {bag.currentGrindTime != null && (
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    <Timer className="h-3 w-3" /><span className="font-medium text-foreground">{bag.currentGrindTime}s</span> grind time
+                  </span>
+                )}
               </div>
 
-              {/* Equipment row */}
-              {(bag.grinder || bag.machine || bag.basket) && (
-                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground border-t pt-3">
+              {/* Line 3: equipment */}
+              {(bag.machine || bag.grinder || bag.basket || bag.usePuckScreen) && (
+                <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground border-t pt-2">
                   {bag.machine && <span className="flex items-center gap-1"><Coffee className="h-3 w-3" />{bag.machine}</span>}
                   {bag.grinder && <span className="flex items-center gap-1"><Gauge className="h-3 w-3" />{bag.grinder}</span>}
                   {bag.basket && <span className="flex items-center gap-1"><Wrench className="h-3 w-3" />{bag.basket}</span>}
                   {bag.usePuckScreen && (
-                    <span className="flex items-center gap-1 text-primary/80">
+                    <span className="flex items-center gap-1 text-primary/70">
                       <Scale className="h-3 w-3" />Puck screen{bag.puckScreen ? ` (${bag.puckScreen})` : ""}
                     </span>
                   )}
                 </div>
-              )}
-
-              {bag.dialInNotes && (
-                <p className="mt-3 text-xs text-muted-foreground border-t pt-3 italic">
-                  Dial-in: {bag.dialInNotes}
-                </p>
               )}
             </CardContent>
           </Card>
@@ -246,7 +256,7 @@ export default function Dashboard() {
         </section>
       )}
 
-      {/* ── Sections: Bag Intelligence + Grind Drift ─────────────────────────── */}
+      {/* ── Sections: Bag Intelligence + Grind Journey ────────────────────────── */}
       {(bi || gd) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
@@ -276,6 +286,16 @@ export default function Dashboard() {
                     {bi.avgPrefRating != null && (
                       <IntelStat label="Avg pref rating" value={bi.avgPrefRating.toFixed(2)} />
                     )}
+                    <IntelStat
+                      label="Reference rate"
+                      value={bi.referenceRate != null ? `${bi.referenceRate}%` : "—"}
+                      accent={bi.referenceRate != null && bi.referenceRate >= 20}
+                    />
+                    <IntelStat
+                      label="Signature shots (pref ≥ 9)"
+                      value={bi.signatureShotCount != null ? String(bi.signatureShotCount) : "—"}
+                      accent={bi.signatureShotCount != null && bi.signatureShotCount > 0}
+                    />
                   </div>
 
                   {bi.bestYieldRange && (
@@ -286,6 +306,7 @@ export default function Dashboard() {
                           ? `${bi.bestYieldRange.min}g`
                           : `${bi.bestYieldRange.min}g – ${bi.bestYieldRange.max}g`}
                       </p>
+                      <ConfidencePill range={bi.bestYieldRange} />
                     </div>
                   )}
 
@@ -297,6 +318,7 @@ export default function Dashboard() {
                           ? `${bi.bestPourDelayRange.min}s`
                           : `${bi.bestPourDelayRange.min}s – ${bi.bestPourDelayRange.max}s`}
                       </p>
+                      <ConfidencePill range={bi.bestPourDelayRange} />
                     </div>
                   )}
 
@@ -322,54 +344,67 @@ export default function Dashboard() {
             ) : null}
           </section>
 
-          {/* Grind Drift */}
+          {/* Grind Journey */}
           <section className="flex flex-col gap-3">
-            <SectionLabel>Grind Drift Intelligence</SectionLabel>
+            <SectionLabel>Grind Journey</SectionLabel>
             {isLoading ? <Skeleton className="h-52 w-full" /> : (
               <Card className="flex-1">
                 <CardContent className="p-5 space-y-4">
                   {!gd ? (
-                    <p className="text-sm text-muted-foreground py-6 text-center">Log shots with grind settings to see drift analysis.</p>
+                    <p className="text-sm text-muted-foreground py-6 text-center">Log shots with grind settings to see your grind journey.</p>
                   ) : (
                     <>
-                      <div className="flex items-center gap-3">
-                        <DriftIndicator direction={gd.direction} />
-                        <div>
-                          <p className="font-semibold capitalize">{gd.direction ?? "Stable"}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {gd.drift != null && Math.abs(gd.drift) > 0.001
-                              ? `${gd.drift > 0 ? "+" : ""}${gd.drift.toFixed(3)} from early shots`
-                              : "No significant drift detected"}
+                      {/* Start → Current arc */}
+                      <div className="flex items-center justify-center gap-3 py-2">
+                        <div className="text-center">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Start</p>
+                          <p className="text-2xl font-bold tabular-nums text-muted-foreground">
+                            {gd.startSetting != null ? gd.startSetting : "—"}
                           </p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        {gd.startSetting != null && <IntelStat label="Start setting" value={String(gd.startSetting)} />}
-                        {gd.currentSetting != null && <IntelStat label="Current setting" value={String(gd.currentSetting)} highlight />}
-                        {gd.startTime != null && <IntelStat label="Start grind time" value={`${gd.startTime}s`} />}
-                        {gd.currentTime != null && <IntelStat label="Current grind time" value={`${gd.currentTime}s`} />}
-                        {gd.earlyAvg != null && <IntelStat label="Early avg" value={String(gd.earlyAvg)} />}
-                        {gd.recentAvg != null && <IntelStat label="Recent avg" value={String(gd.recentAvg)} />}
-                      </div>
-
-                      {gd.previousBagAvg != null && (
-                        <div className="rounded-lg bg-muted/40 px-3 py-2.5">
-                          <p className="text-xs text-muted-foreground mb-0.5">Previous bags avg grind</p>
-                          <p className="font-semibold tabular-nums">{gd.previousBagAvg.toFixed(3)}</p>
-                          {gd.currentSetting != null && (
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {gd.currentSetting > gd.previousBagAvg
-                                ? `This bag runs ${(gd.currentSetting - gd.previousBagAvg).toFixed(3)} coarser`
-                                : gd.currentSetting < gd.previousBagAvg
-                                ? `This bag runs ${(gd.previousBagAvg - gd.currentSetting).toFixed(3)} finer`
-                                : "Same as previous bags"}
-                            </p>
+                          {gd.startTime != null && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{gd.startTime}s</p>
                           )}
                         </div>
-                      )}
+                        <ArrowRight className="h-5 w-5 text-muted-foreground/50 shrink-0" />
+                        <div className="text-center">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Current</p>
+                          <p className="text-2xl font-bold tabular-nums text-primary">
+                            {gd.currentSetting != null ? gd.currentSetting : "—"}
+                          </p>
+                          {gd.currentTime != null && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{gd.currentTime}s</p>
+                          )}
+                        </div>
+                      </div>
 
-                      <p className="text-xs text-muted-foreground">Based on {gd.shotCount} shot{gd.shotCount !== 1 ? "s" : ""} with grind data</p>
+                      {/* Net change + direction + days open */}
+                      <div className="flex items-center justify-center gap-3 flex-wrap">
+                        {gd.drift != null && (
+                          <div className="text-center">
+                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Net change</p>
+                            <p className={cn("text-base font-bold tabular-nums",
+                              gd.direction === "coarser" ? "text-amber-600" :
+                              gd.direction === "finer" ? "text-blue-600" : "text-muted-foreground")}>
+                              {gd.drift > 0 ? "+" : ""}{gd.drift.toFixed(3)}
+                            </p>
+                          </div>
+                        )}
+                        <DirectionBadge direction={gd.direction} />
+                        {bag?.openDays != null && (
+                          <div className="text-center">
+                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Days open</p>
+                            <p className={cn("text-base font-bold tabular-nums",
+                              bag.openDays >= 28 ? "text-destructive" :
+                              bag.openDays >= 21 ? "text-amber-600" : "text-foreground")}>
+                              {bag.openDays}d
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-muted-foreground text-center">
+                        Based on {gd.shotCount} shot{gd.shotCount !== 1 ? "s" : ""} with grind data
+                      </p>
                     </>
                   )}
                 </CardContent>
@@ -447,6 +482,14 @@ export default function Dashboard() {
         </section>
       )}
 
+      {/* ── Today's Coffee Brief ───────────────────────────────────────────── */}
+      {intel?.todaysBrief && (
+        <section>
+          <SectionLabel>Today's Coffee Brief</SectionLabel>
+          <TodaysBriefCard brief={intel.todaysBrief} />
+        </section>
+      )}
+
       {/* ── Watchlist ──────────────────────────────────────────────────────── */}
       {intel?.watchlist && intel.watchlist.length > 0 && (
         <section>
@@ -454,67 +497,12 @@ export default function Dashboard() {
           <Card>
             <CardContent className="p-4 space-y-2">
               {intel.watchlist.map((item, i) => (
-                <WatchlistItem key={i} type={item.type} message={item.message} />
+                <WatchlistCard key={i} item={item} />
               ))}
             </CardContent>
           </Card>
         </section>
       )}
-
-      {/* ── Global counters ────────────────────────────────────────────────── */}
-      {intel && (
-        <div className="grid grid-cols-2 gap-3">
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <Coffee className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-2xl font-bold tabular-nums">{intel.totalShots}</p>
-                <p className="text-xs text-muted-foreground">Total shots</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <Target className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-2xl font-bold tabular-nums">{intel.referenceShots}</p>
-                <p className="text-xs text-muted-foreground">Reference shots</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ── Recent + Best Rated ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <SectionLabel className="mb-0">Recent Shots</SectionLabel>
-            <Button variant="ghost" size="sm" asChild><Link href="/shots">View all</Link></Button>
-          </div>
-          {isLoadingRecent
-            ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)
-            : !recentShots?.length
-            ? <p className="text-sm text-muted-foreground italic">No shots logged yet.</p>
-            : (recentShots as any[]).map((shot) => <ShotRow key={shot.id} shot={shot} />)
-          }
-        </section>
-
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <SectionLabel className="mb-0">
-              <Star className="h-3.5 w-3.5 inline-block text-amber-500 fill-amber-500 mr-1" />
-              Best Rated
-            </SectionLabel>
-          </div>
-          {isLoadingBest
-            ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)
-            : !bestShots?.length
-            ? <p className="text-sm text-muted-foreground italic">No rated shots yet.</p>
-            : (bestShots as any[]).map((shot) => <ShotRow key={shot.id} shot={shot} />)
-          }
-        </section>
-      </div>
     </div>
   );
 }
@@ -529,16 +517,6 @@ function SectionLabel({ children, className }: { children: React.ReactNode; clas
   );
 }
 
-function RecipeStat({ icon: Icon, label, value, highlight }: { icon: React.ElementType; label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className={cn("rounded-lg px-3 py-2.5 text-center", highlight ? "bg-primary/10 border border-primary/20" : "bg-background/60 border")}>
-      <Icon className={cn("h-3.5 w-3.5 mx-auto mb-1", highlight ? "text-primary" : "text-muted-foreground")} />
-      <p className={cn("text-base font-bold tabular-nums leading-tight", highlight && "text-primary")}>{value}</p>
-      <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
-    </div>
-  );
-}
-
 function IntelStat({ label, value, accent, dim, icon: Icon, highlight }: { label: string; value: string; accent?: boolean; dim?: boolean; icon?: React.ElementType; highlight?: boolean }) {
   return (
     <div className={cn("rounded-lg px-3 py-2.5", highlight ? "bg-primary/10" : "bg-muted/40")}>
@@ -547,6 +525,25 @@ function IntelStat({ label, value, accent, dim, icon: Icon, highlight }: { label
         {Icon && <Icon className="h-3.5 w-3.5 fill-current" />}
         {value}
       </p>
+    </div>
+  );
+}
+
+function ConfidencePill({ range }: { range: RangeVal }) {
+  const colours = {
+    High: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400",
+    Medium: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400",
+    Low: "bg-muted text-muted-foreground",
+  };
+  return (
+    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+      <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", colours[range.confidence])}>
+        {range.confidence} confidence
+      </span>
+      <span className="text-[10px] text-muted-foreground">
+        {range.count} shot{range.count !== 1 ? "s" : ""}
+        {range.outliersRemoved > 0 ? `, ${range.outliersRemoved} outlier${range.outliersRemoved !== 1 ? "s" : ""} removed` : ""}
+      </span>
     </div>
   );
 }
@@ -564,72 +561,118 @@ function WindowStat({ icon: Icon, label, range, unit }: { icon: React.ElementTyp
             ? `${range.min}${unit}`
             : `${range.min}${unit} – ${range.max}${unit}`}
         </p>
+        <ConfidencePill range={range} />
       </CardContent>
     </Card>
   );
 }
 
-function DriftIndicator({ direction }: { direction: "coarser" | "finer" | "stable" | null }) {
+function DirectionBadge({ direction }: { direction: "coarser" | "finer" | "stable" | null }) {
   if (direction === "coarser") return (
-    <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-950 flex items-center justify-center shrink-0">
-      <TrendingUp className="h-5 w-5 text-amber-600" />
-    </div>
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 text-sm font-medium">
+      <TrendingUp className="h-3.5 w-3.5" />Coarser
+    </span>
   );
   if (direction === "finer") return (
-    <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-950 flex items-center justify-center shrink-0">
-      <TrendingDown className="h-5 w-5 text-blue-600" />
-    </div>
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400 text-sm font-medium">
+      <TrendingDown className="h-3.5 w-3.5" />Finer
+    </span>
   );
   return (
-    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-      <Minus className="h-5 w-5 text-muted-foreground" />
-    </div>
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-sm font-medium">
+      <Minus className="h-3.5 w-3.5" />Stable
+    </span>
   );
 }
 
-function WatchlistItem({ type, message }: { type: "success" | "warning" | "info"; message: string }) {
+function TodaysBriefCard({ brief }: { brief: NonNullable<Intelligence["todaysBrief"]> }) {
+  const topItem = brief.topWatchlistItem;
+  const topItemConfig = topItem ? {
+    success: { icon: CheckCircle2, class: "text-green-600 dark:text-green-400" },
+    warning: { icon: AlertTriangle, class: "text-amber-600 dark:text-amber-400" },
+    info: { icon: Info, class: "text-muted-foreground" },
+  }[topItem.type] : null;
+
+  return (
+    <Card className="border-primary/20 bg-primary/[0.02]">
+      <CardContent className="p-4 space-y-3">
+        {/* Bean + days */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-semibold">{brief.beanName}</span>
+          {brief.openDays != null && (
+            <Badge variant="outline" className="text-xs font-normal">
+              {brief.openDays}d open
+            </Badge>
+          )}
+        </div>
+
+        {/* Pill stats */}
+        <div className="flex flex-wrap gap-2">
+          {brief.bestYieldWindow && (
+            <div className="inline-flex items-center gap-1.5 bg-muted/60 rounded-lg px-3 py-1.5 text-xs">
+              <Droplets className="h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">Yield</span>
+              <span className="font-semibold tabular-nums">
+                {brief.bestYieldWindow.min === brief.bestYieldWindow.max
+                  ? `${brief.bestYieldWindow.min}g`
+                  : `${brief.bestYieldWindow.min}–${brief.bestYieldWindow.max}g`}
+              </span>
+            </div>
+          )}
+          {brief.bestPourDelayWindow && (
+            <div className="inline-flex items-center gap-1.5 bg-muted/60 rounded-lg px-3 py-1.5 text-xs">
+              <Timer className="h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">Delay</span>
+              <span className="font-semibold tabular-nums">
+                {brief.bestPourDelayWindow.min === brief.bestPourDelayWindow.max
+                  ? `${brief.bestPourDelayWindow.min}s`
+                  : `${brief.bestPourDelayWindow.min}–${brief.bestPourDelayWindow.max}s`}
+              </span>
+            </div>
+          )}
+          <div className="inline-flex items-center gap-1.5 bg-muted/60 rounded-lg px-3 py-1.5 text-xs">
+            <Gauge className="h-3 w-3 text-muted-foreground" />
+            <span className="font-medium">{brief.grindTrend}</span>
+          </div>
+        </div>
+
+        {/* Top watchlist item */}
+        {topItem && topItemConfig && (
+          <div className="flex items-start gap-2 border-t pt-2">
+            {React.createElement(topItemConfig.icon, {
+              className: cn("h-3.5 w-3.5 mt-0.5 shrink-0", topItemConfig.class),
+            })}
+            <p className="text-xs text-muted-foreground leading-relaxed">{topItem.message}</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function WatchlistCard({ item }: { item: WatchlistItem }) {
   const config = {
     success: { icon: CheckCircle2, class: "text-green-600 dark:text-green-400", bg: "bg-green-50/50 dark:bg-green-950/20 border-green-200/50" },
     warning: { icon: AlertTriangle, class: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50" },
     info: { icon: Info, class: "text-muted-foreground", bg: "bg-muted/30 border-border/50" },
-  }[type];
+  }[item.type];
   const Icon = config.icon;
   return (
-    <div className={cn("flex items-start gap-2.5 rounded-lg border px-3 py-2.5", config.bg)}>
-      <Icon className={cn("h-4 w-4 mt-0.5 shrink-0", config.class)} />
-      <p className="text-sm">{message}</p>
+    <div className={cn("rounded-lg border px-3 py-2.5", config.bg)}>
+      <div className="flex items-start gap-2.5">
+        <Icon className={cn("h-4 w-4 mt-0.5 shrink-0", config.class)} />
+        <p className="text-sm">{item.message}</p>
+      </div>
+      {item.type === "warning" && item.suggestedChecks && item.suggestedChecks.length > 0 && (
+        <ul className="mt-1.5 ml-6 space-y-0.5">
+          {item.suggestedChecks.map((check, i) => (
+            <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+              <span className="mt-1 h-1 w-1 rounded-full bg-muted-foreground/50 shrink-0" />
+              {check}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
-  );
-}
-
-function ShotRow({ shot }: { shot: any }) {
-  return (
-    <Link href={`/shots/${shot.id}`}>
-      <Card className="hover:bg-accent/40 transition-colors cursor-pointer">
-        <CardContent className="p-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium text-sm truncate">{shot.bean || "Unknown"}</span>
-              {shot.rating != null && (
-                <span className="flex items-center gap-0.5 text-xs text-amber-600 font-semibold shrink-0">
-                  <Star className="h-3 w-3 fill-current" />{Number(shot.rating).toFixed(2)}
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground font-mono mt-0.5">
-              {shot.dose != null ? `${shot.dose}g` : "—"} → {shot.yield != null ? `${shot.yield}g` : "—"}
-              {shot.pourTime != null ? ` · ${shot.pourTime}s` : ""}
-              {shot.grindSetting != null ? ` · ⚙${shot.grindSetting}` : ""}
-            </p>
-          </div>
-          <div className="text-right shrink-0 space-y-1">
-            <p className="text-xs text-muted-foreground">{format(new Date(shot.shotDate), "d MMM")}</p>
-            {shot.status && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0">{shot.status}</Badge>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
   );
 }
