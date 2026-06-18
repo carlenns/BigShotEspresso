@@ -47,7 +47,7 @@ function robustRange(vals: number[]): {
 }
 
 // ── GET /dashboard/intelligence ─────────────────────────────────────────────
-router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
+router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   // ── Settings (for baseline extras: grinder, machine, basket) ─────────────
   const settingRows = await db.select().from(settingsTable);
   const settings: Record<string, string> = {};
@@ -133,10 +133,21 @@ router.get("/dashboard/intelligence", async (_req, res): Promise<void> => {
     ? Math.round((refCount / totalBagShots) * 1000) / 10
     : null;
 
-  const shotsWithPref = activeBagShots.filter((s) => s.preferenceRating != null);
-  const signatureShotCount = shotsWithPref.length > 0
-    ? activeBagShots.filter((s) => s.preferenceRating != null && Number(s.preferenceRating) >= 9).length
+  // Signature Shot is a manual checkbox field on each shot record.
+  // Never infer from preference rating, rating, or reference status.
+  // If no shot has the field populated (all null), return null → UI shows "—".
+  const anyHasSignatureField = activeBagShots.some((s) => s.signatureShot !== null);
+  const signatureShotCount = anyHasSignatureField
+    ? activeBagShots.filter((s) => s.signatureShot === true).length
     : null;
+  // Diagnostic (safe — no secrets, no PII)
+  req.log.info({
+    bagId: activeBagRow.id,
+    totalShots: activeBagShots.length,
+    signatureShotsTrue: activeBagShots.filter((s) => s.signatureShot === true).length,
+    signatureShotsNull: activeBagShots.filter((s) => s.signatureShot === null).length,
+    anyHasSignatureField,
+  }, "signature-shot diagnostic");
 
   // dialInSpeed: shots before first reference shot (chronological order)
   const sortedByDate = [...activeBagShots].sort((a, b) =>

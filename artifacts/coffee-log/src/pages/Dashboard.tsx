@@ -292,7 +292,7 @@ export default function Dashboard() {
                       accent={bi.referenceRate != null && bi.referenceRate >= 20}
                     />
                     <IntelStat
-                      label="Signature shots (pref ≥ 9)"
+                      label="Signature shots"
                       value={bi.signatureShotCount != null ? String(bi.signatureShotCount) : "—"}
                       accent={bi.signatureShotCount != null && bi.signatureShotCount > 0}
                     />
