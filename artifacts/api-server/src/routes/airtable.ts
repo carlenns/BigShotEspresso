@@ -431,6 +431,7 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
             rating: num(findField(f, ["Rating", "Rating ( Valid Only )"])),
             preferenceRating: num(findField(f, ["Preference Rating"])),
             isReference: bool(findField(f, ["Reference Shot"])) ?? false,
+            signatureShot: bool(findField(f, ["Signature Shot"])) ?? false,
             status: str(findField(f, ["Shot Status", "Status"])),
             shotClassification,
             faultStatus,
