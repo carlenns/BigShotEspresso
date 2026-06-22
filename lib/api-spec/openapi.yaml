@@ -395,6 +395,14 @@ components:
           type: ["string", "null"]
         isReference:
           type: boolean
+        signatureShot:
+          type: ["boolean", "null"]
+        sourShot:
+          type: ["boolean", "null"]
+        expressionStyle:
+          type: ["string", "null"]
+        beanAchievement:
+          type: ["string", "null"]
         isForOthers:
           type: ["boolean", "null"]
         notes:
@@ -452,6 +460,14 @@ components:
           type: string
         isReference:
           type: boolean
+        signatureShot:
+          type: boolean
+        sourShot:
+          type: boolean
+        expressionStyle:
+          type: string
+        beanAchievement:
+          type: string
         isForOthers:
           type: boolean
         notes:
@@ -506,6 +522,14 @@ components:
           type: string
         isReference:
           type: boolean
+        signatureShot:
+          type: boolean
+        sourShot:
+          type: boolean
+        expressionStyle:
+          type: string
+        beanAchievement:
+          type: string
         isForOthers:
           type: boolean
         notes:

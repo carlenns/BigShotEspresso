@@ -43,6 +43,14 @@ export interface Shot {
   faultStatus?: string | null;
   isReference?: boolean;
   /** @nullable */
+  signatureShot?: boolean | null;
+  /** @nullable */
+  sourShot?: boolean | null;
+  /** @nullable */
+  expressionStyle?: string | null;
+  /** @nullable */
+  beanAchievement?: string | null;
+  /** @nullable */
   isForOthers?: boolean | null;
   /** @nullable */
   notes?: string | null;

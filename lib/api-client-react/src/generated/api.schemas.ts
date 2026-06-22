@@ -46,6 +46,14 @@ export interface Shot {
   faultStatus?: string | null;
   isReference?: boolean;
   /** @nullable */
+  signatureShot?: boolean | null;
+  /** @nullable */
+  sourShot?: boolean | null;
+  /** @nullable */
+  expressionStyle?: string | null;
+  /** @nullable */
+  beanAchievement?: string | null;
+  /** @nullable */
   isForOthers?: boolean | null;
   /** @nullable */
   notes?: string | null;
@@ -93,6 +101,10 @@ export interface ShotInput {
   status?: string;
   faultStatus?: string;
   isReference?: boolean;
+  signatureShot?: boolean;
+  sourShot?: boolean;
+  expressionStyle?: string;
+  beanAchievement?: string;
   isForOthers?: boolean;
   notes?: string;
   sensoryNotes?: string;
@@ -135,6 +147,10 @@ export interface ShotUpdate {
   status?: string;
   faultStatus?: string;
   isReference?: boolean;
+  signatureShot?: boolean;
+  sourShot?: boolean;
+  expressionStyle?: string;
+  beanAchievement?: string;
   isForOthers?: boolean;
   notes?: string;
   sensoryNotes?: string;

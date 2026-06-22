@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateShot, getListShotsQueryKey, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
-import { Zap, ArrowRight, Coffee, CheckCircle2, Settings, Minus, Plus } from "lucide-react";
+import { Zap, ArrowRight, Coffee, CheckCircle2, Settings, Minus, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ── Field type definitions ────────────────────────────────────────────────────
@@ -66,21 +67,6 @@ export const FIELD_GROUPS: { id: string; label: string; description: string; fie
       { id: "grindChanged",      label: "Grind Changed This Shot",unit: "",   dbKey: "grindAdjusted",     type: "toggle",              defaultOn: false },
     ],
   },
-  {
-    id: "classification",
-    label: "Classification",
-    description: "Shot type and notes",
-    fields: [
-      { id: "isReference",   label: "Reference Shot",  unit: "", dbKey: "isReference",   type: "toggle", defaultOn: false },
-      { id: "signatureShot", label: "Signature Shot",  unit: "", dbKey: "signatureShot", type: "toggle", defaultOn: false },
-      {
-        id: "status", label: "Shot Status", unit: "", dbKey: "status", type: "select",
-        options: ["Good", "Dialed In", "Experimental", "Recovery/Transitional"],
-        defaultOn: false,
-      },
-      { id: "notes", label: "Notes", unit: "", dbKey: "notes", type: "text", defaultOn: false },
-    ],
-  },
 ];
 
 // Flat list — used by getEnabledFieldIds and save logic
@@ -94,6 +80,27 @@ export function getEnabledFieldIds(settings: Record<string, string>): string[] {
     })
     .map((f) => f.id);
 }
+
+// ── Shot Evaluation options ───────────────────────────────────────────────────
+
+export const SHOT_STATUS_OPTIONS = ["Good", "Dialed In", "Poor", "Experimental"] as const;
+export const FAULT_STATUS_OPTIONS = ["Good", "Fault"] as const;
+export const EXPRESSION_STYLE_OPTIONS = [
+  "Balanced",
+  "Fruit Forward",
+  "Chocolate / Nutty",
+  "Bright / Acidic",
+  "Sweet / Mellow",
+  "Herbal / Floral",
+  "Bold / Intense",
+] as const;
+export const BEAN_ACHIEVEMENT_OPTIONS = [
+  "Potential Unlocked",
+  "Meeting Potential",
+  "Still Dialing In",
+  "Underperforming",
+  "Exceeded Expectations",
+] as const;
 
 // ── Data fetchers ────────────────────────────────────────────────────────────
 
@@ -116,9 +123,29 @@ function fetchActiveBag(): Promise<{ activeBag: ActiveBagInfo | null }> {
   return fetch("/api/dashboard/intelligence").then((r) => r.json());
 }
 
-// ── Main page ────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
 type FieldValues = Record<string, string | number | boolean>;
+
+interface EvalValues {
+  status: string;
+  faultStatus: string;
+  isReference: boolean;
+  signatureShot: boolean;
+  sourShot: boolean;
+  expressionStyle: string;
+  beanAchievement: string;
+  notes: string;
+}
+
+function nowDateTimeLocal(): string {
+  const d = new Date();
+  // Format as YYYY-MM-DDTHH:mm for datetime-local input
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// ── Main page ────────────────────────────────────────────────────────────────
 
 export default function QuickLog() {
   const queryClient = useQueryClient();
@@ -143,6 +170,18 @@ export default function QuickLog() {
 
   const [values, setValues] = useState<FieldValues>({});
   const [savedId, setSavedId] = useState<number | null>(null);
+  const [showEvaluation, setShowEvaluation] = useState(false);
+  const [shotDate, setShotDate] = useState(nowDateTimeLocal);
+  const [evalValues, setEvalValues] = useState<EvalValues>({
+    status: "",
+    faultStatus: "",
+    isReference: false,
+    signatureShot: false,
+    sourShot: false,
+    expressionStyle: "",
+    beanAchievement: "",
+    notes: "",
+  });
 
   // Pre-fill from active bag + settings
   useEffect(() => {
@@ -165,33 +204,30 @@ export default function QuickLog() {
   const setVal = (dbKey: string, val: string | number | boolean) =>
     setValues((prev) => ({ ...prev, [dbKey]: val }));
 
+  const setEval = <K extends keyof EvalValues>(key: K, val: EvalValues[K]) =>
+    setEvalValues((prev) => ({ ...prev, [key]: val }));
+
   const handleSave = () => {
     const body: Record<string, unknown> = {
-      shotDate: new Date().toISOString().slice(0, 16),
-      status: "Good",
+      shotDate: shotDate || nowDateTimeLocal(),
       bagId: activeBag?.id ?? undefined,
     };
 
+    // Quick fields
     for (const field of QUICK_LOG_FIELDS) {
-      // Include if explicitly enabled OR if grindChanged is auto-shown via grindSetting
       const include = enabledIds.includes(field.id) || (field.id === "grindChanged" && enabledIds.includes("grindSetting"));
       if (!include) continue;
 
       const val = values[field.dbKey];
 
       if (field.type === "toggle") {
-        if (field.id === "isReference" || field.id === "signatureShot") {
-          body[field.dbKey] = val === true;
-        } else if (field.id === "grindChanged") {
+        if (field.id === "grindChanged") {
           if (val === true) body[field.dbKey] = "Yes";
         }
       } else if (field.type === "text") {
         if (val !== "" && val !== undefined) body[field.dbKey] = String(val);
       } else if (field.type === "select") {
-        if (val && val !== "__none__") {
-          // status override: explicit selection wins
-          body[field.dbKey] = String(val);
-        }
+        if (val && val !== "__none__") body[field.dbKey] = String(val);
       } else if (field.type === "temperature") {
         const n = Number(val);
         if (!isNaN(n) && n > 0) body[field.dbKey] = Math.round(n);
@@ -200,6 +236,16 @@ export default function QuickLog() {
         if (!isNaN(n) && val !== "" && val !== undefined) body[field.dbKey] = n;
       }
     }
+
+    // Shot Evaluation fields (always applied)
+    if (evalValues.status) body.status = evalValues.status;
+    if (evalValues.faultStatus) body.faultStatus = evalValues.faultStatus;
+    body.isReference = evalValues.isReference;
+    body.signatureShot = evalValues.signatureShot;
+    body.sourShot = evalValues.sourShot;
+    if (evalValues.expressionStyle) body.expressionStyle = evalValues.expressionStyle;
+    if (evalValues.beanAchievement) body.beanAchievement = evalValues.beanAchievement;
+    if (evalValues.notes) body.notes = evalValues.notes;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     createShot.mutate({ data: body as any }, {
@@ -218,6 +264,8 @@ export default function QuickLog() {
 
   const handleLogAnother = () => {
     setSavedId(null);
+    setShotDate(nowDateTimeLocal());
+    setEvalValues({ status: "", faultStatus: "", isReference: false, signatureShot: false, sourShot: false, expressionStyle: "", beanAchievement: "", notes: "" });
     setValues({
       dose:         activeBag?.defaultDose         ?? 18,
       yield:        activeBag?.defaultYield        ?? 36,
@@ -264,6 +312,22 @@ export default function QuickLog() {
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-sm mx-auto">
       <PageHeader activeBag={activeBag} />
 
+      {/* Date & Time — always visible */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-muted-foreground">Date & Time</Label>
+            <Input
+              type="datetime-local"
+              value={shotDate}
+              onChange={(e) => setShotDate(e.target.value)}
+              className="h-10 text-sm tabular-nums"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick fields */}
       {fieldsToRender.length === 0 ? (
         <Card>
           <CardContent className="p-8 flex flex-col items-center gap-4 text-center">
@@ -300,6 +364,129 @@ export default function QuickLog() {
           </CardContent>
         </Card>
       )}
+
+      {/* Shot Evaluation — collapsible */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowEvaluation((v) => !v)}
+          className="flex items-center justify-between w-full px-1 py-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <span>Shot Evaluation</span>
+          {showEvaluation ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+
+        {showEvaluation && (
+          <Card className="mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+            <CardContent className="p-5 space-y-5">
+
+              {/* Shot Status */}
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Shot Status</Label>
+                <Select
+                  value={evalValues.status || "__none__"}
+                  onValueChange={(v) => setEval("status", v === "__none__" ? "" : v)}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— not set —</SelectItem>
+                    {SHOT_STATUS_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Fault Status */}
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Fault Status</Label>
+                <Select
+                  value={evalValues.faultStatus || "__none__"}
+                  onValueChange={(v) => setEval("faultStatus", v === "__none__" ? "" : v)}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— not set —</SelectItem>
+                    {FAULT_STATUS_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Checkboxes */}
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Flags</Label>
+                <div className="space-y-2.5">
+                  {[
+                    { key: "isReference" as const, label: "Reference Shot" },
+                    { key: "signatureShot" as const, label: "Signature Shot" },
+                    { key: "sourShot" as const, label: "Sour Shot" },
+                  ].map(({ key, label }) => (
+                    <div key={key} className="flex items-center gap-3">
+                      <Checkbox
+                        id={`eval-${key}`}
+                        checked={evalValues[key] as boolean}
+                        onCheckedChange={(checked) => setEval(key, checked === true)}
+                      />
+                      <label htmlFor={`eval-${key}`} className="text-sm leading-none cursor-pointer select-none">
+                        {label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Expression Style */}
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Expression Style</Label>
+                <Select
+                  value={evalValues.expressionStyle || "__none__"}
+                  onValueChange={(v) => setEval("expressionStyle", v === "__none__" ? "" : v)}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— not set —</SelectItem>
+                    {EXPRESSION_STYLE_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Bean Achievement */}
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Bean Achievement</Label>
+                <Select
+                  value={evalValues.beanAchievement || "__none__"}
+                  onValueChange={(v) => setEval("beanAchievement", v === "__none__" ? "" : v)}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— not set —</SelectItem>
+                    {BEAN_ACHIEVEMENT_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Notes</Label>
+                <Textarea
+                  placeholder="Any notes…"
+                  value={evalValues.notes}
+                  onChange={(e) => setEval("notes", e.target.value)}
+                  className="resize-none"
+                  rows={3}
+                />
+              </div>
+
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
         <Button variant="link" size="sm" className="h-auto p-0 text-xs text-muted-foreground" asChild>
