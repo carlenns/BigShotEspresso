@@ -1,0 +1,190 @@
+Dashboard Reorganization – Active Bag First
+
+Goal:
+
+Reorganize the dashboard so users immediately understand:
+
+1. What bag they are currently drinking
+2. What they should do on their next shot
+3. How the current bag is performing
+4. How it compares historically
+5. What global patterns exist
+
+The current dashboard mixes active-bag intelligence with global intelligence, which can cause confusion.
+
+Do not redesign the visual style.
+
+Do not change calculations.
+
+Do not add new metrics.
+
+Only reorganize and clarify.
+
+----------------------------------------
+SECTION 1 – CURRENT BAG
+----------------------------------------
+
+This entire section should relate only to the active bag.
+
+Order:
+
+1. Current Baseline
+
+Display:
+- Bean
+- Bag
+- Roast Date
+- Open Date
+- Days Open
+- Current Grind
+- Current Dose
+- Remaining Coffee
+
+2. Bag Progress
+
+Display:
+- Remaining grams
+- Estimated shots remaining
+- Bag phase
+
+3. Today's Coffee Brief
+
+Move this much higher on the dashboard.
+
+This should become the primary decision-support card.
+
+Examples:
+
+Current Bag:
+Peru
+
+Current Recommendation:
+35–36g yield
+
+Current Delay Window:
+7–9 seconds
+
+Confidence:
+Medium
+
+Reference Shots Supporting Recommendation:
+6
+
+If insufficient data exists, clearly indicate:
+
+Low Confidence
+
+4. Current Bag Intelligence
+
+Everything here must be active-bag only.
+
+Examples:
+
+- Reference Shot Count
+- Signature Shot Count
+- Average Preference Rating
+- Best Preference Rating
+- Reference Rate
+- Current Bag Statistics
+
+Clearly indicate:
+
+"Based on this bag only"
+
+5. Next Shot Watchlist
+
+Keep directly below Current Bag Intelligence.
+
+Purpose:
+
+"What should I do on my next shot?"
+
+----------------------------------------
+SECTION 2 – BAG HISTORY
+----------------------------------------
+
+Historical comparison section.
+
+Move Bag Comparison here.
+
+Examples:
+
+- Bag Comparison Table
+- Average Preference
+- Reference Rate
+- Future DIM metrics
+
+Purpose:
+
+"How does this bag compare to previous bags?"
+
+----------------------------------------
+SECTION 3 – GLOBAL REFERENCE INTELLIGENCE
+----------------------------------------
+
+Move Best Performing Windows here.
+
+Rename:
+
+Best Performing Windows
+
+to
+
+Global Reference Intelligence
+
+or
+
+Reference Shot Performance Windows
+
+Add explanatory subtitle:
+
+"Based on all reference shots across all bags"
+
+Display:
+
+- Yield Window
+- First Pour Delay Window
+- Shot Time Window
+- Other global reference metrics
+
+Purpose:
+
+"What has my entire coffee history taught me?"
+
+----------------------------------------
+CLARITY REQUIREMENTS
+----------------------------------------
+
+Every section must clearly state its scope.
+
+Examples:
+
+Current Bag Intelligence
+(Based on Peru only)
+
+Bag Comparison
+(All historical bags)
+
+Global Reference Intelligence
+(All reference shots across all bags)
+
+The user should never need to guess whether a metric is:
+
+- Current bag
+- Historical bag
+- Global
+
+----------------------------------------
+DO NOT
+----------------------------------------
+
+- Change calculations
+- Change sync logic
+- Change Include in Analysis logic
+- Add new intelligence metrics
+- Add DIM yet
+- Add GSP yet
+
+Goal:
+
+Improve dashboard clarity and decision-making without changing the underlying analytics.

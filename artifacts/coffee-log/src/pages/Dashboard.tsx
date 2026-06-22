@@ -113,6 +113,15 @@ export default function Dashboard() {
   const bp = intel?.bagProgress;
   const tw = intel?.timingWindows;
 
+  const hasBagProgress = bp && (bp.startingWeight || bp.consumed > 0);
+  const hasBagComparison = intel?.bagComparison && intel.bagComparison.length > 1;
+  const hasTimingWindows = tw && (tw.yieldRange || tw.pourTimeRange || tw.scaleTimeRange || tw.pourDelayRange);
+
+  const twScopeLabel =
+    tw?.dataSource === "all_reference" ? "All reference shots across all bags"
+    : tw?.dataSource === "same_bean" ? `All reference shots · same bean`
+    : "Reference shots · this bag";
+
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
@@ -129,7 +138,12 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      {/* ── Section 1: Current Baseline ──────────────────────────────────────── */}
+      {/* ═══════════════════════════════════════════════════════════════════════
+          SECTION 1 — CURRENT BAG
+          ═══════════════════════════════════════════════════════════════════════ */}
+      <DashboardSection title="Current Bag" scope="Active bag only" />
+
+      {/* 1a. Current Baseline ──────────────────────────────────────────────── */}
       <section>
         <SectionLabel>Current Baseline</SectionLabel>
         {isLoading ? (
@@ -214,59 +228,90 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* ── Bag Progress ─────────────────────────────────────────────────────── */}
-      {bp && (bp.startingWeight || bp.consumed > 0) && (
+      {/* 1b. Bag Progress (+ bag phase) ────────────────────────────────────── */}
+      {hasBagProgress && (
         <section>
           <SectionLabel>Bag Progress</SectionLabel>
           <Card>
-            <CardContent className="p-5">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                {bp.startingWeight != null && (
-                  <IntelStat label="Starting weight" value={`${bp.startingWeight}g`} icon={Package} />
+            <CardContent className="p-5 space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {bp!.startingWeight != null && (
+                  <IntelStat label="Starting weight" value={`${bp!.startingWeight}g`} icon={Package} />
                 )}
-                <IntelStat label="Consumed" value={`${bp.consumed}g`} />
-                {bp.remaining != null && (
-                  <IntelStat label="Remaining" value={`${bp.remaining.toFixed(1)}g`} accent />
+                <IntelStat label="Consumed" value={`${bp!.consumed}g`} />
+                {bp!.remaining != null && (
+                  <IntelStat label="Remaining" value={`${bp!.remaining.toFixed(1)}g`} accent />
                 )}
-                {bp.estimatedShotsRemaining != null && (
+                {bp!.estimatedShotsRemaining != null && (
                   <IntelStat
                     label="Shots left (est.)"
-                    value={String(bp.estimatedShotsRemaining)}
-                    dim={bp.estimatedShotsRemaining <= 5}
+                    value={String(bp!.estimatedShotsRemaining)}
+                    dim={bp!.estimatedShotsRemaining <= 5}
                   />
                 )}
               </div>
-              {bp.completionPct != null && (
+
+              {bp!.completionPct != null && (
                 <div>
                   <div className="flex items-center justify-between mb-1 text-xs text-muted-foreground">
                     <span>Bag used</span>
-                    <span className="font-medium tabular-nums">{bp.completionPct.toFixed(1)}%</span>
+                    <span className="font-medium tabular-nums">{bp!.completionPct.toFixed(1)}%</span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
                     <div
-                      className={cn("h-full rounded-full transition-all", bp.completionPct >= 85 ? "bg-destructive" : bp.completionPct >= 65 ? "bg-amber-500" : "bg-primary")}
-                      style={{ width: `${Math.min(100, bp.completionPct)}%` }}
+                      className={cn("h-full rounded-full transition-all", bp!.completionPct >= 85 ? "bg-destructive" : bp!.completionPct >= 65 ? "bg-amber-500" : "bg-primary")}
+                      style={{ width: `${Math.min(100, bp!.completionPct)}%` }}
                     />
                   </div>
                 </div>
               )}
-              {bp.avgDose && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Avg dose {bp.avgDose}g · {bp.consumed > 0 ? `${Math.round(bp.consumed / bp.avgDose)} shots` : "no shots"} worth consumed
+
+              {bp!.avgDose && (
+                <p className="text-xs text-muted-foreground">
+                  Avg dose {bp!.avgDose}g · {bp!.consumed > 0 ? `${Math.round(bp!.consumed / bp!.avgDose)} shots` : "no shots"} worth consumed
                 </p>
+              )}
+
+              {/* Bag phase — surfaced here from bag intelligence */}
+              {bi && (
+                <div className="rounded-lg bg-muted/40 px-3 py-2.5 flex items-center justify-between border-t border-border/50 mt-1 pt-3">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Bag phase</p>
+                    <p className="font-semibold text-sm">{bi.bagPhase}</p>
+                  </div>
+                  <span className={cn(
+                    "text-xs px-2 py-0.5 rounded-full font-medium",
+                    bi.bagConfidence === "High" ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400"
+                    : bi.bagConfidence === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
+                    : "bg-muted text-muted-foreground"
+                  )}>
+                    {bi.bagConfidence} confidence
+                  </span>
+                </div>
               )}
             </CardContent>
           </Card>
         </section>
       )}
 
-      {/* ── Sections: Bag Intelligence + Grind Journey ────────────────────────── */}
+      {/* 1c. Today's Coffee Brief ────────────────────────────────────────────
+           Primary decision-support card — shown high on the dashboard          */}
+      {intel?.todaysBrief && (
+        <section>
+          <SectionLabel>Today's Coffee Brief</SectionLabel>
+          <TodaysBriefCard brief={intel.todaysBrief} />
+        </section>
+      )}
+
+      {/* 1d. Current Bag Intelligence + Grind Journey ───────────────────────── */}
       {(bi || gd) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-          {/* Bag Intelligence */}
+          {/* Current Bag Intelligence */}
           <section className="flex flex-col gap-3">
-            <SectionLabel>Current Bag Intelligence</SectionLabel>
+            <SectionLabel scope={`Based on ${bag?.beanName ?? "this bag"} only`}>
+              Current Bag Intelligence
+            </SectionLabel>
             {isLoading ? <Skeleton className="h-52 w-full" /> : bi ? (
               <Card className="flex-1">
                 <CardContent className="p-5 space-y-4">
@@ -300,21 +345,6 @@ export default function Dashboard() {
                       value={bi.signatureShotCount != null ? String(bi.signatureShotCount) : "—"}
                       accent={bi.signatureShotCount != null && bi.signatureShotCount > 0}
                     />
-                  </div>
-
-                  <div className="rounded-lg bg-muted/40 px-3 py-2.5 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Bag phase</p>
-                      <p className="font-semibold text-sm">{bi.bagPhase}</p>
-                    </div>
-                    <span className={cn(
-                      "text-xs px-2 py-0.5 rounded-full font-medium",
-                      bi.bagConfidence === "High" ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400"
-                      : bi.bagConfidence === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
-                      : "bg-muted text-muted-foreground"
-                    )}>
-                      {bi.bagConfidence} confidence
-                    </span>
                   </div>
 
                   {bi.bestYieldRange && (
@@ -454,83 +484,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Bag Comparison ─────────────────────────────────────────────────── */}
-      {intel?.bagComparison && intel.bagComparison.length > 1 && (
-        <section>
-          <SectionLabel>Bag Comparison (Grind Drift)</SectionLabel>
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-xs text-muted-foreground uppercase tracking-wide">
-                    <th className="px-4 py-3 text-left font-medium">Bag</th>
-                    <th className="px-3 py-3 text-right font-medium">Bean</th>
-                    <th className="px-3 py-3 text-right font-medium">Shots</th>
-                    <th className="px-3 py-3 text-right font-medium">Start ⚙</th>
-                    <th className="px-3 py-3 text-right font-medium">Last ⚙</th>
-                    <th className="px-3 py-3 text-right font-medium">Drift</th>
-                    <th className="px-3 py-3 text-right font-medium">Best ★</th>
-                    <th className="px-3 py-3 text-right font-medium">Ref</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {intel.bagComparison.map((b, i) => (
-                    <tr key={i} className={cn("border-b last:border-0 hover:bg-muted/30 transition-colors", b.isActive && "bg-primary/5")}>
-                      <td className="px-4 py-3 font-medium">
-                        Bag #{b.bagNumber ?? b.bagId}
-                        {b.isActive && <Badge className="ml-2 text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">Active</Badge>}
-                      </td>
-                      <td className="px-3 py-3 text-right text-muted-foreground max-w-[120px] truncate">{b.beanName ?? "—"}</td>
-                      <td className="px-3 py-3 text-right tabular-nums">{b.shotCount}</td>
-                      <td className="px-3 py-3 text-right tabular-nums">{b.firstGrind != null ? Number(b.firstGrind).toFixed(3) : "—"}</td>
-                      <td className="px-3 py-3 text-right tabular-nums">{b.lastGrind != null ? Number(b.lastGrind).toFixed(3) : "—"}</td>
-                      <td className={cn("px-3 py-3 text-right tabular-nums font-medium",
-                        b.totalAdjustment == null ? "text-muted-foreground" :
-                        b.totalAdjustment > 0.05 ? "text-amber-600" :
-                        b.totalAdjustment < -0.05 ? "text-blue-600" : "text-muted-foreground")}>
-                        {b.totalAdjustment != null ? `${b.totalAdjustment > 0 ? "+" : ""}${b.totalAdjustment.toFixed(3)}` : "—"}
-                      </td>
-                      <td className="px-3 py-3 text-right tabular-nums text-amber-600 font-medium">
-                        {b.bestRating != null ? Number(b.bestRating).toFixed(2) : "—"}
-                      </td>
-                      <td className="px-3 py-3 text-right tabular-nums">{b.refCount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-        </section>
-      )}
-
-      {/* ── Timing Windows ─────────────────────────────────────────────────── */}
-      {tw && (tw.yieldRange || tw.pourTimeRange || tw.scaleTimeRange || tw.pourDelayRange) && (
-        <section>
-          <SectionLabel>
-            Best Performing Windows
-            <span className="ml-2 text-[10px] font-normal normal-case text-muted-foreground">
-              from {tw.shotCount} shot{tw.shotCount !== 1 ? "s" : ""}
-              {tw.dataSource === "same_bean" ? " (same bean)" : tw.dataSource === "all_reference" ? " (all reference shots)" : " (this bag)"}
-            </span>
-          </SectionLabel>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {tw.yieldRange && <WindowStat icon={Droplets} label="Yield" range={tw.yieldRange} unit="g" showDualWindow />}
-            {tw.pourTimeRange && <WindowStat icon={Clock} label="Pour time" range={tw.pourTimeRange} unit="s" />}
-            {tw.scaleTimeRange && <WindowStat icon={Timer} label="Scale time" range={tw.scaleTimeRange} unit="s" />}
-            {tw.pourDelayRange && <WindowStat icon={Target} label="First pour delay" range={tw.pourDelayRange} unit="s" />}
-          </div>
-        </section>
-      )}
-
-      {/* ── Today's Coffee Brief ───────────────────────────────────────────── */}
-      {intel?.todaysBrief && (
-        <section>
-          <SectionLabel>Today's Coffee Brief</SectionLabel>
-          <TodaysBriefCard brief={intel.todaysBrief} />
-        </section>
-      )}
-
-      {/* ── Watchlist ──────────────────────────────────────────────────────── */}
+      {/* 1e. Next Shot Watchlist ─────────────────────────────────────────────── */}
       {intel?.watchlist && intel.watchlist.length > 0 && (
         <section>
           <SectionLabel>Next Shot Watchlist</SectionLabel>
@@ -543,17 +497,111 @@ export default function Dashboard() {
           </Card>
         </section>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          SECTION 2 — BAG HISTORY
+          ═══════════════════════════════════════════════════════════════════════ */}
+      {hasBagComparison && (
+        <>
+          <DashboardSection title="Bag History" scope="All historical bags" />
+
+          <section>
+            <SectionLabel>Bag Comparison</SectionLabel>
+            <Card>
+              <CardContent className="p-0 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-xs text-muted-foreground uppercase tracking-wide">
+                      <th className="px-4 py-3 text-left font-medium">Bag</th>
+                      <th className="px-3 py-3 text-right font-medium">Bean</th>
+                      <th className="px-3 py-3 text-right font-medium">Shots</th>
+                      <th className="px-3 py-3 text-right font-medium">Start ⚙</th>
+                      <th className="px-3 py-3 text-right font-medium">Last ⚙</th>
+                      <th className="px-3 py-3 text-right font-medium">Drift</th>
+                      <th className="px-3 py-3 text-right font-medium">Best ★</th>
+                      <th className="px-3 py-3 text-right font-medium">Ref</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {intel!.bagComparison.map((b, i) => (
+                      <tr key={i} className={cn("border-b last:border-0 hover:bg-muted/30 transition-colors", b.isActive && "bg-primary/5")}>
+                        <td className="px-4 py-3 font-medium">
+                          Bag #{b.bagNumber ?? b.bagId}
+                          {b.isActive && <Badge className="ml-2 text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">Active</Badge>}
+                        </td>
+                        <td className="px-3 py-3 text-right text-muted-foreground max-w-[120px] truncate">{b.beanName ?? "—"}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">{b.shotCount}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">{b.firstGrind != null ? Number(b.firstGrind).toFixed(3) : "—"}</td>
+                        <td className="px-3 py-3 text-right tabular-nums">{b.lastGrind != null ? Number(b.lastGrind).toFixed(3) : "—"}</td>
+                        <td className={cn("px-3 py-3 text-right tabular-nums font-medium",
+                          b.totalAdjustment == null ? "text-muted-foreground" :
+                          b.totalAdjustment > 0.05 ? "text-amber-600" :
+                          b.totalAdjustment < -0.05 ? "text-blue-600" : "text-muted-foreground")}>
+                          {b.totalAdjustment != null ? `${b.totalAdjustment > 0 ? "+" : ""}${b.totalAdjustment.toFixed(3)}` : "—"}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums text-amber-600 font-medium">
+                          {b.bestRating != null ? Number(b.bestRating).toFixed(2) : "—"}
+                        </td>
+                        <td className="px-3 py-3 text-right tabular-nums">{b.refCount}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          </section>
+        </>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          SECTION 3 — GLOBAL REFERENCE INTELLIGENCE
+          ═══════════════════════════════════════════════════════════════════════ */}
+      {hasTimingWindows && (
+        <>
+          <DashboardSection title="Global Reference Intelligence" scope={twScopeLabel} />
+
+          <section>
+            <SectionLabel>
+              Reference Shot Performance Windows
+              <span className="ml-2 text-[10px] font-normal normal-case text-muted-foreground">
+                {tw!.shotCount} shot{tw!.shotCount !== 1 ? "s" : ""}
+              </span>
+            </SectionLabel>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {tw!.yieldRange && <WindowStat icon={Droplets} label="Yield" range={tw!.yieldRange} unit="g" showDualWindow />}
+              {tw!.pourTimeRange && <WindowStat icon={Clock} label="Pour time" range={tw!.pourTimeRange} unit="s" />}
+              {tw!.scaleTimeRange && <WindowStat icon={Timer} label="Scale time" range={tw!.scaleTimeRange} unit="s" />}
+              {tw!.pourDelayRange && <WindowStat icon={Target} label="First pour delay" range={tw!.pourDelayRange} unit="s" />}
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
+function DashboardSection({ title, scope }: { title: string; scope: string }) {
   return (
-    <h2 className={cn("text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1", className)}>
+    <div className="flex items-center gap-3 pt-2">
+      <h2 className="text-sm font-bold tracking-tight text-foreground whitespace-nowrap">{title}</h2>
+      <div className="flex-1 h-px bg-border" />
+      <span className="text-[11px] text-muted-foreground whitespace-nowrap shrink-0">{scope}</span>
+    </div>
+  );
+}
+
+function SectionLabel({ children, scope, className }: { children: React.ReactNode; scope?: string; className?: string }) {
+  return (
+    <h3 className={cn("text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2 flex-wrap", className)}>
       {children}
-    </h2>
+      {scope && (
+        <span className="font-normal normal-case tracking-normal text-[10px] bg-muted/60 px-2 py-0.5 rounded-full">
+          {scope}
+        </span>
+      )}
+    </h3>
   );
 }
 
