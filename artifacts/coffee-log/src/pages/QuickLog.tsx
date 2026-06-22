@@ -1,39 +1,92 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateShot, getListShotsQueryKey, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
-import { Zap, ArrowRight, Coffee, CheckCircle2, Settings } from "lucide-react";
+import { Zap, ArrowRight, Coffee, CheckCircle2, Settings, Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ── Field catalogue ──────────────────────────────────────────────────────────
+// ── Field type definitions ────────────────────────────────────────────────────
 
-export type QuickFieldId = "dose" | "pourDelay" | "yield" | "shotTime" | "rating" | "grindSetting" | "notes";
+export type FieldInputType = "number" | "rating" | "text" | "toggle" | "select" | "temperature";
 
-export const QUICK_LOG_FIELDS: {
-  id: QuickFieldId;
+export interface QuickFieldDef {
+  id: string;
   label: string;
   unit: string;
   dbKey: string;
-  type: "number" | "integer" | "rating" | "text";
+  type: FieldInputType;
+  step?: number;
+  min?: number;
+  max?: number;
+  options?: string[];
   defaultOn: boolean;
-}[] = [
-  { id: "dose",         label: "Dose",              unit: "g",   dbKey: "dose",         type: "number",  defaultOn: true  },
-  { id: "pourDelay",    label: "First Pour Delay",  unit: "s",   dbKey: "pourDelay",    type: "integer", defaultOn: true  },
-  { id: "yield",        label: "Yield",             unit: "g",   dbKey: "yield",        type: "number",  defaultOn: true  },
-  { id: "shotTime",     label: "Shot Time",         unit: "s",   dbKey: "scaleTime",    type: "integer", defaultOn: true  },
-  { id: "rating",       label: "Rating",            unit: "/10", dbKey: "rating",       type: "rating",  defaultOn: true  },
-  { id: "grindSetting", label: "Grind Setting",     unit: "",    dbKey: "grindSetting", type: "number",  defaultOn: false },
-  { id: "notes",        label: "Notes",             unit: "",    dbKey: "notes",        type: "text",    defaultOn: false },
+}
+
+// ── Field groups — canonical structure ───────────────────────────────────────
+
+export const FIELD_GROUPS: { id: string; label: string; description: string; fields: QuickFieldDef[] }[] = [
+  {
+    id: "essential",
+    label: "Essential",
+    description: "Core shot data · enabled by default",
+    fields: [
+      { id: "dose",     label: "Dose",      unit: "g",   dbKey: "dose",      type: "number",  step: 0.1,  min: 0,  defaultOn: true  },
+      { id: "yield",    label: "Yield",     unit: "g",   dbKey: "yield",     type: "number",  step: 0.1,  min: 0,  defaultOn: true  },
+      { id: "shotTime", label: "Shot Time", unit: "s",   dbKey: "scaleTime", type: "number",  step: 1,    min: 0,  defaultOn: true  },
+      { id: "rating",   label: "Rating",    unit: "",    dbKey: "rating",    type: "rating",              defaultOn: true  },
+    ],
+  },
+  {
+    id: "timing",
+    label: "Timing",
+    description: "Detailed extraction timing",
+    fields: [
+      { id: "pourDelay", label: "First Pour Delay", unit: "s", dbKey: "pourDelay", type: "number", step: 1,   min: 0, defaultOn: false },
+      { id: "pourTime",  label: "Pour Time",        unit: "s", dbKey: "pourTime",  type: "number", step: 1,   min: 0, defaultOn: false },
+    ],
+  },
+  {
+    id: "brewSetup",
+    label: "Brew Setup",
+    description: "Equipment and grind configuration",
+    fields: [
+      { id: "temperature",       label: "Temperature",            unit: "°C", dbKey: "temperature",       type: "temperature", min: 88, max: 98, defaultOn: false },
+      { id: "grindSetting",      label: "Grind Setting",          unit: "",   dbKey: "grindSetting",      type: "number",  step: 0.01, min: 0, defaultOn: false },
+      { id: "grindTime",         label: "Grinder Time",           unit: "s",  dbKey: "grindTime",         type: "number",  step: 0.1,  min: 0, defaultOn: false },
+      { id: "grindOutputWeight", label: "Grinder Output Weight",  unit: "g",  dbKey: "initialGrindWeight",type: "number",  step: 0.1,  min: 0, defaultOn: false },
+      { id: "grindChanged",      label: "Grind Changed This Shot",unit: "",   dbKey: "grindAdjusted",     type: "toggle",              defaultOn: false },
+    ],
+  },
+  {
+    id: "classification",
+    label: "Classification",
+    description: "Shot type and notes",
+    fields: [
+      { id: "isReference",   label: "Reference Shot",  unit: "", dbKey: "isReference",   type: "toggle", defaultOn: false },
+      { id: "signatureShot", label: "Signature Shot",  unit: "", dbKey: "signatureShot", type: "toggle", defaultOn: false },
+      {
+        id: "status", label: "Shot Status", unit: "", dbKey: "status", type: "select",
+        options: ["Good", "Dialed In", "Experimental", "Recovery/Transitional"],
+        defaultOn: false,
+      },
+      { id: "notes", label: "Notes", unit: "", dbKey: "notes", type: "text", defaultOn: false },
+    ],
+  },
 ];
 
-export function getEnabledFieldIds(settings: Record<string, string>): QuickFieldId[] {
+// Flat list — used by getEnabledFieldIds and save logic
+export const QUICK_LOG_FIELDS: QuickFieldDef[] = FIELD_GROUPS.flatMap((g) => g.fields);
+
+export function getEnabledFieldIds(settings: Record<string, string>): string[] {
   return QUICK_LOG_FIELDS
     .filter((f) => {
       const val = settings[`quickLog_${f.id}`];
@@ -55,6 +108,7 @@ interface ActiveBagInfo {
   bagNumber: string | null;
   defaultDose: number | null;
   defaultYield: number | null;
+  defaultTemp: number | null;
   currentGrindSetting: number | null;
 }
 
@@ -64,8 +118,9 @@ function fetchActiveBag(): Promise<{ activeBag: ActiveBagInfo | null }> {
 
 // ── Main page ────────────────────────────────────────────────────────────────
 
+type FieldValues = Record<string, string | number | boolean>;
+
 export default function QuickLog() {
-  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const createShot = useCreateShot();
@@ -76,20 +131,38 @@ export default function QuickLog() {
   const activeBag = intelData?.activeBag ?? null;
   const enabledIds = settings ? getEnabledFieldIds(settings) : QUICK_LOG_FIELDS.filter((f) => f.defaultOn).map((f) => f.id);
 
-  const [values, setValues] = useState<Record<string, string | number>>({});
+  // Grind Changed auto-shows when grindSetting is enabled
+  const fieldsToRender = QUICK_LOG_FIELDS.filter((f) => {
+    if (enabledIds.includes(f.id)) return true;
+    if (f.id === "grindChanged" && enabledIds.includes("grindSetting")) return true;
+    return false;
+  });
+
+  const ratingMode = settings?.ratingInputMode ?? "";
+  const isEasyRating = !ratingMode.startsWith("Precision");
+
+  const [values, setValues] = useState<FieldValues>({});
   const [savedId, setSavedId] = useState<number | null>(null);
 
+  // Pre-fill from active bag + settings
   useEffect(() => {
-    if (!activeBag) return;
-    setValues((prev) => ({
-      dose:         prev.dose         ?? activeBag.defaultDose         ?? 18,
-      yield:        prev.yield        ?? activeBag.defaultYield        ?? 36,
-      grindSetting: prev.grindSetting ?? activeBag.currentGrindSetting ?? "",
-      rating:       prev.rating       ?? 7,
-    }));
-  }, [activeBag?.id]);
+    if (!activeBag && !settings) return;
+    const defaultTemp =
+      activeBag?.defaultTemp ??
+      (settings?.defaultBrewTemp ? Number(settings.defaultBrewTemp) : 94);
+    const defaultDose = activeBag?.defaultDose ?? (settings?.defaultDose ? Number(settings.defaultDose) : 18);
+    const defaultYield = activeBag?.defaultYield ?? (settings?.defaultTargetYield ? Number(settings.defaultTargetYield) : 36);
 
-  const setVal = (dbKey: string, val: string | number) =>
+    setValues((prev) => ({
+      dose:         prev.dose         !== undefined ? prev.dose         : defaultDose,
+      yield:        prev.yield        !== undefined ? prev.yield        : defaultYield,
+      temperature:  prev.temperature  !== undefined ? prev.temperature  : defaultTemp,
+      grindSetting: prev.grindSetting !== undefined ? prev.grindSetting : (activeBag?.currentGrindSetting ?? ""),
+      rating:       prev.rating       !== undefined ? prev.rating       : (isEasyRating ? 7 : 7.00),
+    }));
+  }, [activeBag?.id, !!settings]);
+
+  const setVal = (dbKey: string, val: string | number | boolean) =>
     setValues((prev) => ({ ...prev, [dbKey]: val }));
 
   const handleSave = () => {
@@ -100,14 +173,31 @@ export default function QuickLog() {
     };
 
     for (const field of QUICK_LOG_FIELDS) {
-      if (!enabledIds.includes(field.id)) continue;
+      // Include if explicitly enabled OR if grindChanged is auto-shown via grindSetting
+      const include = enabledIds.includes(field.id) || (field.id === "grindChanged" && enabledIds.includes("grindSetting"));
+      if (!include) continue;
+
       const val = values[field.dbKey];
-      if (val === "" || val === undefined || val === null) continue;
-      if (field.type === "text") {
-        body[field.dbKey] = String(val);
+
+      if (field.type === "toggle") {
+        if (field.id === "isReference" || field.id === "signatureShot") {
+          body[field.dbKey] = val === true;
+        } else if (field.id === "grindChanged") {
+          if (val === true) body[field.dbKey] = "Yes";
+        }
+      } else if (field.type === "text") {
+        if (val !== "" && val !== undefined) body[field.dbKey] = String(val);
+      } else if (field.type === "select") {
+        if (val && val !== "__none__") {
+          // status override: explicit selection wins
+          body[field.dbKey] = String(val);
+        }
+      } else if (field.type === "temperature") {
+        const n = Number(val);
+        if (!isNaN(n) && n > 0) body[field.dbKey] = Math.round(n);
       } else {
         const n = Number(val);
-        if (!isNaN(n)) body[field.dbKey] = n;
+        if (!isNaN(n) && val !== "" && val !== undefined) body[field.dbKey] = n;
       }
     }
 
@@ -118,6 +208,7 @@ export default function QuickLog() {
         queryClient.invalidateQueries({ queryKey: getListShotsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
         queryClient.invalidateQueries({ queryKey: ["intelligence"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-intelligence"] });
       },
       onError: () => {
         toast({ title: "Save failed", description: "Could not save shot.", variant: "destructive" });
@@ -131,11 +222,12 @@ export default function QuickLog() {
       dose:         activeBag?.defaultDose         ?? 18,
       yield:        activeBag?.defaultYield        ?? 36,
       grindSetting: activeBag?.currentGrindSetting ?? "",
-      rating:       7,
+      temperature:  activeBag?.defaultTemp         ?? (settings?.defaultBrewTemp ? Number(settings.defaultBrewTemp) : 94),
+      rating:       isEasyRating ? 7 : 7.00,
     });
   };
 
-  // ── Saved confirmation ───────────────────────────────────────────────────
+  // ── Saved confirmation ─────────────────────────────────────────────────────
 
   if (savedId !== null) {
     return (
@@ -166,15 +258,13 @@ export default function QuickLog() {
     );
   }
 
-  // ── Form ─────────────────────────────────────────────────────────────────
-
-  const enabledFields = QUICK_LOG_FIELDS.filter((f) => enabledIds.includes(f.id));
+  // ── Form ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-sm mx-auto">
       <PageHeader activeBag={activeBag} />
 
-      {enabledFields.length === 0 ? (
+      {fieldsToRender.length === 0 ? (
         <Card>
           <CardContent className="p-8 flex flex-col items-center gap-4 text-center">
             <p className="text-muted-foreground text-sm">No fields are enabled for Quick Log.</p>
@@ -189,12 +279,13 @@ export default function QuickLog() {
       ) : (
         <Card>
           <CardContent className="p-5 space-y-6">
-            {enabledFields.map((field) => (
+            {fieldsToRender.map((field) => (
               <QuickField
                 key={field.id}
                 field={field}
                 value={values[field.dbKey] ?? ""}
                 onChange={(v) => setVal(field.dbKey, v)}
+                isEasyRating={isEasyRating}
               />
             ))}
 
@@ -228,7 +319,7 @@ export default function QuickLog() {
   );
 }
 
-// ── Sub-components ───────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function PageHeader({ activeBag }: { activeBag: ActiveBagInfo | null }) {
   return (
@@ -260,31 +351,53 @@ function QuickField({
   field,
   value,
   onChange,
+  isEasyRating,
 }: {
-  field: (typeof QUICK_LOG_FIELDS)[number];
-  value: string | number;
-  onChange: (v: string | number) => void;
+  field: QuickFieldDef;
+  value: string | number | boolean;
+  onChange: (v: string | number | boolean) => void;
+  isEasyRating: boolean;
 }) {
   if (field.type === "rating") {
-    const num = value === "" ? 7 : Number(value);
+    return isEasyRating
+      ? <EasyRatingField value={value} onChange={onChange} />
+      : <PrecisionRatingField value={value} onChange={onChange} />;
+  }
+
+  if (field.type === "temperature") {
+    return <TemperatureField field={field} value={value} onChange={onChange} />;
+  }
+
+  if (field.type === "toggle") {
     return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label className="text-base font-medium">{field.label}</Label>
-          <span className="text-2xl font-bold tabular-nums text-primary">{num.toFixed(1)}</span>
-        </div>
-        <Slider
-          min={0}
-          max={10}
-          step={0.5}
-          value={[num]}
-          onValueChange={([v]) => onChange(v)}
-          className="w-full"
+      <div className="flex items-center justify-between">
+        <Label className="text-base font-medium">{field.label}</Label>
+        <Switch
+          checked={value === true}
+          onCheckedChange={(checked) => onChange(checked)}
         />
-        <div className="flex justify-between text-[11px] text-muted-foreground">
-          <span>0 — undrinkable</span>
-          <span>10 — perfect</span>
-        </div>
+      </div>
+    );
+  }
+
+  if (field.type === "select") {
+    return (
+      <div className="space-y-2">
+        <Label className="text-base font-medium">{field.label}</Label>
+        <Select
+          value={value === "" || value === undefined ? "__none__" : String(value)}
+          onValueChange={(v) => onChange(v === "__none__" ? "" : v)}
+        >
+          <SelectTrigger className="h-12 text-base">
+            <SelectValue placeholder="Select…" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">— not set —</SelectItem>
+            {field.options?.map((opt) => (
+              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     );
   }
@@ -304,6 +417,7 @@ function QuickField({
     );
   }
 
+  // Default: number field
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -318,9 +432,143 @@ function QuickField({
         value={value === "" ? "" : String(value)}
         onChange={(e) => onChange(e.target.value)}
         className="text-2xl font-bold h-14 tabular-nums text-center"
-        step={field.type === "integer" ? 1 : 0.1}
-        min={0}
+        step={field.step ?? 1}
+        min={field.min}
+        max={field.max}
       />
+    </div>
+  );
+}
+
+// ── Rating variants ───────────────────────────────────────────────────────────
+
+function EasyRatingField({
+  value,
+  onChange,
+}: {
+  value: string | number | boolean;
+  onChange: (v: number) => void;
+}) {
+  const current = value === "" || value === undefined ? 0 : Number(value);
+  return (
+    <div className="space-y-3">
+      <Label className="text-base font-medium">Rating</Label>
+      <div className="grid grid-cols-5 gap-1.5">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((r) => (
+          <button
+            key={r}
+            type="button"
+            onClick={() => onChange(r)}
+            className={cn(
+              "h-11 rounded-lg text-sm font-semibold transition-colors border select-none",
+              r === current
+                ? "bg-primary text-primary-foreground border-primary"
+                : r < current
+                  ? "bg-primary/15 text-primary border-primary/20"
+                  : "bg-muted/40 text-muted-foreground border-border hover:bg-muted"
+            )}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+      {current > 0 && (
+        <p className="text-xs text-center text-muted-foreground">
+          {current <= 4 ? "Needs work" : current <= 6 ? "Acceptable" : current <= 8 ? "Good shot" : "Outstanding"}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PrecisionRatingField({
+  value,
+  onChange,
+}: {
+  value: string | number | boolean;
+  onChange: (v: number) => void;
+}) {
+  const num = value === "" || value === undefined ? 7 : Number(value);
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Label className="text-base font-medium">Rating</Label>
+        <span className="text-2xl font-bold tabular-nums text-primary">{num.toFixed(2)}</span>
+      </div>
+      <Slider
+        min={0}
+        max={10}
+        step={0.25}
+        value={[num]}
+        onValueChange={([v]) => onChange(v)}
+        className="w-full"
+      />
+      <div className="flex justify-between text-[11px] text-muted-foreground">
+        <span>0 — undrinkable</span>
+        <span>5</span>
+        <span>10 — perfect</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Temperature stepper ───────────────────────────────────────────────────────
+
+function TemperatureField({
+  field,
+  value,
+  onChange,
+}: {
+  field: QuickFieldDef;
+  value: string | number | boolean;
+  onChange: (v: number) => void;
+}) {
+  const temp = value === "" || value === undefined ? 94 : Number(value);
+  const min = field.min ?? 88;
+  const max = field.max ?? 98;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-base font-medium">{field.label}</Label>
+        <span className="text-xs text-muted-foreground font-medium">{field.unit}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-14 w-14 shrink-0"
+          onClick={() => onChange(Math.max(min, temp - 1))}
+          disabled={temp <= min}
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        <Input
+          type="number"
+          inputMode="numeric"
+          value={temp}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            if (!isNaN(n)) onChange(Math.min(max, Math.max(min, n)));
+          }}
+          className="text-2xl font-bold h-14 tabular-nums text-center"
+          min={min}
+          max={max}
+          step={1}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-14 w-14 shrink-0"
+          onClick={() => onChange(Math.min(max, temp + 1))}
+          disabled={temp >= max}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground text-center">Range: {min}–{max}°C</p>
     </div>
   );
 }
