@@ -67,6 +67,45 @@ router.get("/shots/audit", async (req, res): Promise<void> => {
   res.json({ summary, shots });
 });
 
+// --- GET /shots/selector-options ---
+router.get("/shots/selector-options", async (req, res): Promise<void> => {
+  res.setHeader("Cache-Control", "max-age=300");
+
+  const rows = await db
+    .select({
+      expressionStyle: shotsTable.expressionStyle,
+      beanAchievement: shotsTable.beanAchievement,
+      shotClassification: shotsTable.shotClassification,
+      status: shotsTable.status,
+      faultStatus: shotsTable.faultStatus,
+      drinkType: shotsTable.drinkType,
+    })
+    .from(shotsTable)
+    .where(isNotNull(shotsTable.airtableRecordId));
+
+  // Airtable multi-selects are stored as quoted CSV strings, e.g. "Caramel Forward, Balanced"
+  // Split, strip quotes, deduplicate, and sort to recover individual option values.
+  function parseMultiSelect(val: string | null | undefined): string[] {
+    if (!val) return [];
+    return val.replace(/^"|"$/g, "").split(",").map((s) => s.trim()).filter(Boolean);
+  }
+
+  function collectOptions(values: (string | null | undefined)[]): string[] {
+    const set = new Set<string>();
+    for (const v of values) for (const part of parseMultiSelect(v)) set.add(part);
+    return [...set].sort();
+  }
+
+  res.json({
+    expressionStyle: collectOptions(rows.map((r) => r.expressionStyle)),
+    beanAchievement: collectOptions(rows.map((r) => r.beanAchievement)),
+    shotClassification: collectOptions(rows.map((r) => r.shotClassification)),
+    status: collectOptions(rows.map((r) => r.status)),
+    faultStatus: collectOptions(rows.map((r) => r.faultStatus)),
+    drinkType: collectOptions(rows.map((r) => r.drinkType)),
+  });
+});
+
 // --- POST /shots/import-csv ---
 router.post("/shots/import-csv", async (req, res): Promise<void> => {
   const parsed = ImportShotsCsvBody.safeParse(req.body);
