@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { fetchSelectorOptions } from "@/pages/QuickLog";
+import { ChipSelector } from "@/components/ui/chip-selector";
 
 interface Bag {
   id: number; beanName: string | null; bagNumber: string | null; bagName: string | null; isActive: boolean;
@@ -424,37 +425,37 @@ export default function ShotForm() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* Expression Style */}
-                <FormField control={form.control} name="expressionStyle" render={({ field }) => (
+              {/* Expression Style — multi-select */}
+              <FormField control={form.control} name="expressionStyle" render={({ field }) => {
+                const selected = field.value ? field.value.split(", ").filter(Boolean) : [];
+                return (
                   <FormItem>
                     <FormLabel>Expression Style</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={field.value ?? "__none__"}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="__none__">— not set —</SelectItem>
-                        {expressionStyleOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <ChipSelector
+                      options={expressionStyleOptions}
+                      value={selected}
+                      onChange={(arr) => field.onChange(arr.length ? arr.join(", ") : undefined)}
+                    />
                     <FormMessage />
                   </FormItem>
-                )} />
+                );
+              }} />
 
-                {/* Bean Achievement */}
-                <FormField control={form.control} name="beanAchievement" render={({ field }) => (
+              {/* Bean Achievement — multi-select */}
+              <FormField control={form.control} name="beanAchievement" render={({ field }) => {
+                const selected = field.value ? field.value.split(", ").filter(Boolean) : [];
+                return (
                   <FormItem>
                     <FormLabel>Bean Achievement</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={field.value ?? "__none__"}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="__none__">— not set —</SelectItem>
-                        {beanAchievementOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <ChipSelector
+                      options={beanAchievementOptions}
+                      value={selected}
+                      onChange={(arr) => field.onChange(arr.length ? arr.join(", ") : undefined)}
+                    />
                     <FormMessage />
                   </FormItem>
-                )} />
-              </div>
+                );
+              }} />
 
               {/* Notes */}
               <FormField control={form.control} name="notes" render={({ field }) => (
