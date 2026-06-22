@@ -55,6 +55,10 @@ function robustRange(vals: number[]): {
 
 // ── GET /dashboard/intelligence ─────────────────────────────────────────────
 router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
+  // Disable HTTP caching — this endpoint aggregates live shot data and must
+  // always return a fresh response to prevent 304 hits serving stale fields.
+  res.setHeader("Cache-Control", "no-store");
+
   // ── Settings (for baseline extras: grinder, machine, basket) ─────────────
   const settingRows = await db.select().from(settingsTable);
   const settings: Record<string, string> = {};

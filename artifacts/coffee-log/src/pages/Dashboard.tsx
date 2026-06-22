@@ -328,12 +328,14 @@ export default function Dashboard() {
             <Skeleton className="h-40 w-full" />
           ) : intel?.shotComparison ? (
             <ShotComparisonCard data={intel.shotComparison} beanName={bag.beanName} />
-          ) : (
+          ) : (bi?.totalShots ?? 0) === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-sm text-muted-foreground">
                 No shots logged yet for this bag.
               </CardContent>
             </Card>
+          ) : (
+            <Skeleton className="h-40 w-full" />
           )}
         </section>
       )}
