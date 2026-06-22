@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import {
   BookOpen, Coffee, Database, LayoutDashboard,
-  Package, Settings, Sprout, Wrench, Tag, Layers
+  Package, Settings, Sprout, Wrench, Tag, Layers, Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,14 @@ interface NavItem {
   title: string;
   href: string;
   icon: React.ElementType;
+  exact?: boolean;
 }
 
 const primaryNav: NavItem[] = [
-  { title: "Dashboard", href: "/", icon: LayoutDashboard },
-  { title: "Shot Log", href: "/shots", icon: BookOpen },
-  { title: "Reference Shots", href: "/reference", icon: Coffee },
+  { title: "Dashboard",       href: "/",            icon: LayoutDashboard, exact: true },
+  { title: "Quick Log",       href: "/shots/quick", icon: Zap,             exact: true },
+  { title: "Shot Log",        href: "/shots",       icon: BookOpen },
+  { title: "Reference Shots", href: "/reference",   icon: Coffee },
 ];
 
 const libraryNav: NavItem[] = [
@@ -37,6 +39,12 @@ const systemNav: NavItem[] = [
   { title: "Settings", href: "/settings", icon: Settings },
 ];
 
+function isNavActive(item: NavItem, location: string): boolean {
+  if (item.exact) return location === item.href;
+  if (item.href === "/") return location === "/";
+  return location === item.href || location.startsWith(item.href + "/");
+}
+
 function NavGroup({ items, label }: { items: NavItem[]; label?: string }) {
   const [location] = useLocation();
   return (
@@ -52,7 +60,7 @@ function NavGroup({ items, label }: { items: NavItem[]; label?: string }) {
           variant="ghost"
           className={cn(
             "w-full justify-start gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            location === item.href || (item.href !== "/" && location.startsWith(item.href))
+            isNavActive(item, location)
               ? "bg-sidebar-accent text-sidebar-accent-foreground"
               : "text-sidebar-foreground/70"
           )}
@@ -80,8 +88,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <span className="text-[10px] text-muted-foreground leading-none">Log · Analyse · Repeat</span>
         </div>
         <Button variant="default" size="sm" asChild className="rounded-full px-3 h-8 text-xs gap-1">
-          <Link href="/shots/new">
-            <Coffee className="h-3.5 w-3.5" /> Log Shot
+          <Link href="/shots/quick">
+            <Zap className="h-3.5 w-3.5" /> Quick Log
           </Link>
         </Button>
       </header>
@@ -107,11 +115,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </nav>
         </ScrollArea>
 
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border space-y-2">
           <Button className="w-full justify-start gap-2 shadow-sm" asChild>
+            <Link href="/shots/quick">
+              <Zap className="h-4 w-4" />
+              Quick Log
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-muted-foreground" asChild>
             <Link href="/shots/new">
-              <Coffee className="h-4 w-4" />
-              Log New Shot
+              <Coffee className="h-3.5 w-3.5" />
+              Full Log Form
             </Link>
           </Button>
         </div>
