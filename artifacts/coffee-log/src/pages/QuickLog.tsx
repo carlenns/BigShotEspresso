@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCreateShot, getListShotsQueryKey, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 import { Zap, ArrowRight, Coffee, CheckCircle2, Settings, Minus, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ChipSelector } from "@/components/ui/chip-selector";
 
 // ── Field type definitions ────────────────────────────────────────────────────
 
@@ -131,8 +132,8 @@ interface EvalValues {
   isReference: boolean;
   signatureShot: boolean;
   sourShot: boolean;
-  expressionStyle: string;
-  beanAchievement: string;
+  expressionStyle: string[];
+  beanAchievement: string[];
   notes: string;
 }
 
@@ -182,8 +183,8 @@ export default function QuickLog() {
     isReference: false,
     signatureShot: false,
     sourShot: false,
-    expressionStyle: "",
-    beanAchievement: "",
+    expressionStyle: [],
+    beanAchievement: [],
     notes: "",
   });
 
@@ -247,8 +248,8 @@ export default function QuickLog() {
     body.isReference = evalValues.isReference;
     body.signatureShot = evalValues.signatureShot;
     body.sourShot = evalValues.sourShot;
-    if (evalValues.expressionStyle) body.expressionStyle = evalValues.expressionStyle;
-    if (evalValues.beanAchievement) body.beanAchievement = evalValues.beanAchievement;
+    if (evalValues.expressionStyle.length) body.expressionStyle = evalValues.expressionStyle.join(", ");
+    if (evalValues.beanAchievement.length) body.beanAchievement = evalValues.beanAchievement.join(", ");
     if (evalValues.notes) body.notes = evalValues.notes;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -269,7 +270,7 @@ export default function QuickLog() {
   const handleLogAnother = () => {
     setSavedId(null);
     setShotDate(nowDateTimeLocal());
-    setEvalValues({ status: "", faultStatus: "", isReference: false, signatureShot: false, sourShot: false, expressionStyle: "", beanAchievement: "", notes: "" });
+    setEvalValues({ status: "", faultStatus: "", isReference: false, signatureShot: false, sourShot: false, expressionStyle: [], beanAchievement: [], notes: "" });
     setValues({
       dose:         activeBag?.defaultDose         ?? 18,
       yield:        activeBag?.defaultYield        ?? 36,
@@ -441,38 +442,24 @@ export default function QuickLog() {
                 </div>
               </div>
 
-              {/* Expression Style */}
+              {/* Expression Style — multi-select */}
               <div className="space-y-2">
                 <Label className="text-base font-medium">Expression Style</Label>
-                <Select
-                  value={evalValues.expressionStyle || "__none__"}
-                  onValueChange={(v) => setEval("expressionStyle", v === "__none__" ? "" : v)}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Select…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">— not set —</SelectItem>
-                    {expressionStyleOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <ChipSelector
+                  options={expressionStyleOptions}
+                  value={evalValues.expressionStyle}
+                  onChange={(v) => setEval("expressionStyle", v)}
+                />
               </div>
 
-              {/* Bean Achievement */}
+              {/* Bean Achievement — multi-select */}
               <div className="space-y-2">
                 <Label className="text-base font-medium">Bean Achievement</Label>
-                <Select
-                  value={evalValues.beanAchievement || "__none__"}
-                  onValueChange={(v) => setEval("beanAchievement", v === "__none__" ? "" : v)}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Select…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">— not set —</SelectItem>
-                    {beanAchievementOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <ChipSelector
+                  options={beanAchievementOptions}
+                  value={evalValues.beanAchievement}
+                  onChange={(v) => setEval("beanAchievement", v)}
+                />
               </div>
 
               {/* Notes */}

@@ -1,0 +1,214 @@
+# BSE Update: Proper Airtable Field Types (Single Select vs Multi Select vs Checkboxes)
+
+## Goal
+
+Align the application with the actual Coffee Log Airtable structure.
+
+Currently some Airtable multi-select fields are being displayed as single-select dropdowns.
+
+This loses information and does not match the Coffee Log classification system.
+
+Use Airtable field types as the source of truth.
+
+Do not invent new field structures.
+
+---
+
+# Field Type Rules
+
+## Single Select Fields
+
+Display as:
+
+Dropdown selector
+
+Only one value may be selected.
+
+Examples:
+
+- Shot Status
+- Fault Status
+- Drink Type
+- Shot Tier
+- Flow Diagnostic
+- Hopper Behaviour
+- Hopper Severity
+- Action Suggestion
+- Shot Drift Status
+- Intelligence Lesson Type
+- Taste Zone
+- Zone
+- Scale Zone
+
+Use Airtable selector values exactly.
+
+---
+
+## Multi Select Fields
+
+Display as:
+
+Chip selector
+
+Examples:
+
+[ Caramel Forward ]
+[ Rich & Creamy ]
+[ Balanced ]
+[ Dynamic ]
+
+Users can select multiple chips.
+
+Selected chips remain visible.
+
+Tap again to remove.
+
+Do not use dropdowns for multi-select fields.
+
+---
+
+# Multi Select Fields Requiring Chip Selectors
+
+## Expression Style
+
+Examples:
+
+- Caramel Forward
+- Rich & Creamy
+- Balanced
+- Dynamic
+- Bright Espresso
+- Comfort-Oriented
+- Integrated
+
+Allow multiple selections.
+
+Preserve Airtable order.
+
+---
+
+## Bean Achievement
+
+Examples:
+
+- Daily Driver
+- Guest Worthy
+- Comfort Profile
+- Structured Acidity
+- Boundary Shot
+
+Allow multiple selections.
+
+Preserve Airtable order.
+
+---
+
+## Shot Classification
+
+Examples:
+
+- Caramel Forward
+- Acidity Forward
+- Balanced
+- Boring
+- Fast First Pour
+- Suspect Underextracted
+
+Allow multiple selections if Airtable allows them.
+
+Follow Airtable field type.
+
+---
+
+# Checkbox Fields
+
+Display as checkboxes.
+
+Examples:
+
+- Reference Shot
+- Signature Shot
+- Sour
+- Rated
+- Boundary Shot
+- For Others
+- Include in Analysis
+- Important to Intelligence
+
+Sync directly to Airtable.
+
+Do not convert to dropdowns.
+
+---
+
+# Shot Highlights Logic
+
+Use:
+
+1. First selected Expression Style
+2. Reference Shot
+3. Signature Shot
+4. Sour
+5. First selected Bean Achievement
+6. First selected Shot Classification
+
+Maximum:
+
+3 highlights
+
+Examples:
+
+Caramel Forward · Reference
+
+Rich & Creamy · Signature
+
+Balanced · Guest Worthy
+
+The first selected value becomes the primary highlight.
+
+This should be explained during onboarding.
+
+---
+
+# Airtable Metadata
+
+Before assigning UI controls:
+
+Determine actual Airtable field type.
+
+If Airtable field is:
+
+Single Select
+→ Dropdown
+
+Multi Select
+→ Chips
+
+Checkbox
+→ Checkbox
+
+Do not assume field types.
+
+Do not hardcode field behavior.
+
+Use Airtable metadata whenever available.
+
+Fallback:
+
+Infer field type from synced Airtable records.
+
+---
+
+# UI Goal
+
+A user should immediately recognize:
+
+- What type of field they are editing
+- Which values are selected
+- Which values are most important
+
+The interface should match how Coffee Log already works in Airtable.
+
+Do not redesign the classification system.
+
+Mirror Airtable faithfully.
