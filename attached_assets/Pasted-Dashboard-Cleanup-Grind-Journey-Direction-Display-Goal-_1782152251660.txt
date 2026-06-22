@@ -1,0 +1,182 @@
+Dashboard Cleanup – Grind Journey Direction Display
+
+Goal:
+
+Make Grind Journey immediately understandable to users.
+
+Current implementation displays raw numerical drift values but does not clearly communicate whether the grind became finer or coarser.
+
+This causes confusion.
+
+--------------------------------------------------
+PROBLEM
+--------------------------------------------------
+
+Example:
+
+Start: 2.000
+Current: 2.330
+Drift: +0.330
+
+The math is correct.
+
+However, users care about:
+
+Did the grind move finer or coarser?
+
+not:
+
+What was the raw numeric change?
+
+--------------------------------------------------
+REQUIRED CHANGE
+--------------------------------------------------
+
+Replace raw drift interpretation with direction-based language.
+
+Display:
+
+Start Grind → Current Grind
+
+Examples:
+
+2.66 → 2.33
+
+↘ Finer
+-0.33
+
+--------------------------------------------------
+
+2.10 → 2.20
+
+↗ Coarser
++0.10
+
+--------------------------------------------------
+
+2.66 → 2.66
+
+→ Stable
+
+--------------------------------------------------
+INTERPRETATION RULE
+--------------------------------------------------
+
+Assume:
+
+Lower grind number = finer
+
+Higher grind number = coarser
+
+Examples:
+
+2.66 → 2.50
+= Finer
+
+2.50 → 2.66
+= Coarser
+
+--------------------------------------------------
+GRIND JOURNEY CARD
+--------------------------------------------------
+
+Display:
+
+Start
+Current
+
+Direction
+
+Net Change
+
+Days Open
+
+Example:
+
+Start: 2.000
+Current: 2.330
+
+↗ Coarser
+
+Net Change:
++0.330
+
+Days Open:
+18
+
+--------------------------------------------------
+BAG COMPARISON TABLE
+--------------------------------------------------
+
+Keep:
+
+Start
+Current
+
+Replace:
+
+Drift
+
+with:
+
+Direction
+
+Examples:
+
+↗ Coarser +0.33
+
+↘ Finer -0.17
+
+→ Stable
+
+This should be visible at a glance.
+
+--------------------------------------------------
+DATA SOURCE
+--------------------------------------------------
+
+Use chronological shot history.
+
+Determine:
+
+Start Grind
+=
+First grind setting recorded for the bag
+
+Current Grind
+=
+Most recent grind setting recorded for the bag
+
+No new database fields required.
+
+--------------------------------------------------
+DO NOT BUILD YET
+--------------------------------------------------
+
+Do not build a full grind history timeline.
+
+Do not display every adjustment step.
+
+Do not create new analytics.
+
+Keep this as a simple dashboard clarity improvement.
+
+Future enhancement may include:
+
+"View Grind History"
+
+showing each grind adjustment and timestamp.
+
+Not part of this task.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+A user should immediately understand:
+
+Did this bag trend finer?
+Did it trend coarser?
+Or did it stay stable?
+
+without having to interpret raw numbers.

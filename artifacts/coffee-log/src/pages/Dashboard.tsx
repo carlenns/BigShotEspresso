@@ -452,23 +452,27 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    {/* Net change + direction + days open */}
-                    <div className="flex items-center justify-center gap-4 flex-wrap">
+                    {/* Direction — primary focal point */}
+                    <div className="flex justify-center">
+                      <DirectionBadge direction={gd.direction} />
+                    </div>
+
+                    {/* Net change + days open */}
+                    <div className="flex items-center justify-center gap-8">
                       {gd.drift != null && (
                         <div className="text-center">
                           <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Net change</p>
-                          <p className={cn("text-base font-bold tabular-nums",
+                          <p className={cn("text-lg font-bold tabular-nums",
                             gd.direction === "coarser" ? "text-amber-600" :
                             gd.direction === "finer" ? "text-blue-600" : "text-muted-foreground")}>
                             {gd.drift > 0 ? "+" : ""}{gd.drift.toFixed(3)}
                           </p>
                         </div>
                       )}
-                      <DirectionBadge direction={gd.direction} />
                       {bag?.openDays != null && (
                         <div className="text-center">
                           <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Days open</p>
-                          <p className={cn("text-base font-bold tabular-nums",
+                          <p className={cn("text-lg font-bold tabular-nums",
                             bag.openDays >= 28 ? "text-destructive" :
                             bag.openDays >= 21 ? "text-amber-600" : "text-foreground")}>
                             {bag.openDays}d
@@ -507,7 +511,7 @@ export default function Dashboard() {
                       <th className="px-3 py-3 text-right font-medium">Shots</th>
                       <th className="px-3 py-3 text-right font-medium">Start ⚙</th>
                       <th className="px-3 py-3 text-right font-medium">Last ⚙</th>
-                      <th className="px-3 py-3 text-right font-medium">Drift</th>
+                      <th className="px-3 py-3 text-right font-medium">Direction</th>
                       <th className="px-3 py-3 text-right font-medium">Best ★</th>
                       <th className="px-3 py-3 text-right font-medium">Ref</th>
                     </tr>
@@ -523,11 +527,24 @@ export default function Dashboard() {
                         <td className="px-3 py-3 text-right tabular-nums">{b.shotCount}</td>
                         <td className="px-3 py-3 text-right tabular-nums">{b.firstGrind != null ? Number(b.firstGrind).toFixed(3) : "—"}</td>
                         <td className="px-3 py-3 text-right tabular-nums">{b.lastGrind != null ? Number(b.lastGrind).toFixed(3) : "—"}</td>
-                        <td className={cn("px-3 py-3 text-right tabular-nums font-medium",
-                          b.totalAdjustment == null ? "text-muted-foreground" :
-                          b.totalAdjustment > 0.05 ? "text-amber-600" :
-                          b.totalAdjustment < -0.05 ? "text-blue-600" : "text-muted-foreground")}>
-                          {b.totalAdjustment != null ? `${b.totalAdjustment > 0 ? "+" : ""}${b.totalAdjustment.toFixed(3)}` : "—"}
+                        <td className="px-3 py-3 text-right">
+                          {(() => {
+                            const adj = b.totalAdjustment;
+                            if (adj == null) return <span className="text-muted-foreground">—</span>;
+                            const isCoarser = adj > 0.05;
+                            const isFiner = adj < -0.05;
+                            return (
+                              <span className={cn("font-medium tabular-nums",
+                                isCoarser ? "text-amber-600" : isFiner ? "text-blue-600" : "text-muted-foreground")}>
+                                {isCoarser ? "↗ Coarser" : isFiner ? "↘ Finer" : "→ Stable"}
+                                {Math.abs(adj) > 0.001 && (
+                                  <span className="ml-1 text-xs opacity-75">
+                                    {adj > 0 ? "+" : ""}{adj.toFixed(2)}
+                                  </span>
+                                )}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-3 py-3 text-right tabular-nums text-amber-600 font-medium">
                           {b.bestRating != null ? Number(b.bestRating).toFixed(2) : "—"}
