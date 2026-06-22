@@ -33,6 +33,19 @@ interface WatchlistItem {
   suggestedChecks?: string[];
 }
 
+interface ShotComparison {
+  latestShot: {
+    id: number; shotDate: string;
+    pourDelay: number | null; pourTime: number | null; scaleTime: number | null;
+    yield: number | null; dose: number | null; ratio: number | null;
+  } | null;
+  bagReference: {
+    source: string; refCount: number; confidence: "Low" | "Medium" | "High";
+    avgPourDelay: number | null; avgPourTime: number | null; avgScaleTime: number | null;
+    avgYield: number | null; avgRatio: number | null;
+  } | null;
+}
+
 interface Intelligence {
   activeBag: {
     id: number;
@@ -87,11 +100,14 @@ interface Intelligence {
   todaysBrief: {
     beanName: string;
     openDays: number | null;
+    bagPhase: "Opening / Dial-In" | "Established Performance" | "Mature Bag" | "End of Bag";
+    bagConfidence: "Low" | "Medium" | "High";
     bestYieldWindow: { min: number; max: number } | null;
     bestPourDelayWindow: { min: number; max: number } | null;
     grindTrend: string;
     topWatchlistItem: { type: "success" | "warning" | "info"; message: string } | null;
   } | null;
+  shotComparison: ShotComparison | null;
 }
 
 function fetchIntelligence(): Promise<Intelligence> {
@@ -116,11 +132,12 @@ export default function Dashboard() {
   const hasBagProgress = bp && (bp.startingWeight || bp.consumed > 0);
   const hasBagComparison = intel?.bagComparison && intel.bagComparison.length > 1;
   const hasTimingWindows = tw && (tw.yieldRange || tw.pourTimeRange || tw.scaleTimeRange || tw.pourDelayRange);
+  const hasPerfWindow = bi && (bi.bestYieldRange || bi.bestPourDelayRange);
 
   const twScopeLabel =
-    tw?.dataSource === "all_reference" ? "All reference shots across all bags"
-    : tw?.dataSource === "same_bean" ? `All reference shots · same bean`
-    : "Reference shots · this bag";
+    tw?.dataSource === "all_reference" ? "Based on all reference shots across all bags"
+    : tw?.dataSource === "same_bean" ? "Based on all reference shots · same bean"
+    : "Based on reference shots · this bag";
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -143,7 +160,7 @@ export default function Dashboard() {
           ═══════════════════════════════════════════════════════════════════════ */}
       <DashboardSection title="Current Bag" scope="Active bag only" />
 
-      {/* 1a. Current Baseline ──────────────────────────────────────────────── */}
+      {/* 1. Current Baseline ──────────────────────────────────────────────── */}
       <section>
         <SectionLabel>Current Baseline</SectionLabel>
         {isLoading ? (
@@ -228,7 +245,7 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* 1b. Bag Progress (+ bag phase) ────────────────────────────────────── */}
+      {/* 2. Bag Progress (no bag phase — moved to Today's Brief) ─────────────── */}
       {hasBagProgress && (
         <section>
           <SectionLabel>Bag Progress</SectionLabel>
@@ -271,31 +288,12 @@ export default function Dashboard() {
                   Avg dose {bp!.avgDose}g · {bp!.consumed > 0 ? `${Math.round(bp!.consumed / bp!.avgDose)} shots` : "no shots"} worth consumed
                 </p>
               )}
-
-              {/* Bag phase — surfaced here from bag intelligence */}
-              {bi && (
-                <div className="rounded-lg bg-muted/40 px-3 py-2.5 flex items-center justify-between border-t border-border/50 mt-1 pt-3">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Bag phase</p>
-                    <p className="font-semibold text-sm">{bi.bagPhase}</p>
-                  </div>
-                  <span className={cn(
-                    "text-xs px-2 py-0.5 rounded-full font-medium",
-                    bi.bagConfidence === "High" ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400"
-                    : bi.bagConfidence === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
-                    : "bg-muted text-muted-foreground"
-                  )}>
-                    {bi.bagConfidence} confidence
-                  </span>
-                </div>
-              )}
             </CardContent>
           </Card>
         </section>
       )}
 
-      {/* 1c. Today's Coffee Brief ────────────────────────────────────────────
-           Primary decision-support card — shown high on the dashboard          */}
+      {/* 3. Today's Coffee Brief (with bag phase inline) ────────────────────── */}
       {intel?.todaysBrief && (
         <section>
           <SectionLabel>Today's Coffee Brief</SectionLabel>
@@ -303,188 +301,108 @@ export default function Dashboard() {
         </section>
       )}
 
-      {/* 1d. Current Bag Intelligence + Grind Journey ───────────────────────── */}
-      {(bi || gd) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-          {/* Current Bag Intelligence */}
-          <section className="flex flex-col gap-3">
-            <SectionLabel scope={`Based on ${bag?.beanName ?? "this bag"} only`}>
-              Current Bag Intelligence
-            </SectionLabel>
-            {isLoading ? <Skeleton className="h-52 w-full" /> : bi ? (
-              <Card className="flex-1">
-                <CardContent className="p-5 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <IntelStat label="Shots" value={String(bi.totalShots)} />
-                    <IntelStat label="Reference shots" value={String(bi.referenceShots)} accent={bi.referenceShots > 0} />
-                    <IntelStat
-                      label="Avg rating"
-                      value={bi.avgRating != null ? bi.avgRating.toFixed(2) : "—"}
-                      accent={bi.avgRating != null && bi.avgRating >= 8}
-                      icon={bi.avgRating != null ? Star : undefined}
-                    />
-                    <IntelStat
-                      label="Last 3 avg"
-                      value={bi.last3Avg != null ? bi.last3Avg.toFixed(1) : "—"}
-                      dim={bi.last3Avg != null && bi.last3Avg < 7.5}
-                    />
-                    {bi.bestRating != null && (
-                      <IntelStat label="Best rating" value={bi.bestRating.toFixed(2)} icon={Star} />
-                    )}
-                    {bi.avgPrefRating != null && (
-                      <IntelStat label="Avg pref rating" value={bi.avgPrefRating.toFixed(2)} />
-                    )}
-                    <IntelStat
-                      label="Reference rate"
-                      value={bi.referenceRate != null ? `${bi.referenceRate}%` : "—"}
-                      accent={bi.referenceRate != null && bi.referenceRate >= 20}
-                    />
-                    <IntelStat
-                      label="Signature shots"
-                      value={bi.signatureShotCount != null ? String(bi.signatureShotCount) : "—"}
-                      accent={bi.signatureShotCount != null && bi.signatureShotCount > 0}
-                    />
-                  </div>
-
-                  {bi.bestYieldRange && (
-                    <div className="rounded-lg bg-muted/40 px-3 py-2.5">
-                      <p className="text-xs text-muted-foreground mb-1">Best yield range (rated 8+)</p>
-                      {bi.bestYieldRange.operationalMin !== bi.bestYieldRange.min || bi.bestYieldRange.operationalMax !== bi.bestYieldRange.max ? (
-                        <div className="space-y-1">
-                          <div>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Operational</p>
-                            <p className="font-semibold tabular-nums">
-                              {bi.bestYieldRange.operationalMin === bi.bestYieldRange.operationalMax
-                                ? `${bi.bestYieldRange.operationalMin}g`
-                                : `${bi.bestYieldRange.operationalMin}g – ${bi.bestYieldRange.operationalMax}g`}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Peak Cluster</p>
-                            <p className="font-semibold tabular-nums text-primary text-sm">
-                              {bi.bestYieldRange.min === bi.bestYieldRange.max
-                                ? `${bi.bestYieldRange.min}g`
-                                : `${bi.bestYieldRange.min}g – ${bi.bestYieldRange.max}g`}
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="font-semibold tabular-nums">
-                          {bi.bestYieldRange.min === bi.bestYieldRange.max
-                            ? `${bi.bestYieldRange.min}g`
-                            : `${bi.bestYieldRange.min}g – ${bi.bestYieldRange.max}g`}
-                        </p>
-                      )}
-                      <ConfidencePill range={bi.bestYieldRange} />
-                    </div>
-                  )}
-
-                  {bi.bestPourDelayRange && (
-                    <div className="rounded-lg bg-muted/40 px-3 py-2.5">
-                      <p className="text-xs text-muted-foreground mb-0.5">Best first pour delay (rated 8+)</p>
-                      <p className="font-semibold tabular-nums">
-                        {bi.bestPourDelayRange.min === bi.bestPourDelayRange.max
-                          ? `${bi.bestPourDelayRange.min}s`
-                          : `${bi.bestPourDelayRange.min}s – ${bi.bestPourDelayRange.max}s`}
-                      </p>
-                      <ConfidencePill range={bi.bestPourDelayRange} />
-                    </div>
-                  )}
-
-                  {bi.bestShot && (
-                    <div className="flex items-center justify-between rounded-lg border px-3 py-2.5 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Best shot</p>
-                        <p className="text-sm font-medium tabular-nums">
-                          {bi.bestShot.dose}g → {bi.bestShot.yield}g
-                          {bi.bestShot.grindSetting != null && ` · ⚙${bi.bestShot.grindSetting}`}
-                          {bi.bestShot.pourTime != null && ` · ${bi.bestShot.pourTime}s`}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{format(new Date(bi.bestShot.shotDate), "d MMM yyyy")}</p>
-                      </div>
-                      <div className="flex items-center gap-1 text-amber-600 font-bold text-lg shrink-0">
-                        <Star className="h-4 w-4 fill-current" />
-                        {Number(bi.bestShot.rating).toFixed(2)}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ) : null}
-          </section>
-
-          {/* Grind Journey */}
-          <section className="flex flex-col gap-3">
-            <SectionLabel>Grind Journey</SectionLabel>
-            {isLoading ? <Skeleton className="h-52 w-full" /> : (
-              <Card className="flex-1">
-                <CardContent className="p-5 space-y-4">
-                  {!gd ? (
-                    <p className="text-sm text-muted-foreground py-6 text-center">Log shots with grind settings to see your grind journey.</p>
-                  ) : (
-                    <>
-                      {/* Start → Current arc */}
-                      <div className="flex items-center justify-center gap-3 py-2">
-                        <div className="text-center">
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Start</p>
-                          <p className="text-2xl font-bold tabular-nums text-muted-foreground">
-                            {gd.startSetting != null ? gd.startSetting : "—"}
-                          </p>
-                          {gd.startTime != null && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5">{gd.startTime}s</p>
-                          )}
-                        </div>
-                        <ArrowRight className="h-5 w-5 text-muted-foreground/50 shrink-0" />
-                        <div className="text-center">
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Current</p>
-                          <p className="text-2xl font-bold tabular-nums text-primary">
-                            {gd.currentSetting != null ? gd.currentSetting : "—"}
-                          </p>
-                          {gd.currentTime != null && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5">{gd.currentTime}s</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Net change + direction + days open */}
-                      <div className="flex items-center justify-center gap-3 flex-wrap">
-                        {gd.drift != null && (
-                          <div className="text-center">
-                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Net change</p>
-                            <p className={cn("text-base font-bold tabular-nums",
-                              gd.direction === "coarser" ? "text-amber-600" :
-                              gd.direction === "finer" ? "text-blue-600" : "text-muted-foreground")}>
-                              {gd.drift > 0 ? "+" : ""}{gd.drift.toFixed(3)}
-                            </p>
-                          </div>
-                        )}
-                        <DirectionBadge direction={gd.direction} />
-                        {bag?.openDays != null && (
-                          <div className="text-center">
-                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Days open</p>
-                            <p className={cn("text-base font-bold tabular-nums",
-                              bag.openDays >= 28 ? "text-destructive" :
-                              bag.openDays >= 21 ? "text-amber-600" : "text-foreground")}>
-                              {bag.openDays}d
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      <p className="text-xs text-muted-foreground text-center">
-                        Based on {gd.shotCount} shot{gd.shotCount !== 1 ? "s" : ""} with grind data
-                      </p>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </section>
-        </div>
+      {/* 4. Current Bag Performance Window ──────────────────────────────────── */}
+      {hasPerfWindow && (
+        <section>
+          <SectionLabel scope={`Based on ${bag?.beanName ?? "this bag"} only`}>
+            Current Bag Performance Window
+          </SectionLabel>
+          {isLoading ? <Skeleton className="h-24 w-full" /> : (
+            <div className="flex gap-3 flex-col sm:flex-row">
+              {bi!.bestYieldRange && (
+                <BagWindowStat label="Best yield (rated 8+)" range={bi!.bestYieldRange} unit="g" />
+              )}
+              {bi!.bestPourDelayRange && (
+                <BagWindowStat label="Best first pour delay (rated 8+)" range={bi!.bestPourDelayRange} unit="s" />
+              )}
+            </div>
+          )}
+        </section>
       )}
 
-      {/* 1e. Next Shot Watchlist ─────────────────────────────────────────────── */}
+      {/* 5. Current Shot vs Reference ────────────────────────────────────────── */}
+      {bag && (
+        <section>
+          <SectionLabel>Current Shot vs Reference</SectionLabel>
+          {isLoading ? (
+            <Skeleton className="h-40 w-full" />
+          ) : intel?.shotComparison ? (
+            <ShotComparisonCard data={intel.shotComparison} beanName={bag.beanName} />
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                No shots logged yet for this bag.
+              </CardContent>
+            </Card>
+          )}
+        </section>
+      )}
+
+      {/* 6. Current Bag Intelligence ─────────────────────────────────────────── */}
+      {bi && (
+        <section>
+          <SectionLabel scope={`Based on ${bag?.beanName ?? "this bag"} only`}>
+            Current Bag Intelligence
+          </SectionLabel>
+          {isLoading ? <Skeleton className="h-52 w-full" /> : (
+            <Card>
+              <CardContent className="p-5 space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <IntelStat label="Shots" value={String(bi.totalShots)} />
+                  <IntelStat label="Reference shots" value={String(bi.referenceShots)} accent={bi.referenceShots > 0} />
+                  <IntelStat
+                    label="Avg rating"
+                    value={bi.avgRating != null ? bi.avgRating.toFixed(2) : "—"}
+                    accent={bi.avgRating != null && bi.avgRating >= 8}
+                    icon={bi.avgRating != null ? Star : undefined}
+                  />
+                  <IntelStat
+                    label="Last 3 avg"
+                    value={bi.last3Avg != null ? bi.last3Avg.toFixed(1) : "—"}
+                    dim={bi.last3Avg != null && bi.last3Avg < 7.5}
+                  />
+                  {bi.bestRating != null && (
+                    <IntelStat label="Best rating" value={bi.bestRating.toFixed(2)} icon={Star} />
+                  )}
+                  {bi.avgPrefRating != null && (
+                    <IntelStat label="Avg pref rating" value={bi.avgPrefRating.toFixed(2)} />
+                  )}
+                  <IntelStat
+                    label="Reference rate"
+                    value={bi.referenceRate != null ? `${bi.referenceRate}%` : "—"}
+                    accent={bi.referenceRate != null && bi.referenceRate >= 20}
+                  />
+                  <IntelStat
+                    label="Signature shots"
+                    value={bi.signatureShotCount != null ? String(bi.signatureShotCount) : "—"}
+                    accent={bi.signatureShotCount != null && bi.signatureShotCount > 0}
+                  />
+                </div>
+
+                {bi.bestShot && (
+                  <div className="flex items-center justify-between rounded-lg border px-3 py-2.5 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Best shot</p>
+                      <p className="text-sm font-medium tabular-nums">
+                        {bi.bestShot.dose}g → {bi.bestShot.yield}g
+                        {bi.bestShot.grindSetting != null && ` · ⚙${bi.bestShot.grindSetting}`}
+                        {bi.bestShot.pourTime != null && ` · ${bi.bestShot.pourTime}s`}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{format(new Date(bi.bestShot.shotDate), "d MMM yyyy")}</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-amber-600 font-bold text-lg shrink-0">
+                      <Star className="h-4 w-4 fill-current" />
+                      {Number(bi.bestShot.rating).toFixed(2)}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </section>
+      )}
+
+      {/* 7. Next Shot Watchlist ──────────────────────────────────────────────── */}
       {intel?.watchlist && intel.watchlist.length > 0 && (
         <section>
           <SectionLabel>Next Shot Watchlist</SectionLabel>
@@ -495,6 +413,76 @@ export default function Dashboard() {
               ))}
             </CardContent>
           </Card>
+        </section>
+      )}
+
+      {/* 8. Grind Journey (standalone) ──────────────────────────────────────── */}
+      {bag && (
+        <section>
+          <SectionLabel>Grind Journey</SectionLabel>
+          {isLoading ? <Skeleton className="h-36 w-full" /> : (
+            <Card>
+              <CardContent className="p-5 space-y-4">
+                {!gd ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">Log shots with grind settings to see your grind journey.</p>
+                ) : (
+                  <>
+                    {/* Start → Current arc */}
+                    <div className="flex items-center justify-center gap-6 py-2">
+                      <div className="text-center">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Start</p>
+                        <p className="text-2xl font-bold tabular-nums text-muted-foreground">
+                          {gd.startSetting != null ? gd.startSetting : "—"}
+                        </p>
+                        {gd.startTime != null && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{gd.startTime}s</p>
+                        )}
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-muted-foreground/50 shrink-0" />
+                      <div className="text-center">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Current</p>
+                        <p className="text-2xl font-bold tabular-nums text-primary">
+                          {gd.currentSetting != null ? gd.currentSetting : "—"}
+                        </p>
+                        {gd.currentTime != null && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{gd.currentTime}s</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Net change + direction + days open */}
+                    <div className="flex items-center justify-center gap-4 flex-wrap">
+                      {gd.drift != null && (
+                        <div className="text-center">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Net change</p>
+                          <p className={cn("text-base font-bold tabular-nums",
+                            gd.direction === "coarser" ? "text-amber-600" :
+                            gd.direction === "finer" ? "text-blue-600" : "text-muted-foreground")}>
+                            {gd.drift > 0 ? "+" : ""}{gd.drift.toFixed(3)}
+                          </p>
+                        </div>
+                      )}
+                      <DirectionBadge direction={gd.direction} />
+                      {bag?.openDays != null && (
+                        <div className="text-center">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Days open</p>
+                          <p className={cn("text-base font-bold tabular-nums",
+                            bag.openDays >= 28 ? "text-destructive" :
+                            bag.openDays >= 21 ? "text-amber-600" : "text-foreground")}>
+                            {bag.openDays}d
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-muted-foreground text-center">
+                      Based on {gd.shotCount} shot{gd.shotCount !== 1 ? "s" : ""} with grind data
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </section>
       )}
 
@@ -636,6 +624,40 @@ function ConfidencePill({ range }: { range: RangeVal }) {
   );
 }
 
+// Compact window stat for "Current Bag Performance Window" (card 4)
+function BagWindowStat({ label, range, unit }: { label: string; range: RangeVal; unit: string }) {
+  const showDual = range.operationalMin !== range.min || range.operationalMax !== range.max;
+  const fmtRange = (lo: number, hi: number) =>
+    lo === hi ? `${lo}${unit}` : `${lo}–${hi}${unit}`;
+  return (
+    <Card className="flex-1">
+      <CardContent className="p-4">
+        <p className="text-xs text-muted-foreground mb-2">{label}</p>
+        {showDual ? (
+          <div className="space-y-1.5">
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Success Range</p>
+              <p className="font-semibold tabular-nums text-sm">
+                {fmtRange(range.operationalMin, range.operationalMax)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Sweet Spot</p>
+              <p className="font-semibold tabular-nums text-primary text-sm">
+                {fmtRange(range.min, range.max)}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <p className="font-semibold tabular-nums">{fmtRange(range.min, range.max)}</p>
+        )}
+        <ConfidencePill range={range} />
+      </CardContent>
+    </Card>
+  );
+}
+
+// Global reference window stat (card in §3) — uses "Success Range" and "Sweet Spot"
 function WindowStat({ icon: Icon, label, range, unit, showDualWindow }: { icon: React.ElementType; label: string; range: RangeVal; unit: string; showDualWindow?: boolean }) {
   const showOp = showDualWindow && (range.operationalMin !== range.min || range.operationalMax !== range.max);
   return (
@@ -648,7 +670,7 @@ function WindowStat({ icon: Icon, label, range, unit, showDualWindow }: { icon: 
         {showOp ? (
           <div className="space-y-1.5">
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Operational</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Success Range</p>
               <p className="font-bold tabular-nums text-base">
                 {range.operationalMin === range.operationalMax
                   ? `${range.operationalMin}${unit}`
@@ -656,7 +678,7 @@ function WindowStat({ icon: Icon, label, range, unit, showDualWindow }: { icon: 
               </p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Peak Cluster</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Sweet Spot</p>
               <p className="font-semibold tabular-nums text-sm text-primary">
                 {range.min === range.max
                   ? `${range.min}${unit}`
@@ -703,16 +725,26 @@ function TodaysBriefCard({ brief }: { brief: NonNullable<Intelligence["todaysBri
     info: { icon: Info, class: "text-muted-foreground" },
   }[topItem.type] : null;
 
+  const phaseColour =
+    brief.bagConfidence === "High" ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400"
+    : brief.bagConfidence === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
+    : "bg-muted text-muted-foreground";
+
   return (
     <Card className="border-primary/20 bg-primary/[0.02]">
       <CardContent className="p-4 space-y-3">
-        {/* Bean + days */}
+        {/* Bean + days + bag phase */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold">{brief.beanName}</span>
           {brief.openDays != null && (
             <Badge variant="outline" className="text-xs font-normal">
               {brief.openDays}d open
             </Badge>
+          )}
+          {brief.bagPhase && (
+            <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium", phaseColour)}>
+              {brief.bagPhase} · {brief.bagConfidence} Confidence
+            </span>
           )}
         </div>
 
@@ -784,5 +816,166 @@ function WatchlistCard({ item }: { item: WatchlistItem }) {
         </ul>
       )}
     </div>
+  );
+}
+
+// ── Shot Comparison Card ──────────────────────────────────────────────────────
+
+type MetricRow = {
+  label: string;
+  latestVal: number | null;
+  refVal: number | null;
+  unit: string;
+  decimals: number;
+};
+
+function deltaStatus(pct: number | null): "on-target" | "close" | "off" | "none" {
+  if (pct == null) return "none";
+  const abs = Math.abs(pct);
+  if (abs <= 10) return "on-target";
+  if (abs <= 20) return "close";
+  return "off";
+}
+
+function ShotComparisonCard({ data, beanName }: { data: ShotComparison; beanName: string | null }) {
+  const s = data.latestShot;
+  const r = data.bagReference;
+
+  const metrics: MetricRow[] = [
+    { label: "First Pour Delay", latestVal: s?.pourDelay ?? null, refVal: r?.avgPourDelay ?? null, unit: "s", decimals: 1 },
+    { label: "Pour Time",        latestVal: s?.pourTime ?? null,  refVal: r?.avgPourTime ?? null,  unit: "s", decimals: 1 },
+    { label: "Scale Time",       latestVal: s?.scaleTime ?? null, refVal: r?.avgScaleTime ?? null, unit: "s", decimals: 1 },
+    { label: "Yield",            latestVal: s?.yield ?? null,     refVal: r?.avgYield ?? null,     unit: "g", decimals: 1 },
+    { label: "Ratio",            latestVal: s?.ratio ?? null,     refVal: r?.avgRatio ?? null,     unit: "×", decimals: 2 },
+  ];
+
+  const hasAnyLatest = metrics.some((m) => m.latestVal != null);
+  const hasAnyRef    = metrics.some((m) => m.refVal != null);
+
+  const dotCls = (status: ReturnType<typeof deltaStatus>) => cn(
+    "inline-block h-2 w-2 rounded-full shrink-0",
+    status === "on-target" ? "bg-green-500" :
+    status === "close"     ? "bg-amber-500" :
+    status === "off"       ? "bg-destructive" : "bg-muted-foreground/30"
+  );
+  const deltaCls = (status: ReturnType<typeof deltaStatus>) =>
+    status === "on-target" ? "text-green-600 dark:text-green-400" :
+    status === "close"     ? "text-amber-600 dark:text-amber-400" :
+    status === "off"       ? "text-destructive" : "text-muted-foreground";
+
+  if (!s && !r) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-sm text-muted-foreground">
+          No shots logged for this bag yet.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-5 space-y-4">
+
+        {/* Source + confidence */}
+        <div className="flex items-start justify-between flex-wrap gap-2">
+          <p className="text-xs text-muted-foreground">
+            {r ? (
+              <>Reference source: <span className="font-medium text-foreground">{r.source}</span>
+              <span className="text-muted-foreground"> · {r.refCount} shot{r.refCount !== 1 ? "s" : ""}</span></>
+            ) : (
+              "No reference data — log reference shots to enable comparison."
+            )}
+          </p>
+          {r && (
+            <span className={cn(
+              "text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0",
+              r.confidence === "High" ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400"
+              : r.confidence === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
+              : "bg-muted text-muted-foreground"
+            )}>
+              {r.confidence} confidence
+            </span>
+          )}
+        </div>
+
+        {/* Low confidence notice */}
+        {r && r.confidence === "Low" && (
+          <div className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            <Info className="h-3.5 w-3.5 shrink-0" />
+            Limited reference data — {r.refCount} shot{r.refCount !== 1 ? "s" : ""}. Mark more Dialed In shots as reference to improve accuracy.
+          </div>
+        )}
+
+        {/* Latest shot context */}
+        {s && (
+          <p className="text-xs text-muted-foreground">
+            Latest shot: {format(new Date(s.shotDate), "d MMM yyyy")}
+            {s.dose != null && <> · {s.dose}g dose</>}
+            {beanName && <> · {beanName}</>}
+          </p>
+        )}
+
+        {/* Metric comparison table */}
+        {(hasAnyLatest || hasAnyRef) ? (
+          <div className="overflow-x-auto -mx-1">
+            <table className="w-full text-sm min-w-[280px]">
+              <thead>
+                <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <th className="text-left pb-2 font-medium pl-1 w-[40%]">Metric</th>
+                  <th className="text-right pb-2 font-medium pr-3">Latest</th>
+                  <th className="text-right pb-2 font-medium pr-3">Reference</th>
+                  <th className="text-right pb-2 font-medium pr-2">Δ</th>
+                  <th className="w-5 pb-2" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {metrics.map((m) => {
+                  const delta = m.latestVal != null && m.refVal != null
+                    ? m.latestVal - m.refVal : null;
+                  const pct = delta != null && m.refVal != null && m.refVal !== 0
+                    ? (delta / m.refVal) * 100 : null;
+                  const status = deltaStatus(pct);
+                  const fmt = (v: number) => `${v.toFixed(m.decimals)}${m.unit}`;
+
+                  return (
+                    <tr key={m.label} className="hover:bg-muted/20 transition-colors">
+                      <td className="py-2 pl-1 text-muted-foreground text-xs">{m.label}</td>
+                      <td className="py-2 pr-3 text-right font-semibold tabular-nums text-xs">
+                        {m.latestVal != null ? fmt(m.latestVal) : <span className="text-muted-foreground font-normal">—</span>}
+                      </td>
+                      <td className="py-2 pr-3 text-right tabular-nums text-xs text-muted-foreground">
+                        {m.refVal != null ? fmt(m.refVal) : "—"}
+                      </td>
+                      <td className={cn("py-2 pr-2 text-right tabular-nums text-xs font-medium", deltaCls(status))}>
+                        {delta != null
+                          ? `${delta >= 0 ? "+" : ""}${delta.toFixed(m.decimals)}${m.unit}`
+                          : <span className="text-muted-foreground font-normal">—</span>}
+                      </td>
+                      <td className="py-2 text-center">
+                        <span className={dotCls(status)} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-2">
+            No timing data recorded on the latest shot.
+          </p>
+        )}
+
+        {/* Legend */}
+        {hasAnyLatest && hasAnyRef && (
+          <div className="flex items-center gap-3 flex-wrap text-[10px] text-muted-foreground pt-1 border-t">
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500 inline-block" /> Within 10%</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500 inline-block" /> Within 20%</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive inline-block" /> Outside 20%</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
