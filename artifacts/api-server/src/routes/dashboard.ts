@@ -358,10 +358,59 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   const todaysBrief = {
     beanName: activeBagRow.beanName ?? "Unknown Bean",
     openDays,
+    bagPhase,
+    bagConfidence,
     bestYieldWindow: timingWindows.yieldRange ? { min: timingWindows.yieldRange.min, max: timingWindows.yieldRange.max } : null,
     bestPourDelayWindow: timingWindows.pourDelayRange ? { min: timingWindows.pourDelayRange.min, max: timingWindows.pourDelayRange.max } : null,
     grindTrend,
     topWatchlistItem: topWatchlistItem ? { type: topWatchlistItem.type, message: topWatchlistItem.message } : null,
+  };
+
+  // ── Shot comparison ─────────────────────────────────────────────────────────
+  // Reuse already-fetched data — no new DB queries required.
+  const latestAnalysisShot = activeBagShots[0] ?? null;
+  const bagRefShots = activeBagShots.filter((s) => s.isReference);
+
+  const compRefPool = bagRefShots.length >= 1 ? bagRefShots
+    : (timingSource !== "current_bag" && timingPool.length > 0) ? timingPool
+    : topRated;
+  const compSource = bagRefShots.length >= 1 ? "Active bag reference shots"
+    : timingSource === "same_bean" ? "Same bean reference shots"
+    : timingSource === "all_reference" ? "Global reference shots"
+    : "Active bag top-rated";
+
+  const nAvg1 = (vals: number[]) => vals.length
+    ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10 : null;
+  const nAvg2 = (vals: number[]) => vals.length
+    ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 100) / 100 : null;
+
+  const shotComparison = {
+    latestShot: latestAnalysisShot ? {
+      id: latestAnalysisShot.id,
+      shotDate: latestAnalysisShot.shotDate,
+      pourDelay: latestAnalysisShot.pourDelay != null ? Number(latestAnalysisShot.pourDelay) : null,
+      pourTime: latestAnalysisShot.pourTime != null ? Number(latestAnalysisShot.pourTime) : null,
+      scaleTime: latestAnalysisShot.scaleTime != null ? Number(latestAnalysisShot.scaleTime) : null,
+      yield: latestAnalysisShot.yield != null ? Number(latestAnalysisShot.yield) : null,
+      dose: latestAnalysisShot.dose != null ? Number(latestAnalysisShot.dose) : null,
+      ratio: latestAnalysisShot.yield != null && latestAnalysisShot.dose != null && Number(latestAnalysisShot.dose) > 0
+        ? Math.round(Number(latestAnalysisShot.yield) / Number(latestAnalysisShot.dose) * 100) / 100
+        : null,
+    } : null,
+    bagReference: compRefPool.length > 0 ? {
+      source: compSource,
+      refCount: compRefPool.length,
+      confidence: (compRefPool.length >= 10 ? "High" : compRefPool.length >= 3 ? "Medium" : "Low") as "Low" | "Medium" | "High",
+      avgPourDelay: nAvg1(compRefPool.map((s) => Number(s.pourDelay)).filter((v) => !isNaN(v) && v > 0)),
+      avgPourTime: nAvg1(compRefPool.map((s) => Number(s.pourTime)).filter((v) => !isNaN(v) && v > 0)),
+      avgScaleTime: nAvg1(compRefPool.map((s) => Number(s.scaleTime)).filter((v) => !isNaN(v) && v > 0)),
+      avgYield: nAvg1(compRefPool.map((s) => Number(s.yield)).filter((v) => !isNaN(v) && v > 0)),
+      avgRatio: nAvg2(
+        compRefPool
+          .filter((s) => Number(s.yield) > 0 && Number(s.dose) > 0)
+          .map((s) => Number(s.yield) / Number(s.dose))
+      ),
+    } : null,
   };
 
   res.json({
@@ -423,6 +472,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     })),
     watchlist,
     todaysBrief,
+    shotComparison,
   });
 });
 

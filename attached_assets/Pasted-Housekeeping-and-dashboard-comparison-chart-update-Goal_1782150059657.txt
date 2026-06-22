@@ -1,0 +1,179 @@
+Housekeeping and dashboard comparison chart update.
+
+Goal:
+Improve dashboard usefulness without changing the overall design or rebuilding architecture.
+
+Do not change Airtable sync.
+Do not change database structure unless absolutely required.
+Do not add AI, subscriptions, auth, or advanced analytics.
+Do not redesign the whole dashboard.
+
+Focus on housekeeping plus one new dashboard card.
+
+--------------------------------------------------
+1. Housekeeping polish
+--------------------------------------------------
+
+Make these wording/clarity updates:
+
+A. In Global Reference Intelligence:
+
+Rename:
+“Operational”
+
+to:
+“Success Range”
+
+Rename:
+“Peak Cluster”
+
+to:
+“Sweet Spot”
+
+Keep the subtitle clear:
+“Based on all reference shots across all bags”
+
+B. Current Bag Intelligence:
+
+Clearly label active-bag-only sections.
+
+Examples:
+“Based on current bag only”
+or
+“Based on [bean name] only”
+
+C. Keep confidence labels visible:
+- Low Confidence
+- Medium Confidence
+- High Confidence
+
+D. Keep bag phase close to Today’s Coffee Brief and Current Bag Intelligence.
+
+Example:
+Opening / Dial-In · Low Confidence
+
+--------------------------------------------------
+2. Add Current Shot vs Reference chart
+--------------------------------------------------
+
+Add a new dashboard card near the top of the Current Bag section.
+
+Place it above Grind Journey.
+
+Move Grind Journey lower in the dashboard whitespace / lower part of Current Bag or Historical Bag section.
+
+Card title:
+Current Shot vs Reference
+
+Purpose:
+Help the user immediately see how the most recent valid shot compares to the active bag’s reference pattern.
+
+Use the latest valid shot only.
+
+Compare against active bag reference averages or reference window midpoint.
+
+Use only shots where include_in_analysis = true.
+
+Exclude maintenance, hopper refill, new bag, dial-in process, and other non-analysis events.
+
+Metrics to compare:
+
+- First Pour Delay
+- Pour Time
+- Scale Time
+- Yield
+- Ratio
+
+Ratio should be calculated as:
+Yield / Dose
+
+Display as a compact bar chart or clean comparison visualization.
+
+The chart should show:
+
+Latest Shot
+vs
+Bag Reference
+
+If there are not enough reference shots for the active bag, show:
+“Low confidence — limited reference data”
+
+Still show the latest shot values if available.
+
+--------------------------------------------------
+3. Chart behavior
+--------------------------------------------------
+
+For each metric:
+
+Latest Shot:
+Use most recent valid shot.
+
+Bag Reference:
+Use active bag reference shots if available.
+
+Preferred priority:
+
+1. Active bag reference shot average
+2. Active bag reference window midpoint
+3. Same bean reference average
+4. Global reference average
+
+Clearly indicate the source used.
+
+Example:
+Reference source:
+Active bag reference shots
+
+or:
+Reference source:
+Global reference fallback
+
+--------------------------------------------------
+4. Suggested layout order
+--------------------------------------------------
+
+Current Bag section should appear in this order:
+
+1. Current Baseline
+2. Bag Progress
+3. Today’s Coffee Brief
+4. Current Bag Performance Window
+5. Current Shot vs Reference
+6. Current Bag Intelligence
+7. Next Shot Watchlist
+8. Grind Journey
+
+Then:
+
+Bag History section
+
+Then:
+
+Global Reference Intelligence section
+
+--------------------------------------------------
+5. Do not create a true brew curve
+--------------------------------------------------
+
+Do not call this a brew curve.
+
+We do not have continuous flow-rate data.
+
+This is a shot comparison chart, not a flow curve.
+
+A true brew curve requires scale flow/time data or machine pressure/flow data.
+
+--------------------------------------------------
+6. Preserve current design
+--------------------------------------------------
+
+Keep the current dashboard visual style.
+
+The dashboard already looks good.
+
+This is a clarity and usefulness update only.
+
+Goal:
+Help the user answer:
+“How close was my last shot to repeatable success for this bag?”
