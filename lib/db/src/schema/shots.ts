@@ -41,6 +41,8 @@ export const shotsTable = pgTable("shots", {
   isForOthers: boolean("is_for_others"),
   isReference: boolean("is_reference").notNull().default(false),
   signatureShot: boolean("signature_shot"),
+  sourShot: boolean("sour_shot"),
+  beanAchievement: text("bean_achievement"),
   drinkType: text("drink_type"),
   status: text("status"),
   shotClassification: text("shot_classification"),

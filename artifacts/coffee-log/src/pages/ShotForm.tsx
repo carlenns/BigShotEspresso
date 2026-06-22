@@ -10,15 +10,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Save, ChevronDown } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Save } from "lucide-react";
 import { useCreateShot, getListShotsQueryKey, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import {
+  SHOT_STATUS_OPTIONS,
+  FAULT_STATUS_OPTIONS,
+  EXPRESSION_STYLE_OPTIONS,
+  BEAN_ACHIEVEMENT_OPTIONS,
+} from "@/pages/QuickLog";
 
 interface Bag {
   id: number; beanName: string | null; bagNumber: string | null; bagName: string | null; isActive: boolean;
@@ -32,6 +37,12 @@ interface TasteSelector { id: number; name: string; category: string; }
 function fetchBags(): Promise<Bag[]> { return fetch("/api/bags").then((r) => r.json()); }
 function fetchTasteSelectors(): Promise<TasteSelector[]> { return fetch("/api/taste-selectors").then((r) => r.json()); }
 
+function nowDateTimeLocal(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 const formSchema = z.object({
   shotDate: z.string(),
   bagId: z.coerce.number().optional(),
@@ -43,18 +54,23 @@ const formSchema = z.object({
   yield: z.coerce.number().optional(),
   pourDelay: z.coerce.number().optional(),
   pourTime: z.coerce.number().optional(),
+  scaleTime: z.coerce.number().optional(),
   temperature: z.coerce.number().optional(),
   rating: z.number().min(0).max(10).optional(),
   preferenceRating: z.number().min(0).max(10).optional(),
+  // Shot Evaluation
   status: z.string().optional(),
+  faultStatus: z.string().optional(),
   isReference: z.boolean().default(false),
+  signatureShot: z.boolean().default(false),
+  sourShot: z.boolean().default(false),
+  expressionStyle: z.string().optional(),
+  beanAchievement: z.string().optional(),
   notes: z.string().optional(),
   sensoryNotes: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-const STATUS_OPTIONS = ["Dialed In", "Good", "Experimental", "Recovery/Transitional", "Hopper Refill", "Fault", "Maintenance - Grinder", "Maintenance - Machine"];
 
 export default function ShotForm() {
   const [, setLocation] = useLocation();
@@ -62,7 +78,6 @@ export default function ShotForm() {
   const { toast } = useToast();
   const createShot = useCreateShot();
   const [selectedTastes, setSelectedTastes] = useState<number[]>([]);
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: tasteSelectors = [] } = useQuery({ queryKey: ["taste-selectors"], queryFn: fetchTasteSelectors });
@@ -70,13 +85,14 @@ export default function ShotForm() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      shotDate: new Date().toISOString().slice(0, 16),
+      shotDate: nowDateTimeLocal(),
       dose: 18,
       yield: 36,
       temperature: 94,
       rating: 7,
       isReference: false,
-      status: "Dialed In",
+      signatureShot: false,
+      sourShot: false,
     },
   });
 
@@ -101,7 +117,6 @@ export default function ShotForm() {
   const onSubmit = async (values: FormValues) => {
     createShot.mutate({ data: values }, {
       onSuccess: async (data) => {
-        // Link taste selectors
         if (selectedTastes.length > 0 && data.id) {
           await fetch(`/api/shots/${data.id}/taste-selectors`, {
             method: "PUT",
@@ -119,10 +134,8 @@ export default function ShotForm() {
   };
 
   const ratingVal = form.watch("rating") ?? 7;
-  const prefRatingVal = form.watch("preferenceRating");
-
-  const activeBag = bags.find((b) => b.isActive);
   const activeBagId = form.watch("bagId");
+  const activeBag = bags.find((b) => b.isActive);
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6 animate-in fade-in duration-300">
@@ -139,14 +152,20 @@ export default function ShotForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
 
-          {/* Date & Bag */}
+          {/* Setup — Date & Bag */}
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Setup</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <FormField control={form.control} name="shotDate" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Date & Time</FormLabel>
-                  <FormControl><Input type="datetime-local" {...field} value={field.value?.toString().slice(0, 16) ?? ""} /></FormControl>
+                  <FormControl>
+                    <Input
+                      type="datetime-local"
+                      {...field}
+                      value={field.value?.toString().slice(0, 16) ?? ""}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -235,24 +254,20 @@ export default function ShotForm() {
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="status" render={({ field }) => (
-                <FormItem className="sm:col-span-2">
-                  <FormLabel>Shot Status</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
-                    <SelectContent>{STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                  </Select>
+              <FormField control={form.control} name="scaleTime" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Scale Time (s)</FormLabel>
+                  <FormControl><Input type="number" step="1" {...field} value={field.value ?? ""} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
             </CardContent>
           </Card>
 
-          {/* Evaluation */}
+          {/* Evaluation — ratings + taste */}
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Evaluation</CardTitle></CardHeader>
             <CardContent className="space-y-5">
-              {/* Rating — slider + numeric input */}
               <FormField control={form.control} name="rating" render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center justify-between">
@@ -279,7 +294,6 @@ export default function ShotForm() {
                 </FormItem>
               )} />
 
-              {/* Preference rating */}
               <FormField control={form.control} name="preferenceRating" render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center justify-between">
@@ -306,7 +320,6 @@ export default function ShotForm() {
                 </FormItem>
               )} />
 
-              {/* Taste Selectors */}
               {tasteSelectors.length > 0 && (
                 <div className="space-y-2">
                   <Label>Taste Selectors <span className="text-muted-foreground text-xs font-normal">optional — tag this shot</span></Label>
@@ -330,25 +343,129 @@ export default function ShotForm() {
                 </div>
               )}
 
+              <FormField control={form.control} name="sensoryNotes" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sensory Notes <span className="text-muted-foreground text-xs font-normal">optional</span></FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Bright acidity, chocolate body, clean finish…" className="min-h-[60px]" {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </CardContent>
+          </Card>
+
+          {/* Shot Evaluation */}
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Shot Evaluation</CardTitle></CardHeader>
+            <CardContent className="space-y-5">
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Shot Status */}
+                <FormField control={form.control} name="status" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Shot Status</FormLabel>
+                    <Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={field.value ?? "__none__"}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="__none__">— not set —</SelectItem>
+                        {SHOT_STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                {/* Fault Status */}
+                <FormField control={form.control} name="faultStatus" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fault Status</FormLabel>
+                    <Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={field.value ?? "__none__"}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="__none__">— not set —</SelectItem>
+                        {FAULT_STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+
+              {/* Checkboxes */}
+              <div className="space-y-3">
+                <Label>Flags</Label>
+                <div className="flex flex-wrap gap-x-6 gap-y-3">
+                  <FormField control={form.control} name="isReference" render={({ field }) => (
+                    <FormItem className="flex items-center gap-2.5 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel className="font-normal cursor-pointer">Reference Shot</FormLabel>
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="signatureShot" render={({ field }) => (
+                    <FormItem className="flex items-center gap-2.5 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel className="font-normal cursor-pointer">Signature Shot</FormLabel>
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="sourShot" render={({ field }) => (
+                    <FormItem className="flex items-center gap-2.5 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel className="font-normal cursor-pointer">Sour Shot</FormLabel>
+                    </FormItem>
+                  )} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Expression Style */}
+                <FormField control={form.control} name="expressionStyle" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Expression Style</FormLabel>
+                    <Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={field.value ?? "__none__"}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="__none__">— not set —</SelectItem>
+                        {EXPRESSION_STYLE_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                {/* Bean Achievement */}
+                <FormField control={form.control} name="beanAchievement" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Bean Achievement</FormLabel>
+                    <Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={field.value ?? "__none__"}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="__none__">— not set —</SelectItem>
+                        {BEAN_ACHIEVEMENT_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+
+              {/* Notes */}
               <FormField control={form.control} name="notes" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes & Observations</FormLabel>
+                  <FormLabel>Notes</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Bright acidity, chocolate body, clean finish…" className="min-h-[80px]" {...field} value={field.value ?? ""} />
+                    <Textarea placeholder="Anything worth noting about this shot…" className="min-h-[80px]" {...field} value={field.value ?? ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="isReference" render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div>
-                    <FormLabel>Mark as Reference Shot</FormLabel>
-                    <p className="text-sm text-muted-foreground">Mechanically sound and representative — use as a dial-in benchmark</p>
-                  </div>
-                  <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                </FormItem>
-              )} />
             </CardContent>
           </Card>
 

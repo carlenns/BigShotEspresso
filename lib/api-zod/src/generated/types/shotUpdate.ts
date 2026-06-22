@@ -37,6 +37,10 @@ export interface ShotUpdate {
   status?: string;
   faultStatus?: string;
   isReference?: boolean;
+  signatureShot?: boolean;
+  sourShot?: boolean;
+  expressionStyle?: string;
+  beanAchievement?: string;
   isForOthers?: boolean;
   notes?: string;
   sensoryNotes?: string;
