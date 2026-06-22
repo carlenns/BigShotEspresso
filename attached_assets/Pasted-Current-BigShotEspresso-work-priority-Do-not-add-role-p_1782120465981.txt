@@ -1,0 +1,114 @@
+Current BigShotEspresso work priority.
+
+Do not add role-preview systems or complex permissions now.
+
+Focus only on data correctness and dashboard intelligence.
+
+1. Analysis Eligibility
+
+During Airtable sync, sync all records from the Shots table.
+
+However, analytics should only use records where Airtable field:
+
+Include in Analysis = 1
+
+Store this locally as:
+
+include_in_analysis = true
+
+All dashboard and intelligence calculations must filter by include_in_analysis = true.
+
+This applies to:
+- Shot counts
+- Reference rate
+- Average rating
+- Average preference
+- Best rating
+- Best performing windows
+- Grind journey
+- Bag comparison
+- Bean statistics
+- Reference shot lists
+- Future intelligence metrics
+
+If Include in Analysis is missing, fallback to:
+Shot Status = Good or Dialed In
+AND Fault Status = Good
+
+2. Signature Shot Mapping
+
+Signature Shot is a manual checkbox field.
+
+Do not calculate it from Preference Rating.
+
+Sync the Airtable Signature Shot checkbox field.
+
+Store it locally as:
+is_signature_shot
+
+Dashboard should count:
+is_signature_shot = true
+AND include_in_analysis = true
+AND active bag
+
+Expected current active bag result is approximately 3–4 signature shots, not 14.
+
+3. Events vs Brew Shots
+
+Records such as:
+- Hopper Refill
+- Maintenance
+- New Bag of Beans
+- Dial In Process
+- Grinder Cleaning
+- Backflush
+- Equipment Change
+
+should still sync.
+
+But they are non-analysis events unless Include in Analysis = 1.
+
+They should not affect dashboard intelligence.
+
+4. Best Performing Windows
+
+Keep outlier removal.
+
+First Pour Delay can remain a tight range.
+
+Yield should not be overfit.
+
+For yield, display:
+- Operational Window
+- Peak Cluster
+
+Example:
+Operational Window: 35–36g
+Peak Cluster: 35.0–35.4g
+
+5. Bag Context
+
+Recommendations should show:
+- Days open
+- Roast age if available
+- Bag phase
+- Confidence level
+
+Bag phases:
+- Phase 1: Opening / Dial-In
+- Phase 2: Established Performance
+- Phase 3: Mature Bag
+- End of Bag
+
+If not enough data exists, show low confidence or no recommendation.
+
+6. Preserve Current Architecture
+
+Do not rebuild the database.
+Do not change Airtable sync architecture except for field mapping/filtering.
+Do not redesign the whole dashboard.
+Do not add role systems.
+Do not implement DIM/GSP yet.
+
+Goal:
+Make the current dashboard and synced data trustworthy before adding new features.
