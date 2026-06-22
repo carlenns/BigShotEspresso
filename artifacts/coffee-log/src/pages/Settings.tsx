@@ -13,7 +13,7 @@ import {
   Save, Settings as SettingsIcon, Coffee, Zap, Wrench, Package, ClipboardList,
   Database, CheckCircle2, XCircle, RefreshCw, Loader2, AlertTriangle,
 } from "lucide-react";
-import { QUICK_LOG_FIELDS } from "@/pages/QuickLog";
+import { FIELD_GROUPS } from "@/pages/QuickLog";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +48,7 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
     fields: [
       { key: "brewMethod", label: "Default Brew Method", type: "select", options: ["Espresso", "Pour-over", "AeroPress", "French Press", "Moka Pot"] },
       { key: "ratingSystem", label: "Rating System", type: "select", options: ["0–10", "0–5", "0–100"] },
+      { key: "ratingInputMode", label: "Rating Input Mode", type: "select", options: ["Easy Rating (1–10 stars)", "Precision Rating (0.00–10.00)"] },
       { key: "unitSystem", label: "Unit System", type: "select", options: ["Metric (g, ml)", "Imperial (oz)"] },
       { key: "timeFormat", label: "Time Format", type: "select", options: ["12hr", "24hr"] },
       { key: "temperatureUnit", label: "Temperature Unit", type: "select", options: ["°C", "°F"] },
@@ -76,7 +77,12 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
       { key: "defaultGrinder", label: "Default Grinder", type: "text", placeholder: "Eureka Magnifico" },
       { key: "defaultGrindSetting", label: "Default Grind Setting", type: "number", placeholder: "2.33" },
       { key: "defaultGrindTime", label: "Default Grind Time", type: "number", placeholder: "8.1", unit: "sec" },
-      { key: "grindTimerMode", label: "Timer Mode", type: "select", options: ["Timed", "Weight", "Manual"] },
+      { key: "grindTimerMode", label: "Grind Output Measurement", type: "select", options: ["By Time", "By Weight", "Manual / Single Dose"] },
+      { key: "grindMinTime", label: "Minimum Grind Time", type: "number", placeholder: "0.2", unit: "s" },
+      { key: "grindTimeIncrement", label: "Grind Time Increment", type: "number", placeholder: "0.1", unit: "s" },
+      { key: "grindScaleMin", label: "Grind Scale Minimum", type: "number", placeholder: "1" },
+      { key: "grindScaleMax", label: "Grind Scale Maximum", type: "number", placeholder: "10" },
+      { key: "grindStepIncrement", label: "Grind Step Increment", type: "text", placeholder: "0.33" },
       { key: "hopperTracking", label: "Hopper Fullness Tracking", type: "toggle" },
       { key: "defaultHopperFullness", label: "Default Hopper Fullness", type: "number", placeholder: "100", unit: "%" },
     ],
@@ -299,33 +305,54 @@ function LoggingPreferencesSection({
           <CardTitle>Logging Preferences</CardTitle>
         </div>
         <CardDescription>
-          Choose which fields appear in Quick Log. Disable fields you don't regularly track to keep entry faster.
+          Choose which fields appear in Quick Log. Essential fields are on by default — enable extras when you want more detail.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {QUICK_LOG_FIELDS.map((field) => {
-            const key = `quickLog_${field.id}`;
-            const val = values[key];
-            const isOn = val === undefined ? field.defaultOn : val === "true";
-            return (
-              <div key={field.id} className="flex items-center justify-between rounded-lg border p-3 gap-4">
-                <div className="flex items-center gap-1.5">
-                  <Label className="text-sm font-normal cursor-pointer">{field.label}</Label>
-                  {field.unit && (
-                    <span className="text-xs text-muted-foreground">({field.unit})</span>
-                  )}
-                </div>
-                <Switch
-                  checked={isOn}
-                  onCheckedChange={(checked) => set(key, checked ? "true" : "false")}
-                />
-              </div>
-            );
-          })}
-        </div>
-        <p className="text-xs text-muted-foreground mt-4">
+      <CardContent className="space-y-6">
+        {FIELD_GROUPS.map((group) => (
+          <div key={group.id}>
+            <div className="flex items-center gap-2 mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {group.label}
+              </p>
+              <div className="flex-1 h-px bg-border" />
+              <p className="text-[10px] text-muted-foreground">{group.description}</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {group.fields.map((field) => {
+                const key = `quickLog_${field.id}`;
+                const val = values[key];
+                const isOn = val === undefined ? field.defaultOn : val === "true";
+                return (
+                  <div
+                    key={field.id}
+                    className={cn(
+                      "flex items-center justify-between rounded-lg border p-3 gap-4 transition-colors",
+                      isOn ? "bg-primary/5 border-primary/20" : "bg-muted/20"
+                    )}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Label className="text-sm font-normal cursor-pointer truncate">
+                        {field.label}
+                      </Label>
+                      {field.unit && (
+                        <span className="text-[10px] text-muted-foreground shrink-0">({field.unit})</span>
+                      )}
+                    </div>
+                    <Switch
+                      checked={isOn}
+                      onCheckedChange={(checked) => set(key, checked ? "true" : "false")}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        <p className="text-xs text-muted-foreground pt-1">
           Quick Log always records the date and links to your active bag automatically.
+          <br />
+          <span className="text-[11px]">Grind Changed This Shot also appears automatically whenever Grind Setting is enabled.</span>
         </p>
       </CardContent>
     </Card>

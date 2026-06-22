@@ -1,0 +1,498 @@
+BigShotEspresso – Quick Log, Equipment Intelligence, Defaults Inheritance, and User Experience Refinement
+
+Goal:
+
+Continue evolving BigShotEspresso into a platform focused on:
+
+Log. Analyze. Repeat.
+
+Do not redesign the application.
+Do not rebuild the database.
+Do not change Airtable sync architecture.
+Do not implement subscriptions, billing, auth, or AI Coach yet.
+
+Focus on:
+
+- Quick Log
+- Logging Preferences
+- Equipment Intelligence
+- Defaults Inheritance
+- Beginner Simplicity
+- Advanced User Flexibility
+
+--------------------------------------------------
+CORE DESIGN PRINCIPLE
+--------------------------------------------------
+
+A shot should take less than 10 seconds to record.
+
+The app should adapt to the user.
+
+Beginners should see only a few fields.
+
+Advanced users should be able to track a complete espresso system.
+
+--------------------------------------------------
+1. QUICK LOG FOUNDATION
+--------------------------------------------------
+
+Create a Quick Log system.
+
+Quick Log should only display fields enabled in Logging Preferences.
+
+Keep existing advanced/full logging.
+
+Quick Log is an additional workflow.
+
+--------------------------------------------------
+2. LOGGING PREFERENCES
+--------------------------------------------------
+
+Organize preferences into groups.
+
+A. Essential
+Enabled by default:
+
+- Dose
+- Yield
+- Shot Time
+- Rating
+
+B. Timing
+
+Optional:
+
+- First Pour Delay
+- Pour Time
+- Scale Time
+
+Important:
+
+Pour Time and Scale Time are separate fields.
+
+C. Brew Setup
+
+Optional:
+
+- Temperature
+- Grind Setting
+- Grinder Time
+- Grinder Output Weight
+- Grind Changed This Shot
+
+D. Classification
+
+Optional:
+
+- Reference Shot
+- Signature Shot
+- Sour Shot
+- Shot Status
+- Shot Classification
+- Notes
+
+--------------------------------------------------
+3. RATING MODES
+--------------------------------------------------
+
+Add setting:
+
+Rating Input Mode
+
+Options:
+
+Easy Rating
+
+- 1 to 10 stars
+- Beginner friendly
+
+Precision Rating
+
+- Numeric
+- 0.00 to 10.00
+- Two decimal places
+
+Examples:
+
+7.75
+8.25
+9.50
+
+Default:
+
+Easy Rating
+
+Store internally as numeric values.
+
+--------------------------------------------------
+4. FIELD PRECISION
+--------------------------------------------------
+
+Dose:
+
+- grams
+- tenths precision
+
+Example:
+
+18.0g
+
+Yield:
+
+- grams
+- tenths precision
+
+Example:
+
+35.3g
+
+First Pour Delay:
+
+- seconds
+- tenths precision
+
+Example:
+
+7.5s
+
+Pour Time:
+
+- seconds
+- tenths precision
+
+Example:
+
+31.0s
+
+Scale Time:
+
+- seconds
+- tenths precision
+
+Example:
+
+29.5s
+
+--------------------------------------------------
+5. TEMPERATURE SUPPORT
+--------------------------------------------------
+
+Add Temperature field.
+
+Default:
+
+94°C
+
+Range:
+
+88°C to 98°C
+
+Use:
+
+- stepper
+- slider
+- numeric input
+
+Default source priority:
+
+1. Bag Default
+2. User Default
+3. 94°C fallback
+
+--------------------------------------------------
+6. EQUIPMENT / ACCESSORY INTELLIGENCE
+--------------------------------------------------
+
+Expand Accessories into a full Equipment System.
+
+Equipment Categories:
+
+- Espresso Machines
+- Grinders
+- Baskets
+- Puck Screens
+- Scales
+- Water
+
+Users may create Equipment Profiles.
+
+Examples:
+
+Home Setup
+
+- Profitec Go
+- Eureka Magnifico
+- IMS Basket
+- Normcore Puck Screen
+
+Travel Setup
+
+Different equipment.
+
+--------------------------------------------------
+7. DEFAULTS INHERITANCE
+--------------------------------------------------
+
+Allow defaults to inherit from equipment.
+
+For applicable fields:
+
+Default Source:
+
+- Equipment Setting
+- Bag Default
+- User Default
+- Manual Entry
+
+If equipment settings exist, allow users to select:
+
+Use Equipment Setting
+
+Example:
+
+Grinder Time Increment
+
+Source:
+
+Eureka Magnifico
+
+--------------------------------------------------
+8. GRINDER CONFIGURATION
+--------------------------------------------------
+
+Add grinder profile fields.
+
+Manufacturer
+
+Model
+
+Burr Type
+
+- Flat
+- Conical
+
+Burr Size
+
+Example:
+
+55mm
+
+Grind Adjustment Method
+
+- Stepped
+- Stepless
+- Micro-Stepped
+
+--------------------------------------------------
+9. GRIND OUTPUT MEASUREMENT
+--------------------------------------------------
+
+Rename:
+
+Timer Mode
+
+to:
+
+Grind Output Measurement
+
+Options:
+
+- By Time
+- By Weight
+- Manual / Single Dose
+
+Definitions:
+
+By Time
+
+Uses grinder timer.
+
+By Weight
+
+Uses grinder output weight.
+
+Manual / Single Dose
+
+User manually doses.
+
+--------------------------------------------------
+10. GRINDER TIMING SETTINGS
+--------------------------------------------------
+
+Add:
+
+Minimum Grind Time
+
+Example:
+
+0.2s
+
+Maximum Grind Time
+
+Optional
+
+Grind Time Increment
+
+Example:
+
+0.1s
+
+For Carl's Eureka Magnifico:
+
+Minimum:
+
+0.2s
+
+Increment:
+
+0.1s
+
+Quick Log should respect these constraints.
+
+--------------------------------------------------
+11. GRIND SCALE CONFIGURATION
+--------------------------------------------------
+
+Add:
+
+Grind Scale Minimum
+
+Example:
+
+1
+
+Grind Scale Maximum
+
+Example:
+
+10
+
+Grind Step Increment
+
+Examples:
+
+0.01
+0.10
+0.25
+0.33
+0.50
+1.00
+
+Example:
+
+Eureka Magnifico
+
+1.00
+1.33
+1.66
+2.00
+
+Do not force all grinders into the same scale.
+
+--------------------------------------------------
+12. GRIND CHANGED CHECKBOX
+--------------------------------------------------
+
+When Grind Setting is enabled:
+
+Show:
+
+Grind Changed This Shot
+
+Purpose:
+
+Quickly identify grind adjustments.
+
+Supports:
+
+- Dial-in analysis
+- Grind drift analysis
+- Future DIM calculations
+
+--------------------------------------------------
+13. GRINDER OUTPUT SEPARATION
+--------------------------------------------------
+
+Keep separate:
+
+Dose
+
+Actual coffee used in basket.
+
+Grinder Output Weight
+
+Coffee produced by grinder before trimming, overflow, or spillage.
+
+Grinder Time
+
+Time grinder operated.
+
+Do not treat these as the same measurement.
+
+--------------------------------------------------
+14. ADVANCED EQUIPMENT FIELDS
+--------------------------------------------------
+
+Grinders:
+
+- Retention Estimate
+- Hopper Capacity
+- Hopper Tracking Enabled
+- Supports Automatic Data Capture
+
+Machines:
+
+- Default Temperature
+- Preinfusion Support
+- Pressure Profiling Support
+
+Scales:
+
+- Bluetooth Capable
+- Auto Timer Capable
+- Supports Automatic Data Capture
+
+--------------------------------------------------
+15. EQUIPMENT STATUS HELPERS
+--------------------------------------------------
+
+Display helper text when defaults are inherited.
+
+Examples:
+
+Using grinder settings from Eureka Magnifico
+
+Using machine settings from Profitec Go
+
+No equipment settings configured – using manual defaults
+
+--------------------------------------------------
+16. PRESERVE BEGINNER EXPERIENCE
+--------------------------------------------------
+
+Do not force users to configure equipment.
+
+Quick Log should still work with:
+
+- Dose
+- Yield
+- Shot Time
+- Rating
+
+No equipment setup required.
+
+--------------------------------------------------
+17. PRODUCT PHILOSOPHY
+--------------------------------------------------
+
+BigShotEspresso exists to help users:
+
+Log.
+Analyze.
+Repeat.
+
+The goal is not to find one perfect shot.
+
+The goal is to discover repeatable success.
+
+All future intelligence should support this philosophy.
