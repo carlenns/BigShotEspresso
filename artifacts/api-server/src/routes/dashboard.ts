@@ -9,6 +9,7 @@ const router: IRouter = Router();
 function robustRange(vals: number[]): {
   min: number; max: number; count: number; outliersRemoved: number;
   confidence: "Low" | "Medium" | "High";
+  operationalMin: number; operationalMax: number;
 } | null {
   if (vals.length === 0) return null;
   const sorted = [...vals].sort((a, b) => a - b);
@@ -30,7 +31,11 @@ function robustRange(vals: number[]): {
   const outliersRemoved = n - count;
   const confidence: "Low" | "Medium" | "High" = count >= 10 ? "High" : count >= 4 ? "Medium" : "Low";
 
-  // Return p25–p75 cluster window of the filtered set
+  // Operational window = full IQR-filtered range
+  const operationalMin = Math.round(filtered[0]! * 10) / 10;
+  const operationalMax = Math.round(filtered[filtered.length - 1]! * 10) / 10;
+
+  // Peak cluster = p25–p75 of the filtered set
   const fn = filtered.length;
   const p25Idx = (fn - 1) * 0.25;
   const p75Idx = (fn - 1) * 0.75;
@@ -38,6 +43,8 @@ function robustRange(vals: number[]): {
   const p75 = filtered[Math.floor(p75Idx)]! + (p75Idx % 1) * ((filtered[Math.ceil(p75Idx)] ?? filtered[Math.floor(p75Idx)]!) - filtered[Math.floor(p75Idx)]!);
 
   return {
+    operationalMin,
+    operationalMax,
     min: Math.round(p25 * 10) / 10,
     max: Math.round(p75 * 10) / 10,
     count,
@@ -102,9 +109,13 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     ? Math.floor((now - new Date(activeBagRow.roastDate).getTime()) / 86_400_000)
     : null;
 
-  // ── Shots for active bag ──────────────────────────────────────────────────
+  // ── Shots for active bag (analysis-eligible only) ─────────────────────────
   const activeBagShots = await db.select().from(shotsTable)
-    .where(and(eq(shotsTable.bagId, activeBagRow.id), isNotNull(shotsTable.airtableRecordId)))
+    .where(and(
+      eq(shotsTable.bagId, activeBagRow.id),
+      isNotNull(shotsTable.airtableRecordId),
+      eq(shotsTable.includeInAnalysis, true),
+    ))
     .orderBy(desc(sql`${shotsTable.shotDate}`));
 
   const ratedShots = activeBagShots.filter((s) => s.rating != null);
@@ -181,6 +192,20 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     estimatedShotsRemaining = Math.floor(remaining / avgDose);
   }
 
+  // ── Bag phase + confidence ────────────────────────────────────────────────
+  // Phase logic based on days open, reference shots, bag consumption.
+  const isEndOfBag = (estimatedShotsRemaining != null && estimatedShotsRemaining <= 5) ||
+    (completionPct != null && completionPct >= 90);
+  const bagPhase: "Opening / Dial-In" | "Established Performance" | "Mature Bag" | "End of Bag" =
+    isEndOfBag ? "End of Bag"
+    : (openDays != null && openDays >= 21) ? "Mature Bag"
+    : (refCount > 0 && activeBagShots.length >= 5) ? "Established Performance"
+    : "Opening / Dial-In";
+  const bagConfidence: "Low" | "Medium" | "High" =
+    activeBagShots.length >= 15 ? "High"
+    : activeBagShots.length >= 5 ? "Medium"
+    : "Low";
+
   // ── Timing windows ─────────────────────────────────────────────────────────
   let timingSource: "current_bag" | "same_bean" | "all_reference" = "current_bag";
   let timingPool = topRated;
@@ -191,14 +216,14 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     const sameBeanIds = sameBeanBags.map((b) => b.id);
     if (sameBeanIds.length > 1) {
       const sameBeanShots = await db.select().from(shotsTable)
-        .where(and(isNotNull(shotsTable.bagId), isNotNull(shotsTable.airtableRecordId), sql`${shotsTable.bagId} = ANY(${sameBeanIds})`))
+        .where(and(isNotNull(shotsTable.bagId), isNotNull(shotsTable.airtableRecordId), eq(shotsTable.includeInAnalysis, true), sql`${shotsTable.bagId} = ANY(${sameBeanIds})`))
         .orderBy(desc(sql`${shotsTable.shotDate}`));
       timingPool = sameBeanShots.filter((s) => s.rating != null && Number(s.rating) >= 8);
       timingSource = "same_bean";
     }
   }
   if (timingPool.length < 3) {
-    const allRef = await db.select().from(shotsTable).where(and(eq(shotsTable.isReference, true), isNotNull(shotsTable.airtableRecordId)));
+    const allRef = await db.select().from(shotsTable).where(and(eq(shotsTable.isReference, true), isNotNull(shotsTable.airtableRecordId), eq(shotsTable.includeInAnalysis, true)));
     timingPool = allRef;
     timingSource = "all_reference";
   }
@@ -229,7 +254,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   const driftDir = drift == null ? null : drift > 0.02 ? "coarser" : drift < -0.02 ? "finer" : "stable";
 
   const [prevGrind] = await db.select({ avg: sql<number | null>`round(avg(${shotsTable.grindSetting})::numeric, 3)` })
-    .from(shotsTable).where(and(isNotNull(shotsTable.grindSetting), isNotNull(shotsTable.airtableRecordId), sql`${shotsTable.bagId} != ${activeBagRow.id}`));
+    .from(shotsTable).where(and(isNotNull(shotsTable.grindSetting), isNotNull(shotsTable.airtableRecordId), eq(shotsTable.includeInAnalysis, true), sql`${shotsTable.bagId} != ${activeBagRow.id}`));
 
   // ── Bag comparison (grind drift per bag) ──────────────────────────────────
   const allBagsGrind = await db.select({
@@ -247,7 +272,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     .from(shotsTable)
     .leftJoin(bagsTable, eq(shotsTable.bagId, bagsTable.id))
     .leftJoin(beansTable, eq(bagsTable.beanId, beansTable.id))
-    .where(and(isNotNull(shotsTable.grindSetting), isNotNull(shotsTable.airtableRecordId)))
+    .where(and(isNotNull(shotsTable.grindSetting), isNotNull(shotsTable.airtableRecordId), eq(shotsTable.includeInAnalysis, true)))
     .groupBy(shotsTable.bagId, bagsTable.bagNumber, beansTable.name, bagsTable.openedDate)
     .orderBy(desc(sql`count(*)`))
     .limit(5);
@@ -361,6 +386,8 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
       referenceRate,
       signatureShotCount,
       dialInSpeed,
+      bagPhase,
+      bagConfidence,
       bestYieldRange,
       bestPourDelayRange,
       bestShot: bestShot ? {
@@ -407,7 +434,7 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
     avgDose: sql<number | null>`round(avg(${shotsTable.dose})::numeric, 2)`,
     avgYield: sql<number | null>`round(avg(${shotsTable.yield})::numeric, 2)`,
     avgPourTime: sql<number | null>`round(avg(${shotsTable.pourTime})::numeric, 1)`,
-  }).from(shotsTable).where(isNotNull(shotsTable.airtableRecordId));
+  }).from(shotsTable).where(and(isNotNull(shotsTable.airtableRecordId), eq(shotsTable.includeInAnalysis, true)));
   res.json({ totalShots: aggs?.totalShots ?? 0, referenceShots: aggs?.referenceShots ?? 0, avgDose: aggs?.avgDose ?? null, avgYield: aggs?.avgYield ?? null, avgPourTime: aggs?.avgPourTime ?? null });
 });
 
@@ -415,7 +442,7 @@ router.get("/dashboard/recent", async (req, res): Promise<void> => {
   const params = GetRecentShotsQueryParams.safeParse(req.query);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const limit = params.data.limit ? Number(params.data.limit) : 10;
-  const shots = await db.select().from(shotsTable).where(isNotNull(shotsTable.airtableRecordId)).orderBy(desc(sql`${shotsTable.shotDate}`)).limit(limit);
+  const shots = await db.select().from(shotsTable).where(and(isNotNull(shotsTable.airtableRecordId), eq(shotsTable.includeInAnalysis, true))).orderBy(desc(sql`${shotsTable.shotDate}`)).limit(limit);
   res.json(shots);
 });
 
@@ -423,7 +450,7 @@ router.get("/dashboard/best-rated", async (req, res): Promise<void> => {
   const params = GetBestRatedShotsQueryParams.safeParse(req.query);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const limit = params.data.limit ? Number(params.data.limit) : 10;
-  const shots = await db.select().from(shotsTable).where(and(isNotNull(shotsTable.rating), isNotNull(shotsTable.airtableRecordId))).orderBy(desc(shotsTable.rating)).limit(limit);
+  const shots = await db.select().from(shotsTable).where(and(isNotNull(shotsTable.rating), isNotNull(shotsTable.airtableRecordId), eq(shotsTable.includeInAnalysis, true))).orderBy(desc(shotsTable.rating)).limit(limit);
   res.json(shots);
 });
 

@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 interface RangeVal {
   min: number;
   max: number;
+  operationalMin: number;
+  operationalMax: number;
   count: number;
   outliersRemoved: number;
   confidence: "Low" | "Medium" | "High";
@@ -53,6 +55,8 @@ interface Intelligence {
     referenceRate: number | null;
     signatureShotCount: number | null;
     dialInSpeed: number | null;
+    bagPhase: "Opening / Dial-In" | "Established Performance" | "Mature Bag" | "End of Bag";
+    bagConfidence: "Low" | "Medium" | "High";
     bestYieldRange: RangeVal | null; bestPourDelayRange: RangeVal | null;
     bestShot: { id: number; rating: number | null; dose: number | null; yield: number | null; grindSetting: number | null; pourTime: number | null; shotDate: string } | null;
   } | null;
@@ -298,14 +302,50 @@ export default function Dashboard() {
                     />
                   </div>
 
+                  <div className="rounded-lg bg-muted/40 px-3 py-2.5 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Bag phase</p>
+                      <p className="font-semibold text-sm">{bi.bagPhase}</p>
+                    </div>
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-full font-medium",
+                      bi.bagConfidence === "High" ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400"
+                      : bi.bagConfidence === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
+                      : "bg-muted text-muted-foreground"
+                    )}>
+                      {bi.bagConfidence} confidence
+                    </span>
+                  </div>
+
                   {bi.bestYieldRange && (
                     <div className="rounded-lg bg-muted/40 px-3 py-2.5">
-                      <p className="text-xs text-muted-foreground mb-0.5">Best yield range (rated 8+)</p>
-                      <p className="font-semibold tabular-nums">
-                        {bi.bestYieldRange.min === bi.bestYieldRange.max
-                          ? `${bi.bestYieldRange.min}g`
-                          : `${bi.bestYieldRange.min}g – ${bi.bestYieldRange.max}g`}
-                      </p>
+                      <p className="text-xs text-muted-foreground mb-1">Best yield range (rated 8+)</p>
+                      {bi.bestYieldRange.operationalMin !== bi.bestYieldRange.min || bi.bestYieldRange.operationalMax !== bi.bestYieldRange.max ? (
+                        <div className="space-y-1">
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Operational</p>
+                            <p className="font-semibold tabular-nums">
+                              {bi.bestYieldRange.operationalMin === bi.bestYieldRange.operationalMax
+                                ? `${bi.bestYieldRange.operationalMin}g`
+                                : `${bi.bestYieldRange.operationalMin}g – ${bi.bestYieldRange.operationalMax}g`}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Peak Cluster</p>
+                            <p className="font-semibold tabular-nums text-primary text-sm">
+                              {bi.bestYieldRange.min === bi.bestYieldRange.max
+                                ? `${bi.bestYieldRange.min}g`
+                                : `${bi.bestYieldRange.min}g – ${bi.bestYieldRange.max}g`}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="font-semibold tabular-nums">
+                          {bi.bestYieldRange.min === bi.bestYieldRange.max
+                            ? `${bi.bestYieldRange.min}g`
+                            : `${bi.bestYieldRange.min}g – ${bi.bestYieldRange.max}g`}
+                        </p>
+                      )}
                       <ConfidencePill range={bi.bestYieldRange} />
                     </div>
                   )}
@@ -474,7 +514,7 @@ export default function Dashboard() {
             </span>
           </SectionLabel>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {tw.yieldRange && <WindowStat icon={Droplets} label="Yield" range={tw.yieldRange} unit="g" />}
+            {tw.yieldRange && <WindowStat icon={Droplets} label="Yield" range={tw.yieldRange} unit="g" showDualWindow />}
             {tw.pourTimeRange && <WindowStat icon={Clock} label="Pour time" range={tw.pourTimeRange} unit="s" />}
             {tw.scaleTimeRange && <WindowStat icon={Timer} label="Scale time" range={tw.scaleTimeRange} unit="s" />}
             {tw.pourDelayRange && <WindowStat icon={Target} label="First pour delay" range={tw.pourDelayRange} unit="s" />}
@@ -548,7 +588,8 @@ function ConfidencePill({ range }: { range: RangeVal }) {
   );
 }
 
-function WindowStat({ icon: Icon, label, range, unit }: { icon: React.ElementType; label: string; range: RangeVal; unit: string }) {
+function WindowStat({ icon: Icon, label, range, unit, showDualWindow }: { icon: React.ElementType; label: string; range: RangeVal; unit: string; showDualWindow?: boolean }) {
+  const showOp = showDualWindow && (range.operationalMin !== range.min || range.operationalMax !== range.max);
   return (
     <Card>
       <CardContent className="p-4">
@@ -556,11 +597,32 @@ function WindowStat({ icon: Icon, label, range, unit }: { icon: React.ElementTyp
           <Icon className="h-3.5 w-3.5" />
           <p className="text-xs">{label}</p>
         </div>
-        <p className="font-bold tabular-nums text-base">
-          {range.min === range.max
-            ? `${range.min}${unit}`
-            : `${range.min}${unit} – ${range.max}${unit}`}
-        </p>
+        {showOp ? (
+          <div className="space-y-1.5">
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Operational</p>
+              <p className="font-bold tabular-nums text-base">
+                {range.operationalMin === range.operationalMax
+                  ? `${range.operationalMin}${unit}`
+                  : `${range.operationalMin}${unit} – ${range.operationalMax}${unit}`}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Peak Cluster</p>
+              <p className="font-semibold tabular-nums text-sm text-primary">
+                {range.min === range.max
+                  ? `${range.min}${unit}`
+                  : `${range.min}${unit} – ${range.max}${unit}`}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <p className="font-bold tabular-nums text-base">
+            {range.min === range.max
+              ? `${range.min}${unit}`
+              : `${range.min}${unit} – ${range.max}${unit}`}
+          </p>
+        )}
         <ConfidencePill range={range} />
       </CardContent>
     </Card>

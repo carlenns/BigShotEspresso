@@ -408,9 +408,16 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
           const faultRaw = findField(f, ["Fault Status", "Fault"]);
           const faultStatus = Array.isArray(faultRaw) ? faultRaw.join(", ") : str(faultRaw);
 
-          // Include in Analysis: stored as 0/1 number in Airtable
+          // Status — pre-computed so it can be used in the includeInAnalysis fallback
+          const statusStr = str(findField(f, ["Shot Status", "Status"])) ?? "";
+
+          // Include in Analysis: 0/1 checkbox in Airtable.
+          // Fallback when field is absent: status ∈ {Good, Dialed In} AND fault status = Good.
           const includeRaw = findField(f, ["Include in Analysis", "Include In Analysis"]);
-          const includeInAnalysis = includeRaw != null ? Number(includeRaw) === 1 : undefined;
+          const includeInAnalysis = includeRaw != null
+            ? Number(includeRaw) === 1
+            : (["good", "dialed in"].includes(statusStr.toLowerCase()) &&
+               (faultStatus ?? "").toLowerCase() === "good");
 
           const existing = await db.select({ id: shotsTable.id }).from(shotsTable).where(eq(shotsTable.airtableRecordId, r.id));
           const vals = {
@@ -432,7 +439,7 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
             preferenceRating: num(findField(f, ["Preference Rating"])),
             isReference: bool(findField(f, ["Reference Shot"])) ?? false,
             signatureShot: bool(findField(f, ["Signature Shot"])) ?? false,
-            status: str(findField(f, ["Shot Status", "Status"])),
+            status: statusStr || undefined,
             shotClassification,
             faultStatus,
             expressionStyle: str(findField(f, ["Expression Style"])),
