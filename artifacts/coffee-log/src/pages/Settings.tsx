@@ -13,6 +13,7 @@ import {
   Save, Settings as SettingsIcon, Coffee, Zap, Wrench, Package, ClipboardList,
   Database, CheckCircle2, XCircle, RefreshCw, Loader2, AlertTriangle,
 } from "lucide-react";
+import { QUICK_LOG_FIELDS } from "@/pages/QuickLog";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -265,6 +266,9 @@ export default function Settings() {
         ))
       )}
 
+      {/* ── Logging Preferences ───────────────────────────────────────────── */}
+      <LoggingPreferencesSection values={values} set={set} />
+
       {/* ── Airtable Connection ────────────────────────────────────────────── */}
       <AirtableSection />
 
@@ -275,6 +279,56 @@ export default function Settings() {
         </Button>
       </div>
     </div>
+  );
+}
+
+// ── Logging Preferences Section ───────────────────────────────────────────────
+
+function LoggingPreferencesSection({
+  values,
+  set,
+}: {
+  values: Record<string, string>;
+  set: (key: string, value: string) => void;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Zap className="h-5 w-5 text-primary" />
+          <CardTitle>Logging Preferences</CardTitle>
+        </div>
+        <CardDescription>
+          Choose which fields appear in Quick Log. Disable fields you don't regularly track to keep entry faster.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {QUICK_LOG_FIELDS.map((field) => {
+            const key = `quickLog_${field.id}`;
+            const val = values[key];
+            const isOn = val === undefined ? field.defaultOn : val === "true";
+            return (
+              <div key={field.id} className="flex items-center justify-between rounded-lg border p-3 gap-4">
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-sm font-normal cursor-pointer">{field.label}</Label>
+                  {field.unit && (
+                    <span className="text-xs text-muted-foreground">({field.unit})</span>
+                  )}
+                </div>
+                <Switch
+                  checked={isOn}
+                  onCheckedChange={(checked) => set(key, checked ? "true" : "false")}
+                />
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground mt-4">
+          Quick Log always records the date and links to your active bag automatically.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 

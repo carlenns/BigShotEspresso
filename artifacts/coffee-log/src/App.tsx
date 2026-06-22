@@ -17,6 +17,7 @@ import BagDetail from "@/pages/BagDetail";
 import Equipment from "@/pages/Equipment";
 import Accessories from "@/pages/Accessories";
 import TasteSelectors from "@/pages/TasteSelectors";
+import QuickLog from "@/pages/QuickLog";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/shots" component={ShotList} />
+        <Route path="/shots/quick" component={QuickLog} />
         <Route path="/shots/new" component={ShotForm} />
         <Route path="/shots/:id" component={ShotDetail} />
         <Route path="/reference" component={ReferenceShots} />
