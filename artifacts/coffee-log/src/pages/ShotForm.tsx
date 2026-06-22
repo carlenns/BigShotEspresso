@@ -18,12 +18,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import {
-  SHOT_STATUS_OPTIONS,
-  FAULT_STATUS_OPTIONS,
-  EXPRESSION_STYLE_OPTIONS,
-  BEAN_ACHIEVEMENT_OPTIONS,
-} from "@/pages/QuickLog";
+import { fetchSelectorOptions } from "@/pages/QuickLog";
 
 interface Bag {
   id: number; beanName: string | null; bagNumber: string | null; bagName: string | null; isActive: boolean;
@@ -81,6 +76,12 @@ export default function ShotForm() {
 
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: tasteSelectors = [] } = useQuery({ queryKey: ["taste-selectors"], queryFn: fetchTasteSelectors });
+  const { data: selectorOpts } = useQuery({ queryKey: ["selector-options"], queryFn: fetchSelectorOptions });
+
+  const statusOptions = selectorOpts?.status?.length ? selectorOpts.status : ["Good", "Dialed In", "Experimental"];
+  const faultStatusOptions = selectorOpts?.faultStatus?.length ? selectorOpts.faultStatus : ["Good", "Fault"];
+  const expressionStyleOptions = selectorOpts?.expressionStyle ?? [];
+  const beanAchievementOptions = selectorOpts?.beanAchievement ?? [];
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -369,7 +370,7 @@ export default function ShotForm() {
                       <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="__none__">— not set —</SelectItem>
-                        {SHOT_STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        {statusOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -384,7 +385,7 @@ export default function ShotForm() {
                       <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="__none__">— not set —</SelectItem>
-                        {FAULT_STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        {faultStatusOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -432,7 +433,7 @@ export default function ShotForm() {
                       <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="__none__">— not set —</SelectItem>
-                        {EXPRESSION_STYLE_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        {expressionStyleOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -447,7 +448,7 @@ export default function ShotForm() {
                       <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="__none__">— not set —</SelectItem>
-                        {BEAN_ACHIEVEMENT_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        {beanAchievementOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />

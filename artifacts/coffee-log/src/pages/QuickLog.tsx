@@ -81,26 +81,24 @@ export function getEnabledFieldIds(settings: Record<string, string>): string[] {
     .map((f) => f.id);
 }
 
-// ── Shot Evaluation options ───────────────────────────────────────────────────
+// ── Selector options — sourced from Airtable-synced records ─────────────────
 
-export const SHOT_STATUS_OPTIONS = ["Good", "Dialed In", "Poor", "Experimental"] as const;
-export const FAULT_STATUS_OPTIONS = ["Good", "Fault"] as const;
-export const EXPRESSION_STYLE_OPTIONS = [
-  "Balanced",
-  "Fruit Forward",
-  "Chocolate / Nutty",
-  "Bright / Acidic",
-  "Sweet / Mellow",
-  "Herbal / Floral",
-  "Bold / Intense",
-] as const;
-export const BEAN_ACHIEVEMENT_OPTIONS = [
-  "Potential Unlocked",
-  "Meeting Potential",
-  "Still Dialing In",
-  "Underperforming",
-  "Exceeded Expectations",
-] as const;
+export interface SelectorOptions {
+  expressionStyle: string[];
+  beanAchievement: string[];
+  shotClassification: string[];
+  status: string[];
+  faultStatus: string[];
+  drinkType: string[];
+}
+
+export async function fetchSelectorOptions(): Promise<SelectorOptions> {
+  return fetch("/api/shots/selector-options").then((r) => r.json());
+}
+
+// Fallback options shown before API data loads or when no Airtable data exists
+const FALLBACK_STATUS = ["Good", "Dialed In", "Experimental"];
+const FALLBACK_FAULT_STATUS = ["Good", "Fault"];
 
 // ── Data fetchers ────────────────────────────────────────────────────────────
 
@@ -154,6 +152,12 @@ export default function QuickLog() {
 
   const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
   const { data: intelData } = useQuery({ queryKey: ["intelligence"], queryFn: fetchActiveBag });
+  const { data: selectorOpts } = useQuery({ queryKey: ["selector-options"], queryFn: fetchSelectorOptions });
+
+  const statusOptions = selectorOpts?.status?.length ? selectorOpts.status : FALLBACK_STATUS;
+  const faultStatusOptions = selectorOpts?.faultStatus?.length ? selectorOpts.faultStatus : FALLBACK_FAULT_STATUS;
+  const expressionStyleOptions = selectorOpts?.expressionStyle ?? [];
+  const beanAchievementOptions = selectorOpts?.beanAchievement ?? [];
 
   const activeBag = intelData?.activeBag ?? null;
   const enabledIds = settings ? getEnabledFieldIds(settings) : QUICK_LOG_FIELDS.filter((f) => f.defaultOn).map((f) => f.id);
@@ -392,7 +396,7 @@ export default function QuickLog() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">— not set —</SelectItem>
-                    {SHOT_STATUS_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    {statusOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -409,7 +413,7 @@ export default function QuickLog() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">— not set —</SelectItem>
-                    {FAULT_STATUS_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    {faultStatusOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -449,7 +453,7 @@ export default function QuickLog() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">— not set —</SelectItem>
-                    {EXPRESSION_STYLE_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    {expressionStyleOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -466,7 +470,7 @@ export default function QuickLog() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">— not set —</SelectItem>
-                    {BEAN_ACHIEVEMENT_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    {beanAchievementOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

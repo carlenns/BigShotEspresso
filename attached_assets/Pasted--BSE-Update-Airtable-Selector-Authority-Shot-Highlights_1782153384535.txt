@@ -1,0 +1,246 @@
+# BSE Update: Airtable Selector Authority + Shot Highlights
+
+## Goal
+
+Fix selector inconsistencies and improve Shot Log usability.
+
+Airtable is the source of truth for selector values.
+
+Do not create independent Replit selector systems.
+
+Do not change analytics.
+
+Do not rebuild the database.
+
+Do not modify Airtable sync architecture.
+
+Focus on:
+
+- Selector consistency
+- Airtable integration
+- Shot Log usability
+- Onboarding guidance
+
+---
+
+# 1. Airtable as Source of Truth
+
+The following fields already exist in Airtable and must be used directly by the app.
+
+## Selector Fields
+
+- Expression Style
+- Bean Achievement
+- Shot Classification
+- Shot Status
+- Fault Status
+- Drink Type
+- Taste Zone
+- Flow Diagnostic
+- Shot Drift Status
+- Shot Tier
+- Hopper Behaviour
+- Hopper Severity
+- Action Suggestion
+
+## Requirements
+
+- Preserve exact Airtable labels.
+- Preserve capitalization.
+- Do not invent new selector values.
+- Do not replace existing Airtable vocabulary.
+- Use Airtable metadata when available.
+- If metadata is unavailable, derive available values from synced records.
+- Use these values everywhere:
+  - Quick Log
+  - Full Log
+  - Edit Shot
+  - Filters
+  - Shot Log
+  - Future analytics
+
+---
+
+# 2. Expression Style Fix
+
+Expression Style must use existing Airtable values.
+
+Do not create hardcoded values such as:
+
+- Balanced
+- Sweet
+- Fruit Forward
+
+unless those exact values already exist in Airtable.
+
+---
+
+# 3. Bean Achievement Fix
+
+Bean Achievement must use existing Airtable values.
+
+Do not create local Replit achievement values.
+
+Use Airtable values only.
+
+---
+
+# 4. Add Shot Highlights to Shot Log
+
+Add a compact Shot Highlights section to each Shot Log entry.
+
+Purpose:
+
+Help users quickly remember what made a shot memorable.
+
+This is not intended to display every selector value.
+
+This is a memory aid.
+
+Examples:
+
+Caramel Forward · Reference
+
+Caramel Forward · Signature
+
+Sour · Reference
+
+Guest Worthy · Signature
+
+---
+
+# 5. Shot Highlights Priority
+
+Display highlights using this order:
+
+1. First selected Expression Style
+2. Reference Shot (if checked)
+3. Signature Shot (if checked)
+4. Sour Shot (if checked)
+5. First selected Bean Achievement
+6. First selected Shot Classification
+
+Use only the first selected value from multi-select fields.
+
+Do not display every selected value.
+
+---
+
+# 6. Highlight Limits
+
+Maximum:
+
+3 Shot Highlight chips per shot.
+
+Examples:
+
+✅ Caramel Forward · Reference
+
+✅ Caramel Forward · Signature · Guest Worthy
+
+✅ Sour · Signature
+
+❌ Do not show 6–10 badges.
+
+Keep it clean.
+
+---
+
+# 7. Reference / Signature Behavior
+
+If Reference Shot checkbox is true:
+
+Display:
+
+Reference
+
+If Signature Shot checkbox is true:
+
+Display:
+
+Signature
+
+Do not infer these from ratings.
+
+Only use the actual Airtable checkbox values.
+
+---
+
+# 8. Sour Shot Behavior
+
+If Sour checkbox is true:
+
+Display:
+
+Sour
+
+Only use the Airtable checkbox value.
+
+---
+
+# 9. Onboarding Guidance
+
+Add onboarding/help guidance explaining Shot Highlights.
+
+Suggested wording:
+
+"Shot Highlights help you quickly remember what made a shot memorable."
+
+"When selecting multiple Expression Styles or Achievements, place the most important one first."
+
+"BSE uses the first selected value as the primary Shot Highlight."
+
+Purpose:
+
+Encourage users to place their most meaningful descriptor first.
+
+Examples:
+
+Caramel Forward
+
+Balanced
+
+Chocolate Forward
+
+Fruit Forward
+
+Guest Worthy
+
+Signature Candidate
+
+---
+
+# 10. Preserve Clean Layout
+
+Do not clutter the Shot Log.
+
+Shot Highlights should be compact, readable, and useful.
+
+A user should be able to quickly scan the log and understand:
+
+- What the shot tasted like
+- Whether it was memorable
+- Whether it was Reference
+- Whether it was Signature
+- Whether it was Sour
+
+without opening the shot record.
+
+---
+
+# 11. Do Not Change Analytics
+
+Do not modify:
+
+- Dashboard calculations
+- Reference Shot calculations
+- Signature Shot calculations
+- Include in Analysis logic
+- Airtable sync architecture
+
+This task is strictly:
+
+- Airtable selector consistency
+- Shot Highlight display
+- Onboarding guidance
+- User experience improvements
