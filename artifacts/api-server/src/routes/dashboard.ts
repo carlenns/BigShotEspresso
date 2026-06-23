@@ -249,13 +249,40 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
 
   // ── Grind Drift ───────────────────────────────────────────────────────────
   const grindShots = activeBagShots.filter((s) => s.grindSetting != null);
-  const half = Math.max(1, Math.ceil(grindShots.length / 2));
-  const early = grindShots.slice(-Math.min(5, half)).reverse();
-  const recentG = grindShots.slice(0, Math.min(5, half));
-  const earlyAvg = early.length ? Math.round((early.reduce((a, s) => a + Number(s.grindSetting), 0) / early.length) * 1000) / 1000 : null;
-  const recentAvg = recentG.length ? Math.round((recentG.reduce((a, s) => a + Number(s.grindSetting), 0) / recentG.length) * 1000) / 1000 : null;
-  const drift = earlyAvg != null && recentAvg != null ? Math.round((recentAvg - earlyAvg) * 1000) / 1000 : null;
+  // activeBagShots is ordered DESC: [0] = most recent, [last] = oldest
+  const grindFirst = grindShots.length > 0 ? Number(grindShots[grindShots.length - 1].grindSetting) : null;
+  const grindCurrent = grindShots.length > 0 ? Number(grindShots[0].grindSetting) : null;
+  // Canonical start/current: prefer bag record (Airtable-synced), fall back to shot-derived
+  const startSetting = activeBagRow.startGrindSetting ?? grindFirst;
+  const currentSetting = activeBagRow.currentGrindSetting ?? grindCurrent;
+  // Net change = Current − Start (positive = coarser, negative = finer)
+  const drift = (startSetting != null && currentSetting != null)
+    ? Math.round((currentSetting - startSetting) * 1000) / 1000
+    : null;
   const driftDir = drift == null ? null : drift > 0.02 ? "coarser" : drift < -0.02 ? "finer" : "stable";
+
+  // ── Grind change context ───────────────────────────────────────────────────
+  const chronoGrindShots = [...grindShots].reverse(); // oldest first
+  let changesCount = 0;
+  let lastChangeDate: string | null = null;
+  let largestMoveAmt = 0;
+  let largestMoveDir: "finer" | "coarser" | null = null;
+  for (let i = 1; i < chronoGrindShots.length; i++) {
+    const prev = Number(chronoGrindShots[i - 1].grindSetting);
+    const curr = Number(chronoGrindShots[i].grindSetting);
+    const diff = Math.round((curr - prev) * 1000) / 1000;
+    if (Math.abs(diff) >= 0.005) {
+      changesCount++;
+      lastChangeDate = chronoGrindShots[i].shotDate as string;
+      if (Math.abs(diff) > Math.abs(largestMoveAmt)) {
+        largestMoveAmt = diff;
+        largestMoveDir = diff < 0 ? "finer" : "coarser";
+      }
+    }
+  }
+  const daysSinceLastChange = lastChangeDate
+    ? Math.floor((now - new Date(lastChangeDate).getTime()) / 86_400_000)
+    : null;
 
   const [prevGrind] = await db.select({ avg: sql<number | null>`round(avg(${shotsTable.grindSetting})::numeric, 3)` })
     .from(shotsTable).where(and(isNotNull(shotsTable.grindSetting), isNotNull(shotsTable.airtableRecordId), eq(shotsTable.includeInAnalysis, true), sql`${shotsTable.bagId} != ${activeBagRow.id}`));
@@ -266,8 +293,8 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     bagNumber: bagsTable.bagNumber,
     beanName: beansTable.name,
     shotCount: sql<number>`count(*)::int`,
-    firstGrind: sql<number | null>`min(${shotsTable.grindSetting})`,
-    lastGrind: sql<number | null>`max(${shotsTable.grindSetting})`,
+    firstGrind: sql<number | null>`(array_agg(${shotsTable.grindSetting} ORDER BY ${shotsTable.shotDate} ASC NULLS LAST))[1]`,
+    lastGrind: sql<number | null>`(array_agg(${shotsTable.grindSetting} ORDER BY ${shotsTable.shotDate} DESC NULLS LAST))[1]`,
     avgGrind: sql<number | null>`round(avg(${shotsTable.grindSetting})::numeric, 3)`,
     openedDate: bagsTable.openedDate,
     refCount: sql<number>`count(*) filter (where ${shotsTable.isReference} = true)::int`,
@@ -458,13 +485,18 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     } : null,
     timingWindows,
     grindDrift: grindShots.length > 0 ? {
-      startSetting: activeBagRow.startGrindSetting,
+      startSetting,
       startTime: activeBagRow.startGrindTime,
-      currentSetting: activeBagRow.currentGrindSetting,
+      currentSetting,
       currentTime: activeBagRow.currentGrindTime,
-      earlyAvg, recentAvg, drift, direction: driftDir,
+      drift, direction: driftDir,
       previousBagAvg: prevGrind?.avg != null ? Number(prevGrind.avg) : null,
       shotCount: grindShots.length,
+      changesCount,
+      lastChangeDate,
+      daysSinceLastChange,
+      largestMove: largestMoveAmt !== 0 ? Math.round(Math.abs(largestMoveAmt) * 1000) / 1000 : null,
+      largestMoveDir,
     } : null,
     bagComparison: allBagsGrind.map((b) => ({
       ...b,

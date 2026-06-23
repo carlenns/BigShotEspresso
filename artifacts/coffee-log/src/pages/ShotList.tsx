@@ -31,24 +31,20 @@ interface ShotHighlightSource {
 function getShotHighlights(shot: ShotHighlightSource): string[] {
   const highlights: string[] = [];
 
+  // Reference / Signature shown as top badge — excluded from highlights
+
   // 1. First Expression Style
   const expr = firstCsvValue(shot.expressionStyle);
   if (expr) highlights.push(expr);
 
-  // 2. Reference Shot
-  if (shot.isReference) highlights.push("Reference");
-
-  // 3. Signature Shot
-  if (shot.signatureShot) highlights.push("Signature");
-
-  // 4. Sour Shot
+  // 2. Sour Shot
   if (shot.sourShot) highlights.push("Sour");
 
-  // 5. First Bean Achievement
+  // 3. First Bean Achievement
   const ach = firstCsvValue(shot.beanAchievement);
   if (ach) highlights.push(ach);
 
-  // 6. First Shot Classification
+  // 4. First Shot Classification
   const cls = firstCsvValue(shot.shotClassification);
   if (cls) highlights.push(cls);
 
@@ -117,7 +113,7 @@ export default function ShotList() {
             <p className="font-medium text-foreground">Shot Highlights</p>
             <p>Shot Highlights help you quickly remember what made a shot memorable — without opening the full record.</p>
             <p>When selecting multiple Expression Styles or Achievements in a shot, place the most important one first. BSE uses the first selected value as the primary Shot Highlight.</p>
-            <p className="text-xs">Examples: <span className="font-medium">Caramel Forward · Reference</span> &nbsp;·&nbsp; <span className="font-medium">Balanced · Signature · Guest Worthy</span></p>
+            <p className="text-xs">Examples: <span className="font-medium">Caramel Forward · Balanced</span> &nbsp;·&nbsp; <span className="font-medium">Balanced · Sour · Guest Worthy</span></p>
           </CardContent>
         </Card>
       )}
@@ -137,6 +133,21 @@ export default function ShotList() {
                 <Card className="hover:border-primary/50 transition-colors cursor-pointer">
                   <CardContent className="p-4 flex flex-col sm:flex-row justify-between gap-3">
                     <div className="flex-1 min-w-0">
+                      {/* Reference / Signature top badge — Signature hides Reference */}
+                      {(shot.signatureShot || shot.isReference) && (
+                        <div className="mb-1.5">
+                          {shot.signatureShot ? (
+                            <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-900">
+                              Signature
+                            </span>
+                          ) : (
+                            <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border bg-primary/15 text-primary border-primary/20">
+                              Reference
+                            </span>
+                          )}
+                        </div>
+                      )}
+
                       {/* Bean + status badge */}
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-semibold text-foreground truncate">{shot.bean || "Unknown Bean"}</span>
@@ -159,9 +170,9 @@ export default function ShotList() {
                       {/* Shot Highlights */}
                       {highlights.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
-                          {highlights.map((h) => (
+                          {highlights.map((h, i) => (
                             <span
-                              key={h}
+                              key={`${h}-${i}`}
                               className={cn(
                                 "text-[11px] font-medium px-2 py-0.5 rounded-full border",
                                 highlightChipClass(h)
