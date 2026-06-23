@@ -1,0 +1,283 @@
+BSE Dashboard + Shot Card Corrections
+
+Goal
+
+Fix remaining dashboard logic/display issues and improve shot-card clarity.
+
+Do not change Airtable sync architecture.
+
+Do not rebuild the database.
+
+Do not add new major features.
+
+Focus only on:
+
+* Grind Journey math and display
+* Grind Journey context
+* Global Reference Intelligence positioning
+* Reference / Signature Shot behavior
+* Shot Log card display
+
+⸻
+
+1. Grind Journey Start / Current Logic
+
+Problem
+
+The current Grind Journey math/display is wrong.
+
+Example shown:
+
+Start: 2.33
+Current: 2.21
+Net Change: -0.330
+
+This is incorrect.
+
+2.33 → 2.21 = -0.12
+
+Required Fix
+
+Calculate net change strictly as:
+
+Current Grind - Start Grind
+
+Example:
+
+2.33 → 2.21
+
+2.21 - 2.33 = -0.12
+
+Display:
+
+Net Change: -0.120
+
+or:
+
+Finer by 0.120
+
+Start Grind Definition
+
+Start Grind should be the first valid grind setting recorded for the displayed bag.
+
+Current Grind should be the most recent valid grind setting recorded for the displayed bag.
+
+Use only records belonging to the displayed bag.
+
+Use only valid analysis shots unless no valid shots exist.
+
+Do not mix bags.
+
+Do not use global grind settings.
+
+⸻
+
+2. Grind Direction Rules
+
+Default interpretation:
+
+* Lower grind number = finer
+* Higher grind number = coarser
+
+Examples:
+
+2.33 → 2.21
+= Finer by 0.120
+
+2.10 → 2.20
+= Coarser by 0.100
+
+2.66 → 2.66
+= Stable
+
+Display direction clearly using:
+
+* ↘ Finer
+* ↗ Coarser
+* → Stable
+
+⸻
+
+3. Bag Comparison Grind Columns
+
+In Bag Comparison:
+
+Start should display the actual first valid grind setting for that bag.
+
+Last should display the actual most recent valid grind setting for that bag.
+
+Do not reorder values to make Start lower/higher.
+
+Start is chronological, not minimum/maximum.
+
+Add a Direction/Change display:
+
+Examples:
+
+2.33 → 2.21
+↘ Finer -0.120
+
+2.00 → 2.33
+↗ Coarser +0.330
+
+2.66 → 2.66
+→ Stable
+
+⸻
+
+4. Grind Journey Missing Context
+
+Add lightweight context to the Grind Journey card.
+
+Do not build a full grind timeline yet.
+
+Add:
+
+* Number of grind-setting changes
+* Last grind change date
+* Days since last grind change
+* Largest single grind change if available
+
+Example:
+
+Grind changes: 4
+Last change: 18 Jun
+Largest move: 0.120 finer
+
+If data is insufficient, hide that line or show:
+
+No grind changes yet.
+
+Purpose:
+
+Make Grind Journey more meaningful than just Start → Current.
+
+⸻
+
+5. Global Reference Intelligence Position
+
+Move Global Reference Intelligence lower.
+
+It should appear after:
+
+1. Current Bag section
+2. Current Bag Intelligence
+3. Next Shot Watchlist
+4. Grind Journey
+5. Bag History
+
+Then show:
+
+Global Reference Intelligence
+
+Reason:
+
+The current bag matters most. Global intelligence is useful but should not dominate the dashboard.
+
+⸻
+
+6. Reference / Signature Shot Relationship
+
+Signature Shot must be treated as a higher-level Reference Shot.
+
+Business rule:
+
+A Signature Shot must also be a Reference Shot.
+
+UI behavior:
+
+* Show Reference Shot checkbox first.
+* Signature Shot should only be selectable if Reference Shot is checked.
+* If user checks Signature Shot, automatically check Reference Shot.
+* If user unchecks Reference Shot, automatically uncheck Signature Shot.
+
+This prevents invalid states.
+
+⸻
+
+7. Shot Log Card Display
+
+Problem:
+
+Shot cards currently show both Reference and Signature as separate badges, which can clutter the card.
+
+Required behavior:
+
+If Signature Shot = true:
+
+Show only:
+
+Signature
+
+Do not also show Reference.
+
+Reason:
+
+Signature implies Reference.
+
+If Reference Shot = true and Signature Shot = false:
+
+Show:
+
+Reference
+
+If neither is true:
+
+Show neither.
+
+⸻
+
+8. Special Shot Badge Placement
+
+Reference / Signature status should appear near the top of the shot card.
+
+Purpose:
+
+A special shot should be immediately visible.
+
+Recommended placement:
+
+Top row or top-right badge area.
+
+Examples:
+
+Signature
+
+or:
+
+Reference
+
+Do not bury these inside lower metadata or crowded highlights.
+
+⸻
+
+9. Shot Highlights With Special Shot Logic
+
+Shot Highlights should still show memorable traits, but should not duplicate the top badge.
+
+Priority:
+
+1. First selected Expression Style
+2. Sour Shot if checked
+3. First selected Bean Achievement
+4. First selected Shot Classification
+
+Do not include Reference or Signature inside Shot Highlights if they already appear as the top badge.
+
+Maximum:
+
+3 highlight chips.
+
+⸻
+
+10. Do Not Change Analytics
+
+Do not modify:
+
+* Include in Analysis logic
+* Reference Shot calculations
+* Signature Shot calculations beyond enforcing the relationship
+* Dashboard averages
+* Airtable sync architecture
+
+This task is display logic and form behavior only.

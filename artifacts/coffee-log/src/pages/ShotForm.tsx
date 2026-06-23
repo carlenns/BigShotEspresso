@@ -398,22 +398,45 @@ export default function ShotForm() {
               <div className="space-y-3">
                 <Label>Flags</Label>
                 <div className="flex flex-wrap gap-x-6 gap-y-3">
+                  {/* Reference Shot */}
                   <FormField control={form.control} name="isReference" render={({ field }) => (
                     <FormItem className="flex items-center gap-2.5 space-y-0">
                       <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(checked) => {
+                            const ref = checked === true;
+                            field.onChange(ref);
+                            if (!ref) form.setValue("signatureShot", false);
+                          }}
+                        />
                       </FormControl>
                       <FormLabel className="font-normal cursor-pointer">Reference Shot</FormLabel>
                     </FormItem>
                   )} />
-                  <FormField control={form.control} name="signatureShot" render={({ field }) => (
-                    <FormItem className="flex items-center gap-2.5 space-y-0">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <FormLabel className="font-normal cursor-pointer">Signature Shot</FormLabel>
-                    </FormItem>
-                  )} />
+                  {/* Signature Shot — requires Reference Shot */}
+                  <FormField control={form.control} name="signatureShot" render={({ field }) => {
+                    const isRef = form.watch("isReference");
+                    return (
+                      <FormItem className="flex items-center gap-2.5 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            disabled={!isRef}
+                            onCheckedChange={(checked) => {
+                              const sig = checked === true;
+                              field.onChange(sig);
+                              if (sig) form.setValue("isReference", true);
+                            }}
+                          />
+                        </FormControl>
+                        <FormLabel className={cn("font-normal", isRef ? "cursor-pointer" : "cursor-not-allowed opacity-40")}>
+                          Signature Shot
+                        </FormLabel>
+                      </FormItem>
+                    );
+                  }} />
+                  {/* Sour Shot */}
                   <FormField control={form.control} name="sourShot" render={({ field }) => (
                     <FormItem className="flex items-center gap-2.5 space-y-0">
                       <FormControl>

@@ -85,9 +85,11 @@ interface Intelligence {
   grindDrift: {
     startSetting: number | null; startTime: number | null;
     currentSetting: number | null; currentTime: number | null;
-    earlyAvg: number | null; recentAvg: number | null;
     drift: number | null; direction: "coarser" | "finer" | "stable" | null;
     previousBagAvg: number | null; shotCount: number;
+    changesCount: number; lastChangeDate: string | null;
+    daysSinceLastChange: number | null;
+    largestMove: number | null; largestMoveDir: "finer" | "coarser" | null;
   } | null;
   bagComparison: {
     bagId: number | null; bagNumber: string | null; beanName: string | null;
@@ -484,6 +486,33 @@ export default function Dashboard() {
                     <p className="text-xs text-muted-foreground text-center">
                       Based on {gd.shotCount} shot{gd.shotCount !== 1 ? "s" : ""} with grind data
                     </p>
+
+                    {/* Grind change context */}
+                    <div className="border-t pt-3 space-y-1 text-xs text-muted-foreground text-center">
+                      {gd.changesCount === 0 ? (
+                        <p>No grind changes recorded yet.</p>
+                      ) : (
+                        <>
+                          <p>
+                            Grind changes: <span className="font-medium text-foreground">{gd.changesCount}</span>
+                            {gd.lastChangeDate && (
+                              <> · Last: <span className="font-medium text-foreground">{format(new Date(gd.lastChangeDate), "d MMM")}</span></>
+                            )}
+                            {gd.daysSinceLastChange != null && (
+                              <> ({gd.daysSinceLastChange === 0 ? "today" : `${gd.daysSinceLastChange}d ago`})</>
+                            )}
+                          </p>
+                          {gd.largestMove != null && gd.largestMoveDir && (
+                            <p>
+                              Largest move:{" "}
+                              <span className={cn("font-medium", gd.largestMoveDir === "finer" ? "text-blue-600" : "text-amber-600")}>
+                                {gd.largestMoveDir === "finer" ? "↘" : "↗"} {gd.largestMove.toFixed(3)} {gd.largestMoveDir}
+                              </span>
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </>
                 )}
               </CardContent>

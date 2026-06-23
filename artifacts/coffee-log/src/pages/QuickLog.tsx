@@ -423,22 +423,46 @@ export default function QuickLog() {
               <div className="space-y-3">
                 <Label className="text-base font-medium">Flags</Label>
                 <div className="space-y-2.5">
-                  {[
-                    { key: "isReference" as const, label: "Reference Shot" },
-                    { key: "signatureShot" as const, label: "Signature Shot" },
-                    { key: "sourShot" as const, label: "Sour Shot" },
-                  ].map(({ key, label }) => (
-                    <div key={key} className="flex items-center gap-3">
-                      <Checkbox
-                        id={`eval-${key}`}
-                        checked={evalValues[key] as boolean}
-                        onCheckedChange={(checked) => setEval(key, checked === true)}
-                      />
-                      <label htmlFor={`eval-${key}`} className="text-sm leading-none cursor-pointer select-none">
-                        {label}
-                      </label>
-                    </div>
-                  ))}
+                  {/* Reference Shot */}
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id="eval-isReference"
+                      checked={evalValues.isReference}
+                      onCheckedChange={(checked) => {
+                        const ref = checked === true;
+                        setEvalValues((v) => ({ ...v, isReference: ref, signatureShot: ref ? v.signatureShot : false }));
+                      }}
+                    />
+                    <label htmlFor="eval-isReference" className="text-sm leading-none cursor-pointer select-none">
+                      Reference Shot
+                    </label>
+                  </div>
+                  {/* Signature Shot — requires Reference Shot */}
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id="eval-signatureShot"
+                      checked={evalValues.signatureShot}
+                      disabled={!evalValues.isReference}
+                      onCheckedChange={(checked) => {
+                        const sig = checked === true;
+                        setEvalValues((v) => ({ ...v, signatureShot: sig, isReference: sig ? true : v.isReference }));
+                      }}
+                    />
+                    <label htmlFor="eval-signatureShot" className={cn("text-sm leading-none select-none", evalValues.isReference ? "cursor-pointer" : "cursor-not-allowed opacity-40")}>
+                      Signature Shot
+                    </label>
+                  </div>
+                  {/* Sour Shot */}
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id="eval-sourShot"
+                      checked={evalValues.sourShot}
+                      onCheckedChange={(checked) => setEval("sourShot", checked === true)}
+                    />
+                    <label htmlFor="eval-sourShot" className="text-sm leading-none cursor-pointer select-none">
+                      Sour Shot
+                    </label>
+                  </div>
                 </div>
               </div>
 
