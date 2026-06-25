@@ -16,6 +16,8 @@ tags:
     description: Dashboard summaries
   - name: insights
     description: Pattern insights
+  - name: hoppers
+    description: Hopper state and imported baseline records
 
 paths:
   /healthz:
@@ -104,9 +106,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Shot"
+                $ref: "#/components/schemas/ShotList"
 
     post:
       operationId: createShot
@@ -343,6 +343,113 @@ paths:
                 items:
                   $ref: "#/components/schemas/Insight"
 
+  /hoppers:
+    get:
+      operationId: listHoppers
+      tags: [hoppers]
+      responses:
+        "200":
+          description: Hopper states
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Hopper" }
+    post:
+      operationId: createHopper
+      tags: [hoppers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HopperInput" }
+      responses:
+        "201":
+          description: Created hopper state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Hopper" }
+
+  /hoppers/{id}:
+    patch:
+      operationId: updateHopper
+      tags: [hoppers]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HopperUpdate" }
+      responses:
+        "200":
+          description: Updated hopper state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Hopper" }
+
+  /hoppers/import-csv:
+    post:
+      operationId: importHoppersCsv
+      tags: [hoppers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CsvImportInput" }
+      responses:
+        "200":
+          description: Hopper import result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CsvImportResult" }
+
+  /hopper-range-baselines:
+    get:
+      operationId: listHopperRangeBaselines
+      tags: [hoppers]
+      responses:
+        "200":
+          description: Hopper range baselines
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/HopperRangeBaseline" }
+    post:
+      operationId: createHopperRangeBaseline
+      tags: [hoppers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HopperRangeBaselineInput" }
+      responses:
+        "201":
+          description: Created baseline
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HopperRangeBaseline" }
+
+  /hopper-range-baselines/import-csv:
+    post:
+      operationId: importHopperRangeBaselinesCsv
+      tags: [hoppers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CsvImportInput" }
+      responses:
+        "200":
+          description: Hopper range baseline import result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CsvImportResult" }
+
 components:
   schemas:
     HealthStatus:
@@ -353,197 +460,190 @@ components:
       required:
         - status
 
+    StringArray:
+      type: array
+      items: { type: string }
+
     Shot:
       type: object
-      required: [id, shotDate, createdAt]
+      required: [id, shotDate, isReference, createdAt]
       properties:
-        id:
-          type: integer
-        shotDate:
-          type: string
-        bean:
-          type: ["string", "null"]
-        bag:
-          type: ["string", "null"]
-        grindSetting:
-          type: ["number", "null"]
-        grindTime:
-          type: ["number", "null"]
-        initialGrindWeight:
-          type: ["number", "null"]
-        dose:
-          type: ["number", "null"]
-        yield:
-          type: ["number", "null"]
-        ratio:
-          type: ["string", "null"]
-        temperature:
-          type: ["integer", "null"]
-        pourDelay:
-          type: ["integer", "null"]
-        pourTime:
-          type: ["integer", "null"]
-        scaleTime:
-          type: ["integer", "null"]
-        rating:
-          type: ["number", "null"]
-        preferenceRating:
-          type: ["number", "null"]
-        status:
-          type: ["string", "null"]
+        id: { type: integer }
+        shotDate: { type: string }
+        bagId: { type: ["integer", "null"] }
+        grinderId: { type: ["integer", "null"] }
+        machineId: { type: ["integer", "null"] }
+        hopperId: { type: ["integer", "null"] }
+        hopperRangeBaselineId: { type: ["integer", "null"] }
+        bean: { type: ["string", "null"] }
+        bag: { type: ["string", "null"] }
+        bagLabel: { type: ["string", "null"] }
+        daysSinceOpen: { type: ["integer", "null"] }
+        grindSetting: { type: ["number", "null"] }
+        grindTime: { type: ["number", "null"] }
+        initialGrindWeight: { type: ["number", "null"] }
+        totalOutput: { type: ["number", "null"] }
+        dose: { type: ["number", "null"] }
+        timeAdj: { type: ["number", "null"] }
+        topUpGrind: { type: ["number", "null"] }
+        overGrindRemoved: { type: ["number", "null"] }
+        beanDelta: { type: ["number", "null"] }
+        grindWaste: { type: ["number", "null"] }
+        beansAdded: { type: ["number", "null"] }
+        doseCorrectionType: { type: ["string", "null"] }
+        doseCorrection: { type: ["number", "null"] }
+        outputDelta: { type: ["number", "null"] }
+        yield: { type: ["number", "null"] }
+        ratio: { type: ["string", "null"] }
+        temperature: { type: ["integer", "null"] }
+        pourDelay: { type: ["integer", "null"] }
+        pourTime: { type: ["integer", "null"] }
+        flowTime: { type: ["integer", "null"] }
+        rating: { type: ["number", "null"] }
+        preferenceRating: { type: ["number", "null"] }
+        ratingDifference: { type: ["number", "null"], readOnly: true }
+        avgWeightedRating: { type: ["number", "null"], readOnly: true }
+        rated: { type: ["boolean", "null"] }
+        isForOthers: { type: ["boolean", "null"] }
+        isReference: { type: boolean }
+        signatureShot: { type: ["boolean", "null"] }
+        sourShot: { type: ["boolean", "null"] }
+        boundaryShot: { type: ["boolean", "null"] }
+        drinkType: { type: ["string", "null"] }
+        status: { type: ["string", "null"] }
         faultStatus:
-          type: ["string", "null"]
-        isReference:
-          type: boolean
-        signatureShot:
-          type: ["boolean", "null"]
-        sourShot:
-          type: ["boolean", "null"]
-        expressionStyle:
-          type: ["string", "null"]
+          oneOf: [{ $ref: "#/components/schemas/StringArray" }, { type: "null" }]
+        shotClassification:
+          oneOf: [{ $ref: "#/components/schemas/StringArray" }, { type: "null" }]
         beanAchievement:
-          type: ["string", "null"]
-        isForOthers:
-          type: ["boolean", "null"]
-        notes:
-          type: ["string", "null"]
-        sensoryNotes:
-          type: ["string", "null"]
-        grindAdjusted:
-          type: ["string", "null"]
-        doseCorrection:
-          type: ["number", "null"]
-        doseCorrectionType:
-          type: ["string", "null"]
-        shotsLeftEst:
-          type: ["number", "null"]
-        createdAt:
-          type: string
+          oneOf: [{ $ref: "#/components/schemas/StringArray" }, { type: "null" }]
+        expressionStyle:
+          oneOf: [{ $ref: "#/components/schemas/StringArray" }, { type: "null" }]
+        referenceType: { type: ["string", "null"] }
+        dailyDriverCount: { type: ["integer", "null"], readOnly: true }
+        importantToIntelligence: { type: ["boolean", "null"] }
+        intelligenceLessonType:
+          oneOf: [{ $ref: "#/components/schemas/StringArray" }, { type: "null" }]
+        includeInAnalysis: { type: ["boolean", "null"], readOnly: true }
+        notes: { type: ["string", "null"] }
+        sensoryNotes: { type: ["string", "null"] }
+        faultNotes: { type: ["string", "null"] }
+        bagOpenedDate: { type: ["string", "null"], readOnly: true }
+        grindAdjusted: { type: ["string", "null"] }
+        shotsLeftEst: { type: ["number", "null"] }
+        finishedShot: { type: ["boolean", "null"] }
+        hopperPhase: { type: ["string", "null"] }
+        hopperFullness: { type: ["number", "null"] }
+        hopperPercent: { type: ["number", "null"], readOnly: true }
+        hopperRange: { type: ["string", "null"], readOnly: true }
+        tasteZone: { type: ["string", "null"] }
+        zone: { type: ["string", "null"], readOnly: true }
+        zoneScore: { type: ["integer", "null"], readOnly: true }
+        tasteScore: { type: ["integer", "null"], readOnly: true }
+        agreementPercent: { type: ["number", "null"], readOnly: true }
+        flowScore: { type: ["number", "null"], readOnly: true }
+        modelFlag: { type: ["string", "null"], readOnly: true }
+        timeGap: { type: ["integer", "null"], readOnly: true }
+        scaleZone: { type: ["string", "null"], readOnly: true }
+        flowDiagnostic: { type: ["string", "null"], readOnly: true }
+        pourDelayWindow: { type: ["string", "null"], readOnly: true }
+        flowTimeWindow: { type: ["string", "null"], readOnly: true }
+        flowTimeOffset: { type: ["number", "null"], readOnly: true }
+        driftDelta: { type: ["number", "null"], readOnly: true }
+        shotDriftStatus: { type: ["string", "null"], readOnly: true }
+        shotQualityScore: { type: ["number", "null"], readOnly: true }
+        shotTier: { type: ["string", "null"], readOnly: true }
+        perfectRangeFlag: { type: ["string", "null"], readOnly: true }
+        driftWarning: { type: ["string", "null"], readOnly: true }
+        hopperZone: { type: ["string", "null"], readOnly: true }
+        hopperDriftLink: { type: ["string", "null"], readOnly: true }
+        hopperImpactScore: { type: ["number", "null"], readOnly: true }
+        hopperCorrectionRule: { type: ["string", "null"], readOnly: true }
+        actionSuggestion: { type: ["string", "null"], readOnly: true }
+        scaleCalibrationReminder: { type: ["string", "null"], readOnly: true }
+        bagCalibrationReminder: { type: ["string", "null"], readOnly: true }
+        calculation: { type: ["string", "null"], readOnly: true }
+        baselineUnaidedOutput: { type: ["number", "null"], readOnly: true }
+        baselineOutputDelta: { type: ["number", "null"], readOnly: true }
+        actualDoseError: { type: ["number", "null"], readOnly: true }
+        hopperThresholdFlag: { type: ["string", "null"], readOnly: true }
+        hopperBehaviour: { type: ["string", "null"], readOnly: true }
+        hopperSeverity: { type: ["string", "null"], readOnly: true }
+        topUpGap: { type: ["number", "null"], readOnly: true }
+        topUpRecommendation: { type: ["string", "null"], readOnly: true }
+        grinderInitialOutputForCharts: { type: ["number", "null"], readOnly: true }
+        createdAt: { type: string }
+
+    ShotList:
+      type: object
+      required: [shots, total]
+      properties:
+        shots:
+          type: array
+          items: { $ref: "#/components/schemas/Shot" }
+        total: { type: integer }
+
+    ShotWriteFields:
+      type: object
+      properties: &shotWriteProperties
+        shotDate: { type: string }
+        bagId: { type: ["integer", "null"] }
+        grinderId: { type: ["integer", "null"] }
+        machineId: { type: ["integer", "null"] }
+        hopperId: { type: ["integer", "null"] }
+        bean: { type: string }
+        bag: { type: string }
+        grindSetting: { type: ["number", "null"] }
+        grindTime: { type: ["number", "null"] }
+        initialGrindWeight: { type: ["number", "null"] }
+        totalOutput: { type: ["number", "null"] }
+        dose: { type: ["number", "null"] }
+        timeAdj: { type: ["number", "null"] }
+        topUpGrind: { type: ["number", "null"] }
+        overGrindRemoved: { type: ["number", "null"] }
+        grindWaste: { type: ["number", "null"] }
+        beansAdded: { type: ["number", "null"] }
+        doseCorrectionType: { type: string }
+        doseCorrection: { type: ["number", "null"] }
+        yield: { type: ["number", "null"] }
+        temperature: { type: ["integer", "null"] }
+        pourDelay: { type: ["integer", "null"] }
+        pourTime: { type: ["integer", "null"] }
+        flowTime: { type: ["integer", "null"] }
+        scaleTime: { type: ["integer", "null"], deprecated: true, description: "Temporary compatibility alias for flowTime." }
+        rating: { type: ["number", "null"] }
+        preferenceRating: { type: ["number", "null"] }
+        rated: { type: boolean }
+        isForOthers: { type: boolean }
+        isReference: { type: boolean }
+        signatureShot: { type: boolean }
+        sourShot: { type: boolean }
+        boundaryShot: { type: boolean }
+        drinkType: { type: string }
+        status: { type: string }
+        faultStatus: { $ref: "#/components/schemas/StringArray" }
+        shotClassification: { $ref: "#/components/schemas/StringArray" }
+        beanAchievement: { $ref: "#/components/schemas/StringArray" }
+        expressionStyle: { $ref: "#/components/schemas/StringArray" }
+        importantToIntelligence: { type: boolean }
+        intelligenceLessonType: { $ref: "#/components/schemas/StringArray" }
+        includeInAnalysis: { type: boolean, default: true }
+        tasteZone: { type: string }
+        notes: { type: string }
+        sensoryNotes: { type: string }
+        faultNotes: { type: string }
+        grindAdjusted: { type: string }
+        finishedShot: { type: boolean }
+        shotsLeftEst: { type: ["number", "null"] }
 
     ShotInput:
       type: object
       required: [shotDate]
-      properties:
-        shotDate:
-          type: string
-        bean:
-          type: string
-        bag:
-          type: string
-        grindSetting:
-          type: ["number", "null"]
-        grindTime:
-          type: ["number", "null"]
-        initialGrindWeight:
-          type: ["number", "null"]
-        dose:
-          type: ["number", "null"]
-        yield:
-          type: ["number", "null"]
-        ratio:
-          type: ["string", "null"]
-        temperature:
-          type: ["integer", "null"]
-        pourDelay:
-          type: ["integer", "null"]
-        pourTime:
-          type: ["integer", "null"]
-        scaleTime:
-          type: ["integer", "null"]
-        rating:
-          type: ["number", "null"]
-        preferenceRating:
-          type: ["number", "null"]
-        status:
-          type: string
-        faultStatus:
-          type: string
-        isReference:
-          type: boolean
-        signatureShot:
-          type: boolean
-        sourShot:
-          type: boolean
-        expressionStyle:
-          type: string
-        beanAchievement:
-          type: string
-        isForOthers:
-          type: boolean
-        notes:
-          type: string
-        sensoryNotes:
-          type: string
-        grindAdjusted:
-          type: string
-        doseCorrection:
-          type: ["number", "null"]
-        doseCorrectionType:
-          type: string
-        shotsLeftEst:
-          type: ["number", "null"]
+      properties: *shotWriteProperties
 
     ShotUpdate:
       type: object
-      properties:
-        shotDate:
-          type: string
-        bean:
-          type: string
-        bag:
-          type: string
-        grindSetting:
-          type: ["number", "null"]
-        grindTime:
-          type: ["number", "null"]
-        initialGrindWeight:
-          type: ["number", "null"]
-        dose:
-          type: ["number", "null"]
-        yield:
-          type: ["number", "null"]
-        ratio:
-          type: ["string", "null"]
-        temperature:
-          type: ["integer", "null"]
-        pourDelay:
-          type: ["integer", "null"]
-        pourTime:
-          type: ["integer", "null"]
-        scaleTime:
-          type: ["integer", "null"]
-        rating:
-          type: ["number", "null"]
-        preferenceRating:
-          type: ["number", "null"]
-        status:
-          type: string
-        faultStatus:
-          type: string
-        isReference:
-          type: boolean
-        signatureShot:
-          type: boolean
-        sourShot:
-          type: boolean
-        expressionStyle:
-          type: string
-        beanAchievement:
-          type: string
-        isForOthers:
-          type: boolean
-        notes:
-          type: string
-        sensoryNotes:
-          type: string
-        grindAdjusted:
-          type: string
-        doseCorrection:
-          type: ["number", "null"]
-        doseCorrectionType:
-          type: string
-        shotsLeftEst:
-          type: ["number", "null"]
+      properties: *shotWriteProperties
 
     CsvImportInput:
       type: object
@@ -551,6 +651,65 @@ components:
       properties:
         csvText:
           type: string
+
+    Hopper:
+      type: object
+      required: [id, name, isActive, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        bagId: { type: ["integer", "null"] }
+        startingBeans: { type: ["number", "null"] }
+        isActive: { type: boolean }
+        hopperMass: { type: ["number", "null"], readOnly: true }
+        hopperPercent: { type: ["number", "null"], readOnly: true }
+        shotsLeftEstimate: { type: ["number", "null"], readOnly: true }
+        phase: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    HopperInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        bagId: { type: ["integer", "null"] }
+        startingBeans: { type: ["number", "null"] }
+        isActive: { type: boolean }
+        phase: { type: string }
+        notes: { type: string }
+
+    HopperUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        bagId: { type: ["integer", "null"] }
+        startingBeans: { type: ["number", "null"] }
+        isActive: { type: boolean }
+        phase: { type: string }
+        notes: { type: string }
+
+    HopperRangeBaseline:
+      type: object
+      required: [id, hopperRange, createdAt]
+      properties:
+        id: { type: integer }
+        hopperRange: { type: string }
+        baselineOutputAdjustedDate: { type: ["string", "null"] }
+        baselineOutputStatus: { type: ["string", "null"] }
+        baselineOutput: { type: ["number", "null"] }
+        avgInitialOutput: { type: ["number", "null"], readOnly: true }
+        observationCount: { type: ["integer", "null"], readOnly: true }
+        createdAt: { type: string }
+
+    HopperRangeBaselineInput:
+      type: object
+      required: [hopperRange]
+      properties:
+        hopperRange: { type: string }
+        baselineOutputAdjustedDate: { type: ["string", "null"] }
+        baselineOutputStatus: { type: string }
+        baselineOutput: { type: ["number", "null"] }
 
     CsvImportResult:
       type: object

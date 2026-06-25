@@ -5,3 +5,5 @@ export * from "./shots";
 export * from "./settings";
 export * from "./accessories";
 export * from "./taste-selectors";
+export * from "./hopper";
+export * from "./sync-evidence";

@@ -10,6 +10,7 @@ import equipmentRouter from "./equipment";
 import accessoriesRouter from "./accessories";
 import tasteSelectorRouter from "./taste-selectors";
 import airtableRouter from "./airtable";
+import hopperRouter from "./hopper";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(equipmentRouter);
 router.use(accessoriesRouter);
 router.use(tasteSelectorRouter);
 router.use(airtableRouter);
+router.use(hopperRouter);
 
 export default router;

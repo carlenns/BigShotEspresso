@@ -5,9 +5,18 @@
  * Coffee Log API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { StringArray } from './stringArray';
 
 export interface ShotInput {
   shotDate: string;
+  /** @nullable */
+  bagId?: number | null;
+  /** @nullable */
+  grinderId?: number | null;
+  /** @nullable */
+  machineId?: number | null;
+  /** @nullable */
+  hopperId?: number | null;
   bean?: string;
   bag?: string;
   /** @nullable */
@@ -17,11 +26,24 @@ export interface ShotInput {
   /** @nullable */
   initialGrindWeight?: number | null;
   /** @nullable */
+  totalOutput?: number | null;
+  /** @nullable */
   dose?: number | null;
   /** @nullable */
-  yield?: number | null;
+  timeAdj?: number | null;
   /** @nullable */
-  ratio?: string | null;
+  topUpGrind?: number | null;
+  /** @nullable */
+  overGrindRemoved?: number | null;
+  /** @nullable */
+  grindWaste?: number | null;
+  /** @nullable */
+  beansAdded?: number | null;
+  doseCorrectionType?: string;
+  /** @nullable */
+  doseCorrection?: number | null;
+  /** @nullable */
+  yield?: number | null;
   /** @nullable */
   temperature?: number | null;
   /** @nullable */
@@ -29,25 +51,38 @@ export interface ShotInput {
   /** @nullable */
   pourTime?: number | null;
   /** @nullable */
+  flowTime?: number | null;
+  /**
+     * Temporary compatibility alias for flowTime.
+     * @deprecated
+     * @nullable
+     */
   scaleTime?: number | null;
   /** @nullable */
   rating?: number | null;
   /** @nullable */
   preferenceRating?: number | null;
-  status?: string;
-  faultStatus?: string;
+  rated?: boolean;
+  isForOthers?: boolean;
   isReference?: boolean;
   signatureShot?: boolean;
   sourShot?: boolean;
-  expressionStyle?: string;
-  beanAchievement?: string;
-  isForOthers?: boolean;
+  boundaryShot?: boolean;
+  drinkType?: string;
+  status?: string;
+  faultStatus?: StringArray;
+  shotClassification?: StringArray;
+  beanAchievement?: StringArray;
+  expressionStyle?: StringArray;
+  importantToIntelligence?: boolean;
+  intelligenceLessonType?: StringArray;
+  includeInAnalysis?: boolean;
+  tasteZone?: string;
   notes?: string;
   sensoryNotes?: string;
+  faultNotes?: string;
   grindAdjusted?: string;
-  /** @nullable */
-  doseCorrection?: number | null;
-  doseCorrectionType?: string;
+  finishedShot?: boolean;
   /** @nullable */
   shotsLeftEst?: number | null;
 }

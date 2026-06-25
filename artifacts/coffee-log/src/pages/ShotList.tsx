@@ -11,21 +11,18 @@ import { cn } from "@/lib/utils";
 
 // ── Shot Highlight helpers ────────────────────────────────────────────────────
 
-// Airtable multi-selects are stored as quoted CSV (e.g. "Caramel Forward, Balanced").
-// We display only the first value as the primary highlight.
-function firstCsvValue(val: string | null | undefined): string | null {
-  if (!val) return null;
-  const unquoted = val.replace(/^"|"$/g, "").trim();
-  return unquoted.split(",")[0]?.trim() || null;
+// Ordered Airtable multi-select arrays preserve the primary value first.
+function firstValue(val: string[] | null | undefined): string | null {
+  return val?.[0]?.trim() || null;
 }
 
 interface ShotHighlightSource {
-  expressionStyle?: string | null;
+  expressionStyle?: string[] | null;
   isReference: boolean;
   signatureShot?: boolean | null;
   sourShot?: boolean | null;
-  beanAchievement?: string | null;
-  shotClassification?: string | null;
+  beanAchievement?: string[] | null;
+  shotClassification?: string[] | null;
 }
 
 function getShotHighlights(shot: ShotHighlightSource): string[] {
@@ -34,18 +31,18 @@ function getShotHighlights(shot: ShotHighlightSource): string[] {
   // Reference / Signature shown as top badge — excluded from highlights
 
   // 1. First Expression Style
-  const expr = firstCsvValue(shot.expressionStyle);
+  const expr = firstValue(shot.expressionStyle);
   if (expr) highlights.push(expr);
 
   // 2. Sour Shot
   if (shot.sourShot) highlights.push("Sour");
 
   // 3. First Bean Achievement
-  const ach = firstCsvValue(shot.beanAchievement);
+  const ach = firstValue(shot.beanAchievement);
   if (ach) highlights.push(ach);
 
   // 4. First Shot Classification
-  const cls = firstCsvValue(shot.shotClassification);
+  const cls = firstValue(shot.shotClassification);
   if (cls) highlights.push(cls);
 
   return highlights.slice(0, 3);
@@ -63,9 +60,8 @@ function highlightChipClass(label: string): string {
 export default function ShotList() {
   const [search, setSearch] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const { data: rawData, isLoading } = useListShots({ search, limit: "50" });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const shots = (rawData as any)?.shots as any[] | undefined;
+  const { data, isLoading } = useListShots({ search, limit: "50" });
+  const shots = data?.shots;
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">

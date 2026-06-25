@@ -34,7 +34,6 @@ externalPort = 3000
 [userenv]
 
 [userenv.shared]
-AIRTABLE_API_KEY = "patTQ0fLbMzCTMTgL.d3a50fce5a0ea67adf842c186b64ddd21da7eab7d563c2bc46f35bcc9a6b1d97"
 
 [nix]
 channel = "stable-25_05"

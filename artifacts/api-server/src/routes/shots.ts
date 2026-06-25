@@ -1,6 +1,9 @@
 import { Router, type IRouter } from "express";
 import { eq, and, gte, lte, ilike, or, sql, isNotNull } from "drizzle-orm";
-import { db, shotsTable, bagsTable, beansTable } from "@workspace/db";
+import {
+  db, shotsTable, bagsTable, beansTable, hoppersTable, hopperRangeBaselinesTable,
+  type InsertShot,
+} from "@workspace/db";
 import {
   ListShotsQueryParams,
   CreateShotBody,
@@ -12,6 +15,18 @@ import {
   GetSimilarShotsParams,
   ListReferenceShotsQueryParams,
 } from "@workspace/api-zod";
+import { eligibleShotConditions } from "../lib/shot-eligibility";
+import {
+  csvRowFingerprint,
+  flattenUnique,
+  parseCsvBoolean,
+  parseCsvInteger,
+  parseCsvMultiSelect,
+  parseCsvNumber,
+  parseCsvRecords,
+  parseCsvString,
+} from "../lib/csv";
+import { toShotApi } from "../lib/api-shapes";
 
 const router: IRouter = Router();
 
@@ -23,7 +38,7 @@ router.get("/shots/reference", async (req, res): Promise<void> => {
     return;
   }
   const p = params.data;
-  const conditions = [eq(shotsTable.isReference, true), isNotNull(shotsTable.airtableRecordId)];
+  const conditions = [eq(shotsTable.isReference, true), ...eligibleShotConditions];
   if (p.bean) conditions.push(ilike(shotsTable.bean, `%${p.bean}%`));
   if (p.bag) conditions.push(ilike(shotsTable.bag, `%${p.bag}%`));
   if (p.ratingMin) conditions.push(gte(shotsTable.rating, Number(p.ratingMin)));
@@ -35,7 +50,7 @@ router.get("/shots/reference", async (req, res): Promise<void> => {
   if (p.pourDelayMax) conditions.push(lte(shotsTable.pourDelay, Number(p.pourDelayMax)));
 
   const shots = await db.select().from(shotsTable).where(and(...conditions)).orderBy(sql`${shotsTable.shotDate} DESC`);
-  res.json(shots);
+  res.json(shots.map(toShotApi));
 });
 
 // --- GET /shots/audit ---
@@ -48,7 +63,7 @@ router.get("/shots/audit", async (req, res): Promise<void> => {
   const totalColumns = shots[0]?.rawRow ? Object.keys(shots[0].rawRow).length : 0;
   const uniqueBags = [...new Set(shots.map((s) => s.bag).filter(Boolean))].sort();
   const uniqueStatuses = [...new Set(shots.map((s) => s.status).filter(Boolean))].sort();
-  const uniqueFaultStatuses = [...new Set(shots.map((s) => s.faultStatus).filter(Boolean))].sort();
+  const uniqueFaultStatuses = flattenUnique(shots.map((s) => s.faultStatus));
   const refShots = shots.filter((s) => s.isReference);
   const nonRefShots = shots.filter((s) => !s.isReference);
 
@@ -80,29 +95,24 @@ router.get("/shots/selector-options", async (req, res): Promise<void> => {
       faultStatus: shotsTable.faultStatus,
       drinkType: shotsTable.drinkType,
     })
-    .from(shotsTable)
-    .where(isNotNull(shotsTable.airtableRecordId));
+    .from(shotsTable);
 
-  // Airtable multi-selects are stored as quoted CSV strings, e.g. "Caramel Forward, Balanced"
-  // Split, strip quotes, deduplicate, and sort to recover individual option values.
-  function parseMultiSelect(val: string | null | undefined): string[] {
-    if (!val) return [];
-    return val.replace(/^"|"$/g, "").split(",").map((s) => s.trim()).filter(Boolean);
-  }
-
-  function collectOptions(values: (string | null | undefined)[]): string[] {
+  function collectOptions(values: (string[] | null | undefined)[]): string[] {
     const set = new Set<string>();
-    for (const v of values) for (const part of parseMultiSelect(v)) set.add(part);
+    for (const value of values) for (const part of value ?? []) set.add(part);
     return [...set].sort();
+  }
+  function collectScalarOptions(values: (string | null | undefined)[]): string[] {
+    return [...new Set(values.filter((value): value is string => Boolean(value)))].sort();
   }
 
   res.json({
     expressionStyle: collectOptions(rows.map((r) => r.expressionStyle)),
     beanAchievement: collectOptions(rows.map((r) => r.beanAchievement)),
     shotClassification: collectOptions(rows.map((r) => r.shotClassification)),
-    status: collectOptions(rows.map((r) => r.status)),
+    status: collectScalarOptions(rows.map((r) => r.status)),
     faultStatus: collectOptions(rows.map((r) => r.faultStatus)),
-    drinkType: collectOptions(rows.map((r) => r.drinkType)),
+    drinkType: collectScalarOptions(rows.map((r) => r.drinkType)),
   });
 });
 
@@ -125,36 +135,56 @@ router.post("/shots/import-csv", async (req, res): Promise<void> => {
   for (const b of allBags) {
     if (b.bagNumber) bagLookup.set(b.bagNumber, { bagId: b.id, beanName: b.beanName ?? null });
   }
+  const hopperLookup = new Map<string, number>();
+  for (const hopper of await db.select({ id: hoppersTable.id, name: hoppersTable.name }).from(hoppersTable)) {
+    hopperLookup.set(hopper.name.replace(/"/g, "").trim(), hopper.id);
+  }
+  const baselineLookup = new Map<string, number>();
+  for (const baseline of await db.select({ id: hopperRangeBaselinesTable.id, range: hopperRangeBaselinesTable.hopperRange }).from(hopperRangeBaselinesTable)) {
+    baselineLookup.set(baseline.range.trim(), baseline.id);
+  }
 
-  const result = parseCsvAndImport(csvText, bagLookup);
+  const result = parseCsvAndImport(csvText, bagLookup, hopperLookup, baselineLookup, true);
   const rows = result.rows;
   const headers = result.headers;
   const errors = result.errors;
 
-  if (errors.length > 0 && rows.length === 0) {
-    res.status(400).json({ error: errors[0], errors });
+  if (errors.length > 0) {
+    res.status(400).json({
+      error: "CSV validation failed; no rows were imported.",
+      errors,
+    });
     return;
   }
 
   let imported = 0;
   let skipped = 0;
-  const insertErrors: string[] = [...errors];
+  const insertErrors: string[] = [];
 
-  for (const row of rows) {
-    try {
-      await db.insert(shotsTable).values(row);
-      imported++;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      insertErrors.push(`Row ${imported + skipped + 1}: ${msg}`);
-      skipped++;
-    }
+  try {
+    await db.transaction(async (tx) => {
+      for (const row of rows) {
+        const inserted = await tx.insert(shotsTable).values(row)
+          .onConflictDoNothing({ target: shotsTable.importFingerprint })
+          .returning({ id: shotsTable.id });
+        if (inserted.length > 0) imported++;
+        else skipped++;
+      }
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(400).json({
+      error: "CSV import transaction rolled back.",
+      errors: [message],
+      imported: 0,
+      skipped: rows.length,
+    });
+    return;
   }
 
-  // Validate expected count
-  const EXPECTED_ROWS = 132;
-  const warning = imported !== EXPECTED_ROWS
-    ? `Warning: imported ${imported} rows but expected ${EXPECTED_ROWS}. Check for missing/duplicate rows.`
+  const expectedRows = rows.length;
+  const warning = imported !== expectedRows
+    ? `Warning: imported ${imported} of ${expectedRows} parsed rows. Review row-level errors.`
     : null;
 
   // Build summary
@@ -166,7 +196,7 @@ router.post("/shots/import-csv", async (req, res): Promise<void> => {
     latestDate: allShots[allShots.length - 1]?.shotDate ?? null,
     uniqueBags: [...new Set(allShots.map((s) => s.bag).filter(Boolean))].sort(),
     uniqueStatuses: [...new Set(allShots.map((s) => s.status).filter(Boolean))].sort(),
-    uniqueFaultStatuses: [...new Set(allShots.map((s) => s.faultStatus).filter(Boolean))].sort(),
+    uniqueFaultStatuses: flattenUnique(allShots.map((s) => s.faultStatus)),
     referenceShots: allShots.filter((s) => s.isReference).length,
     nonReferenceShots: allShots.filter((s) => !s.isReference).length,
   };
@@ -182,11 +212,11 @@ router.get("/shots", async (req, res): Promise<void> => {
     return;
   }
   const p = params.data;
-  const conditions = [isNotNull(shotsTable.airtableRecordId)];
+  const conditions = [];
   if (p.bean) conditions.push(ilike(shotsTable.bean, `%${p.bean}%`));
   if (p.bag) conditions.push(ilike(shotsTable.bag, `%${p.bag}%`));
   if (p.status) conditions.push(eq(shotsTable.status, p.status));
-  if (p.faultStatus) conditions.push(eq(shotsTable.faultStatus, p.faultStatus));
+  if (p.faultStatus) conditions.push(sql`${shotsTable.faultStatus} @> ARRAY[${p.faultStatus}]::text[]`);
   if (p.isReference !== undefined && p.isReference !== "") conditions.push(eq(shotsTable.isReference, p.isReference === "true"));
   if (p.ratingMin) conditions.push(gte(shotsTable.rating, Number(p.ratingMin)));
   if (p.ratingMax) conditions.push(lte(shotsTable.rating, Number(p.ratingMax)));
@@ -225,18 +255,28 @@ router.get("/shots", async (req, res): Promise<void> => {
     .from(shotsTable)
     .where(conditions.length > 0 ? and(...conditions) : undefined);
 
-  res.json({ shots, total: Number(total[0]?.count ?? 0) });
+  res.json({ shots: shots.map(toShotApi), total: Number(total[0]?.count ?? 0) });
 });
 
 // --- POST /shots ---
 router.post("/shots", async (req, res): Promise<void> => {
-  const parsed = CreateShotBody.safeParse(req.body);
+  const normalizedBody = {
+    ...req.body,
+    flowTime: req.body.flowTime ?? req.body.scaleTime,
+  };
+  delete normalizedBody.scaleTime;
+  const parsed = CreateShotBody.safeParse(normalizedBody);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const shot = await db.insert(shotsTable).values(parsed.data).returning();
-  res.status(201).json(shot[0]);
+  if (!parsed.data.shotDate) {
+    res.status(400).json({ error: "shotDate is required" });
+    return;
+  }
+  const { scaleTime: _scaleTime, ...data } = parsed.data;
+  const shot = await db.insert(shotsTable).values({ ...data, shotDate: parsed.data.shotDate }).returning();
+  res.status(201).json(toShotApi(shot[0]!));
 });
 
 // --- GET /shots/:id ---
@@ -248,7 +288,7 @@ router.get("/shots/:id", async (req, res): Promise<void> => {
   }
   const shot = await db.select().from(shotsTable).where(eq(shotsTable.id, Number(params.data.id)));
   if (!shot[0]) { res.status(404).json({ error: "Shot not found" }); return; }
-  res.json(shot[0]);
+  res.json(toShotApi(shot[0]));
 });
 
 // --- GET /shots/:id/similar ---
@@ -261,7 +301,7 @@ router.get("/shots/:id/similar", async (req, res): Promise<void> => {
   const base = await db.select().from(shotsTable).where(eq(shotsTable.id, Number(params.data.id)));
   if (!base[0]) { res.status(404).json({ error: "Shot not found" }); return; }
 
-  const conditions = [sql`${shotsTable.id} != ${Number(params.data.id)}`];
+  const conditions = [sql`${shotsTable.id} != ${Number(params.data.id)}`, ...eligibleShotConditions];
   if (base[0].bean) conditions.push(eq(shotsTable.bean, base[0].bean));
   if (base[0].grindSetting != null) {
     conditions.push(gte(shotsTable.grindSetting, base[0].grindSetting - 0.15));
@@ -281,7 +321,7 @@ router.get("/shots/:id/similar", async (req, res): Promise<void> => {
     .orderBy(sql`${shotsTable.shotDate} DESC`)
     .limit(10);
 
-  res.json(similar);
+  res.json(similar.map(toShotApi));
 });
 
 // --- PATCH /shots/:id ---
@@ -291,14 +331,20 @@ router.patch("/shots/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const body = UpdateShotBody.safeParse(req.body);
+  const normalizedBody = {
+    ...req.body,
+    flowTime: req.body.flowTime ?? req.body.scaleTime,
+  };
+  delete normalizedBody.scaleTime;
+  const body = UpdateShotBody.safeParse(normalizedBody);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
     return;
   }
-  const shot = await db.update(shotsTable).set(body.data).where(eq(shotsTable.id, Number(params.data.id))).returning();
+  const { scaleTime: _scaleTime, ...data } = body.data;
+  const shot = await db.update(shotsTable).set(data).where(eq(shotsTable.id, Number(params.data.id))).returning();
   if (!shot[0]) { res.status(404).json({ error: "Shot not found" }); return; }
-  res.json(shot[0]);
+  res.json(toShotApi(shot[0]));
 });
 
 // --- DELETE /shots/:id ---
@@ -313,66 +359,19 @@ router.delete("/shots/:id", async (req, res): Promise<void> => {
 });
 
 // ---- CSV parsing helper ----
-type ShotRow = {
-  shotDate: string;
-  bagId?: number | null;
-  bag?: string | null;
-  bean?: string | null;
-  grindSetting?: number | null;
-  grindTime?: number | null;
-  initialGrindWeight?: number | null;
-  totalOutput?: number | null;
-  dose?: number | null;
-  timeAdj?: number | null;
-  topUpGrind?: number | null;
-  overGrindRemoved?: number | null;
-  beanDelta?: number | null;
-  grindWaste?: number | null;
-  beansAdded?: number | null;
-  doseCorrectionType?: string | null;
-  doseCorrection?: number | null;
-  outputDelta?: number | null;
-  yield?: number | null;
-  ratio?: string | null;
-  temperature?: number | null;
-  pourDelay?: number | null;
-  pourTime?: number | null;
-  scaleTime?: number | null;
-  rating?: number | null;
-  preferenceRating?: number | null;
-  ratingDifference?: number | null;
-  avgWeightedRating?: number | null;
-  rated?: boolean | null;
-  isForOthers?: boolean | null;
-  isReference: boolean;
-  signatureShot?: boolean | null;
-  drinkType?: string | null;
-  status?: string | null;
-  shotClassification?: string | null;
-  faultStatus?: string | null;
-  referenceType?: string | null;
-  expressionStyle?: string | null;
-  dailyDriverCount?: number | null;
-  includeInAnalysis?: boolean | null;
-  notes?: string | null;
-  faultNotes?: string | null;
-  bagOpenedDate?: string | null;
-  hopperPhase?: string | null;
-  grindAdjusted?: string | null;
-  shotsLeftEst?: number | null;
-  finishedShot?: boolean | null;
-  sensoryNotes?: string | null;
-  rawRow?: Record<string, string>;
-};
+type ShotRow = InsertShot;
 
-function parseCsvAndImport(
+export function parseCsvAndImport(
   csvText: string,
-  bagLookup: Map<string, { bagId: number; beanName: string | null }> = new Map()
+  bagLookup: Map<string, { bagId: number; beanName: string | null }> = new Map(),
+  hopperLookup: Map<string, number> = new Map(),
+  baselineLookup: Map<string, number> = new Map(),
+  strictRelationships = false,
 ): { rows: ShotRow[]; headers: string[]; errors: string[] } {
   const rows: ShotRow[] = [];
   const errors: string[] = [];
 
-  const records = parseCSV(csvText);
+  const records = parseCsvRecords(csvText);
   if (records.length < 2) return { rows, headers: [], errors: ["No data rows found"] };
 
   // Strip BOM from first header if present
@@ -402,7 +401,7 @@ function parseCsvAndImport(
   const idxTemp          = colIdx("Temp");
   const idxPourDelay     = colIdx("Pour Delay");
   const idxPourTime      = colIdx("Pour Time (sec)");
-  const idxScaleTime     = colIdx("Scale Time");
+  const idxFlowTime      = rawHeaders.findIndex((h) => ["flow time (sec)", "flow time", "scale time"].includes(h.toLowerCase()));
   const idxYield         = colIdx("Yield (g)");
   const idxRatio         = colIdx("Ratio");
   const idxFinished      = colIdx("Finished Shot");
@@ -441,24 +440,18 @@ function parseCsvAndImport(
       if (!isNaN(d.getTime())) shotDate = d.toISOString();
     } catch { /* keep raw string */ }
 
-    const num = (v: string | undefined): number | null => {
-      if (v == null || v.trim() === "") return null;
-      const n = parseFloat(v.trim());
-      return isNaN(n) ? null : n;
-    };
-    const int = (v: string | undefined): number | null => {
-      if (v == null || v.trim() === "") return null;
-      const n = parseInt(v.trim(), 10);
-      return isNaN(n) ? null : n;
-    };
-    const bool = (v: string | undefined): boolean => v?.trim().toLowerCase() === "checked";
-    const boolOrNull = (v: string | undefined): boolean | null => {
-      if (v == null || v.trim() === "") return null;
-      return v.trim().toLowerCase() === "checked";
-    };
-    const str = (v: string | undefined): string | null => {
-      const s = v?.trim();
-      return s && s !== "" ? s : null;
+    const num = parseCsvNumber;
+    const int = parseCsvInteger;
+    const bool = (value: string | undefined): boolean => parseCsvBoolean(value) ?? false;
+    const boolOrNull = parseCsvBoolean;
+    const str = parseCsvString;
+    const multi = parseCsvMultiSelect;
+    const value = (...names: string[]): string | undefined => {
+      for (const name of names) {
+        const index = colIdx(name);
+        if (index >= 0) return r[index];
+      }
+      return undefined;
     };
 
     // Resolve bag/bean via the bags table — no hardcoded inference
@@ -466,8 +459,24 @@ function parseCsvAndImport(
     const bagRecord = bagNum ? bagLookup.get(bagNum) : undefined;
     const beanName = bagRecord?.beanName ?? null;
     const bagIdVal = bagRecord?.bagId ?? null;
+    const hopperName = str(value("Hopper Link"))?.replace(/"/g, "").trim() ?? null;
+    const hopperRange = str(value("Hopper Range Link", "Hopper Range"));
+    const relationshipErrors: string[] = [];
+    if (strictRelationships && bagNum && !bagRecord) {
+      relationshipErrors.push(`Bag "${bagNum}" was not found`);
+    }
+    if (strictRelationships && hopperName && !hopperLookup.has(hopperName)) {
+      relationshipErrors.push(`Hopper "${hopperName}" was not found`);
+    }
+    if (strictRelationships && hopperRange && !baselineLookup.has(hopperRange)) {
+      relationshipErrors.push(`Hopper Range Baseline "${hopperRange}" was not found`);
+    }
+    if (relationshipErrors.length > 0) {
+      errors.push(`Row ${i + 1}: ${relationshipErrors.join("; ")}`);
+      continue;
+    }
 
-    // Store all 87 columns verbatim
+    // Store every source column verbatim, regardless of export version.
     const rawRow: Record<string, string> = {};
     for (let c = 0; c < rawHeaders.length; c++) {
       rawRow[rawHeaders[c]] = r[c] ?? "";
@@ -476,7 +485,11 @@ function parseCsvAndImport(
     const row: ShotRow = {
       shotDate,
       bagId: bagIdVal,
+      hopperId: hopperName ? (hopperLookup.get(hopperName) ?? null) : null,
+      hopperRangeBaselineId: hopperRange ? (baselineLookup.get(hopperRange) ?? null) : null,
       bag: bagNum,
+      bagLabel: str(value("Bag Label")),
+      daysSinceOpen: int(value("Days Since Open")),
       bean: beanName,
       grindSetting: num(r[idxGrindSetting]),
       grindTime: num(r[idxGrindTime]),
@@ -497,7 +510,7 @@ function parseCsvAndImport(
       temperature: int(r[idxTemp]),
       pourDelay: int(r[idxPourDelay]),
       pourTime: int(r[idxPourTime]),
-      scaleTime: int(r[idxScaleTime]),
+      flowTime: int(r[idxFlowTime]),
       rating: num(r[idxRating]),
       preferenceRating: num(r[idxPrefRating]),
       ratingDifference: num(r[idxRatingDiff]),
@@ -506,18 +519,63 @@ function parseCsvAndImport(
       isForOthers: boolOrNull(r[idxForOthers]),
       isReference: bool(r[idxReference]),
       signatureShot: boolOrNull(r[idxSignature]),
+      sourShot: boolOrNull(value("Sour")),
+      boundaryShot: boolOrNull(value("Boundary Shot")),
       drinkType: str(r[idxDrinkType]),
       status: str(r[idxShotStatus]),
-      shotClassification: str(r[idxShotClass]),
-      faultStatus: str(r[idxFaultStatus]),
+      shotClassification: multi(r[idxShotClass]),
+      faultStatus: multi(r[idxFaultStatus]),
       referenceType: str(r[idxRefType]),
-      expressionStyle: str(r[idxExpStyle]),
+      beanAchievement: multi(value("Bean Achievement", "Reference Shot Type")),
+      expressionStyle: multi(r[idxExpStyle]),
       dailyDriverCount: int(r[idxDailyDriver]),
       includeInAnalysis: boolOrNull(r[idxInclude]),
+      importantToIntelligence: boolOrNull(value("Important to Intelligence")),
+      intelligenceLessonType: multi(value("Intelligence Lesson Type")),
       notes: str(r[idxNotes]),
       faultNotes: str(r[idxFaultNotes]),
       bagOpenedDate: str(r[idxBagOpenedDate]),
       hopperPhase: str(r[idxHopperPhase]),
+      hopperFullness: num(value("Hopper Fullness")),
+      hopperPercent: num(value("Hopper %")),
+      hopperRange: str(value("Hopper Range")),
+      tasteZone: str(value("Taste Zone")),
+      zone: str(value("Zone")),
+      zoneScore: int(value("Zone Score")),
+      tasteScore: int(value("Taste Score")),
+      agreementPercent: num(value("Agreement %")),
+      flowScore: num(value("Flow Score")),
+      modelFlag: str(value("Model Flag")),
+      timeGap: int(value("Time Gap (sec)")),
+      scaleZone: str(value("Scale Zone")),
+      flowDiagnostic: str(value("Flow Diagnostic")),
+      pourDelayWindow: str(value("Pour Delay Window")),
+      flowTimeWindow: str(value("Flow Time Window", "Scale Time Window")),
+      flowTimeOffset: num(value("Flow Time Offset (Scale)", "Scale Offset")),
+      driftDelta: num(value("Drift Delta (sec)")),
+      shotDriftStatus: str(value("Shot Drift Status")),
+      shotQualityScore: num(value("Shot Quality Score")),
+      shotTier: str(value("Shot Tier")),
+      perfectRangeFlag: str(value("Perfect Range Flag")),
+      driftWarning: str(value("Drift Warning")),
+      hopperZone: str(value("Hopper Zone")),
+      hopperDriftLink: str(value("Hopper Drift Link")),
+      hopperImpactScore: num(value("Hopper Impact Score")),
+      hopperCorrectionRule: str(value("Hopper Correction Rule")),
+      actionSuggestion: str(value("Action Suggestion")),
+      scaleCalibrationReminder: str(value("Scale Calibration Reminder")),
+      bagCalibrationReminder: str(value("Bag Calibration Reminder")),
+      calculation: str(value("Calculation")),
+      baselineUnaidedOutput: num(value("Baseline Unaided Output (g)")),
+      baselineOutputDelta: num(value("Baseline Output Delta (g)")),
+      actualDoseError: num(value("Actual Dose Error (g)")),
+      hopperThresholdFlag: str(value("Hopper Threshold Flag")),
+      hopperBehaviour: str(value("Hopper Behaviour")),
+      hopperSeverity: str(value("Hopper Severity")),
+      topUpGap: num(value("Top-Up Gap (g)")),
+      topUpRecommendation: str(value("Top-Up Recommendation")),
+      grinderInitialOutputForCharts: num(value("Grinder Initial Output for Charts (16-19g)")),
+      importFingerprint: csvRowFingerprint(rawHeaders, r),
       grindAdjusted: str(r[idxGrindAdjusted]),
       shotsLeftEst: num(r[idxShotsLeft]),
       finishedShot: boolOrNull(r[idxFinished]),
@@ -529,65 +587,6 @@ function parseCsvAndImport(
   }
 
   return { rows, headers: rawHeaders, errors };
-}
-
-/**
- * Parse CSV text into array of string arrays, handling quoted fields with newlines.
- */
-function parseCSV(text: string): string[][] {
-  const results: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let inQuotes = false;
-  let i = 0;
-  const n = text.length;
-
-  while (i < n) {
-    const ch = text[i];
-
-    if (inQuotes) {
-      if (ch === '"') {
-        if (i + 1 < n && text[i + 1] === '"') {
-          field += '"';
-          i += 2;
-        } else {
-          inQuotes = false;
-          i++;
-        }
-      } else {
-        field += ch;
-        i++;
-      }
-    } else {
-      if (ch === '"') {
-        inQuotes = true;
-        i++;
-      } else if (ch === ',') {
-        row.push(field);
-        field = "";
-        i++;
-      } else if (ch === '\n' || ch === '\r') {
-        row.push(field);
-        field = "";
-        if (row.some(f => f.trim() !== "")) {
-          results.push(row);
-        }
-        row = [];
-        if (ch === '\r' && i + 1 < n && text[i + 1] === '\n') i++;
-        i++;
-      } else {
-        field += ch;
-        i++;
-      }
-    }
-  }
-
-  if (field !== "" || row.length > 0) {
-    row.push(field);
-    if (row.some(f => f.trim() !== "")) results.push(row);
-  }
-
-  return results;
 }
 
 export default router;

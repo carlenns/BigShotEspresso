@@ -36,12 +36,12 @@ interface WatchlistItem {
 interface ShotComparison {
   latestShot: {
     id: number; shotDate: string;
-    pourDelay: number | null; pourTime: number | null; scaleTime: number | null;
+    pourDelay: number | null; pourTime: number | null; flowTime: number | null;
     yield: number | null; dose: number | null; ratio: number | null;
   } | null;
   bagReference: {
     source: string; refCount: number; confidence: "Low" | "Medium" | "High";
-    avgPourDelay: number | null; avgPourTime: number | null; avgScaleTime: number | null;
+    avgPourDelay: number | null; avgPourTime: number | null; avgFlowTime: number | null;
     avgYield: number | null; avgRatio: number | null;
   } | null;
 }
@@ -80,7 +80,7 @@ interface Intelligence {
   timingWindows: {
     dataSource: "current_bag" | "same_bean" | "all_reference"; shotCount: number;
     yieldRange: RangeVal | null; pourTimeRange: RangeVal | null;
-    scaleTimeRange: RangeVal | null; pourDelayRange: RangeVal | null;
+    flowTimeRange: RangeVal | null; pourDelayRange: RangeVal | null;
   } | null;
   grindDrift: {
     startSetting: number | null; startTime: number | null;
@@ -133,7 +133,7 @@ export default function Dashboard() {
 
   const hasBagProgress = bp && (bp.startingWeight || bp.consumed > 0);
   const hasBagComparison = intel?.bagComparison && intel.bagComparison.length > 1;
-  const hasTimingWindows = tw && (tw.yieldRange || tw.pourTimeRange || tw.scaleTimeRange || tw.pourDelayRange);
+  const hasTimingWindows = tw && (tw.yieldRange || tw.pourTimeRange || tw.flowTimeRange || tw.pourDelayRange);
   const hasPerfWindow = bi && (bi.bestYieldRange || bi.bestPourDelayRange);
 
   const twScopeLabel =
@@ -606,7 +606,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {tw!.yieldRange && <WindowStat icon={Droplets} label="Yield" range={tw!.yieldRange} unit="g" showDualWindow />}
               {tw!.pourTimeRange && <WindowStat icon={Clock} label="Pour time" range={tw!.pourTimeRange} unit="s" />}
-              {tw!.scaleTimeRange && <WindowStat icon={Timer} label="Scale time" range={tw!.scaleTimeRange} unit="s" />}
+              {tw!.flowTimeRange && <WindowStat icon={Timer} label="Flow time" range={tw!.flowTimeRange} unit="s" />}
               {tw!.pourDelayRange && <WindowStat icon={Target} label="First pour delay" range={tw!.pourDelayRange} unit="s" />}
             </div>
           </section>
@@ -892,7 +892,7 @@ function ShotComparisonCard({ data, beanName }: { data: ShotComparison; beanName
   const metrics: MetricRow[] = [
     { label: "First Pour Delay", latestVal: s?.pourDelay ?? null, refVal: r?.avgPourDelay ?? null, unit: "s", decimals: 1 },
     { label: "Pour Time",        latestVal: s?.pourTime ?? null,  refVal: r?.avgPourTime ?? null,  unit: "s", decimals: 1 },
-    { label: "Scale Time",       latestVal: s?.scaleTime ?? null, refVal: r?.avgScaleTime ?? null, unit: "s", decimals: 1 },
+    { label: "Flow Time",        latestVal: s?.flowTime ?? null, refVal: r?.avgFlowTime ?? null, unit: "s", decimals: 1 },
     { label: "Yield",            latestVal: s?.yield ?? null,     refVal: r?.avgYield ?? null,     unit: "g", decimals: 1 },
     { label: "Ratio",            latestVal: s?.ratio ?? null,     refVal: r?.avgRatio ?? null,     unit: "×", decimals: 2 },
   ];

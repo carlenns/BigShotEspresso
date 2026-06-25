@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, sql, desc, isNotNull } from "drizzle-orm";
+import { and, eq, sql, isNotNull } from "drizzle-orm";
 import { db, beansTable, bagsTable, shotsTable } from "@workspace/db";
+import { eligibleShotConditions } from "../lib/shot-eligibility";
 
 const router: IRouter = Router();
 
@@ -15,7 +16,7 @@ router.get("/beans", async (_req, res): Promise<void> => {
       referenceCount: sql<number>`count(${shotsTable.id}) filter (where ${shotsTable.isReference} = true)::int`,
     })
     .from(bagsTable)
-    .leftJoin(shotsTable, eq(shotsTable.bagId, bagsTable.id))
+    .leftJoin(shotsTable, and(eq(shotsTable.bagId, bagsTable.id), ...eligibleShotConditions))
     .groupBy(bagsTable.beanId);
   const statsMap = new Map(stats.map((s) => [s.beanId, s]));
   res.json(beans.map((b) => ({

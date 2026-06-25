@@ -43,7 +43,7 @@ export const FIELD_GROUPS: { id: string; label: string; description: string; fie
     fields: [
       { id: "dose",     label: "Dose",      unit: "g",   dbKey: "dose",      type: "number",  step: 0.1,  min: 0,  defaultOn: true  },
       { id: "yield",    label: "Yield",     unit: "g",   dbKey: "yield",     type: "number",  step: 0.1,  min: 0,  defaultOn: true  },
-      { id: "shotTime", label: "Shot Time", unit: "s",   dbKey: "scaleTime", type: "number",  step: 1,    min: 0,  defaultOn: true  },
+      { id: "flowTime", label: "Flow Time", unit: "s",   dbKey: "flowTime", type: "number",  step: 1,    min: 0,  defaultOn: true  },
       { id: "rating",   label: "Rating",    unit: "",    dbKey: "rating",    type: "rating",              defaultOn: true  },
     ],
   },
@@ -76,7 +76,8 @@ export const QUICK_LOG_FIELDS: QuickFieldDef[] = FIELD_GROUPS.flatMap((g) => g.f
 export function getEnabledFieldIds(settings: Record<string, string>): string[] {
   return QUICK_LOG_FIELDS
     .filter((f) => {
-      const val = settings[`quickLog_${f.id}`];
+      const val = settings[`quickLog_${f.id}`] ??
+        (f.id === "flowTime" ? settings.quickLog_shotTime : undefined);
       return val === undefined ? f.defaultOn : val === "true";
     })
     .map((f) => f.id);
@@ -96,10 +97,6 @@ export interface SelectorOptions {
 export async function fetchSelectorOptions(): Promise<SelectorOptions> {
   return fetch("/api/shots/selector-options").then((r) => r.json());
 }
-
-// Fallback options shown before API data loads or when no Airtable data exists
-const FALLBACK_STATUS = ["Good", "Dialed In", "Experimental"];
-const FALLBACK_FAULT_STATUS = ["Good", "Fault"];
 
 // ── Data fetchers ────────────────────────────────────────────────────────────
 
@@ -128,12 +125,14 @@ type FieldValues = Record<string, string | number | boolean>;
 
 interface EvalValues {
   status: string;
-  faultStatus: string;
+  faultStatus: string[];
   isReference: boolean;
   signatureShot: boolean;
   sourShot: boolean;
   expressionStyle: string[];
   beanAchievement: string[];
+  shotClassification: string[];
+  includeInAnalysis: boolean;
   notes: string;
 }
 
@@ -155,8 +154,8 @@ export default function QuickLog() {
   const { data: intelData } = useQuery({ queryKey: ["intelligence"], queryFn: fetchActiveBag });
   const { data: selectorOpts } = useQuery({ queryKey: ["selector-options"], queryFn: fetchSelectorOptions });
 
-  const statusOptions = selectorOpts?.status?.length ? selectorOpts.status : FALLBACK_STATUS;
-  const faultStatusOptions = selectorOpts?.faultStatus?.length ? selectorOpts.faultStatus : FALLBACK_FAULT_STATUS;
+  const statusOptions = selectorOpts?.status ?? [];
+  const faultStatusOptions = selectorOpts?.faultStatus ?? [];
   const expressionStyleOptions = selectorOpts?.expressionStyle ?? [];
   const beanAchievementOptions = selectorOpts?.beanAchievement ?? [];
 
@@ -179,12 +178,14 @@ export default function QuickLog() {
   const [shotDate, setShotDate] = useState(nowDateTimeLocal);
   const [evalValues, setEvalValues] = useState<EvalValues>({
     status: "",
-    faultStatus: "",
+    faultStatus: [],
     isReference: false,
     signatureShot: false,
     sourShot: false,
     expressionStyle: [],
     beanAchievement: [],
+    shotClassification: [],
+    includeInAnalysis: true,
     notes: "",
   });
 
@@ -244,12 +245,14 @@ export default function QuickLog() {
 
     // Shot Evaluation fields (always applied)
     if (evalValues.status) body.status = evalValues.status;
-    if (evalValues.faultStatus) body.faultStatus = evalValues.faultStatus;
+    if (evalValues.faultStatus.length) body.faultStatus = evalValues.faultStatus;
     body.isReference = evalValues.isReference;
     body.signatureShot = evalValues.signatureShot;
     body.sourShot = evalValues.sourShot;
-    if (evalValues.expressionStyle.length) body.expressionStyle = evalValues.expressionStyle.join(", ");
-    if (evalValues.beanAchievement.length) body.beanAchievement = evalValues.beanAchievement.join(", ");
+    if (evalValues.expressionStyle.length) body.expressionStyle = evalValues.expressionStyle;
+    if (evalValues.beanAchievement.length) body.beanAchievement = evalValues.beanAchievement;
+    if (evalValues.shotClassification.length) body.shotClassification = evalValues.shotClassification;
+    body.includeInAnalysis = evalValues.includeInAnalysis;
     if (evalValues.notes) body.notes = evalValues.notes;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -270,7 +273,7 @@ export default function QuickLog() {
   const handleLogAnother = () => {
     setSavedId(null);
     setShotDate(nowDateTimeLocal());
-    setEvalValues({ status: "", faultStatus: "", isReference: false, signatureShot: false, sourShot: false, expressionStyle: [], beanAchievement: [], notes: "" });
+    setEvalValues({ status: "", faultStatus: [], isReference: false, signatureShot: false, sourShot: false, expressionStyle: [], beanAchievement: [], shotClassification: [], includeInAnalysis: true, notes: "" });
     setValues({
       dose:         activeBag?.defaultDose         ?? 18,
       yield:        activeBag?.defaultYield        ?? 36,
@@ -405,18 +408,7 @@ export default function QuickLog() {
               {/* Fault Status */}
               <div className="space-y-2">
                 <Label className="text-base font-medium">Fault Status</Label>
-                <Select
-                  value={evalValues.faultStatus || "__none__"}
-                  onValueChange={(v) => setEval("faultStatus", v === "__none__" ? "" : v)}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Select…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">— not set —</SelectItem>
-                    {faultStatusOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <ChipSelector options={faultStatusOptions} value={evalValues.faultStatus} onChange={(v) => setEval("faultStatus", v)} />
               </div>
 
               {/* Checkboxes */}
@@ -463,6 +455,16 @@ export default function QuickLog() {
                       Sour Shot
                     </label>
                   </div>
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id="eval-includeInAnalysis"
+                      checked={evalValues.includeInAnalysis}
+                      onCheckedChange={(checked) => setEval("includeInAnalysis", checked === true)}
+                    />
+                    <label htmlFor="eval-includeInAnalysis" className="text-sm leading-none cursor-pointer select-none">
+                      Include in Analysis
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -483,6 +485,15 @@ export default function QuickLog() {
                   options={beanAchievementOptions}
                   value={evalValues.beanAchievement}
                   onChange={(v) => setEval("beanAchievement", v)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Shot Classification</Label>
+                <ChipSelector
+                  options={selectorOpts?.shotClassification ?? []}
+                  value={evalValues.shotClassification}
+                  onChange={(v) => setEval("shotClassification", v)}
                 />
               </div>
 
