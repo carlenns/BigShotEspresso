@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, sql, desc, isNotNull } from "drizzle-orm";
+import { and, eq, sql, desc, isNotNull } from "drizzle-orm";
 import { db, bagsTable, beansTable, shotsTable } from "@workspace/db";
+import { eligibleShotConditions } from "../lib/shot-eligibility";
 
 const router: IRouter = Router();
 
@@ -45,7 +46,7 @@ router.get("/bags", async (_req, res): Promise<void> => {
       maxGrind: sql<number | null>`max(${shotsTable.grindSetting})`,
     })
     .from(shotsTable)
-    .where(isNotNull(shotsTable.bagId))
+    .where(and(isNotNull(shotsTable.bagId), ...eligibleShotConditions))
     .groupBy(shotsTable.bagId);
 
   const statsMap = new Map(stats.map((s) => [s.bagId, s]));
@@ -84,7 +85,7 @@ router.get("/bags/:id", async (req, res): Promise<void> => {
   if (!bag) { res.status(404).json({ error: "Bag not found" }); return; }
 
   const shots = await db.select().from(shotsTable)
-    .where(eq(shotsTable.bagId, id))
+    .where(and(eq(shotsTable.bagId, id), ...eligibleShotConditions))
     .orderBy(desc(sql`${shotsTable.shotDate}`));
 
   const ratedShots = shots.filter((s) => s.rating != null);

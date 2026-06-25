@@ -27,11 +27,17 @@ import type {
   GetInsightsParams,
   GetRecentShotsParams,
   HealthStatus,
+  Hopper,
+  HopperInput,
+  HopperRangeBaseline,
+  HopperRangeBaselineInput,
+  HopperUpdate,
   Insight,
   ListReferenceShotsParams,
   ListShotsParams,
   Shot,
   ShotInput,
+  ShotList,
   ShotUpdate
 } from './api.schemas';
 
@@ -143,9 +149,9 @@ export const getListShotsUrl = (params?: ListShotsParams,) => {
 /**
  * @summary List all shots with optional filters
  */
-export const listShots = async (params?: ListShotsParams, options?: RequestInit): Promise<Shot[]> => {
+export const listShots = async (params?: ListShotsParams, options?: RequestInit): Promise<ShotList> => {
 
-  return customFetch<Shot[]>(getListShotsUrl(params),
+  return customFetch<ShotList>(getListShotsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1059,4 +1065,472 @@ export function useGetInsights<TData = Awaited<ReturnType<typeof getInsights>>, 
 
 
 
+
+export const getListHoppersUrl = () => {
+
+
+
+
+  return `/api/hoppers`
+}
+
+export const listHoppers = async ( options?: RequestInit): Promise<Hopper[]> => {
+
+  return customFetch<Hopper[]>(getListHoppersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListHoppersQueryKey = () => {
+    return [
+    `/api/hoppers`
+    ] as const;
+    }
+
+
+export const getListHoppersQueryOptions = <TData = Awaited<ReturnType<typeof listHoppers>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listHoppers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListHoppersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listHoppers>>> = ({ signal }) => listHoppers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listHoppers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListHoppersQueryResult = NonNullable<Awaited<ReturnType<typeof listHoppers>>>
+export type ListHoppersQueryError = ErrorType<unknown>
+
+
+
+export function useListHoppers<TData = Awaited<ReturnType<typeof listHoppers>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listHoppers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListHoppersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateHopperUrl = () => {
+
+
+
+
+  return `/api/hoppers`
+}
+
+export const createHopper = async (hopperInput: HopperInput, options?: RequestInit): Promise<Hopper> => {
+
+  return customFetch<Hopper>(getCreateHopperUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      hopperInput,)
+  }
+);}
+
+
+
+
+export const getCreateHopperMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createHopper>>, TError,{data: BodyType<HopperInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createHopper>>, TError,{data: BodyType<HopperInput>}, TContext> => {
+
+const mutationKey = ['createHopper'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createHopper>>, {data: BodyType<HopperInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createHopper(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateHopperMutationResult = NonNullable<Awaited<ReturnType<typeof createHopper>>>
+    export type CreateHopperMutationBody = BodyType<HopperInput>
+    export type CreateHopperMutationError = ErrorType<unknown>
+
+    export const useCreateHopper = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createHopper>>, TError,{data: BodyType<HopperInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createHopper>>,
+        TError,
+        {data: BodyType<HopperInput>},
+        TContext
+      > => {
+      return useMutation(getCreateHopperMutationOptions(options));
+    }
+
+export const getUpdateHopperUrl = (id: number,) => {
+
+
+
+
+  return `/api/hoppers/${id}`
+}
+
+export const updateHopper = async (id: number,
+    hopperUpdate: HopperUpdate, options?: RequestInit): Promise<Hopper> => {
+
+  return customFetch<Hopper>(getUpdateHopperUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      hopperUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateHopperMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateHopper>>, TError,{id: number;data: BodyType<HopperUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateHopper>>, TError,{id: number;data: BodyType<HopperUpdate>}, TContext> => {
+
+const mutationKey = ['updateHopper'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateHopper>>, {id: number;data: BodyType<HopperUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateHopper(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateHopperMutationResult = NonNullable<Awaited<ReturnType<typeof updateHopper>>>
+    export type UpdateHopperMutationBody = BodyType<HopperUpdate>
+    export type UpdateHopperMutationError = ErrorType<unknown>
+
+    export const useUpdateHopper = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateHopper>>, TError,{id: number;data: BodyType<HopperUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateHopper>>,
+        TError,
+        {id: number;data: BodyType<HopperUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateHopperMutationOptions(options));
+    }
+
+export const getImportHoppersCsvUrl = () => {
+
+
+
+
+  return `/api/hoppers/import-csv`
+}
+
+export const importHoppersCsv = async (csvImportInput: CsvImportInput, options?: RequestInit): Promise<CsvImportResult> => {
+
+  return customFetch<CsvImportResult>(getImportHoppersCsvUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      csvImportInput,)
+  }
+);}
+
+
+
+
+export const getImportHoppersCsvMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importHoppersCsv>>, TError,{data: BodyType<CsvImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importHoppersCsv>>, TError,{data: BodyType<CsvImportInput>}, TContext> => {
+
+const mutationKey = ['importHoppersCsv'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importHoppersCsv>>, {data: BodyType<CsvImportInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  importHoppersCsv(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportHoppersCsvMutationResult = NonNullable<Awaited<ReturnType<typeof importHoppersCsv>>>
+    export type ImportHoppersCsvMutationBody = BodyType<CsvImportInput>
+    export type ImportHoppersCsvMutationError = ErrorType<unknown>
+
+    export const useImportHoppersCsv = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importHoppersCsv>>, TError,{data: BodyType<CsvImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importHoppersCsv>>,
+        TError,
+        {data: BodyType<CsvImportInput>},
+        TContext
+      > => {
+      return useMutation(getImportHoppersCsvMutationOptions(options));
+    }
+
+export const getListHopperRangeBaselinesUrl = () => {
+
+
+
+
+  return `/api/hopper-range-baselines`
+}
+
+export const listHopperRangeBaselines = async ( options?: RequestInit): Promise<HopperRangeBaseline[]> => {
+
+  return customFetch<HopperRangeBaseline[]>(getListHopperRangeBaselinesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListHopperRangeBaselinesQueryKey = () => {
+    return [
+    `/api/hopper-range-baselines`
+    ] as const;
+    }
+
+
+export const getListHopperRangeBaselinesQueryOptions = <TData = Awaited<ReturnType<typeof listHopperRangeBaselines>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listHopperRangeBaselines>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListHopperRangeBaselinesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listHopperRangeBaselines>>> = ({ signal }) => listHopperRangeBaselines({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listHopperRangeBaselines>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListHopperRangeBaselinesQueryResult = NonNullable<Awaited<ReturnType<typeof listHopperRangeBaselines>>>
+export type ListHopperRangeBaselinesQueryError = ErrorType<unknown>
+
+
+
+export function useListHopperRangeBaselines<TData = Awaited<ReturnType<typeof listHopperRangeBaselines>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listHopperRangeBaselines>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListHopperRangeBaselinesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateHopperRangeBaselineUrl = () => {
+
+
+
+
+  return `/api/hopper-range-baselines`
+}
+
+export const createHopperRangeBaseline = async (hopperRangeBaselineInput: HopperRangeBaselineInput, options?: RequestInit): Promise<HopperRangeBaseline> => {
+
+  return customFetch<HopperRangeBaseline>(getCreateHopperRangeBaselineUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      hopperRangeBaselineInput,)
+  }
+);}
+
+
+
+
+export const getCreateHopperRangeBaselineMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createHopperRangeBaseline>>, TError,{data: BodyType<HopperRangeBaselineInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createHopperRangeBaseline>>, TError,{data: BodyType<HopperRangeBaselineInput>}, TContext> => {
+
+const mutationKey = ['createHopperRangeBaseline'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createHopperRangeBaseline>>, {data: BodyType<HopperRangeBaselineInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createHopperRangeBaseline(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateHopperRangeBaselineMutationResult = NonNullable<Awaited<ReturnType<typeof createHopperRangeBaseline>>>
+    export type CreateHopperRangeBaselineMutationBody = BodyType<HopperRangeBaselineInput>
+    export type CreateHopperRangeBaselineMutationError = ErrorType<unknown>
+
+    export const useCreateHopperRangeBaseline = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createHopperRangeBaseline>>, TError,{data: BodyType<HopperRangeBaselineInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createHopperRangeBaseline>>,
+        TError,
+        {data: BodyType<HopperRangeBaselineInput>},
+        TContext
+      > => {
+      return useMutation(getCreateHopperRangeBaselineMutationOptions(options));
+    }
+
+export const getImportHopperRangeBaselinesCsvUrl = () => {
+
+
+
+
+  return `/api/hopper-range-baselines/import-csv`
+}
+
+export const importHopperRangeBaselinesCsv = async (csvImportInput: CsvImportInput, options?: RequestInit): Promise<CsvImportResult> => {
+
+  return customFetch<CsvImportResult>(getImportHopperRangeBaselinesCsvUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      csvImportInput,)
+  }
+);}
+
+
+
+
+export const getImportHopperRangeBaselinesCsvMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importHopperRangeBaselinesCsv>>, TError,{data: BodyType<CsvImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importHopperRangeBaselinesCsv>>, TError,{data: BodyType<CsvImportInput>}, TContext> => {
+
+const mutationKey = ['importHopperRangeBaselinesCsv'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importHopperRangeBaselinesCsv>>, {data: BodyType<CsvImportInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  importHopperRangeBaselinesCsv(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportHopperRangeBaselinesCsvMutationResult = NonNullable<Awaited<ReturnType<typeof importHopperRangeBaselinesCsv>>>
+    export type ImportHopperRangeBaselinesCsvMutationBody = BodyType<CsvImportInput>
+    export type ImportHopperRangeBaselinesCsvMutationError = ErrorType<unknown>
+
+    export const useImportHopperRangeBaselinesCsv = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importHopperRangeBaselinesCsv>>, TError,{data: BodyType<CsvImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importHopperRangeBaselinesCsv>>,
+        TError,
+        {data: BodyType<CsvImportInput>},
+        TContext
+      > => {
+      return useMutation(getImportHopperRangeBaselinesCsvMutationOptions(options));
+    }
 

@@ -1,10 +1,22 @@
 import { Router, type IRouter } from "express";
+import { createHash } from "node:crypto";
 import { eq, isNotNull, sql } from "drizzle-orm";
 import {
   db, beansTable, bagsTable, shotsTable, settingsTable,
   grindersTable, machinesTable, accessoriesTable,
   tasteSelectorsTable, shotTasteSelectorsTable,
+  hoppersTable, hopperRangeBaselinesTable, airtableSyncEvidenceTable,
 } from "@workspace/db";
+import {
+  airtableBoolean as bool,
+  airtableMulti as multi,
+  airtableNumber as num,
+  airtableString as str,
+  findAirtableField as findField,
+  mapAirtableShotFields,
+  normalizeAirtableName as normalize,
+  singleAirtableLinkedId,
+} from "../lib/airtable-mapping";
 
 const router: IRouter = Router();
 
@@ -16,45 +28,28 @@ interface AirtableRecord {
   createdTime: string;
 }
 
-function normalize(s: string): string {
-  return s.toLowerCase().replace(/[\s_\-()/]+/g, "");
+function linkedId(value: unknown, fieldName = "linked field"): string | undefined {
+  return singleAirtableLinkedId(value, fieldName);
 }
 
-function findField(fields: Record<string, unknown>, candidates: string[]): unknown {
-  const entries = Object.entries(fields);
-  for (const c of candidates) {
-    const nc = normalize(c);
-    const found = entries.find(([k]) => normalize(k) === nc);
-    if (found && found[1] !== undefined && found[1] !== null && found[1] !== "") return found[1];
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`).join(",")}}`;
   }
-  return undefined;
+  return JSON.stringify(value);
 }
 
-function str(v: unknown): string | undefined {
-  if (v == null) return undefined;
-  if (Array.isArray(v)) return v.join(", ") || undefined;
-  const s = String(v).trim();
-  return s === "" ? undefined : s;
-}
-
-function num(v: unknown): number | undefined {
-  if (v == null) return undefined;
-  const n = Number(v);
-  return isNaN(n) ? undefined : n;
-}
-
-function bool(v: unknown): boolean | undefined {
-  if (v == null) return undefined;
-  if (typeof v === "boolean") return v;
-  const s = String(v).toLowerCase().trim();
-  if (["true", "yes", "1", "reference", "confirmed reference"].includes(s)) return true;
-  if (["false", "no", "0"].includes(s)) return false;
-  return undefined;
-}
-
-function linkedId(v: unknown): string | undefined {
-  if (Array.isArray(v) && v.length > 0) return String(v[0]);
-  return undefined;
+async function preserveAirtableEvidence(sourceTable: string, record: AirtableRecord): Promise<void> {
+  const contentHash = createHash("sha256").update(stableJson(record.fields)).digest("hex");
+  await db.insert(airtableSyncEvidenceTable).values({
+    sourceTable,
+    sourceRecordId: record.id,
+    sourceCreatedTime: record.createdTime ? new Date(record.createdTime) : null,
+    fields: record.fields,
+    contentHash,
+  }).onConflictDoNothing();
 }
 
 async function fetchAllRecords(baseId: string, tableId: string, token: string): Promise<AirtableRecord[]> {
@@ -105,7 +100,9 @@ router.get("/airtable/counts", async (_req, res): Promise<void> => {
   const [machines] = await db.select({ total: sql<number>`count(*)::int` }).from(machinesTable);
   const [accessories] = await db.select({ total: sql<number>`count(*)::int` }).from(accessoriesTable);
   const [tasteSelectors] = await db.select({ total: sql<number>`count(*)::int` }).from(tasteSelectorsTable);
-  res.json({ beans, bags, shots, grinders, machines, accessories, tasteSelectors });
+  const [hoppers] = await db.select({ total: sql<number>`count(*)::int`, fromAirtable: sql<number>`count(*) filter (where ${hoppersTable.airtableRecordId} is not null)::int` }).from(hoppersTable);
+  const [hopperRangeBaselines] = await db.select({ total: sql<number>`count(*)::int`, fromAirtable: sql<number>`count(*) filter (where ${hopperRangeBaselinesTable.airtableRecordId} is not null)::int` }).from(hopperRangeBaselinesTable);
+  res.json({ beans, bags, shots, grinders, machines, accessories, tasteSelectors, hoppers, hopperRangeBaselines });
 });
 
 // ── POST /api/airtable/test ────────────────────────────────────────────────
@@ -136,7 +133,7 @@ router.post("/airtable/test", async (_req, res): Promise<void> => {
       return;
     }
 
-    const meta = await metaRes.json() as { tables: { id: string; name: string }[] };
+    const meta = await metaRes.json() as { tables: { id: string; name: string; fields?: { name: string }[] }[] };
     const tables = meta.tables.map((t) => t.name);
     const wantedTables = ["Shots", "Beans", "Bags", "Equipment", "Accessories", "Taste Selectors"];
     const found: string[] = [];
@@ -167,6 +164,12 @@ router.post("/airtable/clear", async (req, res): Promise<void> => {
 
   const sh = await db.delete(shotsTable);
   deleted.shots = (sh as any).rowCount ?? 0;
+
+  const hp = await db.delete(hoppersTable);
+  deleted.hoppers = (hp as any).rowCount ?? 0;
+
+  const hb = await db.delete(hopperRangeBaselinesTable);
+  deleted.hopperRangeBaselines = (hb as any).rowCount ?? 0;
 
   const bg = await db.delete(bagsTable);
   deleted.bags = (bg as any).rowCount ?? 0;
@@ -210,14 +213,24 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
     res.status(502).json({ error: `Cannot reach Airtable (${metaRes.status})` });
     return;
   }
-  const meta = await metaRes.json() as { tables: { id: string; name: string }[] };
+  const meta = await metaRes.json() as { tables: { id: string; name: string; fields?: { name: string }[] }[] };
   const tableMap = Object.fromEntries(meta.tables.map((t) => [normalize(t.name), t.name]));
+  const tableFieldMap = new Map(
+    meta.tables.map((table) => [
+      normalize(table.name),
+      new Set((table.fields ?? []).map((field) => normalize(field.name))),
+    ]),
+  );
 
   const resolveTable = (...names: string[]): string | null => {
     for (const n of names) {
       if (tableMap[normalize(n)]) return tableMap[normalize(n)];
     }
     return null;
+  };
+  const tableHasField = (tableName: string, ...fieldNames: string[]): boolean => {
+    const fields = tableFieldMap.get(normalize(tableName));
+    return fieldNames.some((fieldName) => fields?.has(normalize(fieldName)));
   };
 
   const stats: Record<string, { inserted: number; updated: number; skipped: number; errors: string[] }> = {};
@@ -275,6 +288,7 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
             await db.insert(beansTable).values(vals);
             stats.beans.inserted++;
           }
+          await preserveAirtableEvidence(beansTableName, r);
         } catch (e) { stats.beans.errors.push(`${r.id}: ${String(e).slice(0, 100)}`); }
       }
     } catch (e) { stats.beans = { ...initStat(), errors: [String(e)] }; }
@@ -347,6 +361,7 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
             await db.insert(bagsTable).values(vals);
             stats.bags.inserted++;
           }
+          await preserveAirtableEvidence(bagsTableName, r);
         } catch (e) { stats.bags.errors.push(`${r.id}: ${String(e).slice(0, 100)}`); }
       }
     } catch (e) { stats.bags = { ...initStat(), errors: [String(e)] }; }
@@ -373,7 +388,95 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
     }
   }
 
-  // ── 3. Sync Shots ────────────────────────────────────────────────────────
+  // ── 3. Sync Hopper states ────────────────────────────────────────────────
+  const hopperIdMap = new Map<string, number>();
+  const hopperTableName = resolveTable("Hopper", "Hoppers");
+  if (hopperTableName) {
+    stats.hoppers = initStat();
+    try {
+      const records = await fetchAllRecords(baseId, hopperTableName, token);
+      for (const r of records) {
+        const f = r.fields;
+        const name = str(findField(f, ["Name", "Hopper", "Label"]));
+        if (!name) { stats.hoppers.skipped++; continue; }
+        try {
+          const bagAtId = linkedId(findField(f, ["Bag", "Bags"]), "Bag");
+          const vals = {
+            name,
+            bagId: bagAtId ? (bagIdMap.get(bagAtId) ?? null) : null,
+            startingBeans: num(findField(f, ["Starting Beans (g)", "Starting Beans"])),
+            isActive: bool(findField(f, ["Active"])) ?? false,
+            hopperMass: num(findField(f, ["Hopper Mass (g)", "Hopper Mass"])),
+            hopperPercent: num(findField(f, ["Hopper %"])),
+            shotsLeftEstimate: num(findField(f, ["Shots Left (estimated)", "Shots Left (est)"])),
+            phase: str(findField(f, ["Hopper Phase", "Phase"])),
+            notes: str(findField(f, ["Notes"])),
+            airtableRecordId: r.id,
+            rawRow: f,
+          };
+          const result = await db.transaction(async (tx) => {
+            const existing = await tx.select({ id: hoppersTable.id }).from(hoppersTable)
+              .where(eq(hoppersTable.airtableRecordId, r.id));
+            if (vals.isActive && vals.bagId != null) {
+              await tx.update(hoppersTable).set({ isActive: false })
+                .where(eq(hoppersTable.bagId, vals.bagId));
+            }
+            if (existing.length) {
+              await tx.update(hoppersTable).set(vals).where(eq(hoppersTable.airtableRecordId, r.id));
+              return { id: existing[0]!.id, updated: true };
+            }
+            const [inserted] = await tx.insert(hoppersTable).values(vals).returning({ id: hoppersTable.id });
+            return { id: inserted!.id, updated: false };
+          });
+          hopperIdMap.set(r.id, result.id);
+          if (result.updated) stats.hoppers.updated++;
+          else stats.hoppers.inserted++;
+          await preserveAirtableEvidence(hopperTableName, r);
+        } catch (e) { stats.hoppers.errors.push(`${r.id}: ${String(e).slice(0, 100)}`); }
+      }
+    } catch (e) { stats.hoppers = { ...initStat(), errors: [String(e)] }; }
+  }
+
+  // ── 4. Sync Hopper Range Baselines ──────────────────────────────────────
+  const hopperRangeBaselineIdMap = new Map<string, number>();
+  const baselineTableName = resolveTable("Hopper Range Baselines", "Hopper Range Baseline");
+  if (baselineTableName) {
+    stats.hopperRangeBaselines = initStat();
+    try {
+      const records = await fetchAllRecords(baseId, baselineTableName, token);
+      for (const r of records) {
+        const f = r.fields;
+        const hopperRange = str(findField(f, ["Hopper Range", "Range"]));
+        if (!hopperRange) { stats.hopperRangeBaselines.skipped++; continue; }
+        try {
+          const vals = {
+            hopperRange,
+            baselineOutputAdjustedDate: str(findField(f, ["Baseline Output Adjusted Date"])),
+            baselineOutputStatus: str(findField(f, ["Baseline Output Status"])),
+            baselineOutput: num(findField(f, ["Baseline Output (g)", "Baseline Output"])),
+            avgInitialOutput: num(findField(f, ["Avg Initial Output (g)", "Average Initial Output"])),
+            observationCount: num(findField(f, ["Count"])) as number | undefined,
+            airtableRecordId: r.id,
+            rawRow: f,
+          };
+          const existing = await db.select({ id: hopperRangeBaselinesTable.id }).from(hopperRangeBaselinesTable)
+            .where(eq(hopperRangeBaselinesTable.airtableRecordId, r.id));
+          if (existing.length) {
+            await db.update(hopperRangeBaselinesTable).set(vals).where(eq(hopperRangeBaselinesTable.airtableRecordId, r.id));
+            hopperRangeBaselineIdMap.set(r.id, existing[0]!.id);
+            stats.hopperRangeBaselines.updated++;
+          } else {
+            const [inserted] = await db.insert(hopperRangeBaselinesTable).values(vals).returning({ id: hopperRangeBaselinesTable.id });
+            if (inserted) hopperRangeBaselineIdMap.set(r.id, inserted.id);
+            stats.hopperRangeBaselines.inserted++;
+          }
+          await preserveAirtableEvidence(baselineTableName, r);
+        } catch (e) { stats.hopperRangeBaselines.errors.push(`${r.id}: ${String(e).slice(0, 100)}`); }
+      }
+    } catch (e) { stats.hopperRangeBaselines = { ...initStat(), errors: [String(e)] }; }
+  }
+
+  // ── 5. Sync Shots ────────────────────────────────────────────────────────
   // Key fields: "Date", "Bag" (linked), "Bean Helper" (linked → direct bean atId),
   // "Bag Label" (lookup string array — use bagLabelMap instead for clean label),
   // "Dose (g)", "Yield (g)", "Grinder Setting", "Pour Time (sec)", etc.
@@ -382,16 +485,48 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
     stats.shots = initStat();
     try {
       const records = await fetchAllRecords(baseId, shotsTableName, token);
+      const includeInAnalysisFieldPresent = tableHasField(
+        shotsTableName,
+        "Include in Analysis",
+        "Include In Analysis",
+      );
+      if (!includeInAnalysisFieldPresent) {
+        stats.shots.errors.push(
+          "Airtable Shots is missing Include in Analysis; eligibility values were left unchanged or null.",
+        );
+      }
       for (const r of records) {
         const f = r.fields;
-        const shotDate = str(findField(f, ["Date", "Shot Date", "Timestamp", "Created", "Date/Time"]));
+        const mappedFields = mapAirtableShotFields(f, {
+          includeInAnalysisFieldPresent,
+        });
+        const shotDate = mappedFields.shotDate;
         if (!shotDate) { stats.shots.skipped++; continue; }
         try {
-          const bagAtId  = linkedId(findField(f, ["Bag", "Bags", "Current Bag"]));
+          const bagAtId  = linkedId(findField(f, ["Bag", "Bags", "Current Bag"]), "Bag");
           const bagId    = bagAtId ? (bagIdMap.get(bagAtId) ?? null) : null;
+          if (bagAtId && bagId == null) throw new Error(`Unresolved Bag link ${bagAtId}`);
+
+          const hopperAtId = linkedId(findField(f, ["Hopper Link", "Hopper"]), "Hopper Link");
+          const hopperId = hopperAtId ? (hopperIdMap.get(hopperAtId) ?? null) : null;
+          if (hopperAtId && hopperId == null) throw new Error(`Unresolved Hopper link ${hopperAtId}`);
+
+          const baselineAtId = linkedId(
+            findField(f, ["Hopper Range Link", "Hopper Range Baseline"]),
+            "Hopper Range Link",
+          );
+          const hopperRangeBaselineId = baselineAtId
+            ? (hopperRangeBaselineIdMap.get(baselineAtId) ?? null)
+            : null;
+          if (baselineAtId && hopperRangeBaselineId == null) {
+            throw new Error(`Unresolved Hopper Range Baseline link ${baselineAtId}`);
+          }
 
           // Bean display: prefer direct "Bean Helper" link, then Bag→Bean path
-          const beanAtIdDirect = linkedId(findField(f, ["Bean Helper", "Bean", "Beans"]));
+          const beanAtIdDirect = linkedId(
+            findField(f, ["Bean Helper", "Bean", "Beans"]),
+            "Bean Helper",
+          );
           const beanDisplayName =
             (beanAtIdDirect ? beanNameMap.get(beanAtIdDirect) : undefined) ??
             (bagAtId ? bagBeanNameMap.get(bagAtId) : undefined) ??
@@ -400,53 +535,15 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
           // Bag display: use our clean synced bag label (avoids escaped quotes from Airtable lookups)
           const bagDisplayLabel = bagAtId ? bagLabelMap.get(bagAtId) : undefined;
 
-          // Shot Classification is an array — join to string
-          const classRaw = findField(f, ["Shot Classification", "Classification"]);
-          const shotClassification = Array.isArray(classRaw) ? classRaw.join(", ") : str(classRaw);
-
-          // Fault Status is an array — join to string
-          const faultRaw = findField(f, ["Fault Status", "Fault"]);
-          const faultStatus = Array.isArray(faultRaw) ? faultRaw.join(", ") : str(faultRaw);
-
-          // Status — pre-computed so it can be used in the includeInAnalysis fallback
-          const statusStr = str(findField(f, ["Shot Status", "Status"])) ?? "";
-
-          // Include in Analysis: 0/1 checkbox in Airtable.
-          // Fallback when field is absent: status ∈ {Good, Dialed In} AND fault status = Good.
-          const includeRaw = findField(f, ["Include in Analysis", "Include In Analysis"]);
-          const includeInAnalysis = includeRaw != null
-            ? Number(includeRaw) === 1
-            : (["good", "dialed in"].includes(statusStr.toLowerCase()) &&
-               (faultStatus ?? "").toLowerCase() === "good");
-
           const existing = await db.select({ id: shotsTable.id }).from(shotsTable).where(eq(shotsTable.airtableRecordId, r.id));
           const vals = {
-            shotDate,
+            ...mappedFields,
+            shotDate: String(shotDate),
             bagId,
+            hopperId,
+            hopperRangeBaselineId,
             bean: beanDisplayName,
             bag: bagDisplayLabel,
-            grindSetting: num(findField(f, ["Grinder Setting", "Grind Setting"])),
-            grindTime: num(findField(f, ["Grind Time"])),
-            initialGrindWeight: num(findField(f, ["Initial Output (g)", "Initial Output"])),
-            totalOutput: num(findField(f, ["Total Output (g)", "Total Output"])),
-            dose: num(findField(f, ["Dose (g)", "Dose", "Target Dose (g)"])),
-            yield: num(findField(f, ["Yield (g)", "Yield"])),
-            temperature: num(findField(f, ["Temp", "Temperature"])) as number | undefined,
-            pourDelay: num(findField(f, ["Pour Delay", "Pour Delay (s)"])) as number | undefined,
-            pourTime: num(findField(f, ["Pour Time (sec)", "Pour Time"])) as number | undefined,
-            scaleTime: num(findField(f, ["Scale Time", "Total Time"])) as number | undefined,
-            rating: num(findField(f, ["Rating", "Rating ( Valid Only )"])),
-            preferenceRating: num(findField(f, ["Preference Rating"])),
-            isReference: bool(findField(f, ["Reference Shot"])) ?? false,
-            signatureShot: bool(findField(f, ["Signature Shot"])) ?? false,
-            status: statusStr || undefined,
-            shotClassification,
-            faultStatus,
-            expressionStyle: str(findField(f, ["Expression Style"])),
-            notes: str(findField(f, ["Notes"])),
-            hopperPhase: str(findField(f, ["Hopper Phase"])),
-            drinkType: str(findField(f, ["Effective Drink Type", "Drink Type"])),
-            includeInAnalysis,
             airtableRecordId: r.id,
           };
           if (existing.length) {
@@ -456,6 +553,7 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
             await db.insert(shotsTable).values(vals);
             stats.shots.inserted++;
           }
+          await preserveAirtableEvidence(shotsTableName, r);
         } catch (e) { stats.shots.errors.push(`${r.id}: ${String(e).slice(0, 100)}`); }
       }
     } catch (e) { stats.shots = { ...initStat(), errors: [String(e)] }; }

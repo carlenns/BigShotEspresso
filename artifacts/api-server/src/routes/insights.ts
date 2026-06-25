@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { and, eq, gte, ilike, isNotNull, sql } from "drizzle-orm";
 import { db, shotsTable } from "@workspace/db";
 import { GetInsightsQueryParams } from "@workspace/api-zod";
+import { eligibleShotConditions } from "../lib/shot-eligibility";
 
 const router: IRouter = Router();
 
@@ -14,10 +15,10 @@ router.get("/insights", async (req, res): Promise<void> => {
   }
 
   const { bean, bag } = params.data;
-  const baseConditions = [];
+  const baseConditions = [...eligibleShotConditions];
   if (bean) baseConditions.push(ilike(shotsTable.bean, `%${bean}%`));
   if (bag) baseConditions.push(ilike(shotsTable.bag, `%${bag}%`));
-  const baseWhere = baseConditions.length > 0 ? and(...baseConditions) : undefined;
+  const baseWhere = and(...baseConditions);
 
   const insights: { id: string; text: string; category: string; confidence: string | null }[] = [];
 
@@ -127,7 +128,11 @@ router.get("/insights", async (req, res): Promise<void> => {
   // Insight 6: Fault rate
   const faultCount = await db.select({
     total: sql<number>`count(*)::int`,
-    faults: sql<number>`count(*) filter (where ${shotsTable.faultStatus} is not null and ${shotsTable.faultStatus} != '' and ${shotsTable.faultStatus} not in ('Good'))::int`,
+    faults: sql<number>`count(*) filter (
+      where ${shotsTable.faultStatus} is not null
+      and cardinality(${shotsTable.faultStatus}) > 0
+      and ${shotsTable.faultStatus} != ARRAY['Good']::text[]
+    )::int`,
   })
     .from(shotsTable)
     .where(baseWhere);

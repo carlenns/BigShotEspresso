@@ -5,14 +5,29 @@
  * Coffee Log API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { StringArray } from './stringArray';
 
 export interface Shot {
   id: number;
   shotDate: string;
   /** @nullable */
+  bagId?: number | null;
+  /** @nullable */
+  grinderId?: number | null;
+  /** @nullable */
+  machineId?: number | null;
+  /** @nullable */
+  hopperId?: number | null;
+  /** @nullable */
+  hopperRangeBaselineId?: number | null;
+  /** @nullable */
   bean?: string | null;
   /** @nullable */
   bag?: string | null;
+  /** @nullable */
+  bagLabel?: string | null;
+  /** @nullable */
+  daysSinceOpen?: number | null;
   /** @nullable */
   grindSetting?: number | null;
   /** @nullable */
@@ -20,7 +35,27 @@ export interface Shot {
   /** @nullable */
   initialGrindWeight?: number | null;
   /** @nullable */
+  totalOutput?: number | null;
+  /** @nullable */
   dose?: number | null;
+  /** @nullable */
+  timeAdj?: number | null;
+  /** @nullable */
+  topUpGrind?: number | null;
+  /** @nullable */
+  overGrindRemoved?: number | null;
+  /** @nullable */
+  beanDelta?: number | null;
+  /** @nullable */
+  grindWaste?: number | null;
+  /** @nullable */
+  beansAdded?: number | null;
+  /** @nullable */
+  doseCorrectionType?: string | null;
+  /** @nullable */
+  doseCorrection?: number | null;
+  /** @nullable */
+  outputDelta?: number | null;
   /** @nullable */
   yield?: number | null;
   /** @nullable */
@@ -32,37 +67,136 @@ export interface Shot {
   /** @nullable */
   pourTime?: number | null;
   /** @nullable */
-  scaleTime?: number | null;
+  flowTime?: number | null;
   /** @nullable */
   rating?: number | null;
   /** @nullable */
   preferenceRating?: number | null;
   /** @nullable */
-  status?: string | null;
+  readonly ratingDifference?: number | null;
   /** @nullable */
-  faultStatus?: string | null;
-  isReference?: boolean;
+  readonly avgWeightedRating?: number | null;
+  /** @nullable */
+  rated?: boolean | null;
+  /** @nullable */
+  isForOthers?: boolean | null;
+  isReference: boolean;
   /** @nullable */
   signatureShot?: boolean | null;
   /** @nullable */
   sourShot?: boolean | null;
   /** @nullable */
-  expressionStyle?: string | null;
+  boundaryShot?: boolean | null;
   /** @nullable */
-  beanAchievement?: string | null;
+  drinkType?: string | null;
   /** @nullable */
-  isForOthers?: boolean | null;
+  status?: string | null;
+  faultStatus?: StringArray | null;
+  shotClassification?: StringArray | null;
+  beanAchievement?: StringArray | null;
+  expressionStyle?: StringArray | null;
+  /** @nullable */
+  referenceType?: string | null;
+  /** @nullable */
+  readonly dailyDriverCount?: number | null;
+  /** @nullable */
+  importantToIntelligence?: boolean | null;
+  intelligenceLessonType?: StringArray | null;
+  /** @nullable */
+  readonly includeInAnalysis?: boolean | null;
   /** @nullable */
   notes?: string | null;
   /** @nullable */
   sensoryNotes?: string | null;
   /** @nullable */
+  faultNotes?: string | null;
+  /** @nullable */
+  readonly bagOpenedDate?: string | null;
+  /** @nullable */
   grindAdjusted?: string | null;
   /** @nullable */
-  doseCorrection?: number | null;
-  /** @nullable */
-  doseCorrectionType?: string | null;
-  /** @nullable */
   shotsLeftEst?: number | null;
+  /** @nullable */
+  finishedShot?: boolean | null;
+  /** @nullable */
+  hopperPhase?: string | null;
+  /** @nullable */
+  hopperFullness?: number | null;
+  /** @nullable */
+  readonly hopperPercent?: number | null;
+  /** @nullable */
+  readonly hopperRange?: string | null;
+  /** @nullable */
+  tasteZone?: string | null;
+  /** @nullable */
+  readonly zone?: string | null;
+  /** @nullable */
+  readonly zoneScore?: number | null;
+  /** @nullable */
+  readonly tasteScore?: number | null;
+  /** @nullable */
+  readonly agreementPercent?: number | null;
+  /** @nullable */
+  readonly flowScore?: number | null;
+  /** @nullable */
+  readonly modelFlag?: string | null;
+  /** @nullable */
+  readonly timeGap?: number | null;
+  /** @nullable */
+  readonly scaleZone?: string | null;
+  /** @nullable */
+  readonly flowDiagnostic?: string | null;
+  /** @nullable */
+  readonly pourDelayWindow?: string | null;
+  /** @nullable */
+  readonly flowTimeWindow?: string | null;
+  /** @nullable */
+  readonly flowTimeOffset?: number | null;
+  /** @nullable */
+  readonly driftDelta?: number | null;
+  /** @nullable */
+  readonly shotDriftStatus?: string | null;
+  /** @nullable */
+  readonly shotQualityScore?: number | null;
+  /** @nullable */
+  readonly shotTier?: string | null;
+  /** @nullable */
+  readonly perfectRangeFlag?: string | null;
+  /** @nullable */
+  readonly driftWarning?: string | null;
+  /** @nullable */
+  readonly hopperZone?: string | null;
+  /** @nullable */
+  readonly hopperDriftLink?: string | null;
+  /** @nullable */
+  readonly hopperImpactScore?: number | null;
+  /** @nullable */
+  readonly hopperCorrectionRule?: string | null;
+  /** @nullable */
+  readonly actionSuggestion?: string | null;
+  /** @nullable */
+  readonly scaleCalibrationReminder?: string | null;
+  /** @nullable */
+  readonly bagCalibrationReminder?: string | null;
+  /** @nullable */
+  readonly calculation?: string | null;
+  /** @nullable */
+  readonly baselineUnaidedOutput?: number | null;
+  /** @nullable */
+  readonly baselineOutputDelta?: number | null;
+  /** @nullable */
+  readonly actualDoseError?: number | null;
+  /** @nullable */
+  readonly hopperThresholdFlag?: string | null;
+  /** @nullable */
+  readonly hopperBehaviour?: string | null;
+  /** @nullable */
+  readonly hopperSeverity?: string | null;
+  /** @nullable */
+  readonly topUpGap?: number | null;
+  /** @nullable */
+  readonly topUpRecommendation?: string | null;
+  /** @nullable */
+  readonly grinderInitialOutputForCharts?: number | null;
   createdAt: string;
 }

@@ -9,13 +9,29 @@ export interface HealthStatus {
   status: string;
 }
 
+export type StringArray = string[];
+
 export interface Shot {
   id: number;
   shotDate: string;
   /** @nullable */
+  bagId?: number | null;
+  /** @nullable */
+  grinderId?: number | null;
+  /** @nullable */
+  machineId?: number | null;
+  /** @nullable */
+  hopperId?: number | null;
+  /** @nullable */
+  hopperRangeBaselineId?: number | null;
+  /** @nullable */
   bean?: string | null;
   /** @nullable */
   bag?: string | null;
+  /** @nullable */
+  bagLabel?: string | null;
+  /** @nullable */
+  daysSinceOpen?: number | null;
   /** @nullable */
   grindSetting?: number | null;
   /** @nullable */
@@ -23,7 +39,27 @@ export interface Shot {
   /** @nullable */
   initialGrindWeight?: number | null;
   /** @nullable */
+  totalOutput?: number | null;
+  /** @nullable */
   dose?: number | null;
+  /** @nullable */
+  timeAdj?: number | null;
+  /** @nullable */
+  topUpGrind?: number | null;
+  /** @nullable */
+  overGrindRemoved?: number | null;
+  /** @nullable */
+  beanDelta?: number | null;
+  /** @nullable */
+  grindWaste?: number | null;
+  /** @nullable */
+  beansAdded?: number | null;
+  /** @nullable */
+  doseCorrectionType?: string | null;
+  /** @nullable */
+  doseCorrection?: number | null;
+  /** @nullable */
+  outputDelta?: number | null;
   /** @nullable */
   yield?: number | null;
   /** @nullable */
@@ -35,43 +71,155 @@ export interface Shot {
   /** @nullable */
   pourTime?: number | null;
   /** @nullable */
-  scaleTime?: number | null;
+  flowTime?: number | null;
   /** @nullable */
   rating?: number | null;
   /** @nullable */
   preferenceRating?: number | null;
   /** @nullable */
-  status?: string | null;
+  readonly ratingDifference?: number | null;
   /** @nullable */
-  faultStatus?: string | null;
-  isReference?: boolean;
+  readonly avgWeightedRating?: number | null;
+  /** @nullable */
+  rated?: boolean | null;
+  /** @nullable */
+  isForOthers?: boolean | null;
+  isReference: boolean;
   /** @nullable */
   signatureShot?: boolean | null;
   /** @nullable */
   sourShot?: boolean | null;
   /** @nullable */
-  expressionStyle?: string | null;
+  boundaryShot?: boolean | null;
   /** @nullable */
-  beanAchievement?: string | null;
+  drinkType?: string | null;
   /** @nullable */
-  isForOthers?: boolean | null;
+  status?: string | null;
+  faultStatus?: StringArray | null;
+  shotClassification?: StringArray | null;
+  beanAchievement?: StringArray | null;
+  expressionStyle?: StringArray | null;
+  /** @nullable */
+  referenceType?: string | null;
+  /** @nullable */
+  readonly dailyDriverCount?: number | null;
+  /** @nullable */
+  importantToIntelligence?: boolean | null;
+  intelligenceLessonType?: StringArray | null;
+  /** @nullable */
+  readonly includeInAnalysis?: boolean | null;
   /** @nullable */
   notes?: string | null;
   /** @nullable */
   sensoryNotes?: string | null;
   /** @nullable */
+  faultNotes?: string | null;
+  /** @nullable */
+  readonly bagOpenedDate?: string | null;
+  /** @nullable */
   grindAdjusted?: string | null;
   /** @nullable */
-  doseCorrection?: number | null;
-  /** @nullable */
-  doseCorrectionType?: string | null;
-  /** @nullable */
   shotsLeftEst?: number | null;
+  /** @nullable */
+  finishedShot?: boolean | null;
+  /** @nullable */
+  hopperPhase?: string | null;
+  /** @nullable */
+  hopperFullness?: number | null;
+  /** @nullable */
+  readonly hopperPercent?: number | null;
+  /** @nullable */
+  readonly hopperRange?: string | null;
+  /** @nullable */
+  tasteZone?: string | null;
+  /** @nullable */
+  readonly zone?: string | null;
+  /** @nullable */
+  readonly zoneScore?: number | null;
+  /** @nullable */
+  readonly tasteScore?: number | null;
+  /** @nullable */
+  readonly agreementPercent?: number | null;
+  /** @nullable */
+  readonly flowScore?: number | null;
+  /** @nullable */
+  readonly modelFlag?: string | null;
+  /** @nullable */
+  readonly timeGap?: number | null;
+  /** @nullable */
+  readonly scaleZone?: string | null;
+  /** @nullable */
+  readonly flowDiagnostic?: string | null;
+  /** @nullable */
+  readonly pourDelayWindow?: string | null;
+  /** @nullable */
+  readonly flowTimeWindow?: string | null;
+  /** @nullable */
+  readonly flowTimeOffset?: number | null;
+  /** @nullable */
+  readonly driftDelta?: number | null;
+  /** @nullable */
+  readonly shotDriftStatus?: string | null;
+  /** @nullable */
+  readonly shotQualityScore?: number | null;
+  /** @nullable */
+  readonly shotTier?: string | null;
+  /** @nullable */
+  readonly perfectRangeFlag?: string | null;
+  /** @nullable */
+  readonly driftWarning?: string | null;
+  /** @nullable */
+  readonly hopperZone?: string | null;
+  /** @nullable */
+  readonly hopperDriftLink?: string | null;
+  /** @nullable */
+  readonly hopperImpactScore?: number | null;
+  /** @nullable */
+  readonly hopperCorrectionRule?: string | null;
+  /** @nullable */
+  readonly actionSuggestion?: string | null;
+  /** @nullable */
+  readonly scaleCalibrationReminder?: string | null;
+  /** @nullable */
+  readonly bagCalibrationReminder?: string | null;
+  /** @nullable */
+  readonly calculation?: string | null;
+  /** @nullable */
+  readonly baselineUnaidedOutput?: number | null;
+  /** @nullable */
+  readonly baselineOutputDelta?: number | null;
+  /** @nullable */
+  readonly actualDoseError?: number | null;
+  /** @nullable */
+  readonly hopperThresholdFlag?: string | null;
+  /** @nullable */
+  readonly hopperBehaviour?: string | null;
+  /** @nullable */
+  readonly hopperSeverity?: string | null;
+  /** @nullable */
+  readonly topUpGap?: number | null;
+  /** @nullable */
+  readonly topUpRecommendation?: string | null;
+  /** @nullable */
+  readonly grinderInitialOutputForCharts?: number | null;
   createdAt: string;
 }
 
-export interface ShotInput {
-  shotDate: string;
+export interface ShotList {
+  shots: Shot[];
+  total: number;
+}
+
+export interface ShotWriteFields {
+  shotDate?: string;
+  /** @nullable */
+  bagId?: number | null;
+  /** @nullable */
+  grinderId?: number | null;
+  /** @nullable */
+  machineId?: number | null;
+  /** @nullable */
+  hopperId?: number | null;
   bean?: string;
   bag?: string;
   /** @nullable */
@@ -81,11 +229,24 @@ export interface ShotInput {
   /** @nullable */
   initialGrindWeight?: number | null;
   /** @nullable */
+  totalOutput?: number | null;
+  /** @nullable */
   dose?: number | null;
   /** @nullable */
-  yield?: number | null;
+  timeAdj?: number | null;
   /** @nullable */
-  ratio?: string | null;
+  topUpGrind?: number | null;
+  /** @nullable */
+  overGrindRemoved?: number | null;
+  /** @nullable */
+  grindWaste?: number | null;
+  /** @nullable */
+  beansAdded?: number | null;
+  doseCorrectionType?: string;
+  /** @nullable */
+  doseCorrection?: number | null;
+  /** @nullable */
+  yield?: number | null;
   /** @nullable */
   temperature?: number | null;
   /** @nullable */
@@ -93,31 +254,132 @@ export interface ShotInput {
   /** @nullable */
   pourTime?: number | null;
   /** @nullable */
+  flowTime?: number | null;
+  /**
+     * Temporary compatibility alias for flowTime.
+     * @deprecated
+     * @nullable
+     */
   scaleTime?: number | null;
   /** @nullable */
   rating?: number | null;
   /** @nullable */
   preferenceRating?: number | null;
-  status?: string;
-  faultStatus?: string;
+  rated?: boolean;
+  isForOthers?: boolean;
   isReference?: boolean;
   signatureShot?: boolean;
   sourShot?: boolean;
-  expressionStyle?: string;
-  beanAchievement?: string;
-  isForOthers?: boolean;
+  boundaryShot?: boolean;
+  drinkType?: string;
+  status?: string;
+  faultStatus?: StringArray;
+  shotClassification?: StringArray;
+  beanAchievement?: StringArray;
+  expressionStyle?: StringArray;
+  importantToIntelligence?: boolean;
+  intelligenceLessonType?: StringArray;
+  includeInAnalysis?: boolean;
+  tasteZone?: string;
   notes?: string;
   sensoryNotes?: string;
+  faultNotes?: string;
   grindAdjusted?: string;
+  finishedShot?: boolean;
+  /** @nullable */
+  shotsLeftEst?: number | null;
+}
+
+export interface ShotInput {
+  shotDate: string;
+  /** @nullable */
+  bagId?: number | null;
+  /** @nullable */
+  grinderId?: number | null;
+  /** @nullable */
+  machineId?: number | null;
+  /** @nullable */
+  hopperId?: number | null;
+  bean?: string;
+  bag?: string;
+  /** @nullable */
+  grindSetting?: number | null;
+  /** @nullable */
+  grindTime?: number | null;
+  /** @nullable */
+  initialGrindWeight?: number | null;
+  /** @nullable */
+  totalOutput?: number | null;
+  /** @nullable */
+  dose?: number | null;
+  /** @nullable */
+  timeAdj?: number | null;
+  /** @nullable */
+  topUpGrind?: number | null;
+  /** @nullable */
+  overGrindRemoved?: number | null;
+  /** @nullable */
+  grindWaste?: number | null;
+  /** @nullable */
+  beansAdded?: number | null;
+  doseCorrectionType?: string;
   /** @nullable */
   doseCorrection?: number | null;
-  doseCorrectionType?: string;
+  /** @nullable */
+  yield?: number | null;
+  /** @nullable */
+  temperature?: number | null;
+  /** @nullable */
+  pourDelay?: number | null;
+  /** @nullable */
+  pourTime?: number | null;
+  /** @nullable */
+  flowTime?: number | null;
+  /**
+     * Temporary compatibility alias for flowTime.
+     * @deprecated
+     * @nullable
+     */
+  scaleTime?: number | null;
+  /** @nullable */
+  rating?: number | null;
+  /** @nullable */
+  preferenceRating?: number | null;
+  rated?: boolean;
+  isForOthers?: boolean;
+  isReference?: boolean;
+  signatureShot?: boolean;
+  sourShot?: boolean;
+  boundaryShot?: boolean;
+  drinkType?: string;
+  status?: string;
+  faultStatus?: StringArray;
+  shotClassification?: StringArray;
+  beanAchievement?: StringArray;
+  expressionStyle?: StringArray;
+  importantToIntelligence?: boolean;
+  intelligenceLessonType?: StringArray;
+  includeInAnalysis?: boolean;
+  tasteZone?: string;
+  notes?: string;
+  sensoryNotes?: string;
+  faultNotes?: string;
+  grindAdjusted?: string;
+  finishedShot?: boolean;
   /** @nullable */
   shotsLeftEst?: number | null;
 }
 
 export interface ShotUpdate {
   shotDate?: string;
+  /** @nullable */
+  bagId?: number | null;
+  /** @nullable */
+  grinderId?: number | null;
+  /** @nullable */
+  machineId?: number | null;
+  /** @nullable */
+  hopperId?: number | null;
   bean?: string;
   bag?: string;
   /** @nullable */
@@ -127,11 +389,24 @@ export interface ShotUpdate {
   /** @nullable */
   initialGrindWeight?: number | null;
   /** @nullable */
+  totalOutput?: number | null;
+  /** @nullable */
   dose?: number | null;
   /** @nullable */
-  yield?: number | null;
+  timeAdj?: number | null;
   /** @nullable */
-  ratio?: string | null;
+  topUpGrind?: number | null;
+  /** @nullable */
+  overGrindRemoved?: number | null;
+  /** @nullable */
+  grindWaste?: number | null;
+  /** @nullable */
+  beansAdded?: number | null;
+  doseCorrectionType?: string;
+  /** @nullable */
+  doseCorrection?: number | null;
+  /** @nullable */
+  yield?: number | null;
   /** @nullable */
   temperature?: number | null;
   /** @nullable */
@@ -139,31 +414,112 @@ export interface ShotUpdate {
   /** @nullable */
   pourTime?: number | null;
   /** @nullable */
+  flowTime?: number | null;
+  /**
+     * Temporary compatibility alias for flowTime.
+     * @deprecated
+     * @nullable
+     */
   scaleTime?: number | null;
   /** @nullable */
   rating?: number | null;
   /** @nullable */
   preferenceRating?: number | null;
-  status?: string;
-  faultStatus?: string;
+  rated?: boolean;
+  isForOthers?: boolean;
   isReference?: boolean;
   signatureShot?: boolean;
   sourShot?: boolean;
-  expressionStyle?: string;
-  beanAchievement?: string;
-  isForOthers?: boolean;
+  boundaryShot?: boolean;
+  drinkType?: string;
+  status?: string;
+  faultStatus?: StringArray;
+  shotClassification?: StringArray;
+  beanAchievement?: StringArray;
+  expressionStyle?: StringArray;
+  importantToIntelligence?: boolean;
+  intelligenceLessonType?: StringArray;
+  includeInAnalysis?: boolean;
+  tasteZone?: string;
   notes?: string;
   sensoryNotes?: string;
+  faultNotes?: string;
   grindAdjusted?: string;
-  /** @nullable */
-  doseCorrection?: number | null;
-  doseCorrectionType?: string;
+  finishedShot?: boolean;
   /** @nullable */
   shotsLeftEst?: number | null;
 }
 
 export interface CsvImportInput {
   csvText: string;
+}
+
+export interface Hopper {
+  id: number;
+  name: string;
+  /** @nullable */
+  bagId?: number | null;
+  /** @nullable */
+  startingBeans?: number | null;
+  isActive: boolean;
+  /** @nullable */
+  readonly hopperMass?: number | null;
+  /** @nullable */
+  readonly hopperPercent?: number | null;
+  /** @nullable */
+  readonly shotsLeftEstimate?: number | null;
+  /** @nullable */
+  phase?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface HopperInput {
+  name: string;
+  /** @nullable */
+  bagId?: number | null;
+  /** @nullable */
+  startingBeans?: number | null;
+  isActive?: boolean;
+  phase?: string;
+  notes?: string;
+}
+
+export interface HopperUpdate {
+  name?: string;
+  /** @nullable */
+  bagId?: number | null;
+  /** @nullable */
+  startingBeans?: number | null;
+  isActive?: boolean;
+  phase?: string;
+  notes?: string;
+}
+
+export interface HopperRangeBaseline {
+  id: number;
+  hopperRange: string;
+  /** @nullable */
+  baselineOutputAdjustedDate?: string | null;
+  /** @nullable */
+  baselineOutputStatus?: string | null;
+  /** @nullable */
+  baselineOutput?: number | null;
+  /** @nullable */
+  readonly avgInitialOutput?: number | null;
+  /** @nullable */
+  readonly observationCount?: number | null;
+  createdAt: string;
+}
+
+export interface HopperRangeBaselineInput {
+  hopperRange: string;
+  /** @nullable */
+  baselineOutputAdjustedDate?: string | null;
+  baselineOutputStatus?: string;
+  /** @nullable */
+  baselineOutput?: number | null;
 }
 
 export interface CsvImportResult {

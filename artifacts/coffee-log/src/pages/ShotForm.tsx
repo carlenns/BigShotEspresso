@@ -50,18 +50,20 @@ const formSchema = z.object({
   yield: z.coerce.number().optional(),
   pourDelay: z.coerce.number().optional(),
   pourTime: z.coerce.number().optional(),
-  scaleTime: z.coerce.number().optional(),
+  flowTime: z.coerce.number().optional(),
   temperature: z.coerce.number().optional(),
   rating: z.number().min(0).max(10).optional(),
   preferenceRating: z.number().min(0).max(10).optional(),
   // Shot Evaluation
   status: z.string().optional(),
-  faultStatus: z.string().optional(),
+  faultStatus: z.array(z.string()).optional(),
   isReference: z.boolean().default(false),
   signatureShot: z.boolean().default(false),
   sourShot: z.boolean().default(false),
-  expressionStyle: z.string().optional(),
-  beanAchievement: z.string().optional(),
+  expressionStyle: z.array(z.string()).optional(),
+  beanAchievement: z.array(z.string()).optional(),
+  shotClassification: z.array(z.string()).optional(),
+  includeInAnalysis: z.boolean().default(true),
   notes: z.string().optional(),
   sensoryNotes: z.string().optional(),
 });
@@ -79,8 +81,8 @@ export default function ShotForm() {
   const { data: tasteSelectors = [] } = useQuery({ queryKey: ["taste-selectors"], queryFn: fetchTasteSelectors });
   const { data: selectorOpts } = useQuery({ queryKey: ["selector-options"], queryFn: fetchSelectorOptions });
 
-  const statusOptions = selectorOpts?.status?.length ? selectorOpts.status : ["Good", "Dialed In", "Experimental"];
-  const faultStatusOptions = selectorOpts?.faultStatus?.length ? selectorOpts.faultStatus : ["Good", "Fault"];
+  const statusOptions = selectorOpts?.status ?? [];
+  const faultStatusOptions = selectorOpts?.faultStatus ?? [];
   const expressionStyleOptions = selectorOpts?.expressionStyle ?? [];
   const beanAchievementOptions = selectorOpts?.beanAchievement ?? [];
 
@@ -95,6 +97,11 @@ export default function ShotForm() {
       isReference: false,
       signatureShot: false,
       sourShot: false,
+      faultStatus: [],
+      expressionStyle: [],
+      beanAchievement: [],
+      shotClassification: [],
+      includeInAnalysis: true,
     },
   });
 
@@ -256,9 +263,9 @@ export default function ShotForm() {
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="scaleTime" render={({ field }) => (
+              <FormField control={form.control} name="flowTime" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Scale Time (s)</FormLabel>
+                  <FormLabel>Flow Time (s)</FormLabel>
                   <FormControl><Input type="number" step="1" {...field} value={field.value ?? ""} /></FormControl>
                   <FormMessage />
                 </FormItem>
@@ -382,13 +389,7 @@ export default function ShotForm() {
                 <FormField control={form.control} name="faultStatus" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fault Status</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={field.value ?? "__none__"}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="__none__">— not set —</SelectItem>
-                        {faultStatusOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <ChipSelector options={faultStatusOptions} value={field.value ?? []} onChange={field.onChange} />
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -445,19 +446,26 @@ export default function ShotForm() {
                       <FormLabel className="font-normal cursor-pointer">Sour Shot</FormLabel>
                     </FormItem>
                   )} />
+                  <FormField control={form.control} name="includeInAnalysis" render={({ field }) => (
+                    <FormItem className="flex items-center gap-2.5 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel className="font-normal cursor-pointer">Include in Analysis</FormLabel>
+                    </FormItem>
+                  )} />
                 </div>
               </div>
 
               {/* Expression Style — multi-select */}
               <FormField control={form.control} name="expressionStyle" render={({ field }) => {
-                const selected = field.value ? field.value.split(", ").filter(Boolean) : [];
                 return (
                   <FormItem>
                     <FormLabel>Expression Style</FormLabel>
                     <ChipSelector
                       options={expressionStyleOptions}
-                      value={selected}
-                      onChange={(arr) => field.onChange(arr.length ? arr.join(", ") : undefined)}
+                      value={field.value ?? []}
+                      onChange={field.onChange}
                     />
                     <FormMessage />
                   </FormItem>
@@ -466,19 +474,30 @@ export default function ShotForm() {
 
               {/* Bean Achievement — multi-select */}
               <FormField control={form.control} name="beanAchievement" render={({ field }) => {
-                const selected = field.value ? field.value.split(", ").filter(Boolean) : [];
                 return (
                   <FormItem>
                     <FormLabel>Bean Achievement</FormLabel>
                     <ChipSelector
                       options={beanAchievementOptions}
-                      value={selected}
-                      onChange={(arr) => field.onChange(arr.length ? arr.join(", ") : undefined)}
+                      value={field.value ?? []}
+                      onChange={field.onChange}
                     />
                     <FormMessage />
                   </FormItem>
                 );
               }} />
+
+              <FormField control={form.control} name="shotClassification" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Shot Classification</FormLabel>
+                  <ChipSelector
+                    options={selectorOpts?.shotClassification ?? []}
+                    value={field.value ?? []}
+                    onChange={field.onChange}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )} />
 
               {/* Notes */}
               <FormField control={form.control} name="notes" render={({ field }) => (
