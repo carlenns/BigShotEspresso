@@ -324,6 +324,7 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
 
           const bagIdNum = num(findField(f, ["Bag ID", "Bag Number", "Bag #"]));
           const status   = str(findField(f, ["Status"]));
+          const active   = bool(findField(f, ["Active"]));
 
           // Reconstruct bag display name
           // Strip literal double-quotes that Airtable sometimes wraps around bean names in labels
@@ -342,16 +343,17 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
             beanId,
             bagNumber: bagIdNum != null ? String(bagIdNum) : undefined,
             bagName,
-            roastDate: str(findField(f, ["Roast Date"])),
+            purchaseDate: str(findField(f, ["Bag Purchased Date", "Purchase Date"])),
+            roastDate: str(findField(f, ["Roast Date Used", "Actual Roast Date", "Estimated Roast Date", "Roast Date"])),
             openedDate: str(findField(f, ["Opened Date", "Open Date"])),
             bagWeight: num(findField(f, ["Bag Size (g)", "Bag Weight", "Starting Weight"])),
             cost: num(findField(f, ["Bag Cost", "Cost", "Price"])),
-            isActive: status ? status.toLowerCase() === "active" : false,
+            isActive: active ?? (status ? status.toLowerCase() === "active" : false),
             startGrindSetting: num(findField(f, ["Initial Grinder Setting", "Start Grind Setting"])),
             currentGrindSetting: num(findField(f, ["Average Grinder Setting", "Current Grind Setting"])),
             startGrindTime: num(findField(f, ["Initial Grind Time (sec)", "Start Grind Time"])),
             defaultDose: num(findField(f, ["Target Dose (g)", "Default Dose"])),
-            dialInNotes: str(findField(f, ["Notes", "Dial In Notes"])),
+            dialInNotes: str(findField(f, ["Bag Notes", "Dial In Notes", "Notes"])),
             airtableRecordId: r.id,
           };
           if (existing.length) {

@@ -173,7 +173,7 @@ export function mapAirtableShotFields(
     bagCalibrationReminder: airtableString(field(fields, "Bag Calibration Reminder")),
     calculation: airtableString(field(fields, "Calculation")),
     baselineUnaidedOutput: airtableNumber(field(fields, "Baseline Unaided Output (g)")),
-    baselineOutputDelta: airtableNumber(field(fields, "Baseline Output Delta (g)")),
+    baselineOutputDelta: airtableNumber(field(fields, "Initial Output vs Hopper Baseline (g)", "Baseline Output Delta (g)")),
     actualDoseError: airtableNumber(field(fields, "Actual Dose Error (g)")),
     hopperThresholdFlag: airtableString(field(fields, "Hopper Threshold Flag")),
     hopperBehaviour: airtableString(field(fields, "Hopper Behaviour")),

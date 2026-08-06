@@ -340,3 +340,9 @@ The repository may not be certified for Phase 2 or deployment until all of the f
 **Not certified.**
 
 The next authorized work should be certification closure: live Airtable verification, production-equivalent PostgreSQL rehearsal, ADR adoption, repository baseline review/commit, and CI/release-gate establishment. Intelligence implementation remains prohibited.
+
+## 2026-08-06 live-schema addendum
+
+The live Coffee Log Airtable metadata was retrieved through an authorized connection and saved as a record-free schema snapshot in [`docs/airtable/live-schema-2026-08-06.json`](airtable/live-schema-2026-08-06.json). The comparison and compatibility decisions are documented in [`docs/airtable/drift-report-2026-08-06.md`](airtable/drift-report-2026-08-06.md).
+
+This partially resolves the metadata-discovery portion of the live Airtable blocker. It does not resolve live record synchronization, production-equivalent database rehearsal, CI, migration authority, or baseline certification. The Phase 2 and deployment decisions therefore remain **Not certified**.

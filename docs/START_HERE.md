@@ -7,11 +7,13 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 1. [Project Constitution](PROJECT_CONSTITUTION.md)
 2. [Roadmap](ROADMAP.md)
 3. [Repository Certification Audit](REPOSITORY_CERTIFICATION_AUDIT.md)
-4. Relevant [Architecture Decision Records](ADR/README.md)
-5. [Architecture index](architecture/README.md)
-6. Relevant [Research index](RESEARCH/README.md)
-7. [Implementation record](implementation/README.md)
-8. [Testing standards](testing/README.md)
+4. [Live Airtable schema snapshot](airtable/README.md)
+5. [Live Airtable drift report](airtable/drift-report-2026-08-06.md)
+6. Relevant [Architecture Decision Records](ADR/README.md)
+7. [Architecture index](architecture/README.md)
+8. Relevant [Research index](RESEARCH/README.md)
+9. [Implementation record](implementation/README.md)
+10. [Testing standards](testing/README.md)
 
 ## Authority
 
@@ -24,7 +26,7 @@ When sources conflict:
 5. Approved implementation plan
 6. Code
 
-CSV exports define current research data evidence. Airtable metadata and formulas are required where exports do not expose field configuration or calculation rules.
+The live Airtable base defines current schema and formula authority. CSV exports preserve dated record evidence. The versioned live-schema snapshot records Airtable metadata without exposing record values.
 
 ## Working rules
 
@@ -53,7 +55,7 @@ CSV exports define current research data evidence. Airtable metadata and formula
 
 ## Current gate
 
-Phase 1.5 passes locally. Phase 2 remains blocked until:
+Phase 1.5 passed locally against the June 25 repository state. Phase 2 remains blocked until:
 
-- Live Airtable synchronization is reconciled.
+- Live Airtable synchronization is reconciled against the 2026-08-06 schema snapshot.
 - The migration is rehearsed against an anonymized production-equivalent PostgreSQL snapshot.
