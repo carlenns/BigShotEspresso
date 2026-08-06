@@ -56,6 +56,12 @@ Project planning is maintained in:
 
 - `docs/ROADMAP.md`
 
+Current live Airtable compatibility is tracked in:
+
+- `docs/airtable/README.md`
+- `docs/airtable/drift-report-2026-08-06.md`
+- `docs/airtable/live-schema-2026-08-06.json`
+
 Repository readiness is verified using:
 
 - `docs/REPOSITORY_CERTIFICATION_AUDIT.md`

@@ -1,0 +1,5335 @@
+{
+  "generatedAt": "2026-08-06",
+  "timezone": "America/Winnipeg",
+  "base": {
+    "id": "appVOmsLyt6P3Z29L",
+    "name": "Coffee Log"
+  },
+  "tables": [
+    {
+      "id": "tblbdoJ7SZTy3TxSt",
+      "name": "Beans",
+      "primaryFieldId": "fldCc4SmfrgSXrowc",
+      "description": null,
+      "fields": [
+        {
+          "id": "fldCc4SmfrgSXrowc",
+          "name": "Beans",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n    AND({fldia3UkwsOCTIhfa}, {fldVU7J5O3ntH56kV}),\n    {fldia3UkwsOCTIhfa} &\n    \" — \" &\n    {fldVU7J5O3ntH56kV} &\n    IF({fldxWcEo0JOAyXqem}, \" (\" & {fldxWcEo0JOAyXqem} & \")\", \"\") &\n    IF({fldcPFO8yrfUutytQ}, \" • \" & {fldcPFO8yrfUutytQ}, \"\") &\n    IF(\n        {fld8mb0bxtowH8rhd},\n        \" • \" & ARRAYJOIN({fld8mb0bxtowH8rhd}, \", \"),\n        \"\"\n    )\n)",
+            "referencedFieldIds": [
+              "fldia3UkwsOCTIhfa",
+              "fldVU7J5O3ntH56kV",
+              "fldxWcEo0JOAyXqem",
+              "fldcPFO8yrfUutytQ",
+              "fld8mb0bxtowH8rhd"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldia3UkwsOCTIhfa",
+          "name": "Roaster",
+          "type": "singleSelect",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "selQtk4kJyn7AXeJh",
+                "name": "De Luca's",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selqhjvyKBUaUs2UR",
+                "name": "Little Sister Coffee Maker",
+                "color": "cyanLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldfTOvFcnD8ALDfh",
+          "name": "Name",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldxWcEo0JOAyXqem",
+          "name": "Region",
+          "type": "singleSelect",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "sela18nPgAveorMRj",
+                "name": "Tolima",
+                "color": "blueLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldVU7J5O3ntH56kV",
+          "name": "Country",
+          "type": "singleSelect",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "selnOhIQBvRfpxoVg",
+                "name": "Ethiopia",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selZZoufdV8Cz3voC",
+                "name": "Guatemala",
+                "color": "redLight2"
+              },
+              {
+                "id": "sel6FFrgGhmgvBPwC",
+                "name": "Rwanda",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selIui8Hw9X8orur0",
+                "name": "Brazil",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selfCzcXgge5OVQ8Z",
+                "name": "Costa Rica",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "sel50JWFMpBBc8TOb",
+                "name": "Peru",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selNSipzrbT4athwM",
+                "name": "Columbia",
+                "color": "pinkLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fld8mb0bxtowH8rhd",
+          "name": "Certification",
+          "type": "multipleSelects",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "selB0Jbg1c3pjLgJ3",
+                "name": "Fairtrade",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selppEGv7yk4yLzJE",
+                "name": "Organic",
+                "color": "cyanLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldcPFO8yrfUutytQ",
+          "name": "Process",
+          "type": "singleSelect",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "sel5Shi4uy1SmF9ro",
+                "name": "Natural",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selNij2Ke1sD23rID",
+                "name": "Washed",
+                "color": "cyanLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldxpecgJ33USxIv5",
+          "name": "Active",
+          "type": "checkbox",
+          "description": null,
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fldTQvAId7UXrBWRi",
+          "name": "Notes",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldTUBxkX0casVXFr",
+          "name": "Bag",
+          "type": "multipleRecordLinks",
+          "description": null,
+          "config": {
+            "linkedTableId": "tblY2SBWDjw9SOwY1",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldVUAlGl64KTBNCN"
+          }
+        },
+        {
+          "id": "fldWxuD2BJySja1oE",
+          "name": "Total Bags Purchased",
+          "type": "count",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr"
+          }
+        },
+        {
+          "id": "fld7SohWICkMBrd0a",
+          "name": "Total Shots",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldi2R6fIfy5udTsg",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "flds2uGOayC6P64vE",
+          "name": "Total Reference Shots",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldaMtPy5kqGU2XDJ",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldkf7eq9scNg49Bn",
+          "name": "Avg Rating",
+          "type": "rollup",
+          "description": "Average rating across bags for this bean.",
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fld0JvyWRdwr6FL7J",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldjUWxTsU6cuTebI",
+          "name": "Avg Bean Preference Rating",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldxjDySNJJlnhss2",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldSMuamvDk0Y3NTl",
+          "name": "Grind Adj Frequency",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fld7SohWICkMBrd0a},\n  {flddE8h8GSlmIqYy0} / {fld7SohWICkMBrd0a},\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fld7SohWICkMBrd0a",
+              "flddE8h8GSlmIqYy0"
+            ],
+            "result": {
+              "type": "percent",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldhXREEU2CDSpiJL",
+          "name": "Typical Pour Delay Window",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldBqzctph1wFRzPU},\n    {fldJwf9KeYO1Lrh4f},\n    {fldlq0ZaSIitGpudg}\n  ),\n  {fldBqzctph1wFRzPU}\n  & \" / \"\n  & {fldJwf9KeYO1Lrh4f}\n  & \" / \"\n  & {fldlq0ZaSIitGpudg}\n)",
+            "referencedFieldIds": [
+              "fldBqzctph1wFRzPU",
+              "fldJwf9KeYO1Lrh4f",
+              "fldlq0ZaSIitGpudg"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldReLJ0o3VPNYhm5",
+          "name": "Typical Pour Time Window",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fld8AYt7d1B8hW2do},\n    {fldbHTw1jO0k5CFEq},\n    {fld53UP2xgXIeWOOV}\n  ),\n  {fld8AYt7d1B8hW2do}\n  & \" / \"\n  & {fldbHTw1jO0k5CFEq}\n  & \" / \"\n  & {fld53UP2xgXIeWOOV}\n)",
+            "referencedFieldIds": [
+              "fld8AYt7d1B8hW2do",
+              "fldbHTw1jO0k5CFEq",
+              "fld53UP2xgXIeWOOV"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldb7ZKLwoymkKmOk",
+          "name": "Typical Flow Time Window",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldrIzfuPFbVyoM6z},\n    {fldxcJADkbpmocvEQ},\n    {fldm9Pef5uoiZRasr}\n  ),\n  {fldrIzfuPFbVyoM6z}\n  & \" / \"\n  & {fldxcJADkbpmocvEQ}\n  & \" / \"\n  & {fldm9Pef5uoiZRasr}\n)",
+            "referencedFieldIds": [
+              "fldrIzfuPFbVyoM6z",
+              "fldxcJADkbpmocvEQ",
+              "fldm9Pef5uoiZRasr"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldkEoZjz5JvMw2V9",
+          "name": "Typical Yield Window",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldDe6tVKV9K4VIGE},\n    {fld4NYypeilMqz3ZH},\n    {fld0001LJBeQMJ5n9}\n  ),\n  {fldDe6tVKV9K4VIGE}\n  & \" / \"\n  & {fld4NYypeilMqz3ZH}\n  & \" / \"\n  & {fld0001LJBeQMJ5n9}\n)",
+            "referencedFieldIds": [
+              "fldDe6tVKV9K4VIGE",
+              "fld4NYypeilMqz3ZH",
+              "fld0001LJBeQMJ5n9"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fld85ZDjxZBWpGKgB",
+          "name": "Typical Ratio Window",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldnZbwdcTwAZ1vEm},\n    {fldkKi7UZ3wV96GoL},\n    {fldcWUiWqy8KNl8mk}\n  ),\n  ROUND({fldnZbwdcTwAZ1vEm}, 2)\n  & \" / \"\n  & ROUND({fldkKi7UZ3wV96GoL}, 2)\n  & \" / \"\n  & ROUND({fldcWUiWqy8KNl8mk}, 2)\n)",
+            "referencedFieldIds": [
+              "fldnZbwdcTwAZ1vEm",
+              "fldkKi7UZ3wV96GoL",
+              "fldcWUiWqy8KNl8mk"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldNA6CYotEYC3D04",
+          "name": "Avg Initial Grinder Setting",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldpSn1tMJMr1kwKJ",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fld4c56K1JE1vMlKz",
+          "name": "Average Grinder Setting",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldPW6ARRXqnO58Ls",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "flddE8h8GSlmIqYy0",
+          "name": "Total Grind Adjustments",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldb92cmj3MVd9AlR",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldW7EgvXtjFlhRqJ",
+          "name": "Initial Grind Time (sec)",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fldEB0o7svrlhR4nw",
+          "name": "Bean Reference Shot %",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fld7SohWICkMBrd0a},\n  ROUND(\n    ({flds2uGOayC6P64vE} / {fld7SohWICkMBrd0a}) * 100,\n    0\n  ) & \"%\",\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fld7SohWICkMBrd0a",
+              "flds2uGOayC6P64vE"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldMHptephbhyQKuO",
+          "name": "Daily Driver Count",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldWAlWKfk23x3qdV",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fld1uYVpOL5LpxQ71",
+          "name": "Daily Driver %",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldq6qS8fQutzzBu0},\n  ROUND(\n    ({fldMHptephbhyQKuO} / {fldq6qS8fQutzzBu0}) *\n    100,\n    0\n  ) & \"%\",\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fldq6qS8fQutzzBu0",
+              "fldMHptephbhyQKuO"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldq6qS8fQutzzBu0",
+          "name": "Analysis Shot Count",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldoOAwJt8sLSwewb",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldeGpGEpNeTcp2mu",
+          "name": "Signature Shot Count Rollup (from Bag)",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fld6zqOim53DGe7jK",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldnZbwdcTwAZ1vEm",
+          "name": "Avg Ratio Low",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fld54DZn6MZQJjZFt",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldkKi7UZ3wV96GoL",
+          "name": "Avg Ratio",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldq6HChvwsPBiMoT",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldcWUiWqy8KNl8mk",
+          "name": "Avg Ratio High",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldVaAWiAHPpbzNsb",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldiTMFQC5nkgh6FS",
+          "name": "Grinding Behaviour Summary",
+          "type": "richText",
+          "description": "To describe grinder output etc so I can use Initial Setting and Time to easily dial in repeat purchases of these same beans",
+          "config": null
+        },
+        {
+          "id": "fldBqzctph1wFRzPU",
+          "name": "Avg Pour Delay Low",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldAazsFs8eREN8cH",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldJwf9KeYO1Lrh4f",
+          "name": "Avg Pour Delay",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldaVXOAeOz9VlRCW",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldlq0ZaSIitGpudg",
+          "name": "Avg Pour Delay High",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldauunf91LrN53Hk",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldrIzfuPFbVyoM6z",
+          "name": "Avg Flow Time Low",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldjIgaEnc4nDjb5g",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldxcJADkbpmocvEQ",
+          "name": "Avg Flow Time Center",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldHKGjUBg7yn1Y0N",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldm9Pef5uoiZRasr",
+          "name": "Avg Flow Time High",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldDC812mvy5eXxMo",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fld8AYt7d1B8hW2do",
+          "name": "Avg Pour Time Low",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fld0lDNTH01t9d15x",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldbHTw1jO0k5CFEq",
+          "name": "Avg Pour Time Center",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fld1m8AnhX8IYOodE",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fld53UP2xgXIeWOOV",
+          "name": "Avg Pour Time High",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldJamgq9murgggeJ",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldDe6tVKV9K4VIGE",
+          "name": "Avg Yield Low",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldCt5k9JiOKPiLqr",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fld4NYypeilMqz3ZH",
+          "name": "Avg Yield Center",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldbnPMNW4NJlUlgV",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fld0001LJBeQMJ5n9",
+          "name": "Avg Yield High",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldTUBxkX0casVXFr",
+            "fieldIdInLinkedTable": "fldHQkJzrUzeWuHyT",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tblY2SBWDjw9SOwY1",
+      "name": "Bags",
+      "primaryFieldId": "fldm2gBjwAlVMbDZs",
+      "description": null,
+      "fields": [
+        {
+          "id": "fldm2gBjwAlVMbDZs",
+          "name": "Bag ID",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 0
+          }
+        },
+        {
+          "id": "fldRfc1KEMKOTjAjw",
+          "name": "Bag Label",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "\"Bag \" & {fldm2gBjwAlVMbDZs} &\nIF(\n  {fldVUAlGl64KTBNCN},\n  \" — \" & {fldVUAlGl64KTBNCN},\n  \"\"\n)",
+            "referencedFieldIds": [
+              "fldm2gBjwAlVMbDZs",
+              "fldVUAlGl64KTBNCN"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldVUAlGl64KTBNCN",
+          "name": "Beans",
+          "type": "multipleRecordLinks",
+          "description": "Beans from Beans Table",
+          "config": {
+            "linkedTableId": "tblbdoJ7SZTy3TxSt",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldTUBxkX0casVXFr"
+          }
+        },
+        {
+          "id": "fld7b1SGYEOGPcl2G",
+          "name": "Active",
+          "type": "checkbox",
+          "description": null,
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fld3wpZA6OUlllBAO",
+          "name": "Go To Coffee",
+          "type": "checkbox",
+          "description": "This bag I would choose over all others. \nCheck only one bag. ",
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fldEm90F5kfLDuGhI",
+          "name": "Roast Level ( ChatGPT )",
+          "type": "singleSelect",
+          "description": "This is the actual Roast Level as determined by uploading two pics to chatgpt for analysis, one of the beans on a white paper in daylight and another of the coffee grinds taken in same conditions. Different from Roast in Beans",
+          "config": {
+            "choices": [
+              {
+                "id": "selibc4wcO2Wck0Vf",
+                "name": "Light",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selO5p04wQqt1RfPD",
+                "name": "Light-Medium",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selCCvDZJRF8VJcxl",
+                "name": "Medium",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selSq5Auo1tBb17E5",
+                "name": "Medium-Dark",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selqQs93Axy9BoasQ",
+                "name": "Dark",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selh06wwNUmp19WB1",
+                "name": "Very Dark/Oily",
+                "color": "purpleLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldWRms8BY4pEUZkH",
+          "name": "Days off Roast at Open",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND({fld1PmdbEWtBj9mtO}, {fldZAosHXuYG2rvKj}),\n  DATETIME_DIFF(\n    {fldZAosHXuYG2rvKj},\n    DATETIME_PARSE({fld1PmdbEWtBj9mtO}, 'YYYY-MM-DD'),\n    'days'\n  ),\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fld1PmdbEWtBj9mtO",
+              "fldZAosHXuYG2rvKj"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fld1PmdbEWtBj9mtO",
+          "name": "Roast Date Used",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldkV0h4f4E8Nr2Lf},\n  DATETIME_FORMAT({fldkV0h4f4E8Nr2Lf}, 'YYYY-MM-DD'),\n  DATETIME_FORMAT({fld5ywl02qdgo464P}, 'YYYY-MM-DD')\n)",
+            "referencedFieldIds": [
+              "fldkV0h4f4E8Nr2Lf",
+              "fld5ywl02qdgo464P"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldx4y5QfMxeZOTVB",
+          "name": "Bag Purchased Date",
+          "type": "dateTime",
+          "description": null,
+          "config": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            },
+            "timeFormat": {
+              "name": "12hour",
+              "format": "h:mma"
+            },
+            "timeZone": "client"
+          }
+        },
+        {
+          "id": "fldFoUKFYx1GmNZWu",
+          "name": "Expiry Label",
+          "type": "singleLineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldNDweqUIO1Qd211",
+          "name": "Expiry Precision",
+          "type": "singleSelect",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "selIZ7zzVQXFJlRfz",
+                "name": "Day",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selX6y6VQFNjCi17G",
+                "name": "Month",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "seluXBugTO6uHVs5Q",
+                "name": "Year",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selTNC07bpqV2aZEE",
+                "name": "Unknown",
+                "color": "greenLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldQCNO17i3PVxmhO",
+          "name": "Estimated Roast Window",
+          "type": "singleLineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldkV0h4f4E8Nr2Lf",
+          "name": "Actual Roast Date",
+          "type": "date",
+          "description": null,
+          "config": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            }
+          }
+        },
+        {
+          "id": "fldzFeI3WgbUOh5QL",
+          "name": "Estimated Expiry Date",
+          "type": "date",
+          "description": null,
+          "config": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            }
+          }
+        },
+        {
+          "id": "fld5ywl02qdgo464P",
+          "name": "Estimated Roast Date",
+          "type": "date",
+          "description": null,
+          "config": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            }
+          }
+        },
+        {
+          "id": "fldQH95RY0uttSaDn",
+          "name": "Freshness Dating Method",
+          "type": "singleSelect",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "selma1iWTbsxucofD",
+                "name": "Roast Date",
+                "color": "blueLight2"
+              },
+              {
+                "id": "seluYiqKVTCx0ZBE2",
+                "name": "Best Before Date",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selAlzj2FCXUWQvzN",
+                "name": "Packaging Date",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selWUdk0iCRoWOZYM",
+                "name": "Purchase Date",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selrWIbkaZhxqOb3O",
+                "name": "Roaster Policy Estimate",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "seliANPq714UONmMo",
+                "name": "Unknown",
+                "color": "orangeLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fld7LZuIdr9BVSKmf",
+          "name": "Roast Date Confidence",
+          "type": "singleSelect",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "selmf5yoxuxcpfWSd",
+                "name": "High",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selANWgPMSxVnzDfV",
+                "name": "Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selc0JNXrGb4VeIEQ",
+                "name": "Low",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selFwyLl2W37SzEAY",
+                "name": "Unknown",
+                "color": "blueLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fld06IPVNGvL2kAkY",
+          "name": "Roast Date Notes",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldZAosHXuYG2rvKj",
+          "name": "Opened Date",
+          "type": "date",
+          "description": null,
+          "config": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            }
+          }
+        },
+        {
+          "id": "fldqpmhGmdRWGsrth",
+          "name": "End Date",
+          "type": "date",
+          "description": null,
+          "config": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            }
+          }
+        },
+        {
+          "id": "fldD4P6TQ635A6p6g",
+          "name": "Days Drank From",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldZAosHXuYG2rvKj},\n  IF(\n    {fldqpmhGmdRWGsrth},\n    DATETIME_DIFF({fldqpmhGmdRWGsrth}, {fldZAosHXuYG2rvKj}, 'days'),\n    DATETIME_DIFF(TODAY(), {fldZAosHXuYG2rvKj}, 'days')\n  )\n)",
+            "referencedFieldIds": [
+              "fldZAosHXuYG2rvKj",
+              "fldqpmhGmdRWGsrth"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldGbNGj1qSVawUCy",
+          "name": "Status",
+          "type": "singleSelect",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "selaBkfmOKHBn3bWF",
+                "name": "Dialing In",
+                "color": "blueLight2"
+              },
+              {
+                "id": "sel3ur9znAXbtj5VJ",
+                "name": "Good",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selyjpOx993K8HsXB",
+                "name": "Finished",
+                "color": "tealLight2"
+              },
+              {
+                "id": "sel6FcHeD0yvgAKTA",
+                "name": "Active",
+                "color": "greenLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fld9WzClqaoHe4W7w",
+          "name": "Notes",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldVUAlGl64KTBNCN",
+            "fieldIdInLinkedTable": "fldTQvAId7UXrBWRi",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldwGhc0mNwTsGNc2",
+          "name": "Bag Notes",
+          "type": "multilineText",
+          "description": "Manual notes for this bag, separate from shot rollups.",
+          "config": null
+        },
+        {
+          "id": "fldhxbR0t48AcVTyi",
+          "name": "Bag Size (g)",
+          "type": "number",
+          "description": "Size of bag, in grams",
+          "config": {
+            "precision": 0
+          }
+        },
+        {
+          "id": "fldFBh5X1xALikfwr",
+          "name": "Bag Cost",
+          "type": "currency",
+          "description": "Cost of Beans in CAD",
+          "config": {
+            "precision": 2,
+            "symbol": "$"
+          }
+        },
+        {
+          "id": "fld8e4liZ2eDd8ZC1",
+          "name": "Cost per Gram",
+          "type": "formula",
+          "description": "Cost per gram for bag",
+          "config": {
+            "isValid": true,
+            "formula": "{fldFBh5X1xALikfwr}/{fldhxbR0t48AcVTyi}",
+            "referencedFieldIds": [
+              "fldFBh5X1xALikfwr",
+              "fldhxbR0t48AcVTyi"
+            ],
+            "result": {
+              "type": "currency",
+              "options": {
+                "precision": 3,
+                "symbol": "$"
+              }
+            }
+          }
+        },
+        {
+          "id": "fldi2R6fIfy5udTsg",
+          "name": "Shot Count",
+          "type": "count",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom"
+          }
+        },
+        {
+          "id": "fldpTULEJNRtLAUom",
+          "name": "Shots",
+          "type": "multipleRecordLinks",
+          "description": null,
+          "config": {
+            "linkedTableId": "tblKoZ2qE5qgiD9Zo",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldjIxfmMM7AYHaAK"
+          }
+        },
+        {
+          "id": "fld0JvyWRdwr6FL7J",
+          "name": "Avg Rating",
+          "type": "rollup",
+          "description": "Average rating for shots in this bag.",
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldnrfmeVipXokyz0",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldxjDySNJJlnhss2",
+          "name": "Average  Preference Rating",
+          "type": "rollup",
+          "description": "Average of Preference Rating",
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldqwe77432YQIc3m",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldaMtPy5kqGU2XDJ",
+          "name": "Reference Shots",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldcj09dvvjkEx9XZ",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldGQ7UYFI6AJi91Y",
+          "name": "Reference Shot %",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldi2R6fIfy5udTsg},\n  ROUND(\n    ({fldaMtPy5kqGU2XDJ} / {fldi2R6fIfy5udTsg}) * 100,\n    0\n  ) & \"%\",\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fldi2R6fIfy5udTsg",
+              "fldaMtPy5kqGU2XDJ"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldWAlWKfk23x3qdV",
+          "name": "Daily Driver Count",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldCAN1FPgivNFuF2",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldkzuVxDzbRqlRNk",
+          "name": "Pour Time Window",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fld0lDNTH01t9d15x},\n    {fld1m8AnhX8IYOodE},\n    {fldJamgq9murgggeJ}\n  ),\n  {fld0lDNTH01t9d15x}\n  & \" / \"\n  & {fld1m8AnhX8IYOodE}\n  & \" / \"\n  & {fldJamgq9murgggeJ}\n)",
+            "referencedFieldIds": [
+              "fld0lDNTH01t9d15x",
+              "fld1m8AnhX8IYOodE",
+              "fldJamgq9murgggeJ"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldjIgaEnc4nDjb5g",
+          "name": "Flow Time Low",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldUuuABeNcVsG0wg",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldDC812mvy5eXxMo",
+          "name": "Flow Time High",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldUuuABeNcVsG0wg",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldKVEMjuuWpsGdPp",
+          "name": "Flow Time Window",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldjIgaEnc4nDjb5g},\n    {fldHKGjUBg7yn1Y0N},\n    {fldDC812mvy5eXxMo}\n  ),\n  {fldjIgaEnc4nDjb5g}\n  & \" / \"\n  & ROUND({fldHKGjUBg7yn1Y0N}, 2)\n  & \" / \"\n  & {fldDC812mvy5eXxMo},\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fldjIgaEnc4nDjb5g",
+              "fldHKGjUBg7yn1Y0N",
+              "fldDC812mvy5eXxMo"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldHINJMCEKa1wqvj",
+          "name": "Pour Delay Window",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldAazsFs8eREN8cH},\n    {fldaVXOAeOz9VlRCW},\n    {fldauunf91LrN53Hk}\n  ),\n  {fldAazsFs8eREN8cH}\n  & \" / \"\n  & {fldaVXOAeOz9VlRCW}\n  & \" / \"\n  & {fldauunf91LrN53Hk}\n)",
+            "referencedFieldIds": [
+              "fldAazsFs8eREN8cH",
+              "fldaVXOAeOz9VlRCW",
+              "fldauunf91LrN53Hk"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldsaJlCTBCTK49XY",
+          "name": "Yield Window",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldCt5k9JiOKPiLqr},\n    {fldbnPMNW4NJlUlgV},\n    {fldHQkJzrUzeWuHyT}\n  ),\n  {fldCt5k9JiOKPiLqr}\n  & \" / \"\n  & {fldbnPMNW4NJlUlgV}\n  & \" / \"\n  & {fldHQkJzrUzeWuHyT}\n)",
+            "referencedFieldIds": [
+              "fldCt5k9JiOKPiLqr",
+              "fldbnPMNW4NJlUlgV",
+              "fldHQkJzrUzeWuHyT"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldbOABejeVVTWX6V",
+          "name": "Ratio Window",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fld54DZn6MZQJjZFt},\n    {fldq6HChvwsPBiMoT},\n    {fldVaAWiAHPpbzNsb}\n  ),\n  ROUND({fld54DZn6MZQJjZFt}, 2)\n  & \" / \"\n  & ROUND({fldq6HChvwsPBiMoT}, 2)\n  & \" / \"\n  & ROUND({fldVaAWiAHPpbzNsb}, 2)\n)",
+            "referencedFieldIds": [
+              "fld54DZn6MZQJjZFt",
+              "fldq6HChvwsPBiMoT",
+              "fldVaAWiAHPpbzNsb"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldlQl9dhLzivGCsg",
+          "name": "Target Dose (g)",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fldJ4ITiJRA9TknZB",
+          "name": "Bag Behaviour Review",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldGQ7UYFI6AJi91Y} < 40,\n    {fldb92cmj3MVd9AlR} >= 3,\n    {fld0JvyWRdwr6FL7J} < 7.5\n  ),\n  \"Review bag behaviour\",\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fldGQ7UYFI6AJi91Y",
+              "fldb92cmj3MVd9AlR",
+              "fld0JvyWRdwr6FL7J"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldrFgRClOU8BwfVy",
+          "name": "Reference Shots (filtered)",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldUuuABeNcVsG0wg",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldpSn1tMJMr1kwKJ",
+          "name": "Initial Grinder Setting",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 2
+          }
+        },
+        {
+          "id": "fldPW6ARRXqnO58Ls",
+          "name": "Average Grinder Setting",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldNaiSr42OA1pX7q",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldb92cmj3MVd9AlR",
+          "name": "Total Grind Adjustments",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldAb6483gfeOTSv5",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldYIJLwKUkrpy3jl",
+          "name": "Days Bag Active",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldZAosHXuYG2rvKj},\n  DATETIME_DIFF(\n    IF(\n      {fldqpmhGmdRWGsrth},\n      {fldqpmhGmdRWGsrth},\n      TODAY()\n    ),\n    {fldZAosHXuYG2rvKj},\n    'days'\n  ) + 1\n)",
+            "referencedFieldIds": [
+              "fldZAosHXuYG2rvKj",
+              "fldqpmhGmdRWGsrth"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fld1xfIhsHgGoyD6x",
+          "name": "Days per Grind Adjustment",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldYIJLwKUkrpy3jl},\n    {fldb92cmj3MVd9AlR}\n  ),\n  ROUND(\n    {fldYIJLwKUkrpy3jl} / {fldb92cmj3MVd9AlR},\n    1\n  )\n)",
+            "referencedFieldIds": [
+              "fldYIJLwKUkrpy3jl",
+              "fldb92cmj3MVd9AlR"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldtG0oPVTzCkXXrQ",
+          "name": "Grind Adjustment Frequency",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldi2R6fIfy5udTsg},\n  ROUND(\n    ({fldb92cmj3MVd9AlR} / {fldi2R6fIfy5udTsg}) * 100,\n    0\n  ) & \"%\",\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fldi2R6fIfy5udTsg",
+              "fldb92cmj3MVd9AlR"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldCt5k9JiOKPiLqr",
+          "name": "Yield Low",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldfWecUrT4dlDQFU",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldoOAwJt8sLSwewb",
+          "name": "Analysis Shot Count",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldm3XQYt90n8r1Qp",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fld6zqOim53DGe7jK",
+          "name": "Signature Shot Count",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldg5Z9HEcY9GmlMS",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldRCOqRHmUAKD6aN",
+          "name": "Generate 🧠 Bag Intelligence Dossier",
+          "type": "checkbox",
+          "description": null,
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fld8CRb7oaxZXAkqS",
+          "name": "Intelligence Reviewed",
+          "type": "checkbox",
+          "description": null,
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fldXNwUGFL23MEEWN",
+          "name": "Intelligence Generated Date",
+          "type": "dateTime",
+          "description": null,
+          "config": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            },
+            "timeFormat": {
+              "name": "12hour",
+              "format": "h:mma"
+            },
+            "timeZone": "America/Winnipeg"
+          }
+        },
+        {
+          "id": "fldD0FVxSR7afs49m",
+          "name": "🧠 Bag Intelligence Dossier",
+          "type": "richText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldzgLZOtkm310v5W",
+          "name": "🏛️ Historical Significance",
+          "type": "richText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldTovl33pfstVOo0",
+          "name": "⭐ Final Verdict",
+          "type": "richText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldHKGjUBg7yn1Y0N",
+          "name": "Flow Time Center",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldUuuABeNcVsG0wg",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldOB3AYF8O041sAb",
+          "name": "Last Calibration Date",
+          "type": "date",
+          "description": null,
+          "config": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            }
+          }
+        },
+        {
+          "id": "fldq6HChvwsPBiMoT",
+          "name": "Average Ratio",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldp1gNO3OIe5l2WV",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fld54DZn6MZQJjZFt",
+          "name": "Ratio Low",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldp1gNO3OIe5l2WV",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldVaAWiAHPpbzNsb",
+          "name": "Ratio High",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldp1gNO3OIe5l2WV",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldAazsFs8eREN8cH",
+          "name": "Pour Delay Low",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldcNhLp7EncI0RkM",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldaVXOAeOz9VlRCW",
+          "name": "Pour Delay Center",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldcNhLp7EncI0RkM",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldauunf91LrN53Hk",
+          "name": "Pour Delay High",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldcNhLp7EncI0RkM",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fld0lDNTH01t9d15x",
+          "name": "Pour Time Low",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldRIWBExEqE9pABO",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fld1m8AnhX8IYOodE",
+          "name": "Pour Time Center",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldRIWBExEqE9pABO",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldJamgq9murgggeJ",
+          "name": "Pour Time High",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldRIWBExEqE9pABO",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldbnPMNW4NJlUlgV",
+          "name": "Yield Center",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldfWecUrT4dlDQFU",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldHQkJzrUzeWuHyT",
+          "name": "Yield High",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldpTULEJNRtLAUom",
+            "fieldIdInLinkedTable": "fldfWecUrT4dlDQFU",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tblKoZ2qE5qgiD9Zo",
+      "name": "Shots",
+      "primaryFieldId": "fldAgkFDCD2tH17Ze",
+      "description": null,
+      "fields": [
+        {
+          "id": "fldAgkFDCD2tH17Ze",
+          "name": "Date",
+          "type": "dateTime",
+          "description": null,
+          "config": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            },
+            "timeFormat": {
+              "name": "12hour",
+              "format": "h:mma"
+            },
+            "timeZone": "America/Winnipeg"
+          }
+        },
+        {
+          "id": "fldjIxfmMM7AYHaAK",
+          "name": "Bag",
+          "type": "multipleRecordLinks",
+          "description": null,
+          "config": {
+            "linkedTableId": "tblY2SBWDjw9SOwY1",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldpTULEJNRtLAUom",
+            "viewIdForRecordSelection": "viwl1mj6YgdovqUnV"
+          }
+        },
+        {
+          "id": "fldMNg8ZbewsQm4e0",
+          "name": "Days Since Open",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND({fldAgkFDCD2tH17Ze}, {fldIAg0gglqoahG3y}),\n  DATETIME_DIFF({fldAgkFDCD2tH17Ze}, {fldIAg0gglqoahG3y}, 'days')\n)",
+            "referencedFieldIds": [
+              "fldAgkFDCD2tH17Ze",
+              "fldIAg0gglqoahG3y"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldlmkvZz7wbYxNox",
+          "name": "Shots Left (est)",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldhME5cUQLjDk88b",
+            "fieldIdInLinkedTable": "fldzQp6KybemleVIK",
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldNaiSr42OA1pX7q",
+          "name": "Grinder Setting",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 2
+          }
+        },
+        {
+          "id": "fldAb6483gfeOTSv5",
+          "name": "Grind Adjusted",
+          "type": "checkbox",
+          "description": null,
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fldUS4BptQiowtPA8",
+          "name": "Grind Time",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fldNKcXfwu6QHq7rL",
+          "name": "Initial Output (g)",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fldTLiOYIR8zidKAu",
+          "name": "Total Output (g)",
+          "type": "formula",
+          "description": "This field although it looks repetitious of Initial Output, it gives the total if any Top-Up Grind was added to Initial Output",
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  OR({fldNKcXfwu6QHq7rL}, {fld3yDwqlaOOSU64v}),\n  ROUND(\n    IF({fldNKcXfwu6QHq7rL}, {fldNKcXfwu6QHq7rL}, 0) +\n    IF({fld3yDwqlaOOSU64v}, {fld3yDwqlaOOSU64v}, 0),\n    1\n  )\n)",
+            "referencedFieldIds": [
+              "fldNKcXfwu6QHq7rL",
+              "fld3yDwqlaOOSU64v"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldvgn8KP0dAbNVrB",
+          "name": "Dose (g)",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldTLiOYIR8zidKAu},\n  MAX(\n    0,\n    {fldTLiOYIR8zidKAu} - IF({flde9k5qTlwPA4Shw}, {flde9k5qTlwPA4Shw}, 0)\n  )\n)",
+            "referencedFieldIds": [
+              "fldTLiOYIR8zidKAu",
+              "flde9k5qTlwPA4Shw"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldjZa4k8viUfZZBP",
+          "name": "Time Adj (sec)",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fld3yDwqlaOOSU64v",
+          "name": "Top-Up Grind (g)",
+          "type": "number",
+          "description": "Additional coffee ground after the initial timed grind to bring final basket dose closer to target. Positive number only. Used for correction analysis and bean usage if it represents additional coffee leaving the hopper.",
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "flde9k5qTlwPA4Shw",
+          "name": "Over Grind Removed (g)",
+          "type": "number",
+          "description": "Positive amount removed from the output because the grind produced more coffee than target dose. Informational only; do not add this to Bean Delta because it is already included in grinder output.",
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fld3lylk26uSZ9g33",
+          "name": "Bean Delta",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  OR(\n    {fldDBTT1GBFa2SAvf},\n    {fldTLiOYIR8zidKAu},\n    {fldg39t6LUBZcIVu4}\n  ),\n  ROUND(\n    IF({fldDBTT1GBFa2SAvf}, {fldDBTT1GBFa2SAvf}, 0)\n    - IF({fldTLiOYIR8zidKAu}, {fldTLiOYIR8zidKAu}, 0)\n    - IF({fldg39t6LUBZcIVu4}, {fldg39t6LUBZcIVu4}, 0),\n    1\n  )\n)",
+            "referencedFieldIds": [
+              "fldDBTT1GBFa2SAvf",
+              "fldTLiOYIR8zidKAu",
+              "fldg39t6LUBZcIVu4"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldg39t6LUBZcIVu4",
+          "name": "Grind Waste (g)",
+          "type": "number",
+          "description": "Positive amount of coffee intentionally removed during purge, cleanout, bag transition, or grinder emptying. This represents additional coffee leaving the hopper and should affect Bean Delta.",
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fldDBTT1GBFa2SAvf",
+          "name": "Beans Added (g)",
+          "type": "number",
+          "description": "I always add 300 grams of beans to make for a consistent pattern unless at beginning or end of bag. Beginning I fill grinder channel, grind and top off. End of bag I put in remaining beans and use that selector till hopper empties out.",
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fldJXIDjB9y94HNS4",
+          "name": "Dose Correction Type",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fld3yDwqlaOOSU64v} > 0,\n  \"Under → Top-Up\",\n  IF(\n    {flde9k5qTlwPA4Shw} > 0,\n    \"Over → Trim\",\n    \"None\"\n  )\n)",
+            "referencedFieldIds": [
+              "fld3yDwqlaOOSU64v",
+              "flde9k5qTlwPA4Shw"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldVwmiDbk64RiRkb",
+          "name": "Correction Amount (g)",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fld3yDwqlaOOSU64v} > 0,\n  {fld3yDwqlaOOSU64v},\n  IF(\n    {flde9k5qTlwPA4Shw} > 0,\n    {flde9k5qTlwPA4Shw}\n  )\n)",
+            "referencedFieldIds": [
+              "fld3yDwqlaOOSU64v",
+              "flde9k5qTlwPA4Shw"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldWaxs1NJiA2T64C",
+          "name": "Output Delta (g)",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldNKcXfwu6QHq7rL},\n  ROUND({fldNKcXfwu6QHq7rL} - 18.0, 1)\n)",
+            "referencedFieldIds": [
+              "fldNKcXfwu6QHq7rL"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fld3JTkL1aYJwGd39",
+          "name": "Temp",
+          "type": "number",
+          "description": "Temperature at pour time in Celsius",
+          "config": {
+            "precision": 0
+          }
+        },
+        {
+          "id": "fldcNhLp7EncI0RkM",
+          "name": "Pour Delay",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 0
+          }
+        },
+        {
+          "id": "fldRIWBExEqE9pABO",
+          "name": "Pour Time (sec)",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 0
+          }
+        },
+        {
+          "id": "fldUuuABeNcVsG0wg",
+          "name": "Flow Time (sec)",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 0
+          }
+        },
+        {
+          "id": "fldfWecUrT4dlDQFU",
+          "name": "Yield (g)",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fldp1gNO3OIe5l2WV",
+          "name": "Ratio",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND({fldfWecUrT4dlDQFU}, {fldvgn8KP0dAbNVrB}),\n  {fldfWecUrT4dlDQFU} / {fldvgn8KP0dAbNVrB}\n)",
+            "referencedFieldIds": [
+              "fldfWecUrT4dlDQFU",
+              "fldvgn8KP0dAbNVrB"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldeMJWq2D4dW1CmF",
+          "name": "Finished Shot",
+          "type": "checkbox",
+          "description": "Check only if shot was drunk completely",
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fldbqBN64EowjF84o",
+          "name": "Rating",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 2
+          }
+        },
+        {
+          "id": "fldqwe77432YQIc3m",
+          "name": "Preference Rating",
+          "type": "number",
+          "description": "How much do I prefer this coffee",
+          "config": {
+            "precision": 2
+          }
+        },
+        {
+          "id": "fldrkSsTinAGSprc1",
+          "name": "Rating Difference",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n\n    AND(\n\n        {fldbqBN64EowjF84o},\n\n        {fldqwe77432YQIc3m}\n\n    ),\n\n    {fldbqBN64EowjF84o} - {fldqwe77432YQIc3m}\n\n)",
+            "referencedFieldIds": [
+              "fldbqBN64EowjF84o",
+              "fldqwe77432YQIc3m"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldZ0dmBfcOhscbpD",
+          "name": "Average Rating and Preference Rating weighted to Preference",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND({fldbqBN64EowjF84o}, {fldqwe77432YQIc3m}),\n  ({fldbqBN64EowjF84o} * 0.4 + {fldqwe77432YQIc3m} * 0.6),\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fldbqBN64EowjF84o",
+              "fldqwe77432YQIc3m"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldLwRCFI05AJ55I1",
+          "name": "Rated",
+          "type": "checkbox",
+          "description": "I drank or tasted a for others shot",
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fldjbjUEB3BiiijkV",
+          "name": "Sour",
+          "type": "checkbox",
+          "description": null,
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fldOPcCEhwfB1lCcE",
+          "name": "For Others",
+          "type": "checkbox",
+          "description": "Check when coffee is served to others ",
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fldcj09dvvjkEx9XZ",
+          "name": "Reference Shot",
+          "type": "checkbox",
+          "description": null,
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fldgXG0bSRbVBOdFU",
+          "name": "Signature Shot",
+          "type": "checkbox",
+          "description": null,
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fldQ2s1x3s6lI9S1p",
+          "name": "Boundary Shot",
+          "type": "checkbox",
+          "description": null,
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fldlPPJs6MThr2z9Q",
+          "name": "Drink Type",
+          "type": "singleSelect",
+          "description": "Use of field is, Leave Blank for Americano, otherwise select drink type. Uses Effective Drink Type, a Hidden Helper field which displays Americano when this field is left blank",
+          "config": {
+            "choices": [
+              {
+                "id": "sellvZCipj5gOk2N0",
+                "name": "Affogato",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "sel5Uqxisb9pNexX8",
+                "name": "Americano",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selMK3AMCOPqlQQC7",
+                "name": "Cappuccino",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selaDA25fGOv1bxNc",
+                "name": "Espresso",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selZS2Vzg1xsoEmgE",
+                "name": "Macchiato",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selXknQu5wGoxbD62",
+                "name": "Latte",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selWHQlY7fqUvgEwI",
+                "name": "Specialty Drink",
+                "color": "redLight2"
+              },
+              {
+                "id": "selQggzwA0WAIHYlF",
+                "name": "Aeropress",
+                "color": "pinkLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldC81jf5247VpzCI",
+          "name": "Shot Status",
+          "type": "singleSelect",
+          "description": "Classifies shots so faults and experiments can be excluded from averages.",
+          "config": {
+            "choices": [
+              {
+                "id": "selH5OhWdML1vXHp8",
+                "name": "Good",
+                "color": "blueLight2"
+              },
+              {
+                "id": "seldg2w3SmlwVsoev",
+                "name": "Dialed In",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selURqmAARU0PinHC",
+                "name": "Experimental",
+                "color": "yellowBright"
+              },
+              {
+                "id": "selR68wH7Bp9y2m87",
+                "name": "Fault",
+                "color": "redBright"
+              },
+              {
+                "id": "sel04Oi5YADy7hcbE",
+                "name": "Hopper Refill",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selQ4y9pzqzFFAHA1",
+                "name": "Maintenance - Grinder",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "sel3RSHv4rgrSnARh",
+                "name": "Maintenance - Machine",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selwVpOMZdyovqWh2",
+                "name": "Recovery/Transitional",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selw6keDwgcubJPND",
+                "name": "Dial In Process",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "sel2s9qU80NRwtDzQ",
+                "name": "Hopper Transition",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selHWQHdexU2W9QJ1",
+                "name": "Grinder Clean Out",
+                "color": "redLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldhXB3YHgboNRYcN",
+          "name": "Shot Classification",
+          "type": "multipleSelects",
+          "description": "Detailed outcome classification for good shots, separate from top-level Shot Status. Use this to distinguish dialed-in, slightly pushed, slightly under, uneven, or neutral/acceptable shots for later analysis.",
+          "config": {
+            "choices": [
+              {
+                "id": "selokJelaxzUkM6jR",
+                "name": "Acidity Forward",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selIPqvpXcf3QcoRv",
+                "name": "Backflush w Cafiza",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selhd2ePV3JhfQkqe",
+                "name": "Backflush w Water",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selfvZvxaT9phviZV",
+                "name": "Balanced",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "sel7sndt9DkBnnDti",
+                "name": "Boring",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selEm4ECwv4XQGpEq",
+                "name": "Bright Expression",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selaJjotm66mi4Ixr",
+                "name": "Cacao Forward",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selk82Y0ChcwkS08H",
+                "name": "Caramel Forward",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selGUrL4X2Y6AVVEt",
+                "name": "Caramel Rich",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selGle1Tp6m3MzCzK",
+                "name": "Chocolate Forward",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selqRxYwyDJRZ1Si9",
+                "name": "Comfort-Oriented",
+                "color": "redLight2"
+              },
+              {
+                "id": "selZNXBd3RI1k6Hir",
+                "name": "Dynamic",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "selc0861XzBRyXRqv",
+                "name": "Fast First Pour",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selVs7MFOrSmIdRKq",
+                "name": "Flat",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "sel0oyGpMcvsZeMpq",
+                "name": "Fully-Extracted",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "seljFZcWYzZQj8WsD",
+                "name": "Hollow",
+                "color": "grayLight2"
+              },
+              {
+                "id": "sel558q9yov6sxBmD",
+                "name": "I Tasted",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selYFYQTiP2I40VLS",
+                "name": "Integrated",
+                "color": "blueLight2"
+              },
+              {
+                "id": "sel6PqxT1Bk0mxJYd",
+                "name": "Intense",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selhr6RIsQHzeqlP1",
+                "name": "No Puck Screen",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selhhSgaodbHoJpVW",
+                "name": "Over-Pushed",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selgsdO547cuFq6UV",
+                "name": "Over-Saturated",
+                "color": "grayLight2"
+              },
+              {
+                "id": "seln7VBNdwsmNmoWb",
+                "name": "Palate Loading",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selUUn1c9KDXFdn9N",
+                "name": "Rich & Creamy",
+                "color": "greenLight2"
+              },
+              {
+                "id": "sel1EkEr4RM0d5FUF",
+                "name": "Saturated",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "seleR3WoL75qmvwE7",
+                "name": "Saturation Building",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selDPnz1SIYe10DB3",
+                "name": "Slightly Over-Pushed",
+                "color": "redLight2"
+              },
+              {
+                "id": "selfOJTvi2N8ZcCOm",
+                "name": "Slightly Under-Finished",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selkYRK5bcKVjexXL",
+                "name": "Tea-Like",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selgW5zQ9sctSE7zj",
+                "name": "Bittersweet Finish",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "selik7IQJL4P1n98X",
+                "name": "Tannic",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selLcJUxb5IjVSbFW",
+                "name": "Concentrated",
+                "color": "redLight2"
+              },
+              {
+                "id": "selJamhgkZjtMnHUz",
+                "name": "Muddy",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "sel2K0JIWa6O94JOX",
+                "name": "Citrus Acidity",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selb5gYjDyjU1QaNB",
+                "name": "Grapefruit Citrus",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selKqG6631nTIZ6WN",
+                "name": "Sour",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "sel7Oc2kcXqJCYXb5",
+                "name": "Suspect Underextracted",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selYOsyeTC32IHk03",
+                "name": "Poor",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selJfz6VXelDo5oE7",
+                "name": "Evaluation Compromised",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selB5v0iJpyP1lHMU",
+                "name": "Harmonious",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "selest7mIoHRBsECJ",
+                "name": "Benchmark",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selbtAWU8PSAg9Drw",
+                "name": "Mintiness",
+                "color": "redLight2"
+              },
+              {
+                "id": "selEaSGBQ3MdFzRdR",
+                "name": "Bright Finish",
+                "color": "pinkLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldEiM2ffoR6SAVuX",
+          "name": "Fault Status",
+          "type": "multipleSelects",
+          "description": "This is where I select if there were mechanical non reproducible issues such as portafilter leaks, channeling etc. Purge Transition is for when grinding shots to set up grinder when loading new bag of beans in grinder.",
+          "config": {
+            "choices": [
+              {
+                "id": "selXq9pda3ysQp8tS",
+                "name": "Good",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selYU99msh85gK0zt",
+                "name": "Fault",
+                "color": "redLight2"
+              },
+              {
+                "id": "selCVieIme1B4SeJI",
+                "name": "Review",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selQlZkSFwdVHFFSp",
+                "name": "No Classification Info",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selAqLaZH2aReH1La",
+                "name": "Hopper Refill",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "sel72g2niEeFqUSil",
+                "name": "New Bag of Beans",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selYGUOQcSk2a0x2l",
+                "name": "Maintenance - Grinder",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selrPkVD6JoZk6F6m",
+                "name": "Maintenance - Espresso Machine",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selEtewPZfUHXzYFf",
+                "name": "Maintenance / cleaning entry",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selz4mQJkoMcy9KHS",
+                "name": "Low Hopper / Incomplete Dose",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selrlOUJPsCoHN15T",
+                "name": "Reconciliation to Zero Out Hopper",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selFh60qD8VUxkC66",
+                "name": "Grinder Issue",
+                "color": "greenLight2"
+              },
+              {
+                "id": "seleBZU6zCiuQbIox",
+                "name": "Purge",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selBf2rczw2lawsFs",
+                "name": "Transition / Dial-In",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "selWWYyA68uI56XJG",
+                "name": "Grinder Jam",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selN7ew0Ebp2naknc",
+                "name": "Dose Uncertainty",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selDdiEL4i6pSGguJ",
+                "name": "Hopper Emptied Out",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selVun9MHLO0xXXsu",
+                "name": "Grind Waste Intentional, DO NOT COUNT towards waste metrics",
+                "color": "cyanLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldfwZcexcbSyHcEt",
+          "name": "Bean Achievement",
+          "type": "multipleSelects",
+          "description": "This is for multiple reference shot types, to describe their complexity and how they d=present themselves",
+          "config": {
+            "choices": [
+              {
+                "id": "selPeEAXyl0tpg1Lq",
+                "name": "    📅 Daily Driver",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selrWbGYmcNixsiI4",
+                "name": "    ⚠️ Boundary Discovery",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "seldcxzfSM6djohvg",
+                "name": "    ☀️ Bright Expression",
+                "color": "redLight2"
+              },
+              {
+                "id": "sel48DZxiOKFVAsCz",
+                "name": "    ☕ Coffee Club Member",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selasbnqIH6RypdKG",
+                "name": "    ☕ Comfort Profile",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selu95Kn7dRMx9UtM",
+                "name": "    🔍 Discovery Shot",
+                "color": "greenLight2"
+              },
+              {
+                "id": "sel41Z5ySMh0w2fJJ",
+                "name": "    🌈 Dynamic Complexity",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "seluQ68t5ENeGbQFS",
+                "name": "    👥 Guest Worthy",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "sel4NouBaSx6iwAdU",
+                "name": "    🍫 Heavy Body",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selVWpdMKbfwDe8Qd",
+                "name": "    🥈 Personal Best",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selTDMdxaaqTdM2GC",
+                "name": "    🛒 Rebuy Signal",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selU8kjYsRaOvD1Tl",
+                "name": "    🏆 Signature Shot",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selyHIADTNVz3qjHw",
+                "name": "    ⭐ Specialty Profile",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selCfJFvpjQTWuW5J",
+                "name": "    🍋 Structured Acidity",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selNyy3r50jfZLojI",
+                "name": "    🎯 Sweet Spot Found",
+                "color": "tealLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldj2Tdlf2bvwohpM",
+          "name": "Expression Style",
+          "type": "singleSelect",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "selkPye1gH1SBMLEx",
+                "name": "Balanced Expression",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selTx2Y0x8LofTxEp",
+                "name": "Balanced Comfort",
+                "color": "grayLight2"
+              },
+              {
+                "id": "seltLRLNOZ68Gmicg",
+                "name": "Bittersweet",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selVKwR70EVQAgfvE",
+                "name": "Boundary Shot",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "sel46Z3GZdGgygrWd",
+                "name": "Bright Expression",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selS4mAhlDHBwpcIv",
+                "name": "Cacao-Nut",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selz2zkryMdjPQYPC",
+                "name": "Caramel Leaning",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selUCPJikwvpVtofY",
+                "name": "Chocolate Leaning",
+                "color": "redLight2"
+              },
+              {
+                "id": "selFVbfoZaGwNsWaG",
+                "name": "Creamy Caco",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selrvoMFmtgeQn3X7",
+                "name": "Dynamic Articulation",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "sel1IqS5J77pcGwKv",
+                "name": "Fast First Pour",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selH3sR4uQzAbhbL3",
+                "name": "Fresh Finish",
+                "color": "tealLight2"
+              },
+              {
+                "id": "seljZBFtFG7UlINuV",
+                "name": "Refined Dynamic",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "sel9volIk2OWS6KYn",
+                "name": "Syrupy",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "seljiV6jH8yBu14eV",
+                "name": "Tea-Like Citrus",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selkNW8NQrd1zx0k8",
+                "name": "Wine-Like Structured",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selamVtbWUi4uJ4vR",
+                "name": "Rich Integrated",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selm6s21cV1tIBXrR",
+                "name": "Review Manually",
+                "color": "redLight2"
+              },
+              {
+                "id": "sel7P1fwsnqW9ydSW",
+                "name": "Ordinary",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selaYhes2wlckXnoR",
+                "name": "Structured",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selCN3LnVp0kW9KAI",
+                "name": "Muted",
+                "color": "yellowLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldCAN1FPgivNFuF2",
+          "name": "Daily Driver Count",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldm3XQYt90n8r1Qp},\n    FIND(\n      \"Daily Driver\",\n      ARRAYJOIN({fldfwZcexcbSyHcEt} & \"\")\n    )\n  ),\n  1,\n  0\n)",
+            "referencedFieldIds": [
+              "fldm3XQYt90n8r1Qp",
+              "fldfwZcexcbSyHcEt"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldm3XQYt90n8r1Qp",
+          "name": "Include in Analysis",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    OR(\n      {fldC81jf5247VpzCI} = \"Good\",\n      {fldC81jf5247VpzCI} = \"Dialed In\"\n    ),\n    FIND(\"Good\", ARRAYJOIN({fldEiM2ffoR6SAVuX})),\n    {fldAgkFDCD2tH17Ze} >= DATETIME_PARSE(\"2026-04-21\", \"YYYY-MM-DD\")\n  ),\n  1\n)",
+            "referencedFieldIds": [
+              "fldC81jf5247VpzCI",
+              "fldEiM2ffoR6SAVuX",
+              "fldAgkFDCD2tH17Ze"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fld8giN9bV2p2nw9c",
+          "name": "Important to Intelligence",
+          "type": "checkbox",
+          "description": null,
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fldWqBTGXHRM7WXvu",
+          "name": "Intelligence Lesson Type",
+          "type": "multipleSelects",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "selKl7kIFoD2WiSgC",
+                "name": "Bean Aging",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selLd4Rf64Ku0erNv",
+                "name": "BigShotEspresso Feature",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selxef9pQO1gKZLFk",
+                "name": "Boundary Shot Benchmark",
+                "color": "tealLight2"
+              },
+              {
+                "id": "seltibPyHp5AlKkLj",
+                "name": "Comfort Profile Benchmark",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selmply3h0bAEvEWU",
+                "name": "Cooling Evolution",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selxL0XJM6LkgCa0b",
+                "name": "Data Quality Check",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selLVeZpLnQ2sjfoy",
+                "name": "End of Bag Behavior",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selTsGEBuAQmI4KZ7",
+                "name": "Extraction Distribution",
+                "color": "redLight2"
+              },
+              {
+                "id": "selfSElDsXakwPe2b",
+                "name": "First Pour Timing",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "selQYcIPoAKnpuJXR",
+                "name": "Flow Diagnostic",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "sel7WwnwhOMYFbvLn",
+                "name": "Flow Score",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selM4OHysifDpnjOP",
+                "name": "Grinder Behavior",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selufDmLiAiEKJuMD",
+                "name": "Guest Feedback",
+                "color": "redLight2"
+              },
+              {
+                "id": "selamfkQxJ2bLdN6r",
+                "name": "Hidden Variable Discovery",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selA8jWacOzCf5TOZ",
+                "name": "Hopper Effect",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selKpiD92f9bbpZEC",
+                "name": "Hopper Threshold Discovery",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selZwcofPAij1BEQb",
+                "name": "Model Confirmation",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "seldgBs9rohQporDe",
+                "name": "Model Exception",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selD0hWygM0hD45Rf",
+                "name": "New Pattern Discovery",
+                "color": "redLight2"
+              },
+              {
+                "id": "selWE27JMwnk6SjX1",
+                "name": "Portafilter Engagement",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "selNJoToTw95wdbiH",
+                "name": "Predictive Model",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "sels9j2lFekGNIwXE",
+                "name": "Preference Boundary",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selSqDmgyn8dKK8i4",
+                "name": "Reference Shot Benchmark",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selfOWfOUsvjL4e6W",
+                "name": "Retention Effect",
+                "color": "blueLight2"
+              },
+              {
+                "id": "sel5cMoKEw3kLXzp4",
+                "name": "Sensory Breakthrough",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selUSDTnNe16IQ5iZ",
+                "name": "Sensory Calibration",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selgGuw69Sz9P6ZAS",
+                "name": "Taste Zone Calibration",
+                "color": "tealLight2"
+              },
+              {
+                "id": "sel6gTwNfZR2Tqiat",
+                "name": "Workflow Improvement",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selARihW5v9q92SLA",
+                "name": "Operational Event",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "seluqy9K5zJvYbr90",
+                "name": "Grind Adjustment Validation",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selu6nmLZfCIcyGbP",
+                "name": "Bean Aging Investigation",
+                "color": "orangeLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldAvCleK6iDnUHuu",
+          "name": "Notes",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldnrfmeVipXokyz0",
+          "name": "Rating ( Valid Only )",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  OR(\n    {fldC81jf5247VpzCI}=\"Good\",\n    {fldC81jf5247VpzCI}=\"Dialed In\"\n  ),\n  {fldbqBN64EowjF84o}\n)",
+            "referencedFieldIds": [
+              "fldC81jf5247VpzCI",
+              "fldbqBN64EowjF84o"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldHqsEoQpgz8X6OP",
+          "name": "Fault Notes",
+          "type": "multilineText",
+          "description": "If Fault in Fault Status, the non reproducible issue is briefly described here",
+          "config": null
+        },
+        {
+          "id": "fldIAg0gglqoahG3y",
+          "name": "Bag Opened Date",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldjIxfmMM7AYHaAK",
+            "fieldIdInLinkedTable": "fldZAosHXuYG2rvKj",
+            "result": {
+              "type": "date",
+              "options": {
+                "dateFormat": {
+                  "name": "iso",
+                  "format": "YYYY-MM-DD"
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "fld49tzVqdiXVTrGA",
+          "name": "Hopper Phase",
+          "type": "singleSelect",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "selqLBlFTJqHRh7Tt",
+                "name": "Phase 1",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selaw7Qp0cOuwrPN2",
+                "name": "Phase 2",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selJlE4ipR4WIPVMv",
+                "name": "Phase 3",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selqQTfeTUF007yB0",
+                "name": "Grinder Cleanout",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selxL8FFyHpY08Slh",
+                "name": "End of Bag",
+                "color": "yellowLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldPQaJGlnrldN2eC",
+          "name": "Hopper Fullness",
+          "type": "percent",
+          "description": "Percent estimate of total beans remaining in the grinder hopper system, including both the visible upper hopper and the lower funnel/throat area above the burrs. Important calibration note for the Eureka Magnifico: about 25 g of beans can remain below the cutoff slider, so the visible hopper reaching the cutoff slider does not mean near-empty. Log Hopper Fullness by total remaining bean mass impression, not just visible bean height in the upper chamber. Operational guide: 100% = freshly filled reference level; 75% = clearly above midpoint with strong column weight; 50% = about half of total usable bean mass remains; 30% = low-fill zone where column weight is reduced but meaningful bean mass still remains; 15% = very low visible fill, but still may include the lower hidden reserve below the cutoff slider; 0% = hopper intentionally emptied or effectively out of beans.",
+          "config": {
+            "precision": 2
+          }
+        },
+        {
+          "id": "fldNXwpsIo9bsmqUA",
+          "name": "Hopper %",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldhME5cUQLjDk88b",
+            "fieldIdInLinkedTable": "fldzoY4q0cK4uhoEA",
+            "result": {
+              "type": "percent",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldfT52wkHHeN0PTy",
+          "name": "Hopper Range",
+          "type": "formula",
+          "description": "Categorizes hopper fullness into percentage ranges based on decimal values.",
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldPQaJGlnrldN2eC},\n  IF(\n    {fldPQaJGlnrldN2eC} >= 0.75, \"75–100%\",\n    IF(\n      {fldPQaJGlnrldN2eC} >= 0.50, \"50–75%\",\n      IF(\n        {fldPQaJGlnrldN2eC} >= 0.30, \"30–50%\",\n        IF(\n          {fldPQaJGlnrldN2eC} >= 0.15, \"15–30%\",\n          \"0–15%\"\n        )\n      )\n    )\n  )\n)",
+            "referencedFieldIds": [
+              "fldPQaJGlnrldN2eC"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldDoerxP7FQOmCk1",
+          "name": "Hopper Range Link",
+          "type": "multipleRecordLinks",
+          "description": null,
+          "config": {
+            "linkedTableId": "tblS8re71C1w9gsW9",
+            "isReversed": false,
+            "prefersSingleRecordLink": true,
+            "inverseLinkFieldId": "fld0Z1Se85bQl4hRo"
+          }
+        },
+        {
+          "id": "fldZGHg98BLzN4gPJ",
+          "name": "Hopper Range Match",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldfT52wkHHeN0PTy} = BLANK(),\n  BLANK(),\n  IF(\n    ARRAYJOIN({fldriRfnltprDIsYj}) = \"\",\n    \"⚠ Missing Link\",\n    IF(\n      {fldfT52wkHHeN0PTy} = ARRAYJOIN({fldriRfnltprDIsYj}),\n      \"✓ Match\",\n      \"❌ Mismatch\"\n    )\n  )\n)",
+            "referencedFieldIds": [
+              "fldfT52wkHHeN0PTy",
+              "fldriRfnltprDIsYj"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldhME5cUQLjDk88b",
+          "name": "Hopper Link",
+          "type": "multipleRecordLinks",
+          "description": null,
+          "config": {
+            "linkedTableId": "tblYld98A5Rmk9CUn",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldRDKAwlA5ClfFKv"
+          }
+        },
+        {
+          "id": "fldgtohM8DI7jP2Ll",
+          "name": "Taste Zone",
+          "type": "singleSelect",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "selI6lnLXNs7eNhdw",
+                "name": "Center",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selhGqSip2sj9mPec",
+                "name": "Edge",
+                "color": "redLight2"
+              },
+              {
+                "id": "selHFKfF9P8sy1YEN",
+                "name": "Outside",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "seldm0sEA49rHyPxn",
+                "name": "Review",
+                "color": "cyanLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldUrpp7FsQPPCBDP",
+          "name": "Zone",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldbqBN64EowjF84o} <= 6.5,\n  \"Outside\",\n\n  IF(\n    OR(\n      FIND(\"Slightly Pushed\", ARRAYJOIN({fldhXB3YHgboNRYcN}&\"\")),\n      AND(\n        {fldUuuABeNcVsG0wg},\n        {fldmUPzmijGW2MtnY},\n        {fldUuuABeNcVsG0wg} > {fldmUPzmijGW2MtnY}\n      )\n    ),\n    \"Edge\",\n\n    IF(\n      AND(\n        {fldUuuABeNcVsG0wg},\n        {fldyKLV3aldqhXahr},\n        {fldmUPzmijGW2MtnY},\n        {fldUuuABeNcVsG0wg} >= {fldyKLV3aldqhXahr},\n        {fldUuuABeNcVsG0wg} <= {fldmUPzmijGW2MtnY}\n      ),\n      \"Center\",\n      \"Review\"\n    )\n  )\n)",
+            "referencedFieldIds": [
+              "fldbqBN64EowjF84o",
+              "fldhXB3YHgboNRYcN",
+              "fldUuuABeNcVsG0wg",
+              "fldmUPzmijGW2MtnY",
+              "fldyKLV3aldqhXahr"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldJumsqegqRCoNy1",
+          "name": "Zone Score",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "SWITCH(\n  {fldUrpp7FsQPPCBDP},\n  \"Center\", 3,\n  \"Edge\", 2,\n  \"Outside\", 1,\n  0\n)",
+            "referencedFieldIds": [
+              "fldUrpp7FsQPPCBDP"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldXkWiFzHNa2HkBB",
+          "name": "Taste Score",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldgtohM8DI7jP2Ll},\n  SWITCH(\n    {fldgtohM8DI7jP2Ll},\n    \"Center\", 3,\n    \"Edge\", 2,\n    \"Outside\", 1,\n    BLANK()\n  ),\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fldgtohM8DI7jP2Ll"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldWSP8wOZ89aULuQ",
+          "name": "Agreement %",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldJumsqegqRCoNy1} != BLANK(),\n    {fldXkWiFzHNa2HkBB} != BLANK()\n  ),\n  ROUND(1 - (ABS({fldJumsqegqRCoNy1} - {fldXkWiFzHNa2HkBB}) / 3), 2),\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fldJumsqegqRCoNy1",
+              "fldXkWiFzHNa2HkBB"
+            ],
+            "result": {
+              "type": "percent",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldEFLHDgR6tkhIAE",
+          "name": "Flow Score",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {flddNCW7tGShMWUzp} != BLANK(),\n  MAX(0, 1 - (ABS({flddNCW7tGShMWUzp}) * 0.1)),\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "flddNCW7tGShMWUzp"
+            ],
+            "result": {
+              "type": "percent",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldfXBwSfxSHMPFEs",
+          "name": "Model Flag",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND({fldUrpp7FsQPPCBDP}, {fldgtohM8DI7jP2Ll}),\n  IF(\n    {fldUrpp7FsQPPCBDP} = {fldgtohM8DI7jP2Ll},\n    \"Match\",\n    \"Mismatch\"\n  ),\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fldUrpp7FsQPPCBDP",
+              "fldgtohM8DI7jP2Ll"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fld4GiwpghPCiDuPi",
+          "name": "Time Gap (sec)",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND({fldRIWBExEqE9pABO}, {fldUuuABeNcVsG0wg}),\n  {fldRIWBExEqE9pABO} - {fldUuuABeNcVsG0wg}\n)",
+            "referencedFieldIds": [
+              "fldRIWBExEqE9pABO",
+              "fldUuuABeNcVsG0wg"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fld3nYwluZ7sVk5s5",
+          "name": "Flow Diagnostic",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldUuuABeNcVsG0wg},\n  IF(\n    {fldUuuABeNcVsG0wg} > {fldmUPzmijGW2MtnY},\n    \"Slow\",\n    IF(\n      {fldUuuABeNcVsG0wg} < {fldyKLV3aldqhXahr},\n      \"Fast\",\n      \"Normal\"\n    )\n  )\n)",
+            "referencedFieldIds": [
+              "fldUuuABeNcVsG0wg",
+              "fldmUPzmijGW2MtnY",
+              "fldyKLV3aldqhXahr"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldWqWzzn7Zrnke2n",
+          "name": "Pour Delay Window",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldjIxfmMM7AYHaAK",
+            "fieldIdInLinkedTable": "fldHINJMCEKa1wqvj",
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldysVcxP10s4Yemw",
+          "name": "Flow Time Window",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldjIxfmMM7AYHaAK",
+            "fieldIdInLinkedTable": "fldKVEMjuuWpsGdPp",
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldkD070JlSQ3GpyL",
+          "name": "Yield Window",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldjIxfmMM7AYHaAK",
+            "fieldIdInLinkedTable": "fldsaJlCTBCTK49XY",
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldOeBuADgWbsrrbU",
+          "name": "Ratio Window",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldjIxfmMM7AYHaAK",
+            "fieldIdInLinkedTable": "fldbOABejeVVTWX6V",
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldWc4SfdZT56YeGS",
+          "name": "Drift Delta (sec)",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n    AND(\n        {fldUuuABeNcVsG0wg} != BLANK(),\n        {fldAKqO3RhIbyBvSS} != BLANK()\n    ),\n    ROUND(\n        {fldUuuABeNcVsG0wg} -\n        VALUE(ARRAYJOIN({fldAKqO3RhIbyBvSS})),\n        1\n    )\n)",
+            "referencedFieldIds": [
+              "fldUuuABeNcVsG0wg",
+              "fldAKqO3RhIbyBvSS"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fld7MUv8DFxFgkE0m",
+          "name": "Shot Drift Status",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND({fldUuuABeNcVsG0wg}, {fldAKqO3RhIbyBvSS}),\n  IF(\n    ABS({fldUuuABeNcVsG0wg} - {fldAKqO3RhIbyBvSS}) <= 1,\n    \"Stable\",\n  IF(\n    ABS({fldUuuABeNcVsG0wg} - {fldAKqO3RhIbyBvSS}) <= 2,\n    \"Watch\",\n  IF(\n    {fldUuuABeNcVsG0wg} < {fldAKqO3RhIbyBvSS},\n    \"Adjust — Grind finer\",\n    \"Adjust — Grind coarser\"\n  ))),\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fldUuuABeNcVsG0wg",
+              "fldAKqO3RhIbyBvSS"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fld3OQkj3MiYFh6CK",
+          "name": "Shot Quality Score",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldEFLHDgR6tkhIAE} != BLANK(),\n    {fldWSP8wOZ89aULuQ} != BLANK(),\n    {fldbqBN64EowjF84o} != BLANK()\n  ),\n  (\n    ({fldEFLHDgR6tkhIAE} * 0.3) +\n    ({fldWSP8wOZ89aULuQ} * 0.2) +\n    (({fldbqBN64EowjF84o} / 10) * 0.5)\n  ),\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fldEFLHDgR6tkhIAE",
+              "fldWSP8wOZ89aULuQ",
+              "fldbqBN64EowjF84o"
+            ],
+            "result": {
+              "type": "percent",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldu78Cufn1hvANip",
+          "name": "Shot Tier",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fld3OQkj3MiYFh6CK},\n  IF(\n    {fld3OQkj3MiYFh6CK} >= 0.92, \"Elite\",\n    IF(\n      {fld3OQkj3MiYFh6CK} >= 0.85, \"Great\",\n      IF(\n        {fld3OQkj3MiYFh6CK} >= 0.75, \"Good\",\n        IF(\n          {fld3OQkj3MiYFh6CK} >= 0.65, \"Edge\",\n          \"Outside\"\n        )\n      )\n    )\n  ),\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fld3OQkj3MiYFh6CK"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldpH98a7JhbZPAcz",
+          "name": "Perfect Range Flag",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  OR(\n    {fldu78Cufn1hvANip} = \"Elite\",\n    {fldu78Cufn1hvANip} = \"Great\"\n  ),\n  \"Target\",\n  \"\"\n)",
+            "referencedFieldIds": [
+              "fldu78Cufn1hvANip"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldKSisrBSQWEDtsi",
+          "name": "Drift Warning",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fld3OQkj3MiYFh6CK} != BLANK(),\n    {flddNCW7tGShMWUzp} != BLANK()\n  ),\n  IF(\n    OR(\n      {fld3OQkj3MiYFh6CK} < 0.75,\n      ABS({flddNCW7tGShMWUzp}) >= 3\n    ),\n    \"Drifting\",\n    IF(\n      OR(\n        {fld3OQkj3MiYFh6CK} < 0.85,\n        ABS({flddNCW7tGShMWUzp}) >= 2\n      ),\n      \"Watch\",\n      \"Stable\"\n    )\n  ),\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fld3OQkj3MiYFh6CK",
+              "flddNCW7tGShMWUzp"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldUYzTGtv1DSrRHH",
+          "name": "Hopper Zone",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldPQaJGlnrldN2eC},\n  IF(\n    {fldPQaJGlnrldN2eC} >= 0.75, \"High\",\n    IF(\n      {fldPQaJGlnrldN2eC} >= 0.50, \"Mid-High\",\n      IF(\n        {fldPQaJGlnrldN2eC} >= 0.30, \"Mid\",\n        IF(\n          {fldPQaJGlnrldN2eC} >= 0.15, \"Low\",\n          \"Very Low\"\n        )\n      )\n    )\n  ),\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fldPQaJGlnrldN2eC"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldrEQvbEyG6q8Drz",
+          "name": "Hopper Drift Link",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldKSisrBSQWEDtsi} = \"Drifting\",\n    {fldPQaJGlnrldN2eC}\n  ),\n  IF(\n    {fldPQaJGlnrldN2eC} < 0.30,\n    \"Likely Hopper Effect\",\n    \"Check Other Factors\"\n  ),\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fldKSisrBSQWEDtsi",
+              "fldPQaJGlnrldN2eC"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldhr22rPX1mSdfZx",
+          "name": "Hopper Impact Score",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND({flddNCW7tGShMWUzp}, {fldPQaJGlnrldN2eC}),\n  ABS({flddNCW7tGShMWUzp}) * (1 - {fldPQaJGlnrldN2eC}),\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "flddNCW7tGShMWUzp",
+              "fldPQaJGlnrldN2eC"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldlkcEvBoYyq8lGN",
+          "name": "Hopper Correction Rule",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldPQaJGlnrldN2eC} = BLANK(),\n  BLANK(),\n  IF(\n    {fldPQaJGlnrldN2eC} >= 0.50,\n    \"No hopper correction\",\n    IF(\n      AND(\n        {fldPQaJGlnrldN2eC} < 0.50,\n        {fldKSisrBSQWEDtsi} = \"Stable\"\n      ),\n      \"Low hopper but stable — no change\",\n      IF(\n        AND(\n          {fldPQaJGlnrldN2eC} < 0.50,\n          {fldKSisrBSQWEDtsi} = \"Watch\"\n        ),\n        \"Watch — if grinder output drops, add +0.1 sec\",\n        IF(\n          AND(\n            {fldPQaJGlnrldN2eC} < 0.30,\n            {fldKSisrBSQWEDtsi} = \"Drifting\"\n          ),\n          \"Correct — add +0.1 to +0.2 sec or refill hopper\",\n          \"Review manually\"\n        )\n      )\n    )\n  )\n)",
+            "referencedFieldIds": [
+              "fldPQaJGlnrldN2eC",
+              "fldKSisrBSQWEDtsi"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fld1r6vK7Ok2KLdej",
+          "name": "Action Suggestion",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fld7MUv8DFxFgkE0m} = \"Stable\",\n  \"No change\",\nIF(\n  {fld7MUv8DFxFgkE0m} = \"Watch\",\n  \"Review manually\",\nIF(\n  {fld7MUv8DFxFgkE0m} = \"Adjust — Grind finer\",\n  \"Grind finer\",\nIF(\n  {fld7MUv8DFxFgkE0m} = \"Adjust — Grind coarser\",\n  \"Grind coarser\",\nIF(\n  {fld3nYwluZ7sVk5s5} = \"Fast\",\n  \"Grind finer\",\nIF(\n  {fld3nYwluZ7sVk5s5} = \"Slow\",\n  \"Grind coarser\",\n\"Review manually\"\n))))))",
+            "referencedFieldIds": [
+              "fld7MUv8DFxFgkE0m",
+              "fld3nYwluZ7sVk5s5"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldCM3gg0sOPgwUuJ",
+          "name": "Scale Calibration Reminder",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {flddNCW7tGShMWUzp} != BLANK(),\n    {fld3OQkj3MiYFh6CK} >= 0.85,\n    ABS({flddNCW7tGShMWUzp}) <= 1,\n    {fldKSisrBSQWEDtsi} = \"Stable\"\n  ),\n  \"Update Bag Scale Range\",\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "flddNCW7tGShMWUzp",
+              "fld3OQkj3MiYFh6CK",
+              "fldKSisrBSQWEDtsi"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldEmsL7NVVqdNLOz",
+          "name": "Bag Calibration Reminder",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldjIxfmMM7AYHaAK",
+            "fieldIdInLinkedTable": "fldJ4ITiJRA9TknZB",
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fld9szC5MvMzhDAVS",
+          "name": "Calculation",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND({fldRIWBExEqE9pABO} >= 34, {fldRIWBExEqE9pABO} <= 40),\n  \"Sweet Zone\",\n  \"Outside\"\n)",
+            "referencedFieldIds": [
+              "fldRIWBExEqE9pABO"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "flds6ntyt57BGYFk3",
+          "name": "Baseline Unaided Output (g)",
+          "type": "multipleLookupValues",
+          "description": "Baseline for the initial unaided grinder output from the first timed grind only, before any top-up/correction grind. Use for hopper feed-rate and timed-output analysis.",
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldDoerxP7FQOmCk1",
+            "fieldIdInLinkedTable": "fldE9lSbmD9ctKFpH",
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldf9dPrIHTpQtnzq",
+          "name": "Initial Output vs Target Dose (g)",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND({fldNKcXfwu6QHq7rL}, {fldPf3fYcelmEdGRp}),\n  ROUND(\n    {fldNKcXfwu6QHq7rL} - {fldPf3fYcelmEdGRp},\n    1\n  )\n)",
+            "referencedFieldIds": [
+              "fldNKcXfwu6QHq7rL",
+              "fldPf3fYcelmEdGRp"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fld8NchPOwDJtrFgI",
+          "name": "Initial Output vs Hopper Baseline (g)",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldNKcXfwu6QHq7rL} != BLANK(),\n    {flds6ntyt57BGYFk3} != BLANK()\n  ),\n  IF(\n    ABS(\n      ROUND(\n        {fldNKcXfwu6QHq7rL} -\n        VALUE(ARRAYJOIN({flds6ntyt57BGYFk3})),\n        1\n      )\n    ) < 0.05,\n    0,\n    ROUND(\n      {fldNKcXfwu6QHq7rL} -\n      VALUE(ARRAYJOIN({flds6ntyt57BGYFk3})),\n      1\n    )\n  )\n)",
+            "referencedFieldIds": [
+              "fldNKcXfwu6QHq7rL",
+              "flds6ntyt57BGYFk3"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldezvjUnj3ZdT39p",
+          "name": "Hopper Threshold Flag",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fld8NchPOwDJtrFgI} = BLANK(),\n  BLANK(),\n  IF(\n    {fld8NchPOwDJtrFgI} <= -1,\n    \"Severe Drop\",\n    IF(\n      {fld8NchPOwDJtrFgI} <= -0.5,\n      \"Moderate Drop\",\n      \"Normal\"\n    )\n  )\n)",
+            "referencedFieldIds": [
+              "fld8NchPOwDJtrFgI"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fld12uSFYhuAAGA6T",
+          "name": "Hopper Behaviour",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  OR(\n    {fldfT52wkHHeN0PTy} = BLANK(),\n    {fld8NchPOwDJtrFgI} = BLANK()\n  ),\n  BLANK(),\n  IF(\n    {fld8NchPOwDJtrFgI} <= -0.5,\n    {fldfT52wkHHeN0PTy} & \" → Drop\",\n    {fldfT52wkHHeN0PTy} & \" → Stable\"\n  )\n)",
+            "referencedFieldIds": [
+              "fldfT52wkHHeN0PTy",
+              "fld8NchPOwDJtrFgI"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fld5FP9EncFHsbguo",
+          "name": "Hopper Severity",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fld8NchPOwDJtrFgI} = BLANK(),\n  BLANK(),\n  IF(\n    {fld8NchPOwDJtrFgI} <= -1,\n    \"Severe\",\n    IF(\n      {fld8NchPOwDJtrFgI} <= -0.5,\n      \"Moderate\",\n      \"Stable\"\n    )\n  )\n)",
+            "referencedFieldIds": [
+              "fld8NchPOwDJtrFgI"
+            ],
+            "result": {
+              "type": "singleSelect",
+              "options": {
+                "choices": [
+                  {
+                    "id": "sel3Ck3AE0C3Cvswm",
+                    "name": "Stable",
+                    "color": "blueLight2"
+                  },
+                  {
+                    "id": "selsIv5EpTkgzsOvq",
+                    "name": "Moderate",
+                    "color": "redLight2"
+                  },
+                  {
+                    "id": "sel3FCoLiMaNlX3Zn",
+                    "name": "Severe",
+                    "color": "yellowLight2"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "fldlVLr1Ua8RueYuS",
+          "name": "Top-Up Gap (g)",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  OR(\n    {fldWzxcRt88WVNM4D} = BLANK(),\n    {fldNKcXfwu6QHq7rL} = BLANK()\n  ),\n  BLANK(),\n  ROUND(\n    {fldWzxcRt88WVNM4D} - {fldNKcXfwu6QHq7rL},\n    1\n  )\n)",
+            "referencedFieldIds": [
+              "fldWzxcRt88WVNM4D",
+              "fldNKcXfwu6QHq7rL"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldBaRcuglywIoKah",
+          "name": "Top-Up Recommendation",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldlVLr1Ua8RueYuS} = BLANK(),\n  BLANK(),\n  IF(\n    {fldlVLr1Ua8RueYuS} <= 0,\n    BLANK(),\n    IF(\n      {fldlVLr1Ua8RueYuS} >= 0.6,\n      \"Consider 0.3 sec top-up\",\n      IF(\n        {fldlVLr1Ua8RueYuS} >= 0.3,\n        \"Consider 0.2 sec top-up\",\n        \"No top-up\"\n      )\n    )\n  )\n)",
+            "referencedFieldIds": [
+              "fldlVLr1Ua8RueYuS"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldXqSJDVOl6n6Bg9",
+          "name": "Grinder Initial Output for Charts (16-19g)",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldNKcXfwu6QHq7rL},\n  MIN({fldNKcXfwu6QHq7rL}, 19) - 16\n)",
+            "referencedFieldIds": [
+              "fldNKcXfwu6QHq7rL"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldbaMxNhnvkTNB4A",
+          "name": "Purge/Toss (g)",
+          "type": "number",
+          "description": "only put here what you tossed as this adds to bean delta",
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fldFLjPe8c89D0pa1",
+          "name": "Dose Adj",
+          "type": "number",
+          "description": "How much dose was adjusted, + or -",
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fldH9aJxdIiXNsMNT",
+          "name": "Time Adj",
+          "type": "number",
+          "description": "How much extra grind time was used to produce an 18 g shot, in .1 increments",
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fldLkkXRZsqfVrWDi",
+          "name": "Bean Helper",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldjIxfmMM7AYHaAK",
+            "fieldIdInLinkedTable": "fldVUAlGl64KTBNCN",
+            "result": {
+              "type": "multipleRecordLinks",
+              "options": {
+                "isReversed": false,
+                "prefersSingleRecordLink": false
+              }
+            }
+          }
+        },
+        {
+          "id": "fldnhBWiRBXlfgOhA",
+          "name": "Time",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n{fldAgkFDCD2tH17Ze},\nDATETIME_FORMAT({fldAgkFDCD2tH17Ze}, 'HH:mm')\n)",
+            "referencedFieldIds": [
+              "fldAgkFDCD2tH17Ze"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fld5TpquZgag4t61Z",
+          "name": "Bag Label",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldjIxfmMM7AYHaAK",
+            "fieldIdInLinkedTable": "fldRfc1KEMKOTjAjw",
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldvmFI5eXMudsvJ0",
+          "name": "Project Phase",
+          "type": "singleSelect",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "selAjquEM96hXTjoT",
+                "name": "Phase 1",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selW1PGtfzYBRuLqQ",
+                "name": "Phase 2",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "sel6UbVrKwoyr4Sp1",
+                "name": "Phase 3",
+                "color": "tealLight2"
+              },
+              {
+                "id": "sel7BNxeb1zcRV7oP",
+                "name": "Phase 4",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selxxb0OomRqKnT5v",
+                "name": "Phase 5",
+                "color": "yellowLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldMuwjacMbBXLWBp",
+          "name": "Milk Drink?",
+          "type": "formula",
+          "description": "Displays a 1 if Drink Type is a Milk Drink",
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  OR(\n    {fldRA7VWs6PLbflRB} = \"Latte\",\n    {fldRA7VWs6PLbflRB} = \"Cappuccino\",\n    {fldRA7VWs6PLbflRB} = \"Flat White\",\n    {fldRA7VWs6PLbflRB} = \"Macchiato\"\n  ),\n  1,\n  0\n)",
+            "referencedFieldIds": [
+              "fldRA7VWs6PLbflRB"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldRA7VWs6PLbflRB",
+          "name": "Effective Drink Type",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldlPPJs6MThr2z9Q},\n  {fldlPPJs6MThr2z9Q},\n  \"Americano\"\n)",
+            "referencedFieldIds": [
+              "fldlPPJs6MThr2z9Q"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldp22HD2JjwUFn0d",
+          "name": "Taste",
+          "type": "multipleSelects",
+          "description": "I have my notes commenting system. Three color levels: Grey = Low \nYellow = Medium\nBlue = High",
+          "config": {
+            "choices": [
+              {
+                "id": "selmqYRbYaq7JpW1P",
+                "name": "Acetic acid expression -Low ",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selBx3QlVJ5GjoBbf",
+                "name": "Acidity -Low",
+                "color": "tealLight2"
+              },
+              {
+                "id": "sel9DeRQXyHuYu903",
+                "name": "Aftertaste -Low",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selTWgtcdryV71Ch6",
+                "name": "Aromatic -Low",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selDvt1yjkJxqnI7R",
+                "name": "Astringent -Low",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selcumzXwNlRCAIYi",
+                "name": "Balance -Low",
+                "color": "redLight2"
+              },
+              {
+                "id": "seltHlvSoUaOpPtna",
+                "name": "Bitterness -Low",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selmAD1NMJMgzUu1B",
+                "name": "Body -Low",
+                "color": "tealLight2"
+              },
+              {
+                "id": "sel2mrW4nMH6dKW0S",
+                "name": "Bold -Low",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selGBSiMeB2WN3oxA",
+                "name": "Caramel -Low",
+                "color": "grayLight2"
+              },
+              {
+                "id": "sely2X65j9gWSHHVs",
+                "name": "Chocolate -Low",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selPxxgRBdSheQM4K",
+                "name": "Citrus -Low",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selGpEkrPMKCwunlj",
+                "name": "Clean/Clear -Low",
+                "color": "grayLight2"
+              },
+              {
+                "id": "sel7UYVFKVbFnoHpC",
+                "name": "Complexity -Low",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selzc0xA6D1x9jQ63",
+                "name": "Fruity/Berry -Low",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selUMVYTyqwKo9fJG",
+                "name": "Integration Low -Low",
+                "color": "tealLight2"
+              },
+              {
+                "id": "sel4wv5qlVNrMtK6E",
+                "name": "Lingering -Low",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selgnZrLU5C0NzDfP",
+                "name": "Medium -Low",
+                "color": "grayLight2"
+              },
+              {
+                "id": "sel4yeJgk05QVQCxW",
+                "name": "Refined -Low",
+                "color": "tealLight2"
+              },
+              {
+                "id": "seli8PvlXxzG1GwYU",
+                "name": "Separation -Low",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selwTD4SIq94Exv9y",
+                "name": "Smooth -Low",
+                "color": "grayLight2"
+              },
+              {
+                "id": "seltwxm3Q6XAJg1pU",
+                "name": "Sourness -Low",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selqfzhTlytmcAlmy",
+                "name": "Strong/Full -Low",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCaGVMYr4mTGAjj",
+                "name": "Sweetness -Low",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selbt65DC6BUagn0t",
+                "name": "Tannins -Low",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selYpk2s1lLJVPrQz",
+                "name": "Upper-palate imbalance -Low",
+                "color": "grayLight2"
+              },
+              {
+                "id": "sel8EJZJoU3IfiIEQ",
+                "name": "Acetic acid expression -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "seloi1cWmBfH4GpQC",
+                "name": "Acidity -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selVzgoyrXmH1vUjP",
+                "name": "Aftertaste -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selHbFedA9fesxQjL",
+                "name": "Aromatic -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selBEA9FHgghhO6RG",
+                "name": "Astringent -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selmPtYCaTnxtZN5S",
+                "name": "Balance -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selLQt53NMIQk0oy7",
+                "name": "Bitterness -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selKboNFo910kyf7v",
+                "name": "Body -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selN98uuevS5vSY7I",
+                "name": "Bold -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selLetjWAOYGjhgno",
+                "name": "Caramel -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selru3TBHg0SdvNCa",
+                "name": "Chocolate -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selF6B6ZBF5OjVtBJ",
+                "name": "Citrus -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selGWcxu0z6J5t1N7",
+                "name": "Clean/Clear -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selYPM1XsroJfwOYg",
+                "name": "Complexity -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selK8CO8duXDo50vc",
+                "name": "Fruity/Berry -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "sely2Qfl5AXb2p5bx",
+                "name": "Integration -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selYb6DYSHSuGQvz6",
+                "name": "Lingering -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "sel3ej2g0YmbFLcRo",
+                "name": "Medium -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "seluyjurnyzzcFevK",
+                "name": "Refined -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selMG4ECb1obE73WI",
+                "name": "Separation -Med",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selM56WZKjQ8aqMyY",
+                "name": "Smooth -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selWnxiZaDQ1NGKIU",
+                "name": "Sourness -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selZtcsCdxXlapmn4",
+                "name": "Strong/Full -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selTrGz4LMAIwSXe8",
+                "name": "Sweetness -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "sel1Ry9H0kY4IWRt6",
+                "name": "Tannins -Med",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selHMSxyBnbhiF8BD",
+                "name": "Upper-palate imbalance -Medium",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "sel59Xhbvg1eLPTMA",
+                "name": "Acetic acid expression -High",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selVITkM78EslHN6i",
+                "name": "Acidity -High",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selSyE5djSgeZ0cf1",
+                "name": "Aromatic -High",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selgzFp8GfvvBixFM",
+                "name": "Aftertaste -High",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selBFRu8TP8cy9dAL",
+                "name": "Astringent -High",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selWQZaDvd45wCN41",
+                "name": "Balance -High",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selzvZdRDVKvYErSb",
+                "name": "Bitterness -High",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selG64YreZuf3tP8X",
+                "name": "Body -High",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "selpoMIKVtFkfyDTa",
+                "name": "Bold -High",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "seltbB3m2zvmNSe8G",
+                "name": "Caramel -High",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "sel8sYUPVr9xhn9eY",
+                "name": "Chocolate -High",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selau6TspCkTFV0kG",
+                "name": "Citrus -High",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selYS4nIapI7FpOg8",
+                "name": "Clean/Clear -High",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selcBQxM5BvZLG1T2",
+                "name": "Complexity -High",
+                "color": "blueLight2"
+              },
+              {
+                "id": "sel7pqRFpBHgf1RFx",
+                "name": "Fruity/Berry -High",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selHIBPmQAMmdu4mc",
+                "name": "Integration -High",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selcFolqUjUIAFI0N",
+                "name": "Lingering -High",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selG14M74sonFQbCD",
+                "name": "Medium -High",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "sel72Kr7IMJFQCwKt",
+                "name": "Refined -High",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selJasCci7nug0fyR",
+                "name": "Separation -High",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selD3plHA0MAQpeh8",
+                "name": "Smooth -High",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selIqtRsGJC7prSZk",
+                "name": "Sourness -High",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selsGEa3nqjMOhWid",
+                "name": "Strong/Full -High",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selbjpmBXhkJe23Cn",
+                "name": "Sweetness -High",
+                "color": "blueLight2"
+              },
+              {
+                "id": "seld2GuvKejgzF8ya",
+                "name": "Tannins -High",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selAP1MsYl82qfCFN",
+                "name": "Upper-palate imbalance -High",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selvwmF5IdsgS4ewY",
+                "name": "Dryness -Med",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selbsISkUi0OSdX4Z",
+                "name": "Dynamic -High",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selaJxb8W2EpkRYDK",
+                "name": "Bright -High",
+                "color": "redLight2"
+              },
+              {
+                "id": "selw8u8FJfgQpwqIU",
+                "name": "Clean Finish -High",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selHQaj7ZEiraCUlX",
+                "name": "Clarity -High",
+                "color": "greenLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldriRfnltprDIsYj",
+          "name": "Hopper Range (from Hopper Range Link)",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldDoerxP7FQOmCk1",
+            "fieldIdInLinkedTable": "fldZ7E7lii7AO4NZG",
+            "result": {
+              "type": "multilineText"
+            }
+          }
+        },
+        {
+          "id": "fldIno7Ncg4TJymnL",
+          "name": "Cost per Shot",
+          "type": "formula",
+          "description": "Calculates the cost per dose by multiplying cost per gram by dose (g).",
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n    AND(\n        {fldhOAxqMp6vIUolU} != BLANK(),\n        {fldvgn8KP0dAbNVrB} != BLANK()\n    ),\n    ROUND(\n        {fldhOAxqMp6vIUolU} * {fldvgn8KP0dAbNVrB},\n        2\n    ),\n    BLANK()\n)",
+            "referencedFieldIds": [
+              "fldhOAxqMp6vIUolU",
+              "fldvgn8KP0dAbNVrB"
+            ],
+            "result": {
+              "type": "currency",
+              "options": {
+                "precision": 2,
+                "symbol": "$"
+              }
+            }
+          }
+        },
+        {
+          "id": "fldhOAxqMp6vIUolU",
+          "name": "Bag Cost per Gram",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldjIxfmMM7AYHaAK",
+            "fieldIdInLinkedTable": "fld8e4liZ2eDd8ZC1",
+            "result": {
+              "type": "currency",
+              "options": {
+                "precision": 2,
+                "symbol": "$"
+              }
+            }
+          }
+        },
+        {
+          "id": "fld4gH5wmQiuuGN4C",
+          "name": "Scale Zone",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n    AND(\n        {fldUuuABeNcVsG0wg} != BLANK(),\n        {fldyKLV3aldqhXahr} != BLANK(),\n        {fldmUPzmijGW2MtnY} != BLANK()\n    ),\n    IF(\n        {fldUuuABeNcVsG0wg} > VALUE(ARRAYJOIN({fldmUPzmijGW2MtnY})),\n        \"Slow\",\n        IF(\n            {fldUuuABeNcVsG0wg} < VALUE(ARRAYJOIN({fldyKLV3aldqhXahr})),\n            \"Fast\",\n            \"Normal\"\n        )\n    )\n)",
+            "referencedFieldIds": [
+              "fldUuuABeNcVsG0wg",
+              "fldyKLV3aldqhXahr",
+              "fldmUPzmijGW2MtnY"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          }
+        },
+        {
+          "id": "fldyKLV3aldqhXahr",
+          "name": "Flow Time Low",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldjIxfmMM7AYHaAK",
+            "fieldIdInLinkedTable": "fldjIgaEnc4nDjb5g",
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldAKqO3RhIbyBvSS",
+          "name": "Flow Time Center",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldjIxfmMM7AYHaAK",
+            "fieldIdInLinkedTable": "fldHKGjUBg7yn1Y0N",
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldmUPzmijGW2MtnY",
+          "name": "Flow Time High",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldjIxfmMM7AYHaAK",
+            "fieldIdInLinkedTable": "fldDC812mvy5eXxMo",
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "flddNCW7tGShMWUzp",
+          "name": "Flow Time Offset (Scale)",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldUuuABeNcVsG0wg},\n    ARRAYJOIN({fldAKqO3RhIbyBvSS}) != \"\"\n  ),\n  {fldUuuABeNcVsG0wg} - VALUE(ARRAYJOIN({fldAKqO3RhIbyBvSS})),\n  BLANK()\n)",
+            "referencedFieldIds": [
+              "fldUuuABeNcVsG0wg",
+              "fldAKqO3RhIbyBvSS"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldsRHMWf7OY1aAPw",
+          "name": "Actual Dose Error (g)",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND(\n    {fldvgn8KP0dAbNVrB} != BLANK(),\n    {fldWzxcRt88WVNM4D} != BLANK()\n  ),\n  ROUND(\n    {fldvgn8KP0dAbNVrB} - {fldWzxcRt88WVNM4D},\n    1\n  )\n)",
+            "referencedFieldIds": [
+              "fldvgn8KP0dAbNVrB",
+              "fldWzxcRt88WVNM4D"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldWzxcRt88WVNM4D",
+          "name": "Target Dose (g)",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fldPf3fYcelmEdGRp",
+          "name": "Expected Dose by Hopper Range (g)",
+          "type": "multipleLookupValues",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldjIxfmMM7AYHaAK",
+            "fieldIdInLinkedTable": "fldlQl9dhLzivGCsg",
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "flddrIErAJHABlA6O",
+          "name": "Target Gap (g)",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  AND({fldWzxcRt88WVNM4D}, {fldPf3fYcelmEdGRp}),\n  ROUND({fldWzxcRt88WVNM4D} - {fldPf3fYcelmEdGRp}, 2)\n)",
+            "referencedFieldIds": [
+              "fldWzxcRt88WVNM4D",
+              "fldPf3fYcelmEdGRp"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fldg5Z9HEcY9GmlMS",
+          "name": "Signature Shot Count",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldgXG0bSRbVBOdFU},\n  1,\n  0\n)",
+            "referencedFieldIds": [
+              "fldgXG0bSRbVBOdFU"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tblYld98A5Rmk9CUn",
+      "name": "Hopper",
+      "primaryFieldId": "fldngWjGz4VkqS7Py",
+      "description": null,
+      "fields": [
+        {
+          "id": "fldngWjGz4VkqS7Py",
+          "name": "Name",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldbnZNEyGU6xeJVa",
+          "name": "Starting Beans (g)",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fldRDKAwlA5ClfFKv",
+          "name": "Shots",
+          "type": "multipleRecordLinks",
+          "description": null,
+          "config": {
+            "linkedTableId": "tblKoZ2qE5qgiD9Zo",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldhME5cUQLjDk88b",
+            "viewIdForRecordSelection": "viwnVkBybTffxUdS1"
+          }
+        },
+        {
+          "id": "fldpewhYKWqZvE9lv",
+          "name": "Active",
+          "type": "checkbox",
+          "description": null,
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fldQsUhmCLpjJyaRK",
+          "name": "Hopper Mass (g)",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fldRDKAwlA5ClfFKv",
+            "fieldIdInLinkedTable": "fld3lylk26uSZ9g33",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldzoY4q0cK4uhoEA",
+          "name": "Hopper %",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "{fldQsUhmCLpjJyaRK} / {fldbnZNEyGU6xeJVa}",
+            "referencedFieldIds": [
+              "fldQsUhmCLpjJyaRK",
+              "fldbnZNEyGU6xeJVa"
+            ],
+            "result": {
+              "type": "percent",
+              "options": {
+                "precision": 2
+              }
+            }
+          }
+        },
+        {
+          "id": "fldzQp6KybemleVIK",
+          "name": "Shots Left (estimated)",
+          "type": "formula",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "formula": "IF(\n  {fldQsUhmCLpjJyaRK},\n  ROUND({fldQsUhmCLpjJyaRK} / 18, 1)\n)",
+            "referencedFieldIds": [
+              "fldQsUhmCLpjJyaRK"
+            ],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 0
+              }
+            }
+          }
+        },
+        {
+          "id": "fld7qCRQYfKZJ1R5n",
+          "name": "Notes",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        }
+      ]
+    },
+    {
+      "id": "tblS8re71C1w9gsW9",
+      "name": "Hopper Range Baselines",
+      "primaryFieldId": "fldZ7E7lii7AO4NZG",
+      "description": null,
+      "fields": [
+        {
+          "id": "fldZ7E7lii7AO4NZG",
+          "name": "Hopper Range",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldYEESce0OfqGmI3",
+          "name": "Baseline Output Adjusted Date",
+          "type": "date",
+          "description": null,
+          "config": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            }
+          }
+        },
+        {
+          "id": "fldS5H961Yr3EmV47",
+          "name": "Baseline Output Status",
+          "type": "singleSelect",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "selKjwVlZ9yyzmQXl",
+                "name": "Initial",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selBSrppWqVpxaIh2",
+                "name": "Provisional",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selTdJVEZg4wrPM5m",
+                "name": "Adjusted",
+                "color": "tealLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldE9lSbmD9ctKFpH",
+          "name": "Baseline Output (g)",
+          "type": "number",
+          "description": null,
+          "config": {
+            "precision": 1
+          }
+        },
+        {
+          "id": "fldTfdytop4O6eSRL",
+          "name": "Avg Initial Output (g)",
+          "type": "rollup",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fld0Z1Se85bQl4hRo",
+            "fieldIdInLinkedTable": "fldNKcXfwu6QHq7rL",
+            "referencedFieldIds": [],
+            "result": {
+              "type": "number",
+              "options": {
+                "precision": 1
+              }
+            }
+          }
+        },
+        {
+          "id": "fldE0AOtKoupBlhPm",
+          "name": "Count",
+          "type": "count",
+          "description": null,
+          "config": {
+            "isValid": true,
+            "recordLinkFieldId": "fld0Z1Se85bQl4hRo"
+          }
+        },
+        {
+          "id": "fld0Z1Se85bQl4hRo",
+          "name": "Shots",
+          "type": "multipleRecordLinks",
+          "description": null,
+          "config": {
+            "linkedTableId": "tblKoZ2qE5qgiD9Zo",
+            "isReversed": false,
+            "prefersSingleRecordLink": true,
+            "inverseLinkFieldId": "fldDoerxP7FQOmCk1"
+          }
+        },
+        {
+          "id": "fldAuA5hqYg9MCepk",
+          "name": "Tracking Start Date",
+          "type": "date",
+          "description": null,
+          "config": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tblxvYPflsMt2VNmX",
+      "name": "Shot Fault Rules",
+      "primaryFieldId": "fldQxZ0y7aBgLAYf4",
+      "description": null,
+      "fields": [
+        {
+          "id": "fldQxZ0y7aBgLAYf4",
+          "name": "Criteria",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldH4ydYL3go5Pi1b",
+          "name": "Fault Status",
+          "type": "singleSelect",
+          "description": null,
+          "config": {
+            "choices": [
+              {
+                "id": "selfXnGYhJQzluGCV",
+                "name": "Good",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selK4dZSKzDIesLsJ",
+                "name": "Fault",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "sel0iKv0HCGri5pfj",
+                "name": "Review",
+                "color": "tealLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fld2fOJfPyIZC31Cu",
+          "name": "Notes",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        }
+      ]
+    },
+    {
+      "id": "tbl5z1MQ09z34oe6h",
+      "name": "Project Notes",
+      "primaryFieldId": "fldZoBuRiAqCYsrlv",
+      "description": null,
+      "fields": [
+        {
+          "id": "fldZoBuRiAqCYsrlv",
+          "name": "Date",
+          "type": "dateTime",
+          "description": null,
+          "config": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            },
+            "timeFormat": {
+              "name": "12hour",
+              "format": "h:mma"
+            },
+            "timeZone": "client"
+          }
+        },
+        {
+          "id": "fldsjzuDvWW7J24C5",
+          "name": "Title",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldGb0xycrMr7DHsR",
+          "name": "Summary",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldt9w2ohN94AKGFk",
+          "name": "Key Finding",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldxUp4F34WDawSMU",
+          "name": "Trigger / Condition",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldOAJeTh2jLOMav0",
+          "name": "Action Taken",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldSgpXpTJAcQLOGh",
+          "name": "Outcome",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldvWJsX1Xi61SqJO",
+          "name": "Category",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fld9SPDPor0lVOPit",
+          "name": "Confidence",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldDTDk9BOKqmIoWV",
+          "name": "Applies To Future Bags",
+          "type": "checkbox",
+          "description": null,
+          "config": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "id": "fldAAAgIPkZuvVJqb",
+          "name": "Notes",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        }
+      ]
+    },
+    {
+      "id": "tbl297kD7XHRyVHGm",
+      "name": "10-Point Rating System",
+      "primaryFieldId": "fldg0EYTu7vDtP5Vv",
+      "description": null,
+      "fields": [
+        {
+          "id": "fldg0EYTu7vDtP5Vv",
+          "name": "Section",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fldiThtQLEGQyvY5c",
+          "name": "Item",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        },
+        {
+          "id": "fld7d9sjsnVvUc8uS",
+          "name": "Description",
+          "type": "multilineText",
+          "description": null,
+          "config": null
+        }
+      ]
+    }
+  ]
+}

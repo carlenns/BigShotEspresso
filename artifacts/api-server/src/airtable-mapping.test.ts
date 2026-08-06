@@ -88,7 +88,7 @@ test("Airtable Shot mapping covers source fields without calculated fallbacks", 
     "Bag Calibration Reminder": "Imported reminder",
     Calculation: "Sweet Zone",
     "Baseline Unaided Output (g)": 18,
-    "Baseline Output Delta (g)": -0.2,
+    "Initial Output vs Hopper Baseline (g)": -0.2,
     "Actual Dose Error (g)": -0.1,
     "Hopper Threshold Flag": "Normal",
     "Hopper Behaviour": "Stable",
@@ -107,7 +107,17 @@ test("Airtable Shot mapping covers source fields without calculated fallbacks", 
   assert.equal(mapped.includeInAnalysis, true);
   assert.equal(mapped.topUpRecommendation, "Imported recommendation");
   assert.equal(mapped.grinderInitialOutputForCharts, 17.8);
+  assert.equal(mapped.baselineOutputDelta, -0.2);
   assert.equal(mapped.rawRow && Object.keys(mapped.rawRow).length > 70, true);
+});
+
+test("Airtable Shot mapping retains the former baseline-output alias", () => {
+  const mapped = mapAirtableShotFields({
+    Date: "2026-06-24T03:30:00.000Z",
+    "Baseline Output Delta (g)": -0.4,
+  }, { includeInAnalysisFieldPresent: true });
+
+  assert.equal(mapped.baselineOutputDelta, -0.4);
 });
 
 test("Airtable mapping does not invent Include in Analysis", () => {
