@@ -13,6 +13,11 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 7. [Implementation record](implementation/README.md)
 8. [Testing standards](testing/README.md)
 
+## Product guidance
+
+- [ChatGPT Integration and Onboarding Strategy](product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md) — product boundaries, scientific logging guidance, cost controls, privacy guardrails, and current-versus-future scope. This is guidance only and does not override the Constitution, roadmap, ADRs, or phase gates.
+- [Subscriber Feasibility Study](product/BSE_SUBSCRIBER_FEASIBILITY.md) — the US$10/month pricing hypothesis, founder offer, historical 100–10,000-user economics, downside case, cost omissions, and launch validation gates.
+
 ## Authority
 
 When sources conflict:
@@ -45,6 +50,7 @@ CSV exports define current research data evidence. Airtable metadata and formula
 - `docs/architecture/` — current architecture documentation
 - `docs/implementation/` — implementation plans and completion records
 - `docs/prompts/` — reusable agent instructions and prompt provenance
+- `docs/product/` — product strategy and onboarding guidance subordinate to project governance
 - `docs/testing/` — testing standards and evidence
 - `lib/db/` — database schema and migrations
 - `lib/api-spec/` — authoritative API contract
