@@ -11,6 +11,7 @@ import {
   UpdateHopperBody,
 } from "@workspace/api-zod";
 import { toShotApi } from "./lib/api-shapes";
+import { getCoffeeLogAirtableConfig } from "./lib/airtable-config";
 
 test("generated request validators match required runtime fields", () => {
   assert.equal(CreateShotBody.safeParse({}).success, false);
@@ -65,3 +66,58 @@ test("Hopper routes use generated request validators", async () => {
     assert.match(source, new RegExp(validator.replace(".", "\\.")));
   }
 });
+
+test("Coffee Log Airtable env lookup prefers app-specific names with legacy fallback", () => {
+  const original = {
+    coffeeToken: process.env.COFFEELOG_AIRTABLE_API_KEY,
+    coffeeBaseId: process.env.COFFEELOG_AIRTABLE_BASE_ID,
+    legacyToken: process.env.AIRTABLE_API_KEY,
+    legacyBaseId: process.env.AIRTABLE_BASE_ID,
+  };
+
+  try {
+    delete process.env.COFFEELOG_AIRTABLE_API_KEY;
+    delete process.env.COFFEELOG_AIRTABLE_BASE_ID;
+    delete process.env.AIRTABLE_API_KEY;
+    delete process.env.AIRTABLE_BASE_ID;
+
+    process.env.COFFEELOG_AIRTABLE_API_KEY = "ct";
+    process.env.COFFEELOG_AIRTABLE_BASE_ID = "cb";
+    assert.deepEqual(getCoffeeLogAirtableConfig(), {
+      token: "ct",
+      baseId: "cb",
+      hasToken: true,
+      hasBaseId: true,
+    });
+
+    delete process.env.COFFEELOG_AIRTABLE_API_KEY;
+    delete process.env.COFFEELOG_AIRTABLE_BASE_ID;
+    process.env.AIRTABLE_API_KEY = "lt";
+    process.env.AIRTABLE_BASE_ID = "lb";
+    assert.deepEqual(getCoffeeLogAirtableConfig(), {
+      token: "lt",
+      baseId: "lb",
+      hasToken: true,
+      hasBaseId: true,
+    });
+
+    process.env.COFFEELOG_AIRTABLE_API_KEY = "ct";
+    process.env.COFFEELOG_AIRTABLE_BASE_ID = "cb";
+    assert.deepEqual(getCoffeeLogAirtableConfig(), {
+      token: "ct",
+      baseId: "cb",
+      hasToken: true,
+      hasBaseId: true,
+    });
+  } finally {
+    setOptionalEnv("COFFEELOG_AIRTABLE_API_KEY", original.coffeeToken);
+    setOptionalEnv("COFFEELOG_AIRTABLE_BASE_ID", original.coffeeBaseId);
+    setOptionalEnv("AIRTABLE_API_KEY", original.legacyToken);
+    setOptionalEnv("AIRTABLE_BASE_ID", original.legacyBaseId);
+  }
+});
+
+function setOptionalEnv(key: string, value: string | undefined) {
+  if (value === undefined) delete process.env[key];
+  else process.env[key] = value;
+}

@@ -421,16 +421,17 @@ function AirtableSection() {
         <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
           <p className="text-sm font-medium">Credentials (set in Replit Secrets)</p>
           <div className="flex flex-wrap gap-3">
-            <CredBadge label="AIRTABLE_API_KEY" present={status?.hasToken ?? false} />
-            <CredBadge label="AIRTABLE_BASE_ID" present={status?.hasBaseId ?? false} />
+            <CredBadge label="COFFEELOG_AIRTABLE_API_KEY" present={status?.hasToken ?? false} />
+            <CredBadge label="COFFEELOG_AIRTABLE_BASE_ID" present={status?.hasBaseId ?? false} />
           </div>
           {credsMissing && (
             <div className="flex items-start gap-2 mt-2 rounded-lg bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/50 p-3">
               <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
               <p className="text-xs text-amber-700 dark:text-amber-400">
-                Add <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">AIRTABLE_API_KEY</code> and{" "}
-                <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">AIRTABLE_BASE_ID</code> to your Replit Secrets
-                (the padlock icon in the sidebar) to enable Airtable sync.
+                Add <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">COFFEELOG_AIRTABLE_API_KEY</code>{" "}
+                and <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">COFFEELOG_AIRTABLE_BASE_ID</code>{" "}
+                to enable Airtable sync. Legacy <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">AIRTABLE_API_KEY</code>{" "}
+                and <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">AIRTABLE_BASE_ID</code> are temporary fallbacks.
               </p>
             </div>
           )}

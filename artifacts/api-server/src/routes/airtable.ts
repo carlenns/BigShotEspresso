@@ -17,6 +17,7 @@ import {
   normalizeAirtableName as normalize,
   singleAirtableLinkedId,
 } from "../lib/airtable-mapping";
+import { getCoffeeLogAirtableConfig } from "../lib/airtable-config";
 
 const router: IRouter = Router();
 
@@ -81,9 +82,10 @@ router.get("/airtable/status", async (_req, res): Promise<void> => {
   const rows = await db.select().from(settingsTable);
   const s: Record<string, string> = {};
   for (const r of rows) s[r.key] = r.value;
+  const airtableConfig = getCoffeeLogAirtableConfig();
   res.json({
-    hasToken: !!process.env.AIRTABLE_API_KEY,
-    hasBaseId: !!process.env.AIRTABLE_BASE_ID,
+    hasToken: airtableConfig.hasToken,
+    hasBaseId: airtableConfig.hasBaseId,
     lastSync: s.airtableLastSync ?? null,
     lastSyncResult: s.airtableLastSyncResult ? JSON.parse(s.airtableLastSyncResult) : null,
     lastClear: s.airtableLastClear ?? null,
@@ -107,15 +109,14 @@ router.get("/airtable/counts", async (_req, res): Promise<void> => {
 
 // ── POST /api/airtable/test ────────────────────────────────────────────────
 router.post("/airtable/test", async (_req, res): Promise<void> => {
-  const token = process.env.AIRTABLE_API_KEY;
-  const baseId = process.env.AIRTABLE_BASE_ID;
+  const { token, baseId, hasToken, hasBaseId } = getCoffeeLogAirtableConfig();
 
   if (!token || !baseId) {
     res.json({
       connected: false,
-      error: "Missing environment variables. Set AIRTABLE_API_KEY and AIRTABLE_BASE_ID in your Replit Secrets.",
-      hasToken: !!token,
-      hasBaseId: !!baseId,
+      error: "Missing environment variables. Set COFFEELOG_AIRTABLE_API_KEY and COFFEELOG_AIRTABLE_BASE_ID. Legacy AIRTABLE_API_KEY and AIRTABLE_BASE_ID are accepted as temporary fallbacks.",
+      hasToken,
+      hasBaseId,
     });
     return;
   }
@@ -198,11 +199,12 @@ router.post("/airtable/clear", async (req, res): Promise<void> => {
 
 // ── POST /api/airtable/sync ────────────────────────────────────────────────
 router.post("/airtable/sync", async (_req, res): Promise<void> => {
-  const token = process.env.AIRTABLE_API_KEY;
-  const baseId = process.env.AIRTABLE_BASE_ID;
+  const { token, baseId } = getCoffeeLogAirtableConfig();
 
   if (!token || !baseId) {
-    res.status(400).json({ error: "AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set in Replit Secrets." });
+    res.status(400).json({
+      error: "COFFEELOG_AIRTABLE_API_KEY and COFFEELOG_AIRTABLE_BASE_ID must be set. Legacy AIRTABLE_API_KEY and AIRTABLE_BASE_ID are accepted as temporary fallbacks.",
+    });
     return;
   }
 

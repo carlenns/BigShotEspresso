@@ -141,16 +141,17 @@ export default function SyncAudit() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-3">
-            <CredBadge label="AIRTABLE_API_KEY" present={status?.hasToken ?? false} />
-            <CredBadge label="AIRTABLE_BASE_ID" present={status?.hasBaseId ?? false} />
+            <CredBadge label="COFFEELOG_AIRTABLE_API_KEY" present={status?.hasToken ?? false} />
+            <CredBadge label="COFFEELOG_AIRTABLE_BASE_ID" present={status?.hasBaseId ?? false} />
           </div>
           {credsMissing && (
             <div className="flex items-start gap-2 rounded-lg bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/50 p-3">
               <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
               <p className="text-xs text-amber-700 dark:text-amber-400">
-                Set <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">AIRTABLE_API_KEY</code> and{" "}
-                <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">AIRTABLE_BASE_ID</code>{" "}
-                in Replit Secrets (padlock icon in the sidebar) before syncing.
+                Set <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">COFFEELOG_AIRTABLE_API_KEY</code>{" "}
+                and <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">COFFEELOG_AIRTABLE_BASE_ID</code>{" "}
+                before syncing. Legacy <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">AIRTABLE_API_KEY</code>{" "}
+                and <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 rounded">AIRTABLE_BASE_ID</code> are temporary fallbacks.
               </p>
             </div>
           )}
