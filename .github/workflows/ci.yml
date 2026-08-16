@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Secret scan
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import subprocess
+          import sys
+
+          patterns = [
+              ("airtable_pat", re.compile(r"pat[a-zA-Z0-9]{10,}\.[a-zA-Z0-9]{10,}")),
+              ("database_url", re.compile(r"postgres(?:ql)?://[^\s\"']+")),
+              ("openai_key", re.compile(r"sk-[A-Za-z0-9_-]{20,}")),
+              ("generic_secret_assignment", re.compile(r"(?i)(api[_-]?key|token|password|secret)\s*=\s*[\"'][^\"']{12,}[\"']")),
+          ]
+
+          tracked = subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0")
+          paths = [path.decode() for path in tracked if path]
+          findings = []
+
+          for path in paths:
+              if path.startswith(".git/"):
+                  continue
+              try:
+                  with open(path, "r", encoding="utf-8", errors="ignore") as handle:
+                      text = handle.read()
+              except OSError:
+                  continue
+
+              for name, pattern in patterns:
+                  if pattern.search(text):
+                      findings.append((name, path))
+
+          if findings:
+              print("Secret-like findings detected:")
+              for name, path in findings:
+                  print(f"- {name}: {path}")
+              sys.exit(1)
+
+          print(f"Scanned {len(paths)} tracked files; no secret-like findings detected.")
+          PY
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: API tests
+        run: pnpm run test:phase1.5
+
+      - name: API build
+        working-directory: artifacts/api-server
+        run: pnpm run build
+
+      - name: Frontend build
+        working-directory: artifacts/coffee-log
+        env:
+          PORT: "5173"
+          BASE_PATH: "/"
+        run: pnpm run build
