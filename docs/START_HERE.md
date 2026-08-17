@@ -20,6 +20,7 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 - [Airtable Exit Strategy](architecture/airtable-exit-strategy.md) — transition from Airtable-backed discovery to Postgres-first production.
 - [Offline Airtable Export Audit](architecture/offline-airtable-export-audit.md) — current CSV export inventory, checksums, row counts, and offline verification limits while live Airtable API access is blocked.
 - [Offline-First Airtable Reset Plan](architecture/offline-first-airtable-reset-plan.md) — work to do from CSV now and the planned 1,000-call Airtable metadata strategy after reset.
+- [Airtable Metadata Verification Runbook](architecture/airtable-metadata-verification-runbook.md) — exact capture order, evidence outputs, and stop rules for reset-day metadata verification.
 - [CSV-to-Postgres Coverage Report](architecture/csv-to-postgres-coverage-report.md) — offline field coverage review and Airtable metadata questions before migration.
 - [Postgres Migration Target Model](architecture/postgres-migration-target-model.md) — proposed table roles, relationships, and imported-evidence strategy for the Airtable exit.
 

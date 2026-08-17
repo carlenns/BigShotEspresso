@@ -14,6 +14,7 @@ This directory is the canonical architecture index. Existing architecture docume
 | [Airtable Exit Strategy](airtable-exit-strategy.md) | Transition plan from Airtable-backed discovery to Postgres-first production |
 | [Offline Airtable Export Audit](offline-airtable-export-audit.md) | CSV export inventory, checksums, row counts, and offline verification limits |
 | [Offline-First Airtable Reset Plan](offline-first-airtable-reset-plan.md) | Offline work plan and 1,000-call Airtable reset strategy |
+| [Airtable Metadata Verification Runbook](airtable-metadata-verification-runbook.md) | Exact metadata capture order, evidence outputs, and stop rules for the next Airtable API reset |
 | [CSV-to-Postgres Coverage Report](csv-to-postgres-coverage-report.md) | Offline field coverage review and metadata questions before migration |
 | [Postgres Migration Target Model](postgres-migration-target-model.md) | Proposed table roles, relationships, and evidence strategy for moving away from Airtable runtime dependency |
 
