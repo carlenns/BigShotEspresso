@@ -94,6 +94,69 @@ Before creating the Render service, verify:
 
 Do not guess these commands. Verify from repository scripts before creating the service.
 
+## Current Repository Script Evidence
+
+Current scripts indicate a split app/API shape:
+
+| Package | Build command | Start/serve command | Notes |
+| --- | --- | --- | --- |
+| workspace root | `pnpm run build` | none | Runs typecheck and package builds |
+| `@workspace/api-server` | `pnpm --filter @workspace/api-server build` | `pnpm --filter @workspace/api-server start` | Express API server; requires `PORT` |
+| `@workspace/coffee-log` | `pnpm --filter @workspace/coffee-log build` | `pnpm --filter @workspace/coffee-log serve` | Vite frontend; requires `PORT` and `BASE_PATH` |
+
+Current deployment implication:
+
+- The API server and frontend may need separate Render services, or
+- the API server may need an approved static-file serving integration before a single-service deployment.
+
+Do not implement that integration without an approved code plan.
+
+## Candidate Render Shapes
+
+### Option A — Two Render services
+
+```text
+Render static/frontend service
+  → Coffee Log frontend
+
+Render web service
+  → Coffee Log API
+    → Neon Postgres
+```
+
+Benefits:
+
+- Matches current split package shape.
+- Avoids changing API server to serve frontend assets.
+
+Risks:
+
+- Requires frontend API base URL configuration.
+- Requires CORS/domain review.
+
+### Option B — One Render web service
+
+```text
+Render web service
+  → API server
+  → serves built frontend assets
+  → Neon Postgres
+```
+
+Benefits:
+
+- Simpler domain and cookie/security model.
+- One service to deploy.
+
+Risks:
+
+- Requires app/API integration work if not already present.
+- Must be implemented deliberately and tested.
+
+Recommended next step:
+
+- Inspect current frontend API-base configuration and API server static-serving support before selecting Option A or Option B.
+
 ## Deployment Smoke Test
 
 After deployment, verify:
