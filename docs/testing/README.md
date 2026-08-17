@@ -31,6 +31,10 @@ Phase 1.5 locally reports:
 
 See [completed-tasks.md](../completed-tasks.md).
 
+## Fixture policy
+
+- [CSV Fixture Strategy](csv-fixture-strategy.md)
+
 ## External certification gates
 
 - Live Airtable dry synchronization.

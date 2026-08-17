@@ -23,6 +23,7 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 - [Airtable Metadata Verification Runbook](architecture/airtable-metadata-verification-runbook.md) — exact capture order, evidence outputs, and stop rules for reset-day metadata verification.
 - [CSV-to-Postgres Coverage Report](architecture/csv-to-postgres-coverage-report.md) — offline field coverage review and Airtable metadata questions before migration.
 - [Postgres Migration Target Model](architecture/postgres-migration-target-model.md) — proposed table roles, relationships, and imported-evidence strategy for the Airtable exit.
+- [CSV Fixture Strategy](testing/csv-fixture-strategy.md) — committed fixture policy and full-export evidence boundaries.
 
 ## Authority
 
