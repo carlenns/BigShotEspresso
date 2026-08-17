@@ -36,6 +36,10 @@ Full CSV import follow-up:
 
 The current local Airtable CSV export package imported successfully into the disposable Neon database through the existing API CSV import endpoints after seeding Beans and Bags from the matching CSV exports.
 
+Shot workflow follow-up:
+
+The built API successfully created, read, patched, and deleted a disposable test Shot against Neon. The smoke test verified locally-created shots default `include_in_analysis` to `true`, canonical `flowTime` is returned, and legacy `scaleTime` patch input still updates `flowTime`.
+
 ## Target and Safety
 
 Target summary:
@@ -110,6 +114,7 @@ The script:
 | Non-empty database safety refusal | Passed | Bootstrap script stopped without `--reset-disposable` |
 | API runtime contract against Neon | Passed | Built API started against Neon and returned successful read-only route responses |
 | Full local CSV import into Neon | Passed | 235 Shots, 17 Hoppers, and 5 Hopper Range Baselines imported from current local exports |
+| Shot create/edit/delete against Neon | Passed | Disposable test Shot created, read, patched, verified, and deleted |
 | Backup/restore execution | Not completed | Local `pg_dump`, `psql`, and `pg_restore` were not installed |
 | Airtable live sync | Not run | Deferred due Airtable API limits and metadata verification requirement |
 
@@ -347,10 +352,23 @@ Runtime verification:
 - `GET /api/hoppers` returned `200`.
 - `GET /api/hopper-range-baselines` returned `200`.
 
+Additional write-path smoke test:
+
+| Check | Result |
+| --- | --- |
+| `POST /api/shots` | `201` |
+| Created Shot read-back | `200` |
+| Locally-created `includeInAnalysis` default | `true` |
+| Created `flowTime` | `29` |
+| `PATCH /api/shots/:id` using legacy `scaleTime` alias | updated `flowTime` to `31` |
+| Patched Shot read-back | `flowTime: 31` |
+| `DELETE /api/shots/:id` cleanup | `204` |
+| `GET /api/shots` response shape | `{ shots, total }` |
+
 Limits:
 
-- This was a read-only smoke test only.
-- Shot create/edit workflow was not exercised.
+- This write-path smoke test used one disposable test Shot and removed it afterward.
+- It did not exercise the full UI form manually.
 
 ## Backup and Restore Status
 
@@ -384,7 +402,6 @@ Do not change this casually without verifying Neon and Render behavior.
 Critical before deployment certification:
 
 1. Backup/restore rehearsal is not complete.
-2. Shot create/edit workflow against Neon is not complete.
 
 Still deferred:
 
@@ -399,8 +416,8 @@ Do not begin Phase 2 intelligence work yet.
 
 Next best technical step:
 
-1. Smoke-test shot create/edit against Neon.
-2. Run backup/restore rehearsal.
-3. Prepare Render deployment smoke testing.
+1. Run backup/restore rehearsal.
+2. Prepare Render deployment smoke testing.
+3. Complete owner-only deployed smoke test.
 
 Only after those pass should the project proceed toward Render deployment smoke testing.

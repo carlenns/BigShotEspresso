@@ -56,7 +56,7 @@ Current access assumption:
 | Airtable live sync dry run | Blocked | Required if release depends on live sync |
 | Core runtime API checks | Read-only smoke passed against Neon | Yes |
 | Dashboard correctness | Partially ready | Yes |
-| Shot entry/edit workflow | Needs release review | Yes |
+| Shot entry/edit workflow | API smoke passed against Neon; UI manual smoke pending | Yes |
 | Access-control/public-launch decision | Proposed owner-only | Yes |
 | Admin/debug visibility | Needs scope decision | Strongly recommended |
 | Render deployment prep | Planned | Yes |
@@ -188,11 +188,12 @@ Verification:
 
 Remaining:
 
-- Shot detail route smoke check.
-- Shot create/edit workflow smoke check.
+- Manual UI form smoke check.
 
 Completed:
 
+- Shot detail route smoke check.
+- Shot create/edit/delete API workflow smoke check.
 - Full CSV import against the bootstrapped Neon schema.
 
 ## Gate 7 — Dashboard Correctness
