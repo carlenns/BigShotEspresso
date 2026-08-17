@@ -180,14 +180,17 @@ As of 2026-08-17:
 - Neon is selected as the production-equivalent Postgres target.
 - Backup/restore procedure is now documented.
 - Disposable Neon migration, bootstrap, full CSV import, API runtime, and Shot API workflow rehearsals have passed.
-- A live Neon backup/restore rehearsal has not yet been run in this repository.
-- Local PostgreSQL client tools are not currently available on this Mac:
-  - `pg_dump`: not found
-  - `psql`: not found
-  - `pg_restore`: not found
-- The next required input is either:
-  - local PostgreSQL client tools, or
-  - a Neon dashboard/branching workflow that can create and verify a restore target without local `pg_dump` tooling.
+- A live disposable Neon backup/restore rehearsal has passed.
+- PostgreSQL client tools were installed locally through Homebrew `libpq`:
+  - `pg_dump`: PostgreSQL 18.6
+  - `psql`: PostgreSQL 18.6
+  - `pg_restore`: PostgreSQL 18.6
+- The rehearsal created a temporary custom-format dump outside the repository, restored it into the disposable Neon target, verified matching counts, smoke-tested API reads, and removed the temporary dump.
+- The reusable rehearsal script is:
+
+```text
+scripts/neon-backup-restore-rehearsal.mjs
+```
 
 ## Release Gate
 

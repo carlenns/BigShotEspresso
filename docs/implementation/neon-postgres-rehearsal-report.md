@@ -40,6 +40,10 @@ Shot workflow follow-up:
 
 The built API successfully created, read, patched, and deleted a disposable test Shot against Neon. The smoke test verified locally-created shots default `include_in_analysis` to `true`, canonical `flowTime` is returned, and legacy `scaleTime` patch input still updates `flowTime`.
 
+Backup/restore follow-up:
+
+PostgreSQL client tools were installed locally through Homebrew `libpq`. A disposable Neon backup/restore rehearsal passed using a temporary custom-format dump outside the repository. The temporary dump was removed after verification.
+
 ## Target and Safety
 
 Target summary:
@@ -115,7 +119,7 @@ The script:
 | API runtime contract against Neon | Passed | Built API started against Neon and returned successful read-only route responses |
 | Full local CSV import into Neon | Passed | 235 Shots, 17 Hoppers, and 5 Hopper Range Baselines imported from current local exports |
 | Shot create/edit/delete against Neon | Passed | Disposable test Shot created, read, patched, verified, and deleted |
-| Backup/restore execution | Not completed | Local `pg_dump`, `psql`, and `pg_restore` were not installed |
+| Backup/restore execution | Passed | Custom-format dump restored into disposable Neon and counts/API smoke matched |
 | Airtable live sync | Not run | Deferred due Airtable API limits and metadata verification requirement |
 
 ## Migration Evidence
@@ -372,19 +376,62 @@ Limits:
 
 ## Backup and Restore Status
 
-Backup/restore execution was not completed.
+Backup/restore execution passed against the disposable Neon target.
 
-Local tools checked:
+Local tools installed:
 
-- `pg_dump`: not found
-- `psql`: not found
-- `pg_restore`: not found
+- `pg_dump`: PostgreSQL 18.6
+- `psql`: PostgreSQL 18.6
+- `pg_restore`: PostgreSQL 18.6
 
-Required follow-up:
+Added reusable backup/restore rehearsal script:
 
-- install PostgreSQL client tools locally, or
-- use Neon dashboard/branching export and restore workflow, then
-- run restore rehearsal against a disposable target.
+```text
+scripts/neon-backup-restore-rehearsal.mjs
+```
+
+The script:
+
+- reads `DATABASE_URL` from local `.env`,
+- requires `--reset-disposable`,
+- refuses unknown public tables,
+- creates a temporary custom-format dump outside the repository,
+- resets only known Coffee Log tables,
+- restores the dump into the disposable database,
+- compares key table counts before and after restore,
+- smoke-tests the built API after restore,
+- removes the temporary dump.
+
+Rehearsal command:
+
+```text
+node scripts/neon-backup-restore-rehearsal.mjs --reset-disposable
+```
+
+Verified result:
+
+| Check | Result |
+| --- | --- |
+| Backup created | Passed |
+| Temporary dump size | 161,847 bytes |
+| Dump stored in repository | No |
+| Dump removed after rehearsal | Yes |
+| Counts match after restore | Yes |
+| API health after restore | `200` |
+| Shot list after restore | `200` |
+| Hopper list after restore | `200` |
+
+Restored counts:
+
+| Table/count | Before | After |
+| --- | ---: | ---: |
+| Beans | 6 | 6 |
+| Bags | 6 | 6 |
+| Hoppers | 17 | 17 |
+| Hopper Range Baselines | 5 | 5 |
+| Shots | 235 | 235 |
+| Analysis shots | 190 | 190 |
+| Reference shots | 61 | 61 |
 
 ## SSL Warning
 
@@ -401,7 +448,7 @@ Do not change this casually without verifying Neon and Render behavior.
 
 Critical before deployment certification:
 
-1. Backup/restore rehearsal is not complete.
+No remaining Neon data-foundation rehearsal blockers are known.
 
 Still deferred:
 
@@ -416,8 +463,8 @@ Do not begin Phase 2 intelligence work yet.
 
 Next best technical step:
 
-1. Run backup/restore rehearsal.
-2. Prepare Render deployment smoke testing.
-3. Complete owner-only deployed smoke test.
+1. Prepare Render deployment smoke testing.
+2. Complete owner-only deployed smoke test.
+3. Complete manual UI shot-entry smoke test.
 
 Only after those pass should the project proceed toward Render deployment smoke testing.

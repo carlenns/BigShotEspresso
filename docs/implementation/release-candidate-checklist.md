@@ -62,7 +62,7 @@ Current access assumption:
 | Render deployment prep | Planned | Yes |
 | Domain setup prep | Planned | Yes |
 | Replit deployment prep | Deferred | No, unless Replit is selected later |
-| Backup/recovery plan | Documented; rehearsal pending | Yes |
+| Backup/recovery plan | Documented; disposable Neon rehearsal passed | Yes |
 
 ## Gate 1 — Repository and CI
 

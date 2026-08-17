@@ -35,7 +35,7 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 - [Domain Setup Checklist](implementation/domain-setup-checklist.md) — custom-domain DNS and release smoke-test checklist.
 - [Replit Deployment Prep](implementation/replit-deployment-prep.md) — optional/deferred Replit hosting checklist with Neon as the database authority.
 - [Neon Setup Handoff](implementation/neon-setup-handoff.md) — owner-facing instructions for creating the disposable Neon rehearsal target safely.
-- [Neon Postgres Rehearsal Report](implementation/neon-postgres-rehearsal-report.md) — completed disposable Neon migration, bootstrap, read-only API runtime, full CSV import, and Shot API workflow rehearsal evidence with remaining backup/deployment blockers.
+- [Neon Postgres Rehearsal Report](implementation/neon-postgres-rehearsal-report.md) — completed disposable Neon migration, bootstrap, read-only API runtime, full CSV import, Shot API workflow, and backup/restore rehearsal evidence with remaining deployment/UI blockers.
 
 ## Authority
 
@@ -80,7 +80,6 @@ CSV exports define current research data evidence. Airtable metadata and formula
 
 Phase 1.5 passes locally and CI is green. The first owner-only release candidate remains blocked until:
 
-- Backup/restore rehearsal is completed or explicitly deferred for non-valuable data.
 - Render deployment smoke test passes.
 - Manual UI shot-entry smoke test passes.
 - The owner-only release decision is accepted or revised.
