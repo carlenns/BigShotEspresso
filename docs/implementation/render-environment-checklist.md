@@ -33,7 +33,7 @@ Expected commands:
 
 | Setting | Value |
 | --- | --- |
-| Build command | `corepack enable && pnpm install --frozen-lockfile && pnpm run build:render` |
+| Build command | `pnpm install --frozen-lockfile && pnpm run build:render` |
 | Start command | `pnpm run start:render` |
 | Runtime | Node |
 | Service type | Web service |
