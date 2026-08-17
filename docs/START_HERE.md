@@ -80,8 +80,8 @@ CSV exports define current research data evidence. Airtable metadata and formula
 
 Phase 1.5 passes locally and CI is green. The first owner-only release candidate remains blocked until:
 
-- Empty-database bootstrap migration path is resolved.
 - Neon API/runtime rehearsal passes against a disposable database.
+- Full CSV import rehearsal passes against the bootstrapped Neon schema.
 - Backup/restore rehearsal is completed or explicitly deferred for non-valuable data.
 - Render deployment smoke test passes.
 - The owner-only release decision is accepted or revised.

@@ -339,7 +339,6 @@ The rehearsal passes only if:
 
 Known blockers before full production certification:
 
-- Empty-database bootstrap migration path is unresolved; current Phase 1 migration expects an existing legacy schema.
 - Airtable metadata verification is still blocked by API/account limits.
 - Live Airtable sync dry run is still blocked.
 - Full export import may reveal Hopper shape drift: committed Hopper fixture has 8 columns, current full Hopper export has 9 columns.

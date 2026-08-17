@@ -48,7 +48,7 @@ Current access assumption:
 | --- | --- | --- |
 | Repository baseline and CI | Mostly ready | Yes |
 | Secret/security baseline | Mostly ready | Yes |
-| Neon Postgres rehearsal | Migration rehearsal passed; bootstrap/API follow-up blocked | Yes |
+| Neon Postgres rehearsal | Migration/bootstrap passed; API/full import follow-up pending | Yes |
 | Migration and rollback verification | Passed for Phase 1 legacy upgrade path | Yes |
 | CSV fixture import verification | Mostly ready | Yes |
 | Full local export rehearsal | Not started | Strongly recommended |
@@ -106,6 +106,7 @@ Verification:
 Required:
 
 - Use a disposable Neon target.
+- Apply empty-database bootstrap migration.
 - Apply forward migration.
 - Re-run forward migration where safe.
 - Run rollback.

@@ -1,0 +1,16 @@
+BEGIN;
+
+DROP TABLE IF EXISTS shot_taste_selectors;
+DROP TABLE IF EXISTS taste_selectors;
+DROP TABLE IF EXISTS airtable_sync_evidence;
+DROP TABLE IF EXISTS shots;
+DROP TABLE IF EXISTS hopper_range_baselines;
+DROP TABLE IF EXISTS hoppers;
+DROP TABLE IF EXISTS bags;
+DROP TABLE IF EXISTS settings;
+DROP TABLE IF EXISTS accessories;
+DROP TABLE IF EXISTS machines;
+DROP TABLE IF EXISTS grinders;
+DROP TABLE IF EXISTS beans;
+
+COMMIT;
