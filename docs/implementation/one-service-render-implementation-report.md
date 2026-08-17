@@ -22,6 +22,8 @@ In production mode, the API server will:
 | --- | --- |
 | `artifacts/api-server/src/app.ts` | Added production static asset serving and SPA fallback for non-API routes |
 | `artifacts/api-server/src/static-serving.test.ts` | Added test for production frontend fallback and `/api/healthz` preservation |
+| `artifacts/coffee-log/vite.config.ts` | Removed Replit-only requirement for `PORT` and `BASE_PATH` during builds by adding safe defaults |
+| `package.json` | Added candidate Render build/start scripts |
 | `docs/implementation/render-deployment-prep.md` | Updated Render deployment docs to reflect one-service deployment direction |
 | `docs/implementation/release-candidate-checklist.md` | Updated release checklist to record one integrated Render service |
 
@@ -56,11 +58,13 @@ This allows API-only smoke checks to continue while making missing frontend buil
 Completed locally:
 
 - API typecheck passed.
+- Coffee Log frontend typecheck passed.
+- Render build script was added and invoked.
 
 Blocked locally:
 
-- API build is blocked by missing local optional native package `@esbuild/darwin-arm64`.
-- Frontend build is blocked by missing local optional native package `@rollup/rollup-darwin-arm64`.
+- `pnpm run build:render` is blocked locally by missing optional native package `@rollup/rollup-darwin-arm64`.
+- API build remains blocked separately by missing optional native package `@esbuild/darwin-arm64` if invoked directly.
 - Full API test run is blocked by the same missing local esbuild native package used by `tsx`.
 
 These are local dependency-environment blockers. They should be verified in GitHub Actions after push, where the Linux CI environment has previously passed build and test checks.
@@ -79,8 +83,8 @@ After push, confirm GitHub Actions passes:
 
 Before Render deployment:
 
-1. Verify root build command for Render builds both frontend and API.
-2. Verify start command starts the API server.
+1. Verify `pnpm run build:render` builds both frontend and API.
+2. Verify `pnpm run start:render` starts the API server.
 3. Verify frontend assets exist before API startup.
 4. Run Neon rehearsal.
 5. Configure Render environment variables.

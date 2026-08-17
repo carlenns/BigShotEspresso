@@ -84,13 +84,18 @@ Do not point Render production at the rehearsal database.
 
 Before creating the Render service, verify:
 
-- What is the production build command?
-- What is the production start command?
 - Which package/workspace is the deploy root?
 - Does the server listen on Render-provided `PORT`?
 - Are migrations run manually before deploy or as a deploy step?
 
-Do not guess these commands. Verify from repository scripts before creating the service.
+The repository now provides explicit Render candidate scripts:
+
+```text
+Build command: pnpm run build:render
+Start command: pnpm run start:render
+```
+
+These commands still require CI/Render verification before release.
 
 ## Current Repository Script Evidence
 
@@ -99,8 +104,9 @@ Current scripts indicate a split app/API source shape with an approved one-servi
 | Package | Build command | Start/serve command | Notes |
 | --- | --- | --- | --- |
 | workspace root | `pnpm run build` | none | Runs typecheck and package builds |
+| workspace root | `pnpm run build:render` | `pnpm run start:render` | Candidate one-service Render commands |
 | `@workspace/api-server` | `pnpm --filter @workspace/api-server build` | `pnpm --filter @workspace/api-server start` | Express API server; requires `PORT`; serves built frontend in production |
-| `@workspace/coffee-log` | `pnpm --filter @workspace/coffee-log build` | `pnpm --filter @workspace/coffee-log serve` | Vite frontend; requires `PORT` and `BASE_PATH` |
+| `@workspace/coffee-log` | `pnpm --filter @workspace/coffee-log build` | `pnpm --filter @workspace/coffee-log serve` | Vite frontend; defaults `BASE_PATH` to `/` and dev/preview `PORT` to `3000` if missing |
 
 Current deployment implication:
 
