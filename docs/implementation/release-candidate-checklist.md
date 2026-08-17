@@ -52,7 +52,9 @@ The first release is a stable operational foundation, not the finished research 
 | Dashboard correctness | Partially ready | Yes |
 | Shot entry/edit workflow | Needs release review | Yes |
 | Admin/debug visibility | Needs scope decision | Strongly recommended |
-| Replit deployment prep | Not started | Yes, if Replit is release host |
+| Render deployment prep | Planned | Yes |
+| Domain setup prep | Planned | Yes |
+| Replit deployment prep | Deferred | No, unless Replit is selected later |
 | Backup/recovery plan | Not started | Yes |
 
 ## Gate 1 — Repository and CI
@@ -238,19 +240,25 @@ Verification:
 
 ## Gate 11 — Deployment Prep
 
-Required if Replit is release host:
+Required for current Render-first release path:
 
-- Replit secrets configured.
-- No credential values in `.replit`.
+- Render environment variables configured.
 - App uses `DATABASE_URL` from environment.
 - App-specific Airtable variables configured only if sync is included.
 - Build/start command verified.
 - Public URL smoke-tested.
+- Custom domain plan prepared.
 
 Do not:
 
-- Use a personal/local database connection in deployed Replit.
+- Use a personal/local database connection in deployed Render.
 - Put credentials in source files, logs, or screenshots.
+
+Evidence:
+
+- [Render Deployment Prep](render-deployment-prep.md)
+- [Domain Setup Checklist](domain-setup-checklist.md)
+- [Replit Deployment Prep](replit-deployment-prep.md), optional/deferred
 
 ## Gate 12 — Release Decision
 

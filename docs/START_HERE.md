@@ -28,7 +28,9 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 - [Pre-Phase-2 Readiness Gates](implementation/pre-phase-2-readiness-gates.md) — remaining decisions before application/intelligence implementation proceeds.
 - [Release Candidate Checklist](implementation/release-candidate-checklist.md) — release-readiness gates for the first secure Postgres/Neon-backed Coffee Log release.
 - [Release Security Hardening Checklist](implementation/release-security-hardening-checklist.md) — security gate for secrets, database access, admin routes, API writes, logs, dependencies, and release approval.
-- [Replit Deployment Prep](implementation/replit-deployment-prep.md) — Replit hosting checklist with Neon as the database authority.
+- [Render Deployment Prep](implementation/render-deployment-prep.md) — first preferred non-Replit hosting checklist with Neon as the database authority.
+- [Domain Setup Checklist](implementation/domain-setup-checklist.md) — custom-domain DNS and release smoke-test checklist.
+- [Replit Deployment Prep](implementation/replit-deployment-prep.md) — optional/deferred Replit hosting checklist with Neon as the database authority.
 - [Neon Setup Handoff](implementation/neon-setup-handoff.md) — owner-facing instructions for creating the disposable Neon rehearsal target safely.
 
 ## Authority

@@ -10,6 +10,8 @@ Implementation records are subordinate to the Constitution, ADRs, architecture, 
 - [Release Candidate Checklist](release-candidate-checklist.md)
 - [Release Security Hardening Checklist](release-security-hardening-checklist.md)
 - [Replit Deployment Prep](replit-deployment-prep.md)
+- [Render Deployment Prep](render-deployment-prep.md)
+- [Domain Setup Checklist](domain-setup-checklist.md)
 - [Neon Setup Handoff](neon-setup-handoff.md)
 
 ## Required implementation record

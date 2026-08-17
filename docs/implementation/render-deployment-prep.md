@@ -1,23 +1,26 @@
-# Replit Deployment Prep
+# Render Deployment Prep
 
 > **Status:** Draft deployment checklist  
 > **Created:** 2026-08-17  
-> **Target host:** Replit optional/deferred deployment path
+> **Target host:** Render  
 > **Database target:** Neon Postgres  
-> **Boundary:** Documentation only. This does not modify Replit configuration, secrets, app code, schemas, APIs, or migrations.
+> **Boundary:** Documentation only. This does not create a Render service, change DNS, modify app code, configure secrets, or deploy.
 
 ## Purpose
 
-This checklist preserves a Replit deployment path while keeping Neon as the production database authority.
+This checklist prepares Coffee Log for a Render-hosted first release while keeping Neon as the production database authority.
 
-Replit is no longer the preferred first release host. Render is currently preferred for first release, with Replit retained as an optional development or alternate deployment surface.
+Render should run the app/API. Neon should hold the production Postgres data.
 
 ## Target Release Shape
 
 ```text
-User browser
-  → Replit-hosted Coffee Log app/API, if Replit is selected
+Custom domain
+  → Render-hosted Coffee Log app/API
     → Neon Postgres
+
+GitHub
+  → source control and CI
 
 Optional admin/import path:
   Airtable / CSV
@@ -28,22 +31,23 @@ Optional admin/import path:
 ## Deployment Principles
 
 1. Do not put secrets in source.
-2. Do not put secrets in `.replit`.
+2. Do not put secrets in Render build logs.
 3. Do not use Airtable as the production runtime database.
 4. Do not run destructive admin actions against production without backup.
-5. Keep Replit deployable but database-portable.
+5. Keep the app database-portable through `DATABASE_URL`.
+6. Use GitHub as the source of truth for deployment.
 
-## Required Replit Secrets
+## Required Render Environment Variables
 
 Required for Postgres runtime:
 
-| Secret name | Purpose |
+| Variable name | Purpose |
 | --- | --- |
 | `DATABASE_URL` | Neon production or staging database connection |
 
 Required only if Airtable sync/import is enabled:
 
-| Secret name | Purpose |
+| Variable name | Purpose |
 | --- | --- |
 | `COFFEELOG_AIRTABLE_API_KEY` | Coffee Log Airtable token |
 | `COFFEELOG_AIRTABLE_BASE_ID` | Coffee Log Airtable base |
@@ -52,16 +56,16 @@ Do not use broad/shared Airtable secrets for Coffee Log release if app-specific 
 
 ## Pre-Deployment Requirements
 
-Before deploying to Replit:
+Before deploying to Render:
 
 - CI passes on GitHub.
 - Neon rehearsal report exists.
 - Release security checklist passes or has accepted exceptions.
-- Production/staging Neon target exists.
-- `DATABASE_URL` is configured in Replit secrets.
-- `.replit` contains no credential values.
-- App build/start command is known.
+- Neon staging or production target exists.
+- `DATABASE_URL` is configured in Render environment variables.
+- App build/start commands are verified locally or in CI.
 - Admin/destructive routes are protected or excluded.
+- Custom domain DNS plan is ready.
 
 ## Environment Separation
 
@@ -71,16 +75,30 @@ Use separate database targets:
 | --- | --- |
 | Local | development and safe testing |
 | Neon rehearsal | disposable migration/import rehearsal |
-| Neon staging | deployment smoke test |
+| Neon staging | Render deployment smoke test |
 | Neon production | real release data |
 
-Do not point Replit production at the rehearsal database.
+Do not point Render production at the rehearsal database.
+
+## Render Service Questions To Resolve
+
+Before creating the Render service, verify:
+
+- Is Coffee Log deployed as one web service or split frontend/API services?
+- What is the production build command?
+- What is the production start command?
+- Which package/workspace is the deploy root?
+- Does the app require a static frontend build plus API server?
+- Does the server listen on Render-provided `PORT`?
+- Are migrations run manually before deploy or as a deploy step?
+
+Do not guess these commands. Verify from repository scripts before creating the service.
 
 ## Deployment Smoke Test
 
 After deployment, verify:
 
-- App loads.
+- App loads from Render URL.
 - Health route works.
 - API can connect to Neon.
 - Shot list loads.
@@ -88,12 +106,13 @@ After deployment, verify:
 - No secret values appear in browser, logs, or error messages.
 - Build artifacts do not expose server-only variables.
 - Import/sync/admin screens are not publicly dangerous.
+- Custom domain points to the expected Render service after DNS is configured.
 
 ## Airtable Sync Position
 
 Preferred first release:
 
-- Replit app uses Neon/Postgres for runtime.
+- Render app uses Neon/Postgres for runtime.
 - Airtable sync is admin-only and optional.
 - If Airtable API remains blocked or unverified, release can proceed only if live Airtable sync is not required for normal operation.
 
@@ -115,22 +134,23 @@ Before real release data is entered:
 
 Deployment should stop if:
 
-- Replit secrets are missing.
+- Render environment variables are missing.
 - `DATABASE_URL` points to the wrong database.
 - Any credential is found in source or logs.
 - Admin/destructive routes are exposed without protection.
 - Migration status is unknown.
 - Neon rehearsal has not passed.
 - App cannot start from clean deployment.
+- Domain DNS points to the wrong service.
 
 ## Current Recommendation
 
-Use Replit only if it is deliberately selected after Neon rehearsal passes.
+Use Render as the first live hosting surface only after Neon rehearsal passes.
 
 Keep the architecture portable:
 
-- Render is currently preferred for first release.
-- Replit may run the app if selected later.
+- Render runs the app/API.
 - Neon owns Postgres.
+- GitHub owns source and CI.
 - Airtable is research/import/admin evidence.
-- The repository remains the source of truth for application behavior.
+- The custom domain points to the Render-hosted app.
