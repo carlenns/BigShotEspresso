@@ -275,9 +275,19 @@ Remaining requirement:
 
 ### Airtable
 
-Result: **Blocked**
+Result: **Partially verified offline; live metadata blocked**
 
-Live Airtable metadata verification and dry synchronization have not been completed in this certified baseline.
+Live Airtable metadata verification and dry synchronization have not been completed in this certified baseline because Airtable API access is currently blocked by account/API limits.
+
+An offline CSV export package is available and documented in [Offline Airtable Export Audit](architecture/offline-airtable-export-audit.md). The corrected full Shots export contains:
+
+```text
+235 records
+93 columns
+SHA-256: 780957e87d5b81c35d2e97e59f76f25cd8b334c6c8cd7688055b40bde4c5d5f4
+```
+
+This offline package verifies visible exported fields, row counts, table names, and source values. It does not verify Airtable field types, formulas, hidden fields, view filters, field IDs, or linked-record cardinality.
 
 Required before Phase 2 or deployment:
 

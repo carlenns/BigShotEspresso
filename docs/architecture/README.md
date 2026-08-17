@@ -12,6 +12,7 @@ This directory is the canonical architecture index. Existing architecture docume
 | [Intelligence Engine Map](../intelligence-engine-map.md) | Engine boundaries, inputs, outputs, and dependencies |
 | [Replit Audit Report](../replit-audit-report.md) | Historical pre-Phase-1 implementation audit |
 | [Airtable Exit Strategy](airtable-exit-strategy.md) | Transition plan from Airtable-backed discovery to Postgres-first production |
+| [Offline Airtable Export Audit](offline-airtable-export-audit.md) | CSV export inventory, checksums, row counts, and offline verification limits |
 
 ## Architecture source-of-truth rules
 
