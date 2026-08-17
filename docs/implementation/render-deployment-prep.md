@@ -54,6 +54,26 @@ Required only if Airtable sync/import is enabled:
 
 Do not use broad/shared Airtable secrets for Coffee Log release if app-specific secrets are available.
 
+## Render Blueprint
+
+The repository includes a starter Render Blueprint:
+
+```text
+render.yaml
+```
+
+Current Blueprint intent:
+
+- one Node web service,
+- free plan for first setup/rehearsal,
+- `pnpm run build:render` as the build command,
+- `pnpm run start:render` as the start command,
+- `NODE_ENV=production`,
+- `BASE_PATH=/`,
+- `DATABASE_URL` declared with `sync: false` so Render prompts for the secret value instead of committing it.
+
+Airtable secrets are intentionally not included in the Blueprint yet. Add them later only if Airtable sync is included in the release scope.
+
 ## Pre-Deployment Requirements
 
 Before deploying to Render:

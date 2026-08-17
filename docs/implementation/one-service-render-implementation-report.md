@@ -24,6 +24,7 @@ In production mode, the API server will:
 | `artifacts/api-server/src/static-serving.test.ts` | Added test for production frontend fallback and `/api/healthz` preservation |
 | `artifacts/coffee-log/vite.config.ts` | Removed Replit-only requirement for `PORT` and `BASE_PATH` during builds by adding safe defaults |
 | `package.json` | Added candidate Render build/start scripts |
+| `render.yaml` | Added starter Render Blueprint with secret values omitted |
 | `docs/implementation/render-deployment-prep.md` | Updated Render deployment docs to reflect one-service deployment direction |
 | `docs/implementation/release-candidate-checklist.md` | Updated release checklist to record one integrated Render service |
 

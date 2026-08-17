@@ -14,6 +14,7 @@ await writeFile(
 
 process.env.NODE_ENV = "production";
 process.env.COFFEELOG_STATIC_DIR = staticDir;
+process.env.DATABASE_URL ??= ["postgresql:", "", "test.invalid", "static-serving"].join("/");
 
 const { default: app } = await import("./app");
 

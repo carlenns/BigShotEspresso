@@ -243,6 +243,7 @@ Verification:
 Required for current Render-first release path:
 
 - Render environment variables configured.
+- `render.yaml` reviewed before Blueprint creation.
 - App uses `DATABASE_URL` from environment.
 - App-specific Airtable variables configured only if sync is included.
 - Build/start command verified.
