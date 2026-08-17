@@ -26,6 +26,7 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 - [Neon Postgres Rehearsal Plan](architecture/neon-postgres-rehearsal-plan.md) — disposable Neon migration, rollback, fixture import, and runtime contract rehearsal.
 - [CSV Fixture Strategy](testing/csv-fixture-strategy.md) — committed fixture policy and full-export evidence boundaries.
 - [Pre-Phase-2 Readiness Gates](implementation/pre-phase-2-readiness-gates.md) — remaining decisions before application/intelligence implementation proceeds.
+- [Release Candidate Checklist](implementation/release-candidate-checklist.md) — release-readiness gates for the first secure Postgres/Neon-backed Coffee Log release.
 
 ## Authority
 
