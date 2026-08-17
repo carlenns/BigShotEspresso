@@ -129,11 +129,12 @@ Before creating the Render service, verify:
 The repository now provides explicit Render candidate scripts:
 
 ```text
-Build command: pnpm run build:render
+Build command: pnpm run build
+Equivalent explicit build command: pnpm run build:render
 Start command: pnpm run start:render
 ```
 
-These commands still require CI/Render verification before release.
+`pnpm run build` intentionally delegates to `build:render` so manually-created Render services that use Render's Node auto-detected build command do not attempt to build unrelated workspace artifacts.
 
 ## Current Repository Script Evidence
 
@@ -141,8 +142,9 @@ Current scripts indicate a split app/API source shape with an approved one-servi
 
 | Package | Build command | Start/serve command | Notes |
 | --- | --- | --- | --- |
-| workspace root | `pnpm run build` | none | Runs typecheck and package builds |
-| workspace root | `pnpm run build:render` | `pnpm run start:render` | Candidate one-service Render commands |
+| workspace root | `pnpm run build` | `pnpm run start:render` | Release-safe one-service Render build |
+| workspace root | `pnpm run build:render` | `pnpm run start:render` | Explicit release build for Coffee Log frontend and API server |
+| workspace root | `pnpm run build:workspace` | none | Full workspace build, including non-release artifacts |
 | `@workspace/api-server` | `pnpm --filter @workspace/api-server build` | `pnpm --filter @workspace/api-server start` | Express API server; requires `PORT`; serves built frontend in production |
 | `@workspace/coffee-log` | `pnpm --filter @workspace/coffee-log build` | `pnpm --filter @workspace/coffee-log serve` | Vite frontend; defaults `BASE_PATH` to `/` and dev/preview `PORT` to `3000` if missing |
 
