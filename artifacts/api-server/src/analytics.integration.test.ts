@@ -131,9 +131,38 @@ test("analytical route inventory uses the shared eligibility condition", async (
   assert.match(dashboardSource, /const latestAnalysisShot = activeBagShots\[0\]/);
   assert.match(dashboardSource, /const bagRefShots = activeBagShots\.filter\(\(s\) => s\.isReference\)/);
   assert.match(dashboardSource, /const compRefPool = bagRefShots/);
+  assert.match(
+    dashboardSource,
+    /const currentSetting = grindCurrent \?\? activeBagRow\.currentGrindSetting/,
+    "Dashboard current grinder setting must prefer latest eligible shot data over imported Bag rollups",
+  );
+  assert.match(
+    dashboardSource,
+    /const latestShotEstimate = activeBagShots\.find\(\(s\) => s\.shotsLeftEst != null\)\?\.shotsLeftEst \?\? null/,
+    "Dashboard shots-left estimate must prefer latest eligible Shot evidence when present",
+  );
   assert.doesNotMatch(
     dashboardSource,
     /const compRefPool = bagRefShots\.length/,
     "Current Shot vs Reference must not use a fallback pool",
+  );
+});
+
+test("CSV-seeded Beans and Bags are visible without Airtable record IDs", async () => {
+  const routeDirectory = new URL("./routes/", import.meta.url);
+  const [beansSource, bagsSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("beans.ts", routeDirectory)), "utf8"),
+    readFile(fileURLToPath(new URL("bags.ts", routeDirectory)), "utf8"),
+  ]);
+
+  assert.doesNotMatch(
+    beansSource,
+    /where\(isNotNull\(beansTable\.airtableRecordId\)\)/,
+    "Beans list must not hide CSV/Postgres-created beans without Airtable IDs",
+  );
+  assert.doesNotMatch(
+    bagsSource,
+    /where\(isNotNull\(bagsTable\.airtableRecordId\)\)/,
+    "Bags list must not hide CSV/Postgres-created bags without Airtable IDs",
   );
 });

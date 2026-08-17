@@ -236,7 +236,7 @@ async function seedBeansAndBags(client, exportDir) {
         num(bag["Bag Cost"]),
         bool(bag["Active"]),
         num(bag["Initial Grinder Setting"]),
-        num(bag["Average Grinder Setting"]),
+        null,
         num(bag["Target Dose (g)"]),
         null,
         str(bag["Bag Behaviour Review"]),

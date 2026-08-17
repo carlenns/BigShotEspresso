@@ -183,8 +183,14 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   let remaining: number | null = null;
   let completionPct: number | null = null;
   let estimatedShotsRemaining: number | null = null;
+  const latestShotEstimate = activeBagShots.find((s) => s.shotsLeftEst != null)?.shotsLeftEst ?? null;
 
-  if (activeBagRow.remainingEstimate != null) {
+  if (latestShotEstimate != null) {
+    estimatedShotsRemaining = Math.max(0, Math.floor(Number(latestShotEstimate)));
+    remaining = avgDose && avgDose > 0
+      ? Math.round(estimatedShotsRemaining * avgDose * 10) / 10
+      : null;
+  } else if (activeBagRow.remainingEstimate != null) {
     remaining = Number(activeBagRow.remainingEstimate);
   } else if (activeBagRow.bagWeight != null && dosesConsumed > 0) {
     remaining = Math.max(0, Number(activeBagRow.bagWeight) - dosesConsumed);
@@ -192,7 +198,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   if (activeBagRow.bagWeight != null && activeBagRow.bagWeight > 0) {
     completionPct = Math.min(100, Math.round((dosesConsumed / Number(activeBagRow.bagWeight)) * 1000) / 10);
   }
-  if (remaining != null && avgDose && avgDose > 0) {
+  if (estimatedShotsRemaining == null && remaining != null && avgDose && avgDose > 0) {
     estimatedShotsRemaining = Math.floor(remaining / avgDose);
   }
 
@@ -252,9 +258,12 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   // activeBagShots is ordered DESC: [0] = most recent, [last] = oldest
   const grindFirst = grindShots.length > 0 ? Number(grindShots[grindShots.length - 1].grindSetting) : null;
   const grindCurrent = grindShots.length > 0 ? Number(grindShots[0].grindSetting) : null;
-  // Canonical start/current: prefer bag record (Airtable-synced), fall back to shot-derived
+  // Canonical start/current for operational display:
+  // - start can come from the Bag's initial setting when imported,
+  // - current must come from the latest eligible shot because CSV/Airtable Bag
+  //   rollups may store averages rather than the latest operational setting.
   const startSetting = activeBagRow.startGrindSetting ?? grindFirst;
-  const currentSetting = activeBagRow.currentGrindSetting ?? grindCurrent;
+  const currentSetting = grindCurrent ?? activeBagRow.currentGrindSetting;
   // Net change = Current − Start (positive = coarser, negative = finer)
   const drift = (startSetting != null && currentSetting != null)
     ? Math.round((currentSetting - startSetting) * 1000) / 1000

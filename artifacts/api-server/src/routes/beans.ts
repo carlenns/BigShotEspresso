@@ -1,12 +1,12 @@
 import { Router, type IRouter } from "express";
-import { and, eq, sql, isNotNull } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db, beansTable, bagsTable, shotsTable } from "@workspace/db";
 import { eligibleShotConditions } from "../lib/shot-eligibility";
 
 const router: IRouter = Router();
 
 router.get("/beans", async (_req, res): Promise<void> => {
-  const beans = await db.select().from(beansTable).where(isNotNull(beansTable.airtableRecordId)).orderBy(beansTable.name);
+  const beans = await db.select().from(beansTable).orderBy(beansTable.name);
   const stats = await db
     .select({
       beanId: bagsTable.beanId,
