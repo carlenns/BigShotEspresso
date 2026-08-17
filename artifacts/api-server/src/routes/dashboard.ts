@@ -451,6 +451,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   res.json({
     activeBag: {
       ...activeBagRow,
+      currentGrindSetting: currentSetting,
       openDays,
       roastAge,
       shotCount: activeBagShots.length,

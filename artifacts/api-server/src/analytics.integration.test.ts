@@ -138,6 +138,11 @@ test("analytical route inventory uses the shared eligibility condition", async (
   );
   assert.match(
     dashboardSource,
+    /currentGrindSetting: currentSetting/,
+    "Dashboard active bag response must expose the same latest-shot current grinder setting used by Grind Drift",
+  );
+  assert.match(
+    dashboardSource,
     /const latestShotEstimate = activeBagShots\.find\(\(s\) => s\.shotsLeftEst != null\)\?\.shotsLeftEst \?\? null/,
     "Dashboard shots-left estimate must prefer latest eligible Shot evidence when present",
   );
