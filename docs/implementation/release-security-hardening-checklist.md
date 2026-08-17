@@ -198,6 +198,13 @@ Verification:
 - Build inspection or bundle grep for known secret variable names.
 - Manual UI smoke test.
 
+Current evidence:
+
+- Source audit found frontend references to Airtable environment variable names only as user-facing labels/instructions.
+- Source audit found no frontend access to server-only secret values such as `DATABASE_URL`, `ADMIN_API_TOKEN`, or Airtable token contents.
+- No `.env` files were found inside the frontend package.
+- Final bundle grep remains required after a successful production build/deploy.
+
 ## Gate 9 — Data Privacy and Evidence
 
 Required:
