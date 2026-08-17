@@ -32,6 +32,10 @@ API runtime follow-up:
 
 The built API now starts locally against the disposable Neon database. Read-only smoke checks passed for health, Shots, Hopper, and Hopper Range Baseline routes.
 
+Full CSV import follow-up:
+
+The current local Airtable CSV export package imported successfully into the disposable Neon database through the existing API CSV import endpoints after seeding Beans and Bags from the matching CSV exports.
+
 ## Target and Safety
 
 Target summary:
@@ -105,6 +109,7 @@ The script:
 | Phase 1 compatibility after bootstrap | Passed | Phase 1 migration completed after bootstrap |
 | Non-empty database safety refusal | Passed | Bootstrap script stopped without `--reset-disposable` |
 | API runtime contract against Neon | Passed | Built API started against Neon and returned successful read-only route responses |
+| Full local CSV import into Neon | Passed | 235 Shots, 17 Hoppers, and 5 Hopper Range Baselines imported from current local exports |
 | Backup/restore execution | Not completed | Local `pg_dump`, `psql`, and `pg_restore` were not installed |
 | Airtable live sync | Not run | Deferred due Airtable API limits and metadata verification requirement |
 
@@ -258,7 +263,54 @@ Local full-export count check from:
 | `Shot Fault Rules-Shot Fault Rules.csv` | 12 | 3 |
 | `Shots-Shots Entering.csv` | 235 | 93 |
 
-Full export import into Neon was not run in this pass because the current Neon database was intentionally used for migration, fixture, bootstrap, and API runtime rehearsal first.
+Full export import into Neon was run after migration, fixture, bootstrap, and API runtime rehearsal completed.
+
+## Full CSV Import Rehearsal Evidence
+
+Added reusable full-export rehearsal script:
+
+```text
+scripts/neon-full-csv-import-rehearsal.mjs
+```
+
+The script:
+
+- reads `DATABASE_URL` from local `.env`,
+- requires `--reset-disposable`,
+- refuses unknown public tables,
+- resets only known Coffee Log tables,
+- applies the empty-database bootstrap and Phase 1 compatibility migration,
+- seeds Beans and Bags from local CSV exports so Shot relationships are not guessed,
+- starts the built API locally with a temporary rehearsal admin token,
+- imports Hopper, Hopper Range Baseline, and Shot CSV exports through the existing protected API import endpoints,
+- reports counts without printing secrets.
+
+Rehearsal command:
+
+```text
+node scripts/neon-full-csv-import-rehearsal.mjs --reset-disposable
+```
+
+Verified result:
+
+| Check | Result |
+| --- | --- |
+| Beans seeded from CSV | 6 |
+| Bags seeded from CSV | 6 |
+| Hopper import | 17 imported, 0 skipped, 0 errors |
+| Hopper export columns | 9 |
+| Hopper Range Baseline import | 5 imported, 0 skipped, 0 errors |
+| Hopper Range Baseline export columns | 7 |
+| Shot import | 235 imported, 0 skipped, 0 errors |
+| Shot export columns | 93 |
+| Analytical shots after import | 190 |
+| Reference shots after import | 61 |
+
+Limits:
+
+- Beans and Bags were seeded only to support relationship resolution for the full Shot import rehearsal.
+- Airtable hidden fields, formulas, and metadata were not verified.
+- Airtable live sync was not run.
 
 ## Resolved Finding: Empty-Database Bootstrap Gap
 
@@ -299,7 +351,6 @@ Limits:
 
 - This was a read-only smoke test only.
 - Shot create/edit workflow was not exercised.
-- Full CSV import into the bootstrapped Neon schema was not exercised.
 
 ## Backup and Restore Status
 
@@ -333,8 +384,7 @@ Do not change this casually without verifying Neon and Render behavior.
 Critical before deployment certification:
 
 1. Backup/restore rehearsal is not complete.
-2. Full local CSV import into Neon is not complete.
-3. Shot create/edit workflow against Neon is not complete.
+2. Shot create/edit workflow against Neon is not complete.
 
 Still deferred:
 
@@ -349,8 +399,8 @@ Do not begin Phase 2 intelligence work yet.
 
 Next best technical step:
 
-1. Import current full CSV exports into Neon.
-2. Smoke-test shot create/edit against Neon.
-3. Run backup/restore rehearsal.
+1. Smoke-test shot create/edit against Neon.
+2. Run backup/restore rehearsal.
+3. Prepare Render deployment smoke testing.
 
 Only after those pass should the project proceed toward Render deployment smoke testing.
