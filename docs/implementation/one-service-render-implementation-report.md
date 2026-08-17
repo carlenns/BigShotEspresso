@@ -20,7 +20,8 @@ In production mode, the API server will:
 
 | File | Change |
 | --- | --- |
-| `artifacts/api-server/src/app.ts` | Added production static asset serving and SPA fallback for non-API routes; production CORS now defaults to same-origin/no cross-origin access |
+| `artifacts/api-server/src/app.ts` | Added production static asset serving and SPA fallback for non-API routes; production CORS now defaults to same-origin/no cross-origin access; production bulk/admin routes are protected |
+| `artifacts/api-server/src/middlewares/admin-auth.ts` | Added production-only admin token middleware for bulk/admin endpoints |
 | `artifacts/api-server/src/static-serving.test.ts` | Added test for production frontend fallback and `/api/healthz` preservation |
 | `artifacts/coffee-log/vite.config.ts` | Removed Replit-only requirement for `PORT` and `BASE_PATH` during builds by adding safe defaults |
 | `package.json` | Added candidate Render build/start scripts |

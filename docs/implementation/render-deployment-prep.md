@@ -46,6 +46,7 @@ Required for Postgres runtime:
 | `DATABASE_URL` | Neon production or staging database connection |
 | `NODE_ENV` | Set to `production` |
 | `BASE_PATH` | Set to `/` unless the app is hosted under a path prefix |
+| `ADMIN_API_TOKEN` | Required for production bulk/admin actions |
 
 Required only if Airtable sync/import is enabled:
 
@@ -79,8 +80,11 @@ Current Blueprint intent:
 - `NODE_ENV=production`,
 - `BASE_PATH=/`,
 - `DATABASE_URL` declared with `sync: false` so Render prompts for the secret value instead of committing it.
+- `ADMIN_API_TOKEN` declared with `sync: false` so Render prompts for the secret value instead of committing it.
 
 Production CORS defaults to same-origin operation. Do not set `CORS_ORIGIN` unless the frontend and API are deliberately split across origins.
+
+Production bulk/admin actions are unavailable unless `ADMIN_API_TOKEN` is configured and requests include the expected `x-admin-token` header.
 
 Airtable secrets are intentionally not included in the Blueprint yet. Add them later only if Airtable sync is included in the release scope.
 

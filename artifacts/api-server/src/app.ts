@@ -5,6 +5,7 @@ import path from "node:path";
 import { existsSync } from "node:fs";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { requireAdminToken } from "./middlewares/admin-auth";
 
 const app: Express = express();
 const corsOrigin = process.env.CORS_ORIGIN
@@ -38,6 +39,13 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+app.use("/api/airtable/clear", requireAdminToken);
+app.use("/api/airtable/sync", requireAdminToken);
+app.use("/api/shots/import-csv", requireAdminToken);
+app.use("/api/hoppers/import-csv", requireAdminToken);
+app.use("/api/hopper-range-baselines/import-csv", requireAdminToken);
+app.use("/api/taste-selectors/seed", requireAdminToken);
 
 app.use("/api", router);
 

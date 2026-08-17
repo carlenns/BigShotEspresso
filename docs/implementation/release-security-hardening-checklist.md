@@ -43,6 +43,7 @@ Approved environment variable names:
 | Coffee Log Airtable token | `COFFEELOG_AIRTABLE_API_KEY` |
 | Coffee Log Airtable base | `COFFEELOG_AIRTABLE_BASE_ID` |
 | Postgres/Neon database | `DATABASE_URL` |
+| Production admin/bulk action token | `ADMIN_API_TOKEN` |
 
 Temporary legacy fallbacks:
 
@@ -115,6 +116,7 @@ Required:
 
 - Dangerous write/delete actions must not be publicly reachable without protection.
 - Clear/delete routes must require explicit confirmation and access control.
+- Production bulk/admin actions require `ADMIN_API_TOKEN`.
 - Raw evidence routes must not expose secrets.
 - Admin/debug screens must be intentionally scoped.
 

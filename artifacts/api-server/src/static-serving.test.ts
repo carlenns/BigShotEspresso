@@ -35,6 +35,13 @@ test("production app serves frontend fallback without swallowing API routes", as
     });
     assert.equal(corsResponse.headers.get("access-control-allow-origin"), null);
 
+    const adminResponse = await fetch(`http://127.0.0.1:${port}/api/airtable/clear`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirm: true }),
+    });
+    assert.equal(adminResponse.status, 503);
+
     const pageResponse = await fetch(`http://127.0.0.1:${port}/shots/123`);
     assert.equal(pageResponse.status, 200);
     assert.match(await pageResponse.text(), /Coffee Log/);
