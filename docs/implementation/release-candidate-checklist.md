@@ -36,6 +36,12 @@ Do not block first release on:
 
 The first release is a stable operational foundation, not the finished research platform.
 
+Current access assumption:
+
+- The first release candidate is owner-only.
+- Public self-serve launch is blocked until authentication, authorization, and data ownership rules are implemented.
+- See [ADR-0008: Owner-Only First Release Access](../ADR/ADR-0008-owner-only-first-release-access.md).
+
 ## Release Candidate Gate Summary
 
 | Gate | Status | Required before first release candidate? |
@@ -51,6 +57,7 @@ The first release is a stable operational foundation, not the finished research 
 | Core runtime API checks | Not started against Neon | Yes |
 | Dashboard correctness | Partially ready | Yes |
 | Shot entry/edit workflow | Needs release review | Yes |
+| Access-control/public-launch decision | Proposed owner-only | Yes |
 | Admin/debug visibility | Needs scope decision | Strongly recommended |
 | Render deployment prep | Planned | Yes |
 | Domain setup prep | Planned | Yes |

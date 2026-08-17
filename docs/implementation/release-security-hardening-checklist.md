@@ -123,7 +123,9 @@ Required:
 If access control is not implemented:
 
 - Do not expose admin/destructive routes publicly.
-- Release only behind private/admin access or defer public deployment.
+- Release only as owner-only/private access or defer public deployment.
+- Public self-serve release is blocked until authentication, authorization, and data ownership rules are implemented.
+- See [ADR-0008: Owner-Only First Release Access](../ADR/ADR-0008-owner-only-first-release-access.md).
 
 ## Gate 5 — API Write Safety
 
