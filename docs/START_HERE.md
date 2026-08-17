@@ -27,6 +27,8 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 - [CSV Fixture Strategy](testing/csv-fixture-strategy.md) — committed fixture policy and full-export evidence boundaries.
 - [Pre-Phase-2 Readiness Gates](implementation/pre-phase-2-readiness-gates.md) — remaining decisions before application/intelligence implementation proceeds.
 - [Release Candidate Checklist](implementation/release-candidate-checklist.md) — release-readiness gates for the first secure Postgres/Neon-backed Coffee Log release.
+- [Release Security Hardening Checklist](implementation/release-security-hardening-checklist.md) — security gate for secrets, database access, admin routes, API writes, logs, dependencies, and release approval.
+- [Replit Deployment Prep](implementation/replit-deployment-prep.md) — Replit hosting checklist with Neon as the database authority.
 
 ## Authority
 

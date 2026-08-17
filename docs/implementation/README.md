@@ -8,6 +8,8 @@ Implementation records are subordinate to the Constitution, ADRs, architecture, 
 - [Repository Certification Audit](../REPOSITORY_CERTIFICATION_AUDIT.md)
 - [Pre-Phase-2 Readiness Gates](pre-phase-2-readiness-gates.md)
 - [Release Candidate Checklist](release-candidate-checklist.md)
+- [Release Security Hardening Checklist](release-security-hardening-checklist.md)
+- [Replit Deployment Prep](replit-deployment-prep.md)
 
 ## Required implementation record
 
