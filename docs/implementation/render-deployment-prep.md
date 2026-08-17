@@ -84,11 +84,9 @@ Do not point Render production at the rehearsal database.
 
 Before creating the Render service, verify:
 
-- Is Coffee Log deployed as one web service or split frontend/API services?
 - What is the production build command?
 - What is the production start command?
 - Which package/workspace is the deploy root?
-- Does the app require a static frontend build plus API server?
 - Does the server listen on Render-provided `PORT`?
 - Are migrations run manually before deploy or as a deploy step?
 
@@ -96,45 +94,21 @@ Do not guess these commands. Verify from repository scripts before creating the 
 
 ## Current Repository Script Evidence
 
-Current scripts indicate a split app/API shape:
+Current scripts indicate a split app/API source shape with an approved one-service release direction:
 
 | Package | Build command | Start/serve command | Notes |
 | --- | --- | --- | --- |
 | workspace root | `pnpm run build` | none | Runs typecheck and package builds |
-| `@workspace/api-server` | `pnpm --filter @workspace/api-server build` | `pnpm --filter @workspace/api-server start` | Express API server; requires `PORT` |
+| `@workspace/api-server` | `pnpm --filter @workspace/api-server build` | `pnpm --filter @workspace/api-server start` | Express API server; requires `PORT`; serves built frontend in production |
 | `@workspace/coffee-log` | `pnpm --filter @workspace/coffee-log build` | `pnpm --filter @workspace/coffee-log serve` | Vite frontend; requires `PORT` and `BASE_PATH` |
 
 Current deployment implication:
 
-- The API server and frontend may need separate Render services, or
-- the API server may need an approved static-file serving integration before a single-service deployment.
+- The first Render release should use one web service.
+- The frontend must be built before the API server starts.
+- In production, the API server serves the built frontend assets while preserving `/api` routes.
 
-Do not implement that integration without an approved code plan.
-
-## Candidate Render Shapes
-
-### Option A — Two Render services
-
-```text
-Render static/frontend service
-  → Coffee Log frontend
-
-Render web service
-  → Coffee Log API
-    → Neon Postgres
-```
-
-Benefits:
-
-- Matches current split package shape.
-- Avoids changing API server to serve frontend assets.
-
-Risks:
-
-- Requires frontend API base URL configuration.
-- Requires CORS/domain review.
-
-### Option B — One Render web service
+## Selected Render Shape
 
 ```text
 Render web service
@@ -147,15 +121,16 @@ Benefits:
 
 - Simpler domain and cookie/security model.
 - One service to deploy.
+- Same-origin frontend API calls work with existing `/api/...` usage.
 
 Risks:
 
-- Requires app/API integration work if not already present.
-- Must be implemented deliberately and tested.
+- Requires the frontend build artifact to exist before the API starts.
+- Requires Render build/start commands to build both packages correctly.
 
 Recommended next step:
 
-- Inspect current frontend API-base configuration and API server static-serving support before selecting Option A or Option B.
+- Verify the one-service build/start commands in CI or a Render preview environment.
 
 ## Deployment Smoke Test
 

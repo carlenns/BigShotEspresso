@@ -246,7 +246,7 @@ Required for current Render-first release path:
 - App uses `DATABASE_URL` from environment.
 - App-specific Airtable variables configured only if sync is included.
 - Build/start command verified.
-- Deployment shape selected: split frontend/API services or one integrated web service.
+- Deployment shape selected: one integrated Render web service serving API and frontend.
 - Public URL smoke-tested.
 - Custom domain plan prepared.
 

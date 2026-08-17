@@ -13,6 +13,7 @@ Implementation records are subordinate to the Constitution, ADRs, architecture, 
 - [Render Deployment Prep](render-deployment-prep.md)
 - [Domain Setup Checklist](domain-setup-checklist.md)
 - [Neon Setup Handoff](neon-setup-handoff.md)
+- [One-Service Render Implementation Report](one-service-render-implementation-report.md)
 
 ## Required implementation record
 
