@@ -62,6 +62,7 @@ Completed locally:
 - API typecheck passed.
 - Coffee Log frontend typecheck passed.
 - Render build script was added and invoked.
+- High-severity dependency audit passed after targeted overrides.
 
 Blocked locally:
 

@@ -171,6 +171,10 @@ Verification:
 - Run dependency audit before release.
 - Record any remaining findings in release report.
 
+Current evidence:
+
+- [Dependency Security Audit — 2026-08-17](dependency-security-audit-2026-08-17.md)
+
 ## Gate 8 — Browser/UI Exposure
 
 Required:
