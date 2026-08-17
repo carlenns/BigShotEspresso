@@ -234,3 +234,7 @@ Release security can pass only when:
 6. Verify frontend bundle does not expose secrets.
 7. Document backup/restore approach.
 8. Add and test a strict Content Security Policy after first deployed frontend smoke test.
+
+Current backup/restore evidence:
+
+- [Neon Backup and Restore Runbook](neon-backup-restore-runbook.md)

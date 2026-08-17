@@ -207,6 +207,7 @@ Before real release data is entered:
 - Document how to restore or recreate the database.
 - Preserve CSV/Airtable evidence separately.
 - Confirm how to rotate Neon credentials.
+- Follow the [Neon Backup and Restore Runbook](neon-backup-restore-runbook.md).
 
 ## Release Blockers
 

@@ -237,6 +237,7 @@ Verification:
 
 - Document backup approach.
 - Run at least one restore/recreate rehearsal or document why deferred.
+- Use the [Neon Backup and Restore Runbook](neon-backup-restore-runbook.md).
 
 ## Gate 11 — Deployment Prep
 
