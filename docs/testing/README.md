@@ -34,6 +34,7 @@ See [completed-tasks.md](../completed-tasks.md).
 ## Fixture policy
 
 - [CSV Fixture Strategy](csv-fixture-strategy.md)
+- [API Server CSV Fixture Manifest](../../artifacts/api-server/test-fixtures/csv/MANIFEST.md)
 
 ## External certification gates
 
