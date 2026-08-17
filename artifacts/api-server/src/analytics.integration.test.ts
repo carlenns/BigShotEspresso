@@ -170,4 +170,14 @@ test("CSV-seeded Beans and Bags are visible without Airtable record IDs", async 
     /where\(isNotNull\(bagsTable\.airtableRecordId\)\)/,
     "Bags list must not hide CSV/Postgres-created bags without Airtable IDs",
   );
+  assert.match(
+    bagsSource,
+    /latestGrind: sql<number \| null>`\(array_agg\(\$\{shotsTable\.grindSetting\} ORDER BY \$\{shotsTable\.shotDate\} DESC NULLS LAST\)\)\[1\]`/,
+    "Bags list must derive current grind from the latest eligible shot rather than imported Bag rollups",
+  );
+  assert.match(
+    bagsSource,
+    /currentGrindSetting: statsMap\.get\(b\.id\)\?\.latestGrind \?\? b\.currentGrindSetting/,
+    "Bags list response must expose latest-shot current grind when available",
+  );
 });

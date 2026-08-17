@@ -43,6 +43,7 @@ router.get("/bags", async (_req, res): Promise<void> => {
       avgRating: sql<number | null>`round(avg(${shotsTable.rating})::numeric, 2)`,
       minGrind: sql<number | null>`min(${shotsTable.grindSetting})`,
       maxGrind: sql<number | null>`max(${shotsTable.grindSetting})`,
+      latestGrind: sql<number | null>`(array_agg(${shotsTable.grindSetting} ORDER BY ${shotsTable.shotDate} DESC NULLS LAST))[1]`,
     })
     .from(shotsTable)
     .where(and(isNotNull(shotsTable.bagId), ...eligibleShotConditions))
@@ -51,6 +52,7 @@ router.get("/bags", async (_req, res): Promise<void> => {
   const statsMap = new Map(stats.map((s) => [s.bagId, s]));
   res.json(bags.map((b) => ({
     ...b,
+    currentGrindSetting: statsMap.get(b.id)?.latestGrind ?? b.currentGrindSetting,
     shotCount: statsMap.get(b.id)?.shotCount ?? 0,
     referenceCount: statsMap.get(b.id)?.referenceCount ?? 0,
     avgRating: statsMap.get(b.id)?.avgRating ?? null,
@@ -107,7 +109,11 @@ router.get("/bags/:id", async (req, res): Promise<void> => {
   };
 
   res.json({
-    bag, analysis,
+    bag: {
+      ...bag,
+      currentGrindSetting: shots.find((s) => s.grindSetting != null)?.grindSetting ?? bag.currentGrindSetting,
+    },
+    analysis,
     referenceShots: shots.filter((s) => s.isReference).slice(0, 20),
     bestRated: [...shots].filter((s) => s.rating != null).sort((a, b) => Number(b.rating) - Number(a.rating)).slice(0, 10),
     shots: shots.slice(0, 50),
