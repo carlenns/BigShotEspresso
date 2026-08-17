@@ -17,6 +17,7 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 
 - [ChatGPT Integration and Onboarding Strategy](product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md) — product boundaries, scientific logging guidance, cost controls, privacy guardrails, and current-versus-future scope. This is guidance only and does not override the Constitution, roadmap, ADRs, or phase gates.
 - [Subscriber Feasibility Study](product/BSE_SUBSCRIBER_FEASIBILITY.md) — the US$10/month pricing hypothesis, founder offer, historical 100–10,000-user economics, downside case, cost omissions, and launch validation gates.
+- [Airtable Exit Strategy](architecture/airtable-exit-strategy.md) — transition from Airtable-backed discovery to Postgres-first production.
 
 ## Authority
 
@@ -63,3 +64,5 @@ Phase 1.5 passes locally. Phase 2 remains blocked until:
 
 - Live Airtable synchronization is reconciled.
 - The migration is rehearsed against an anonymized production-equivalent PostgreSQL snapshot.
+- Stale operational documentation is corrected.
+- First ADRs are accepted or explicitly revised.

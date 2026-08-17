@@ -46,4 +46,12 @@ Example: `ADR-0001-airtable-and-postgresql-authority.md`
 
 ## Register
 
-No numbered ADRs have been formally adopted yet. Existing Phase 1 and Phase 1.5 decisions should be converted into ADRs before further architecture expansion.
+| ADR | Title | Status |
+|---|---|---|
+| [ADR-0001](ADR-0001-postgres-system-of-record-and-airtable-transition.md) | Postgres System of Record and Airtable Transition | Proposed |
+| [ADR-0002](ADR-0002-migration-authority.md) | Migration Authority | Proposed |
+| [ADR-0003](ADR-0003-app-specific-environment-variables.md) | App-Specific Environment Variables | Proposed |
+| [ADR-0004](ADR-0004-analysis-eligibility-and-reference-isolation.md) | Analysis Eligibility and Reference Isolation | Proposed |
+| [ADR-0005](ADR-0005-csv-fixtures-and-evidence-policy.md) | CSV Fixtures and Evidence Policy | Proposed |
+
+These ADRs are drafts until reviewed and accepted. They document decisions already made or explicitly requested during Phase 1/1.5 stabilization and repository certification.

@@ -11,6 +11,7 @@ This directory is the canonical architecture index. Existing architecture docume
 | [Table Relationships](../table-relationships.md) | Confirmed relationships and Hopper state workflow |
 | [Intelligence Engine Map](../intelligence-engine-map.md) | Engine boundaries, inputs, outputs, and dependencies |
 | [Replit Audit Report](../replit-audit-report.md) | Historical pre-Phase-1 implementation audit |
+| [Airtable Exit Strategy](airtable-exit-strategy.md) | Transition plan from Airtable-backed discovery to Postgres-first production |
 
 ## Architecture source-of-truth rules
 
@@ -25,3 +26,4 @@ This directory is the canonical architecture index. Existing architecture docume
 - Hopper event/state transition rules are not fully recovered from Airtable.
 - Project Notes, Fault Rules, and Rating System are not fully modeled in the application.
 - Live Airtable and production PostgreSQL certification remain pending.
+- Airtable exit depends on admin/debug screens that do not yet exist.

@@ -311,11 +311,11 @@ Required before Phase 2 or deployment:
 5. Approved implementation plans and completion records
 6. Code
 
-### Stale `replit.md`
+### `replit.md` cleanup
 
-Severity: **High**
+Severity: **Resolved in local documentation update; pending commit**
 
-`replit.md` still states:
+The previous certification audit found that `replit.md` stated:
 
 - CSV import skips non-numeric operational/event rows.
 - Reference Shot may be inferred when status is `Dialed In`.
@@ -327,9 +327,10 @@ These statements conflict with current approved behavior:
 - Reference Shot is manual and must not be inferred from rating/status.
 - Current Shot vs Reference uses eligible manual references from the active Bag.
 
-Required correction:
+Correction:
 
-- Update or supersede `replit.md` before relying on it as contributor guidance.
+- `replit.md` has been updated locally to align with Postgres-first architecture, Airtable transition boundaries, manual Reference Shot authority, Include in Analysis semantics, and app-specific Airtable environment variables.
+- This correction must be committed before the blocker is considered fully closed.
 
 ## ADR findings
 
@@ -355,8 +356,8 @@ The repository is **not certified for Phase 2 or deployment** until these are co
 
 - [ ] Live Airtable metadata and dry synchronization reconcile successfully.
 - [ ] Production-equivalent PostgreSQL forward/rollback/reapply rehearsal succeeds.
-- [ ] `replit.md` stale behavior is corrected or explicitly superseded.
-- [ ] Numbered ADRs are created for major Phase 1/1.5 decisions.
+- [ ] `replit.md` cleanup is committed.
+- [ ] Numbered ADRs are reviewed and accepted or explicitly revised.
 - [ ] Evidence-storage policy distinguishes source evidence, fixtures, and generated artifacts.
 
 ## Non-blocking follow-up
