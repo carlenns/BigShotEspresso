@@ -1,40 +1,58 @@
 # BigShotEspresso Repository Certification Audit
 
-> **Audit date:** 2026-06-25  
-> **Repository:** `Coffee-Log`  
-> **Governing authority:** [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md)  
-> **Audit type:** Documentation governance and repository readiness  
-> **Result:** **Not certified for Phase 2 or deployment**
+> **Audit date:** 2026-08-17
+> **Repository:** `Coffee-Log`
+> **Governing authority:** [PROJECT_CONSTITUTION.md](PROJECT_CONSTITUTION.md)
+> **Audit type:** Repository certification after security cleanup, documentation governance, and CI setup
+> **Result:** **Certified for local repository baseline; not yet certified for Phase 2 or deployment**
 
 ## Executive summary
 
-The repository now has a permanent documentation-governance structure and a clear onboarding path. The Phase 1.5 implementation has strong local evidence: integration tests, typecheck, OpenAPI generation, and production builds have passed.
+The repository now has a clean, reviewable baseline:
 
-Certification cannot be granted yet because:
+- The exposed Airtable token has been removed from current files and reachable Git history.
+- Sanitized history has been force-pushed to GitHub.
+- Coffee Log Airtable configuration now prefers app-specific environment variables.
+- Documentation governance and product guidance have been committed.
+- GitHub Actions CI has been added and the latest visible run passed.
+- CSV import tests now use committed fixture exports rather than files outside the repository.
+- The working tree is clean and aligned with `origin/main`.
 
-1. Live Airtable synchronization has not been verified.
-2. Migrations have not been rehearsed on an anonymized production-equivalent PostgreSQL snapshot.
-3. The Phase 1/1.5 implementation and governance documents remain uncommitted in a large dirty working tree.
-4. No checked-in CI workflow enforces the stabilization suite.
-5. `replit.md` contains stale behavior that conflicts with current authoritative documentation and implementation.
+The repository is certified as a safe local development baseline.
 
-The repository is **conditionally certified for continued documentation and verification work only**.
+Certification for Phase 2 intelligence implementation remains blocked until live Airtable synchronization and production-equivalent PostgreSQL migration rehearsal are completed and recorded. Deployment certification also remains blocked until those same external-environment checks pass.
 
 ## Scope and method
 
-The audit reviewed:
+This audit reviewed:
 
-- All Markdown files in the project workspace.
-- All current and historical CSV exports.
-- Repository documentation structure and hierarchy.
-- Git status and tracked/untracked documentation.
-- Package scripts and test entry points.
-- Database migration artifacts.
-- OpenAPI source and generated contracts.
-- Analytical eligibility and active-Bag isolation evidence.
-- Existing Phase 1.5 completion records.
+- Required documentation-governance structure.
+- Git cleanliness and current baseline commits.
+- Secret exposure in tracked files and reachable Git history.
+- CI workflow presence and browser-visible GitHub Actions result.
+- CSV fixture availability for CI.
+- Phase 1.5 test coverage and remaining verification gaps.
+- Known stale/conflicting documentation.
+- Remaining blockers before Phase 2.
 
-No application logic, schema, API, migration, or intelligence engine was changed by this governance task.
+No application feature logic, schema, migration, API, or intelligence engine was implemented by this audit.
+
+## Baseline commits reviewed
+
+Current `main` and `origin/main` are aligned at:
+
+```text
+cbe506a test: add CSV fixtures for CI import coverage
+```
+
+Recent baseline commits:
+
+```text
+cbe506a test: add CSV fixtures for CI import coverage
+04fe947 ci: add repository verification workflow
+48697b7 docs(product): add Coffee Log product planning guidance
+5673f75 chore(security): clarify Coffee Log Airtable env config
+```
 
 ## Certification matrix
 
@@ -43,23 +61,26 @@ No application logic, schema, API, migration, or intelligence engine was changed
 | Constitution present and canonical | Pass | `docs/PROJECT_CONSTITUTION.md` |
 | Contributor entry point | Pass | `docs/START_HERE.md` |
 | Roadmap and phase authority | Pass | `docs/ROADMAP.md` |
-| ADR process | Partial | Process exists; no numbered ADRs adopted |
-| History preservation | Pass | Legacy files retained and registered |
-| Architecture documentation | Pass with gaps | Current index exists; unresolved Hopper/Airtable rules remain |
-| Research separation | Pass | Six engines have separate research indexes |
-| Implementation traceability | Partial | Completion report exists; changes remain uncommitted |
-| Testing documentation | Pass locally | 16-test suite, typecheck, codegen, builds documented |
-| Airtable source alignment | Blocked | No live credentials/dry run |
-| PostgreSQL migration readiness | Blocked | No production-equivalent rehearsal |
-| CI enforcement | Fail | No checked-in workflow |
-| Repository cleanliness | Fail | Large dirty working tree |
-| Documentation consistency | Partial | `replit.md` contains stale conflicting statements |
-| Source-data provenance | Partial | Current CSV exports live outside Git repository |
-| Intelligence implementation governance | Pass | Engines remain unimplemented and separately documented |
+| ADR process | Partial | Process exists; numbered ADRs still need adoption |
+| History preservation | Pass | History registers and documentation indexes exist |
+| Architecture documentation | Pass with gaps | Architecture docs exist; unresolved Airtable/Hopper rules remain documented |
+| Research separation | Pass | DCI, OSI, HMI, BLI, MSI, and GSP are separated |
+| Product guidance | Pass | Product docs are present and subordinate to governance |
+| Implementation traceability | Pass for current baseline | Phase 1.5 completion docs and test evidence exist |
+| Testing documentation | Pass | `docs/testing/README.md` and CI workflow exist |
+| CI enforcement | Pass | `.github/workflows/ci.yml`; latest visible CI run for `cbe506a` passed |
+| Repository cleanliness | Pass | `git status` clean; `main` aligned with `origin/main` |
+| Current tracked-file secret scan | Pass | 318 tracked files scanned; 0 findings |
+| Reachable Git-history Airtable PAT scan | Pass | 0 reachable history hits |
+| Airtable source alignment | Blocked | Live metadata/sync verification not yet completed |
+| PostgreSQL migration readiness | Blocked for deployment | PGlite migration tests pass; production-equivalent PostgreSQL rehearsal still required |
+| Documentation consistency | Partial | `replit.md` remains stale/conflicting |
+| Source-data provenance | Partial | CI fixtures committed; full evidence policy still needed |
+| Intelligence implementation governance | Pass | No Phase 2 intelligence engines implemented |
 
 ## Required structure audit
 
-The following required structure exists:
+All required governance files are present:
 
 ```text
 docs/
@@ -67,276 +88,318 @@ docs/
   ROADMAP.md
   START_HERE.md
   REPOSITORY_CERTIFICATION_AUDIT.md
-  ADR/README.md
-  HISTORY/README.md
-  HISTORY/2026/README.md
-  RESEARCH/README.md
-  RESEARCH/DCI/README.md
-  RESEARCH/OSI/README.md
-  RESEARCH/HMI/README.md
-  RESEARCH/BLI/README.md
-  RESEARCH/MSI/README.md
-  RESEARCH/GSP/README.md
-  architecture/README.md
-  implementation/README.md
-  prompts/README.md
-  testing/README.md
+
+  ADR/
+    README.md
+
+  HISTORY/
+    README.md
+    2026/
+      README.md
+
+  RESEARCH/
+    README.md
+    DCI/
+      README.md
+    OSI/
+      README.md
+    HMI/
+      README.md
+    BLI/
+      README.md
+    MSI/
+      README.md
+    GSP/
+      README.md
+
+  architecture/
+    README.md
+
+  implementation/
+    README.md
+
+  product/
+    BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md
+    BSE_SUBSCRIBER_FEASIBILITY.md
+
+  prompts/
+    README.md
+
+  testing/
+    README.md
 ```
 
-Existing architecture and implementation documents remain in place and are indexed from their permanent governance locations. This preserves links and history without deleting or silently moving evidence.
+## Security certification
+
+### Current-file scan
+
+Result: **Pass**
+
+Evidence:
+
+```text
+tracked_files_scanned 318
+tracked_secret_findings 0
+```
+
+The scan checked tracked repository files for:
+
+- Airtable Personal Access Token patterns.
+- PostgreSQL connection-string patterns.
+- OpenAI API key patterns.
+- Generic long secret assignments.
+
+### Git-history scan
+
+Result: **Pass for local reachable history**
+
+Evidence:
+
+```text
+reachable_history_airtable_pat_hits 0
+```
+
+The previously exposed Airtable PAT is no longer present in reachable local Git history. Sanitized history was force-pushed to GitHub before this audit.
+
+### Credential naming
+
+Result: **Pass**
+
+Coffee Log now prefers app-specific environment variables:
+
+```text
+COFFEELOG_AIRTABLE_API_KEY
+COFFEELOG_AIRTABLE_BASE_ID
+```
+
+Temporary compatibility fallbacks remain:
+
+```text
+AIRTABLE_API_KEY
+AIRTABLE_BASE_ID
+```
+
+No credential values are committed.
+
+## CI certification
+
+Result: **Pass for baseline CI**
+
+Workflow:
+
+```text
+.github/workflows/ci.yml
+```
+
+CI checks:
+
+- Dependency installation with pnpm.
+- Inline tracked-file secret scan.
+- Workspace typecheck.
+- Phase 1.5 API/integration tests.
+- API production build.
+- Coffee Log frontend production build.
+
+Browser-visible GitHub Actions evidence shows the latest run passed:
+
+```text
+test: add CSV fixtures for CI import coverage
+Commit: cbe506a
+Status: passed
+Duration: 1m 14s
+```
+
+Note: GitHub Actions API access through local CLI returned intermittent `404` responses for run-list and run-log endpoints even after `workflow` scope was present. Browser evidence was therefore used for the latest CI pass status.
+
+## Test certification
+
+Result: **Pass for CI baseline**
+
+Phase 1.5 test coverage includes:
+
+- Airtable shot field mapping without calculated fallbacks.
+- Include in Analysis preservation and eligibility rules.
+- Multi-select evidence preservation.
+- Linked-record unresolved-cardinality detection.
+- Current Shot vs Reference active-Bag isolation.
+- Analytical route inventory coverage.
+- OpenAPI/runtime request validator alignment.
+- API response shaping.
+- Hopper route validator coverage.
+- Current and historical Shot CSV parsing.
+- Strict unresolved-relationship CSV errors.
+- Hopper and Hopper Range Baseline CSV parsing.
+- Hopper and baseline insertion into migrated database.
+- Migration apply/reapply/rollback/conflict checks.
+
+The CI fixture fix moved required current CSV evidence into:
+
+```text
+artifacts/api-server/test-fixtures/csv/
+```
+
+This allows CI to verify imports without relying on the parent workspace’s external `CSV Files` directory.
+
+## Known local verification limitation
+
+After a local dependency reinstall, Mac test/build commands can fail because the workspace excludes the Darwin esbuild optional package:
+
+```text
+@esbuild/darwin-arm64
+```
+
+This is a local macOS dependency-layout limitation, not the GitHub CI environment. GitHub Actions runs on Linux and the latest visible CI run passed.
+
+## Data and provenance findings
+
+### CSV evidence
+
+Result: **Partial**
+
+Committed CI fixtures now cover:
+
+- Current Shot export.
+- Hopper export.
+- Hopper Range Baseline export.
+
+Historical Shot export remains available under:
+
+```text
+attached_assets/
+```
+
+Remaining requirement:
+
+- Adopt an evidence-storage policy that distinguishes committed test fixtures from full authoritative Airtable/CSV evidence.
+- Add manifest/checksum metadata for exported evidence if long-term reproducibility requires it.
+
+### Airtable
+
+Result: **Blocked**
+
+Live Airtable metadata verification and dry synchronization have not been completed in this certified baseline.
+
+Required before Phase 2 or deployment:
+
+- Verify live table presence.
+- Verify selector values and field types.
+- Verify linked-record cardinality.
+- Verify Airtable-to-Postgres synchronization using `COFFEELOG_*` credentials.
+- Record the result in `docs/completed-tasks.md` or a dedicated synchronization log.
+
+### PostgreSQL
+
+Result: **Blocked for deployment**
+
+Embedded migration tests pass, but production-equivalent PostgreSQL rehearsal remains required.
+
+Required before Phase 2 or deployment:
+
+- Apply migrations to a production-equivalent PostgreSQL database or anonymized snapshot.
+- Verify rollback/reapply.
+- Verify data preservation for Flow Time / Scale Time migration and typed Shot fields.
+- Record results.
 
 ## Authority and consistency findings
 
-### Current authority
+### Current source authority
 
 1. `docs/PROJECT_CONSTITUTION.md`
 2. Approved ADRs
-3. `docs/architecture/` and indexed architecture documents
+3. Current architecture documentation
 4. Airtable CSV exports and dated Project Notes
 5. Approved implementation plans and completion records
 6. Code
 
-### Conflicting or stale documents
-
-#### `replit.md`
+### Stale `replit.md`
 
 Severity: **High**
 
-It currently states:
+`replit.md` still states:
 
 - CSV import skips non-numeric operational/event rows.
-- Reference status may be inferred when status is `Dialed In`.
+- Reference Shot may be inferred when status is `Dialed In`.
+- Reference Shots are described as “Dialed In” shots.
 
-These statements conflict with the approved architecture:
+These statements conflict with current approved behavior:
 
-- Operational and event records are preserved.
-- Reference Shot is manual and must never be inferred from rating or status.
+- Operational/event records are preserved as evidence where applicable.
+- Reference Shot is manual and must not be inferred from rating/status.
+- Current Shot vs Reference uses eligible manual references from the active Bag.
 
-Required action: update `replit.md` in a separately approved documentation cleanup or mark the conflicting sections explicitly superseded.
+Required correction:
 
-#### `docs/replit-audit-report.md`
+- Update or supersede `replit.md` before relying on it as contributor guidance.
 
-Severity: **Low**
+## ADR findings
 
-This is intentionally a pre-Phase-1 baseline and labels itself accordingly. Its old findings must not be mistaken for current application state.
+Result: **Partial**
 
-#### Legacy onboarding and vision duplicates
+ADR process exists, but the first numbered ADRs still need to be created and accepted.
 
-Severity: **Low**
-
-Identical or near-identical documents exist in the parent workspace, `BigShotEspresso/knowledge/`, and `attached_assets/`. They are preserved as evidence but are not canonical governance sources.
-
-## Data and provenance findings
-
-### CSV authority
-
-The current workspace contains eight current CSV exports and one historical Shot export:
-
-- Current Shot export: 93 columns, 164 records.
-- Historical Shot export: 87 columns, 132 records.
-- Hopper: 12 records.
-- Hopper Range Baselines: 5 records.
-- Bags: 5 records.
-- Beans: 5 records.
-- Project Notes: 19 records.
-- Shot Fault Rules: 12 records.
-- Rating System: 38 records.
-
-Severity: **High**
-
-The current authoritative CSV directory is outside the Git repository. This protects it from accidental code commits but means repository clones do not contain the full architecture evidence.
-
-Required decision: adopt an approved evidence-storage policy, such as:
-
-- Versioned redacted fixtures in the repository.
-- A manifest containing source name, export date, row count, schema, and checksum.
-- A controlled external evidence store referenced by immutable identifiers.
-
-No CSV was moved or copied during this governance task.
-
-### Airtable
-
-Severity: **Critical certification blocker**
-
-Fixture-based mapping tests pass, but no live Airtable metadata or synchronization run has been completed. Selector authority, formula presence, and linked-record cardinality cannot receive final certification without that run.
-
-### PostgreSQL
-
-Severity: **Critical certification blocker**
-
-Embedded PostgreSQL-compatible migration tests pass, including repeat application, rollback, and conflict detection. A production-equivalent PostgreSQL snapshot rehearsal remains mandatory.
-
-## Architecture and decision traceability
-
-### Strengths
-
-- Flow Time is canonical, with Scale Time retained as a historical compatibility alias.
-- Include in Analysis is centralized for analytics.
-- Current Shot vs Reference is active-Bag isolated.
-- Typed Hopper and baseline relationships are documented.
-- Engine boundaries and dependencies are explicit.
-- Raw CSV and Airtable evidence preservation is documented.
-
-### Gaps
-
-Severity: **High**
-
-No formal ADRs exist for major decisions already made, including:
+Recommended first ADRs:
 
 1. Airtable/PostgreSQL authority split.
-2. Flow Time canonical naming.
-3. Include in Analysis eligibility semantics.
-4. Ordered PostgreSQL array representation for multi-selects.
-5. Active-Bag-only Current Shot vs Reference.
-6. Hopper state and baseline model boundaries.
-7. Embedded PostgreSQL-compatible integration testing.
-
-Required action: create and approve numbered ADRs before expanding architecture in Phase 2.
-
-## Implementation and repository hygiene
-
-### Dirty working tree
-
-Severity: **High**
-
-The repository contains a large set of modified and untracked Phase 1, Phase 1.5, generated, test, migration, and documentation files. This prevents certification of an immutable implementation baseline.
-
-Required action:
-
-1. Review the complete diff.
-2. Confirm generated files correspond to the current OpenAPI source.
-3. Confirm no unrelated user changes are included.
-4. Commit the approved baseline with a traceable completion reference.
-5. Tag or otherwise identify the certified baseline.
-
-No files were committed by this audit.
-
-### CI
-
-Severity: **High**
-
-No checked-in CI workflow runs:
-
-- `pnpm test:phase1.5`
-- `pnpm run typecheck`
-- OpenAPI generation consistency
-- Production build
-
-Required action: add CI in an approved implementation phase.
-
-### Migration authority
-
-Severity: **High**
-
-The repository contains explicit SQL migrations while the database package also exposes Drizzle schema-push commands. The deployment authority between reviewed migrations and schema push is not formally recorded.
-
-Required action: adopt an ADR defining the production migration workflow and restricting schema push to approved environments.
-
-## Testing findings
-
-### Passing local evidence
-
-- 16 Phase 1.5 integration and contract tests.
-- Workspace typecheck.
-- OpenAPI generation.
-- API production build.
-- Coffee Log production build.
-- Mockup build.
-- Migration forward/repeat/rollback/conflict checks.
-- Current and historical Shot CSV parsing.
-- Hopper and baseline import checks.
-- Eligibility and active-Bag isolation checks.
-
-### Remaining gaps
-
-Severity: **Medium**
-
-- No live HTTP/database contract test.
-- No browser test for insufficient-reference presentation.
-- No live Airtable test.
-- No production-equivalent PostgreSQL test.
-- No CI execution.
-- Existing frontend source-map warnings.
-- Main frontend bundle exceeds the configured size warning threshold.
-
-## Security and operational governance
-
-Severity: **Medium**
-
-The repository has no visible:
-
-- Security policy.
-- Contributor guide.
-- Release process.
-- Backup/restore runbook.
-- Production migration runbook.
-- Credential-handling documentation.
-- Data-retention policy.
-
-These are future governance requirements and do not authorize application changes in this task.
-
-## Documentation governance findings
-
-### Completed
-
-- Canonical Constitution established inside the repository.
-- Roadmap established.
-- Mandatory onboarding path established.
-- ADR rules established.
-- History register established.
-- Architecture index established.
-- Implementation index established.
-- Prompt governance established.
-- Testing standards established.
-- Separate research spaces established for DCI, OSI, HMI, BLI, MSI, and GSP.
-
-### Still required
-
-- Numbered ADRs.
-- Development Change Log.
-- Knowledge Change Log.
-- Operational Audit Log.
-- Synchronization Log.
-- Release and contributor governance.
-- Approved evidence-storage policy.
+2. Migration authority and production rehearsal requirements.
+3. Flow Time canonical naming with Scale Time compatibility.
+4. Include in Analysis eligibility semantics.
+5. Ordered array representation for Airtable multi-select fields.
+6. Active-Bag-only Current Shot vs Reference behavior.
+7. Hopper state and baseline model boundaries.
+8. Evidence preservation and CSV fixture policy.
+9. App-specific environment variable naming.
 
 ## Certification blockers
 
-The repository may not be certified for Phase 2 or deployment until all of the following are complete:
+The repository is **not certified for Phase 2 or deployment** until these are complete:
 
 - [ ] Live Airtable metadata and dry synchronization reconcile successfully.
 - [ ] Production-equivalent PostgreSQL forward/rollback/reapply rehearsal succeeds.
-- [ ] Phase 1/1.5 changes and governance documents are reviewed and committed.
-- [ ] A certified baseline commit/tag is recorded.
-- [ ] Stale `replit.md` behavior is corrected or explicitly superseded.
-- [ ] Migration authority is documented in an accepted ADR.
-- [ ] Phase 1.5 checks run in CI or an approved equivalent release gate.
+- [ ] `replit.md` stale behavior is corrected or explicitly superseded.
+- [ ] Numbered ADRs are created for major Phase 1/1.5 decisions.
+- [ ] Evidence-storage policy distinguishes source evidence, fixtures, and generated artifacts.
 
 ## Non-blocking follow-up
 
-- [ ] Convert major Phase 1 decisions into numbered ADRs.
-- [ ] Establish immutable CSV evidence manifests.
-- [ ] Consolidate duplicate onboarding/vision documents through supersession records.
-- [ ] Add contributor, security, release, backup, and migration runbooks.
+- [ ] Add a Security Policy.
+- [ ] Add a Contributor Guide.
+- [ ] Add a Release Process.
+- [ ] Add a Production Migration Runbook.
+- [ ] Add a Backup/Restore Runbook.
+- [ ] Add a Synchronization Log.
 - [ ] Add browser coverage for dashboard insufficient-data states.
-- [ ] Address source-map and bundle-size warnings.
+- [ ] Address frontend source-map warnings.
+- [ ] Address frontend bundle-size warning.
+- [ ] Investigate local macOS esbuild optional-binary workflow if local Mac test/build parity is required.
 
 ## Final certification decision
 
+### Repository baseline
+
+**Certified.**
+
+The repository is clean, committed, pushed, CI-protected, and free of detected tracked-file or reachable-history Airtable PAT exposure.
+
 ### Documentation governance
 
-**Certified for use.** The required governance structure exists and preserves legacy evidence.
+**Certified for use.**
 
-### Local Phase 1.5 foundation
+The required governance structure exists and has a clear authority hierarchy.
 
-**Conditionally certified.** Local automated evidence passes.
+### Local/CI Phase 1.5 foundation
+
+**Conditionally certified.**
+
+Automated baseline checks are present and passing in GitHub Actions. External Airtable and production-equivalent PostgreSQL checks remain pending.
 
 ### Phase 2
 
-**Not certified.**
+**Not certified yet.**
+
+DCI implementation should not begin until Airtable live verification, production-equivalent PostgreSQL rehearsal, stale `replit.md` cleanup, and first ADR adoption are complete or explicitly waived.
 
 ### Deployment
 
-**Not certified.**
+**Not certified yet.**
 
-The next authorized work should be certification closure: live Airtable verification, production-equivalent PostgreSQL rehearsal, ADR adoption, repository baseline review/commit, and CI/release-gate establishment. Intelligence implementation remains prohibited.
+Deployment requires the same external-system checks plus deployment-specific secrets/runtime verification.
