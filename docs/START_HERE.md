@@ -31,6 +31,7 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 - [Owner-Only Release Smoke Test](implementation/owner-only-release-smoke-test.md) — private release validation for core UI/API, shot entry, dashboard correctness, admin blocking, and backup readiness.
 - [Route Exposure Audit](implementation/route-exposure-audit.md) — current route exposure classification for owner-only release versus future public launch.
 - [Render Deployment Prep](implementation/render-deployment-prep.md) — first preferred non-Replit hosting checklist with Neon as the database authority.
+- [Render Environment Checklist](implementation/render-environment-checklist.md) — Render setup reference for required secrets, optional variables, owner-only settings, and deployment stop conditions.
 - [Domain Setup Checklist](implementation/domain-setup-checklist.md) — custom-domain DNS and release smoke-test checklist.
 - [Replit Deployment Prep](implementation/replit-deployment-prep.md) — optional/deferred Replit hosting checklist with Neon as the database authority.
 - [Neon Setup Handoff](implementation/neon-setup-handoff.md) — owner-facing instructions for creating the disposable Neon rehearsal target safely.

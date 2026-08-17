@@ -13,6 +13,7 @@ Implementation records are subordinate to the Constitution, ADRs, architecture, 
 - [Route Exposure Audit](route-exposure-audit.md)
 - [Replit Deployment Prep](replit-deployment-prep.md)
 - [Render Deployment Prep](render-deployment-prep.md)
+- [Render Environment Checklist](render-environment-checklist.md)
 - [Domain Setup Checklist](domain-setup-checklist.md)
 - [Neon Setup Handoff](neon-setup-handoff.md)
 - [Neon Backup and Restore Runbook](neon-backup-restore-runbook.md)

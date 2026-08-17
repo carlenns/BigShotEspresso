@@ -267,6 +267,7 @@ Do not:
 Evidence:
 
 - [Render Deployment Prep](render-deployment-prep.md)
+- [Render Environment Checklist](render-environment-checklist.md)
 - [Domain Setup Checklist](domain-setup-checklist.md)
 - [Owner-Only Release Smoke Test](owner-only-release-smoke-test.md)
 - [Replit Deployment Prep](replit-deployment-prep.md), optional/deferred
