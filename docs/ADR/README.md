@@ -53,5 +53,6 @@ Example: `ADR-0001-airtable-and-postgresql-authority.md`
 | [ADR-0003](ADR-0003-app-specific-environment-variables.md) | App-Specific Environment Variables | Proposed |
 | [ADR-0004](ADR-0004-analysis-eligibility-and-reference-isolation.md) | Analysis Eligibility and Reference Isolation | Proposed |
 | [ADR-0005](ADR-0005-csv-fixtures-and-evidence-policy.md) | CSV Fixtures and Evidence Policy | Proposed |
+| [ADR-0006](ADR-0006-neon-postgres-rehearsal-and-release-database.md) | Neon Postgres Rehearsal and Release Database | Proposed |
 
 These ADRs are drafts until reviewed and accepted. They document decisions already made or explicitly requested during Phase 1/1.5 stabilization and repository certification.
