@@ -28,6 +28,8 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 - [Pre-Phase-2 Readiness Gates](implementation/pre-phase-2-readiness-gates.md) — remaining decisions before application/intelligence implementation proceeds.
 - [Release Candidate Checklist](implementation/release-candidate-checklist.md) — release-readiness gates for the first secure Postgres/Neon-backed Coffee Log release.
 - [Release Security Hardening Checklist](implementation/release-security-hardening-checklist.md) — security gate for secrets, database access, admin routes, API writes, logs, dependencies, and release approval.
+- [Owner-Only Release Smoke Test](implementation/owner-only-release-smoke-test.md) — private release validation for core UI/API, shot entry, dashboard correctness, admin blocking, and backup readiness.
+- [Route Exposure Audit](implementation/route-exposure-audit.md) — current route exposure classification for owner-only release versus future public launch.
 - [Render Deployment Prep](implementation/render-deployment-prep.md) — first preferred non-Replit hosting checklist with Neon as the database authority.
 - [Domain Setup Checklist](implementation/domain-setup-checklist.md) — custom-domain DNS and release smoke-test checklist.
 - [Replit Deployment Prep](implementation/replit-deployment-prep.md) — optional/deferred Replit hosting checklist with Neon as the database authority.
@@ -74,9 +76,10 @@ CSV exports define current research data evidence. Airtable metadata and formula
 
 ## Current gate
 
-Phase 1.5 passes locally. Phase 2 remains blocked until:
+Phase 1.5 passes locally and CI is green. The first owner-only release candidate remains blocked until:
 
-- Live Airtable synchronization is reconciled.
-- The migration is rehearsed against an anonymized production-equivalent PostgreSQL snapshot.
-- Stale operational documentation is corrected.
-- First ADRs are accepted or explicitly revised.
+- Neon migration/import/runtime rehearsal passes against a disposable database.
+- Backup/restore rehearsal is completed or explicitly deferred for non-valuable data.
+- Render deployment smoke test passes.
+- The owner-only release decision is accepted or revised.
+- Live Airtable synchronization is reconciled only if Airtable sync is included in release scope.

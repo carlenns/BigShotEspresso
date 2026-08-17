@@ -126,6 +126,7 @@ If access control is not implemented:
 - Release only as owner-only/private access or defer public deployment.
 - Public self-serve release is blocked until authentication, authorization, and data ownership rules are implemented.
 - See [ADR-0008: Owner-Only First Release Access](../ADR/ADR-0008-owner-only-first-release-access.md).
+- See [Route Exposure Audit](route-exposure-audit.md).
 
 ## Gate 5 — API Write Safety
 

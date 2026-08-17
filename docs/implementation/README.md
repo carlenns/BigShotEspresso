@@ -9,6 +9,8 @@ Implementation records are subordinate to the Constitution, ADRs, architecture, 
 - [Pre-Phase-2 Readiness Gates](pre-phase-2-readiness-gates.md)
 - [Release Candidate Checklist](release-candidate-checklist.md)
 - [Release Security Hardening Checklist](release-security-hardening-checklist.md)
+- [Owner-Only Release Smoke Test](owner-only-release-smoke-test.md)
+- [Route Exposure Audit](route-exposure-audit.md)
 - [Replit Deployment Prep](replit-deployment-prep.md)
 - [Render Deployment Prep](render-deployment-prep.md)
 - [Domain Setup Checklist](domain-setup-checklist.md)

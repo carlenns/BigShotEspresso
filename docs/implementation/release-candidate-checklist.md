@@ -62,7 +62,7 @@ Current access assumption:
 | Render deployment prep | Planned | Yes |
 | Domain setup prep | Planned | Yes |
 | Replit deployment prep | Deferred | No, unless Replit is selected later |
-| Backup/recovery plan | Not started | Yes |
+| Backup/recovery plan | Documented; rehearsal pending | Yes |
 
 ## Gate 1 — Repository and CI
 
@@ -268,6 +268,7 @@ Evidence:
 
 - [Render Deployment Prep](render-deployment-prep.md)
 - [Domain Setup Checklist](domain-setup-checklist.md)
+- [Owner-Only Release Smoke Test](owner-only-release-smoke-test.md)
 - [Replit Deployment Prep](replit-deployment-prep.md), optional/deferred
 
 ## Gate 12 — Release Decision
@@ -291,7 +292,7 @@ Release candidate can be declared only when:
 4. Run API/build/typecheck checks.
 5. Smoke-test core app against disposable Neon.
 6. Decide whether release includes Airtable sync or CSV-only import.
-7. Prepare Replit deployment.
+7. Prepare Render deployment.
 8. Smoke-test deployed app.
 9. Produce release candidate report.
 10. Tag/release only after approval.
