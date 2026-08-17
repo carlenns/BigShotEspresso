@@ -179,8 +179,15 @@ As of 2026-08-17:
 
 - Neon is selected as the production-equivalent Postgres target.
 - Backup/restore procedure is now documented.
+- Disposable Neon migration, bootstrap, full CSV import, API runtime, and Shot API workflow rehearsals have passed.
 - A live Neon backup/restore rehearsal has not yet been run in this repository.
-- The next required external input is a disposable Neon `DATABASE_URL`.
+- Local PostgreSQL client tools are not currently available on this Mac:
+  - `pg_dump`: not found
+  - `psql`: not found
+  - `pg_restore`: not found
+- The next required input is either:
+  - local PostgreSQL client tools, or
+  - a Neon dashboard/branching workflow that can create and verify a restore target without local `pg_dump` tooling.
 
 ## Release Gate
 
