@@ -9,7 +9,7 @@ process.env.DATABASE_URL ??= ["postgresql:", "", "test.invalid", "phase15"].join
 const { parseCsvAndImport } = await import("./routes/shots");
 
 const currentShotsUrl = new URL(
-  "../../../../CSV Files/Shots-Shots Entering-7.csv",
+  "../test-fixtures/csv/Shots-Shots Entering-7.csv",
   import.meta.url,
 );
 const historicalShotsUrl = new URL(
@@ -17,11 +17,11 @@ const historicalShotsUrl = new URL(
   import.meta.url,
 );
 const hopperUrl = new URL(
-  "../../../../CSV Files/Hopper-Grid view.csv",
+  "../test-fixtures/csv/Hopper-Grid view.csv",
   import.meta.url,
 );
 const baselineUrl = new URL(
-  "../../../../CSV Files/Hopper Range Baselines-Hopper Range Baselines.csv",
+  "../test-fixtures/csv/Hopper Range Baselines-Hopper Range Baselines.csv",
   import.meta.url,
 );
 const migrationUrl = new URL(
