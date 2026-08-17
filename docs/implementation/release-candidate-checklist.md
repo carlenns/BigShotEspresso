@@ -48,8 +48,8 @@ Current access assumption:
 | --- | --- | --- |
 | Repository baseline and CI | Mostly ready | Yes |
 | Secret/security baseline | Mostly ready | Yes |
-| Neon Postgres rehearsal | Planned | Yes |
-| Migration and rollback verification | Planned | Yes |
+| Neon Postgres rehearsal | Migration rehearsal passed; bootstrap/API follow-up blocked | Yes |
+| Migration and rollback verification | Passed for Phase 1 legacy upgrade path | Yes |
 | CSV fixture import verification | Mostly ready | Yes |
 | Full local export rehearsal | Not started | Strongly recommended |
 | Airtable metadata verification | Blocked | Required before Airtable sync certification |
@@ -115,6 +115,7 @@ Required:
 Evidence:
 
 - [Neon Postgres Rehearsal Plan](../architecture/neon-postgres-rehearsal-plan.md)
+- [Neon Postgres Rehearsal Report](neon-postgres-rehearsal-report.md)
 
 Output after execution:
 
