@@ -184,6 +184,12 @@ Required:
 - Admin/debug screens are not accidentally linked as public user features.
 - Raw import evidence is not exposed in public views.
 - Production CORS is closed by default unless `CORS_ORIGIN` is deliberately configured.
+- Production/API responses include baseline browser protection headers:
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: DENY`
+  - `Referrer-Policy: no-referrer`
+  - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+- Strict Content Security Policy is deferred until deployed frontend smoke testing so it does not accidentally break required assets.
 
 Verification:
 
@@ -227,3 +233,4 @@ Release security can pass only when:
 5. Review dependency audit.
 6. Verify frontend bundle does not expose secrets.
 7. Document backup/restore approach.
+8. Add and test a strict Content Security Policy after first deployed frontend smoke test.

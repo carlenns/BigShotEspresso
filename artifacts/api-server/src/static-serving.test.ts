@@ -29,6 +29,13 @@ test("production app serves frontend fallback without swallowing API routes", as
     const apiResponse = await fetch(`http://127.0.0.1:${port}/api/healthz`);
     assert.equal(apiResponse.status, 200);
     assert.deepEqual(await apiResponse.json(), { status: "ok" });
+    assert.equal(apiResponse.headers.get("x-content-type-options"), "nosniff");
+    assert.equal(apiResponse.headers.get("x-frame-options"), "DENY");
+    assert.equal(apiResponse.headers.get("referrer-policy"), "no-referrer");
+    assert.equal(
+      apiResponse.headers.get("permissions-policy"),
+      "camera=(), microphone=(), geolocation=()",
+    );
 
     const corsResponse = await fetch(`http://127.0.0.1:${port}/api/healthz`, {
       headers: { Origin: "https://example.invalid" },
