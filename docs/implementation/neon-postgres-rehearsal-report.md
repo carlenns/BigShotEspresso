@@ -1,6 +1,6 @@
 # Neon Postgres Rehearsal Report
 
-> **Status:** Completed with bootstrap follow-up verified
+> **Status:** Completed with bootstrap and API runtime follow-up verified
 > **Date:** 2026-08-17
 > **Target:** Disposable Neon Postgres database
 > **Scope:** Phase 1/1.5 data-foundation rehearsal only
@@ -27,6 +27,10 @@ Verified:
 Bootstrap follow-up:
 
 The empty-database bootstrap path has now been added and rehearsed against the disposable Neon database. The current schema can be created from empty Postgres, the bootstrap can be re-run safely in the tested scenario, and the Phase 1 legacy-upgrade migration remains compatible when run afterward.
+
+API runtime follow-up:
+
+The built API now starts locally against the disposable Neon database. Read-only smoke checks passed for health, Shots, Hopper, and Hopper Range Baseline routes.
 
 ## Target and Safety
 
@@ -100,7 +104,7 @@ The script:
 | Bootstrap repeat safety | Passed | Re-running bootstrap completed |
 | Phase 1 compatibility after bootstrap | Passed | Phase 1 migration completed after bootstrap |
 | Non-empty database safety refusal | Passed | Bootstrap script stopped without `--reset-disposable` |
-| API runtime contract against Neon | Not completed | Pending after bootstrap verification |
+| API runtime contract against Neon | Passed | Built API started against Neon and returned successful read-only route responses |
 | Backup/restore execution | Not completed | Local `pg_dump`, `psql`, and `pg_restore` were not installed |
 | Airtable live sync | Not run | Deferred due Airtable API limits and metadata verification requirement |
 
@@ -225,6 +229,11 @@ Verified core Shot columns:
 - `intelligence_lesson_type`
 - `raw_row`
 - `shot_classification`
+
+Final counts after bootstrap rehearsal:
+
+| Table | Count |
+| --- | ---: |
 | `hoppers` | 12 |
 | `hopper_range_baselines` | 5 |
 
@@ -249,7 +258,7 @@ Local full-export count check from:
 | `Shot Fault Rules-Shot Fault Rules.csv` | 12 | 3 |
 | `Shots-Shots Entering.csv` | 235 | 93 |
 
-Full export import into Neon was not run in this pass because the current Neon database was intentionally used for the migration/fixture rehearsal first. Full export import should run only after the bootstrap-schema decision below is resolved.
+Full export import into Neon was not run in this pass because the current Neon database was intentionally used for migration, fixture, bootstrap, and API runtime rehearsal first.
 
 ## Resolved Finding: Empty-Database Bootstrap Gap
 
@@ -267,16 +276,30 @@ The repository now includes `0000_bootstrap_current_schema.sql`, which creates t
 
 ## API Runtime Check Status
 
-API runtime contract against Neon was not completed.
+API runtime contract against Neon passed for a read-only smoke test.
 
-Reasons:
+Build verification:
 
-- API runtime checks were deferred until after bootstrap verification.
-- Local execution of some TypeScript runtime tests has a known macOS optional-binary limitation in this workspace, while GitHub Actions Linux CI remains green.
+- API production build passed.
+- Frontend production build passed.
+- Database package typecheck passed.
+- API package typecheck passed.
+- Frontend package typecheck passed.
+- macOS arm64 `esbuild` package loaded successfully after dependency policy adjustment.
 
-Next required step:
+Runtime verification:
 
-- run API smoke checks against the fully bootstrapped disposable Neon target.
+- Built API started with `NODE_ENV=production` against the disposable Neon `DATABASE_URL`.
+- `GET /api/healthz` returned `200`.
+- `GET /api/shots` returned `200` and the expected `{ shots, total }` response shape.
+- `GET /api/hoppers` returned `200`.
+- `GET /api/hopper-range-baselines` returned `200`.
+
+Limits:
+
+- This was a read-only smoke test only.
+- Shot create/edit workflow was not exercised.
+- Full CSV import into the bootstrapped Neon schema was not exercised.
 
 ## Backup and Restore Status
 
@@ -309,9 +332,9 @@ Do not change this casually without verifying Neon and Render behavior.
 
 Critical before deployment certification:
 
-1. API runtime checks against Neon are not complete.
-2. Backup/restore rehearsal is not complete.
-3. Full local CSV import into Neon is not complete.
+1. Backup/restore rehearsal is not complete.
+2. Full local CSV import into Neon is not complete.
+3. Shot create/edit workflow against Neon is not complete.
 
 Still deferred:
 
@@ -326,8 +349,8 @@ Do not begin Phase 2 intelligence work yet.
 
 Next best technical step:
 
-1. Run API/runtime smoke tests against the fully bootstrapped Neon schema.
-2. Import current full CSV exports into Neon.
+1. Import current full CSV exports into Neon.
+2. Smoke-test shot create/edit against Neon.
 3. Run backup/restore rehearsal.
 
 Only after those pass should the project proceed toward Render deployment smoke testing.

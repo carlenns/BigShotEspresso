@@ -48,13 +48,13 @@ Current access assumption:
 | --- | --- | --- |
 | Repository baseline and CI | Mostly ready | Yes |
 | Secret/security baseline | Mostly ready | Yes |
-| Neon Postgres rehearsal | Migration/bootstrap passed; API/full import follow-up pending | Yes |
+| Neon Postgres rehearsal | Migration/bootstrap/API smoke passed; full import follow-up pending | Yes |
 | Migration and rollback verification | Passed for Phase 1 legacy upgrade path | Yes |
 | CSV fixture import verification | Mostly ready | Yes |
 | Full local export rehearsal | Not started | Strongly recommended |
 | Airtable metadata verification | Blocked | Required before Airtable sync certification |
 | Airtable live sync dry run | Blocked | Required if release depends on live sync |
-| Core runtime API checks | Not started against Neon | Yes |
+| Core runtime API checks | Read-only smoke passed against Neon | Yes |
 | Dashboard correctness | Partially ready | Yes |
 | Shot entry/edit workflow | Needs release review | Yes |
 | Access-control/public-launch decision | Proposed owner-only | Yes |
@@ -179,10 +179,18 @@ Required:
 
 Verification:
 
-- API contract validation.
-- Typecheck.
-- Production build.
-- Route tests or manual smoke checks against disposable Neon.
+- API package typecheck passed locally.
+- Frontend package typecheck passed locally.
+- Database package typecheck passed locally.
+- API production build passed locally.
+- Frontend production build passed locally.
+- Read-only manual smoke checks passed against disposable Neon for health, Shots, Hopper, and Hopper Range Baseline routes.
+
+Remaining:
+
+- Shot detail route smoke check.
+- Shot create/edit workflow smoke check.
+- Full CSV import against the bootstrapped Neon schema.
 
 ## Gate 7 — Dashboard Correctness
 

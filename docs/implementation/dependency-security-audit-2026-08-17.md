@@ -9,7 +9,7 @@
 
 The release dependency audit initially reported high-severity findings in build/codegen tooling paths.
 
-Targeted dependency overrides were added to clear high-severity findings without broad, unreviewed framework migration.
+Targeted dependency overrides were added to clear high-severity findings without broad, unreviewed framework migration. The native dependency policy was then adjusted so Linux deployment and macOS arm64 local development are both supported.
 
 ## Initial Audit Result
 
@@ -54,6 +54,14 @@ Targeted dependency overrides were added in `pnpm-workspace.yaml`:
 
 The lockfile was refreshed after these overrides.
 
+The native optional dependency exclusions were also narrowed:
+
+- keep Linux x64 packages required by Render/GitHub Actions,
+- keep macOS arm64 packages required for local Apple Silicon development,
+- continue excluding unrelated native platforms to keep installs smaller and more predictable.
+
+`esbuild` remains an approved build dependency.
+
 ## Current Audit Result
 
 Command:
@@ -78,17 +86,22 @@ Release interpretation:
 
 Passed locally:
 
+- `CI=true pnpm exec tsc -p lib/db/tsconfig.json --noEmit`
 - `CI=true pnpm --filter @workspace/api-server typecheck`
-- `CI=true pnpm --filter @workspace/coffee-log typecheck`
+- `CI=true pnpm --filter coffee-log typecheck`
+- `CI=true pnpm --filter @workspace/api-server build`
+- `CI=true pnpm --filter coffee-log build`
+- macOS arm64 `esbuild` package load smoke check
 - `pnpm audit --audit-level high`
 
-Blocked locally:
+Previously blocked locally:
 
-- `CI=true pnpm run build:render` is still blocked on this Mac by the intentionally excluded optional native package `@rollup/rollup-darwin-arm64`.
+- macOS build/runtime checks were blocked by intentionally excluded native optional packages.
+- This has been resolved by allowing the macOS arm64 native packages used by local development.
 
 Expected external verification:
 
-- GitHub Actions and Render Linux builds should verify production build behavior.
+- GitHub Actions and Render Linux builds should verify production build behavior after this policy change.
 
 ## Remaining Work
 
