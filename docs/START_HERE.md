@@ -19,6 +19,8 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 - [Subscriber Feasibility Study](product/BSE_SUBSCRIBER_FEASIBILITY.md) — the US$10/month pricing hypothesis, founder offer, historical 100–10,000-user economics, downside case, cost omissions, and launch validation gates.
 - [Airtable Exit Strategy](architecture/airtable-exit-strategy.md) — transition from Airtable-backed discovery to Postgres-first production.
 - [Offline Airtable Export Audit](architecture/offline-airtable-export-audit.md) — current CSV export inventory, checksums, row counts, and offline verification limits while live Airtable API access is blocked.
+- [Offline-First Airtable Reset Plan](architecture/offline-first-airtable-reset-plan.md) — work to do from CSV now and the planned 1,000-call Airtable metadata strategy after reset.
+- [CSV-to-Postgres Coverage Report](architecture/csv-to-postgres-coverage-report.md) — offline field coverage review and Airtable metadata questions before migration.
 
 ## Authority
 

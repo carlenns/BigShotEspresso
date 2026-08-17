@@ -13,6 +13,8 @@ This directory is the canonical architecture index. Existing architecture docume
 | [Replit Audit Report](../replit-audit-report.md) | Historical pre-Phase-1 implementation audit |
 | [Airtable Exit Strategy](airtable-exit-strategy.md) | Transition plan from Airtable-backed discovery to Postgres-first production |
 | [Offline Airtable Export Audit](offline-airtable-export-audit.md) | CSV export inventory, checksums, row counts, and offline verification limits |
+| [Offline-First Airtable Reset Plan](offline-first-airtable-reset-plan.md) | Offline work plan and 1,000-call Airtable reset strategy |
+| [CSV-to-Postgres Coverage Report](csv-to-postgres-coverage-report.md) | Offline field coverage review and metadata questions before migration |
 
 ## Architecture source-of-truth rules
 
