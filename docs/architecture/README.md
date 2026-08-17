@@ -17,6 +17,7 @@ This directory is the canonical architecture index. Existing architecture docume
 | [Airtable Metadata Verification Runbook](airtable-metadata-verification-runbook.md) | Exact metadata capture order, evidence outputs, and stop rules for the next Airtable API reset |
 | [CSV-to-Postgres Coverage Report](csv-to-postgres-coverage-report.md) | Offline field coverage review and metadata questions before migration |
 | [Postgres Migration Target Model](postgres-migration-target-model.md) | Proposed table roles, relationships, and evidence strategy for moving away from Airtable runtime dependency |
+| [Neon Postgres Rehearsal Plan](neon-postgres-rehearsal-plan.md) | Production-equivalent Postgres rehearsal plan using a disposable Neon target |
 
 ## Architecture source-of-truth rules
 

@@ -21,7 +21,7 @@ Airtable API access is currently constrained by account/API limits, but current 
 | Postgres target model | Complete draft | Yes | Requires approval before implementation |
 | Airtable metadata verification | Blocked | No | Requires API reset or paid access |
 | Fixture strategy decision | Needs approval | Mostly | Requires decision before changing fixtures/tests |
-| Production-equivalent Postgres rehearsal | Not started | No, unless local/remote Postgres available | Needed before deployment certification |
+| Production-equivalent Postgres rehearsal | Planned for Neon | No, unless local/remote Postgres available | Needed before deployment certification |
 | Live Airtable sync dry run | Blocked | No | Requires API calls and safe DB target |
 | Phase 2 scope decision | Not ready | Partly | Depends on whether metadata blockers are waived |
 
@@ -163,7 +163,11 @@ Recommended position:
 
 ## Gate 7 — Production-Equivalent Postgres Rehearsal
 
-Status: not started.
+Status: planned for Neon.
+
+Evidence:
+
+- [Neon Postgres Rehearsal Plan](../architecture/neon-postgres-rehearsal-plan.md)
 
 Why it matters:
 
@@ -183,9 +187,9 @@ Can proceed now?
 
 - Only if a safe local or remote Postgres target is available.
 
-Decision needed:
+Decision recorded:
 
-- Choose initial production-equivalent Postgres target for rehearsal.
+- Use Neon as the first production-equivalent Postgres rehearsal target.
 
 ## Gate 8 — Live Airtable Sync Dry Run
 
