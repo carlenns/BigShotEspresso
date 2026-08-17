@@ -24,6 +24,7 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 - [CSV-to-Postgres Coverage Report](architecture/csv-to-postgres-coverage-report.md) — offline field coverage review and Airtable metadata questions before migration.
 - [Postgres Migration Target Model](architecture/postgres-migration-target-model.md) — proposed table roles, relationships, and imported-evidence strategy for the Airtable exit.
 - [CSV Fixture Strategy](testing/csv-fixture-strategy.md) — committed fixture policy and full-export evidence boundaries.
+- [Pre-Phase-2 Readiness Gates](implementation/pre-phase-2-readiness-gates.md) — remaining decisions before application/intelligence implementation proceeds.
 
 ## Authority
 
