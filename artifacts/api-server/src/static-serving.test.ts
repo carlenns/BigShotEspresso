@@ -30,6 +30,11 @@ test("production app serves frontend fallback without swallowing API routes", as
     assert.equal(apiResponse.status, 200);
     assert.deepEqual(await apiResponse.json(), { status: "ok" });
 
+    const corsResponse = await fetch(`http://127.0.0.1:${port}/api/healthz`, {
+      headers: { Origin: "https://example.invalid" },
+    });
+    assert.equal(corsResponse.headers.get("access-control-allow-origin"), null);
+
     const pageResponse = await fetch(`http://127.0.0.1:${port}/shots/123`);
     assert.equal(pageResponse.status, 200);
     assert.match(await pageResponse.text(), /Coffee Log/);

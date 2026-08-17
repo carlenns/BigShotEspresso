@@ -177,6 +177,7 @@ Required:
 - Frontend does not expose server-only environment values.
 - Admin/debug screens are not accidentally linked as public user features.
 - Raw import evidence is not exposed in public views.
+- Production CORS is closed by default unless `CORS_ORIGIN` is deliberately configured.
 
 Verification:
 

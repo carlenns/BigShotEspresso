@@ -44,6 +44,8 @@ Required for Postgres runtime:
 | Variable name | Purpose |
 | --- | --- |
 | `DATABASE_URL` | Neon production or staging database connection |
+| `NODE_ENV` | Set to `production` |
+| `BASE_PATH` | Set to `/` unless the app is hosted under a path prefix |
 
 Required only if Airtable sync/import is enabled:
 
@@ -51,6 +53,12 @@ Required only if Airtable sync/import is enabled:
 | --- | --- |
 | `COFFEELOG_AIRTABLE_API_KEY` | Coffee Log Airtable token |
 | `COFFEELOG_AIRTABLE_BASE_ID` | Coffee Log Airtable base |
+
+Optional:
+
+| Variable name | Purpose |
+| --- | --- |
+| `CORS_ORIGIN` | Comma-separated allowed browser origins if cross-origin API access is intentionally needed |
 
 Do not use broad/shared Airtable secrets for Coffee Log release if app-specific secrets are available.
 
@@ -71,6 +79,8 @@ Current Blueprint intent:
 - `NODE_ENV=production`,
 - `BASE_PATH=/`,
 - `DATABASE_URL` declared with `sync: false` so Render prompts for the secret value instead of committing it.
+
+Production CORS defaults to same-origin operation. Do not set `CORS_ORIGIN` unless the frontend and API are deliberately split across origins.
 
 Airtable secrets are intentionally not included in the Blueprint yet. Add them later only if Airtable sync is included in the release scope.
 
