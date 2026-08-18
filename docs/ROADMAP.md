@@ -21,6 +21,7 @@
 | 10 | Knowledge Synchronization Engine | Future |
 | 11 | Performance & Production | Future |
 | 12 | Research Platform | Future |
+| Future | Brew Curves and Bluetooth Device Compatibility | Deferred until post-revenue R&D |
 
 ## Phase descriptions
 
@@ -62,6 +63,12 @@ Implement in this constitutional order:
 7. GSP
 
 No intelligence phase may begin without approved evidence, formulas, confidence policy, scope, and tests.
+
+### Future — Brew Curves and Bluetooth Device Compatibility
+
+Brew-curve capture, Bluetooth scale integration, machine/grinder/device compatibility, and live extraction telemetry are future research-and-development features. They are not required for first release and must not block manual logging, core workflows, or the Phase 2–8 intelligence roadmap.
+
+This module should be revisited only after BSE is live, has a paying user base, and subscription revenue can support device testing and experimentation. Current shot, bag, hopper, machine, grinder, and accessory records should remain linkable to future device-session or brew-curve records, but no Bluetooth, brew-curve, or live-device functionality is authorized in the current phase.
 
 ## Roadmap change control
 

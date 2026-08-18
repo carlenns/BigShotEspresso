@@ -16,6 +16,9 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 ## Product guidance
 
 - [ChatGPT Integration and Onboarding Strategy](product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md) — product boundaries, scientific logging guidance, cost controls, privacy guardrails, and current-versus-future scope. This is guidance only and does not override the Constitution, roadmap, ADRs, or phase gates.
+- [AI Upload Brief — Free Tier](product/BSE_AI_UPLOAD_BRIEF_FREE_TIER.md) — short single-file guide users can upload to ChatGPT, Gemini, Claude, or another AI assistant when context/file capacity is limited.
+- [AI Upload Manual — Paid Tier](product/BSE_AI_UPLOAD_MANUAL_PAID_TIER.md) — fuller AI onboarding and coaching manual for paid AI users before an official BSE integration exists.
+- [Product Landing Page Content Brief](product/BSE_PRODUCT_LANDING_PAGE_CONTENT.md) — public-facing product message, feature contents, audience, claims to avoid, and future-scope language for a future landing page.
 - [Subscriber Feasibility Study](product/BSE_SUBSCRIBER_FEASIBILITY.md) — the US$10/month pricing hypothesis, founder offer, historical 100–10,000-user economics, downside case, cost omissions, and launch validation gates.
 - [Airtable Exit Strategy](architecture/airtable-exit-strategy.md) — transition from Airtable-backed discovery to Postgres-first production.
 - [Offline Airtable Export Audit](architecture/offline-airtable-export-audit.md) — current CSV export inventory, checksums, row counts, and offline verification limits while live Airtable API access is blocked.

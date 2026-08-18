@@ -12,6 +12,8 @@ BigShotEspresso (BSE) is the structured espresso platform. It owns the durable d
 
 ChatGPT is an optional, user-provided conversational layer. A user may connect ChatGPT to approved BSE data and actions to receive onboarding, education, scientific logging guidance, interpretation, and help completing supported workflows. This does not make ChatGPT the system of record, does not transfer BSE governance to ChatGPT, and does not create a new BSE intelligence engine.
 
+The product should clearly explain that BSE works best when paired with a coffee scale and a capable conversational AI subscription such as ChatGPT or another approved assistant. A scale provides essential mechanical evidence such as dose and yield. Conversational AI helps users understand the process, ask technique questions, and complete onboarding. BSE must remain usable without AI, but AI-assisted onboarding should be strongly encouraged for users who want the best learning experience.
+
 The intended commercial model is bring your own ChatGPT account or subscription. BSE should minimize company-funded, server-side AI inference and recurring AI automations unless a later, approved business case demonstrates that they are necessary, safe, measurable, and economically sustainable.
 
 ## Product boundary
@@ -57,7 +59,9 @@ Plan availability, limits, regional availability, app capabilities, and OpenAI p
 
 ## Standardized scientific logging
 
-BSE should teach users to log observations as a repeatable experiment while remaining practical for everyday espresso.
+BSE should be presented as a practical scientific process, not merely a coffee diary. The product teaches users to log observations as repeatable experiments while remaining usable for everyday espresso.
+
+Many early users may arrive because they are frustrated, inconsistent, or trying to dial in a machine for the first time. Onboarding should therefore assume the user may need guided tasting, workflow coaching, and help understanding what each recorded variable can teach them, unless they explicitly identify as an experienced espresso user, barista, sensory evaluator, roaster, or advanced taster.
 
 ### Core method
 
@@ -68,6 +72,7 @@ BSE should teach users to log observations as a repeatable experiment while rema
 - Record mechanical conditions before attributing variation to operator inconsistency.
 - Preserve faults, interruptions, and unusual shots as evidence, while using explicit eligibility fields to control serious analysis.
 - Separate sensory observations from mechanical measurements and capture taste evolution as the shot cools when useful.
+- Encourage the user to taste and rate each drink they reasonably can, because repeated tasting against structured variables is how users build their palate and learn what changes in grind, dose, yield, time, temperature, bean age, and workflow actually taste like.
 - Keep `Rating` and `Preference Rating` conceptually separate. `Rating` is the technical/extraction score and is capped at 10. `Preference Rating` is the user's personal enjoyment score and may reach 11 only for rare, once-in-a-blue-moon benchmark shots that exceed the ordinary scale.
 - Explain that a Signature Shot is extraordinary and must also be a Reference Shot; a Reference Shot is not automatically a Signature Shot.
 - Change one important variable at a time when the user's goal is causal learning, while still supporting real-world multi-variable sessions.
@@ -77,6 +82,7 @@ BSE should teach users to log observations as a repeatable experiment while rema
 
 Consistent definitions and guided capture produce records that are more comparable across time, bags, equipment, and users. This improves:
 
+- User learning and palette development.
 - Completeness and field-level validity.
 - Separation of measured, calculated, inferred, and subjective data.
 - Detection of confounding factors such as hopper depletion, retention exchange, temperature state, bean aging, and workflow interruption.
@@ -103,13 +109,46 @@ Community participation must be voluntary and separate from core product use. Be
 
 ### 1. Establish the BSE account and research context
 
-The user creates a BSE account, reviews the data and privacy model, and identifies their experience level and goals. BSE explains that it stores the durable record; ChatGPT is optional assistance.
+The user creates a BSE account, reviews the data and privacy model, and identifies their experience level and goals. BSE explains that it stores the durable record; ChatGPT is optional assistance. The assistant should route the user into an appropriate onboarding style:
+
+- Beginner or dialing-in user: guide the first coffee closely, explain each field, encourage tasting, and help the user connect sensory observations to measured variables without overclaiming causation.
+- Experienced user, barista, roaster, or confident taster: offer a faster setup path, preserve expert vocabulary, and avoid over-explaining basics unless requested.
 
 ### 2. Configure equipment and defaults
 
-The user records the machine, grinder, basket conventions, and other approved defaults. BSE validates these fields. The assistant may explain them, but must not invent unknown specifications.
+The user records the machine, grinder, basket conventions, scale availability, timer availability, and other approved defaults. BSE validates these fields. The assistant may explain them, but must not invent unknown specifications.
 
-### 3. Teach scoring semantics
+Machine setup should capture concrete capabilities rather than assuming that one feature implies another. In particular, onboarding should ask whether the machine has:
+
+- PID temperature control.
+- A visible PID display.
+- A PID display that shows brew temperature.
+- A PID display that switches to a shot timer during brewing.
+- A separate built-in shot timer.
+- A timer that starts automatically with pump, lever, or brew activation.
+- A timer that must be started manually.
+- No built-in timer, requiring an external timer.
+
+Onboarding should also ask whether the user has a scale and explain that BSE's strongest mechanical evidence depends on dose and yield. Users without a scale may still log shots, but BSE should clearly describe that analysis confidence will be lower.
+
+The assistant should be prepared to answer user questions about why these equipment details matter, using approved BSE onboarding, scientific-process, and product-guidance documents. If the assistant does not know a machine specification, it should ask the user to confirm rather than guessing.
+
+### 3. Establish workflow methods and coaching expectations
+
+Onboarding should identify the user's practical coffee workflow as separate, structured concepts rather than one overloaded “dose method.” At minimum, onboarding should distinguish:
+
+- Bean feed method, such as hopper-fed, single-dose, or other/custom.
+- Dose collection method, such as dose cup or direct-to-portafilter.
+- Dose verification method, such as weighed/corrected before basket, weighed after basket, assumed dose, or other/custom.
+- Target-dose behavior, including whether the bag default dose is locked unless the user explicitly chooses to change it.
+
+The assistant should strongly encourage new users to use conversational AI extensively during their early BSE journey for workflow coaching, consistency improvement, and espresso technique questions. Examples include questions about puck preparation, tapping, distribution, tamping, weighing, correction habits, and how to simplify a repeatable routine.
+
+This coaching is advisory. It should help the user improve consistency and understand tradeoffs, but BSE remains the authoritative system for structured records, validation, deterministic calculations, and approved analytics. The assistant must not invent equipment specifications, selector values, thresholds, or unapproved formulas.
+
+Specialized workflows, such as frozen single doses, vacuum-packed doses, pre-weighed tubes, or other advanced preparation methods, may be recorded through custom labels or notes at launch. Dedicated inventory, automation, or analytics for those methods should be future scope only unless user demand justifies implementation.
+
+### 4. Teach scoring semantics
 
 BSE onboarding must teach the difference between technical quality and personal preference:
 
@@ -119,23 +158,30 @@ BSE onboarding must teach the difference between technical quality and personal 
 - Preference scores above 10 must not be treated as universal technical superiority in DCI, OSI, HMI, MSI, BLI, or GSP.
 - Coffee AI responses must preserve this distinction and avoid normalizing an 11-point preference score back into a 10-point technical rating.
 
-### 4. Teach the minimum viable logging protocol
+### 5. Teach the minimum viable logging protocol
 
 Use a short guided example to distinguish initial output, actual basket dose, corrections, yield, timing, faults, and sensory notes. Explain why timestamps, hopper state, and cooling observations matter.
 
-### 5. Log a first guided shot
+### 6. Log a first guided shot
 
-ChatGPT can gather observations conversationally and prepare a complete proposed record. The user reviews any assumptions, calculations, and unknowns before a supported write. BSE performs final validation and returns the stored and calculated result.
+ChatGPT can gather observations conversationally and prepare a complete proposed record. For beginner or dialing-in users, the assistant should guide the first drink through both measurement and tasting:
 
-### 6. Connect ChatGPT optionally
+1. Record the mechanical facts: bag, grinder setting, grind time, initial output, dose correction, actual basket dose, yield, pour delay, pour time, flow time, and temperature where available.
+2. Ask the user to taste the coffee and describe what they notice: sourness, bitterness, sweetness, body, clarity, finish, balance, harshness, weakness, or pleasantness.
+3. Help the user assign a technical `Rating` and optional `Preference Rating`, explaining that the goal is not to be perfect immediately but to build a repeatable palate over time.
+4. Label unknowns and avoid inventing selector values, causes, or thresholds.
+
+The user reviews any assumptions, calculations, and unknowns before a supported write. BSE performs final validation and returns the stored and calculated result.
+
+### 7. Connect ChatGPT optionally
 
 If an approved BSE app/connector is available, the user authenticates directly and grants the smallest useful permissions. Onboarding explains which data ChatGPT can retrieve and which actions it can request.
 
-### 7. Deliver an early evidence-backed insight
+### 8. Deliver an early evidence-backed insight
 
 After sufficient eligible data exists, BSE supplies a small, explainable result—for example, a comparable historical shot or a detected logging gap. Sparse evidence must produce “insufficient evidence,” not a fabricated recommendation.
 
-### 8. Introduce advanced research progressively
+### 9. Introduce advanced research progressively
 
 Hopper mechanics, lifecycle analysis, exception analysis, prediction, and community contribution appear only when the roadmap, evidence, and user readiness support them.
 
@@ -227,6 +273,7 @@ The following are future possibilities, not commitments:
 - Opt-in citizen-science contribution and anonymized aggregate research.
 - BSE-funded API features where a measured business case justifies cost and operational risk.
 - Phase 9 AI Coffee Assistant capabilities, only when authorized under the roadmap.
+- Brew-curve capture, Bluetooth scale/device compatibility, machine telemetry, and live extraction data import. These are deferred post-revenue R&D features and should be explained as future possibilities only, not onboarding requirements.
 
 Any material architecture decision should receive an ADR. Any roadmap change must follow roadmap change control. Intelligence functionality must use the existing named phases and research specifications; this strategy must not be used to introduce a parallel or informal intelligence engine.
 
