@@ -183,14 +183,8 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   let remaining: number | null = null;
   let completionPct: number | null = null;
   let estimatedShotsRemaining: number | null = null;
-  const latestShotEstimate = activeBagShots.find((s) => s.shotsLeftEst != null)?.shotsLeftEst ?? null;
 
-  if (latestShotEstimate != null) {
-    estimatedShotsRemaining = Math.max(0, Math.floor(Number(latestShotEstimate)));
-    remaining = avgDose && avgDose > 0
-      ? Math.round(estimatedShotsRemaining * avgDose * 10) / 10
-      : null;
-  } else if (activeBagRow.remainingEstimate != null) {
+  if (activeBagRow.remainingEstimate != null) {
     remaining = Number(activeBagRow.remainingEstimate);
   } else if (activeBagRow.bagWeight != null && dosesConsumed > 0) {
     remaining = Math.max(0, Number(activeBagRow.bagWeight) - dosesConsumed);

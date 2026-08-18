@@ -143,8 +143,13 @@ test("analytical route inventory uses the shared eligibility condition", async (
   );
   assert.match(
     dashboardSource,
-    /const latestShotEstimate = activeBagShots\.find\(\(s\) => s\.shotsLeftEst != null\)\?\.shotsLeftEst \?\? null/,
-    "Dashboard shots-left estimate must prefer latest eligible Shot evidence when present",
+    /remaining = Math\.max\(0, Number\(activeBagRow\.bagWeight\) - dosesConsumed\)/,
+    "Dashboard shots-left estimate must derive from live active-bag consumption instead of stale imported Shot estimates",
+  );
+  assert.doesNotMatch(
+    dashboardSource,
+    /latestShotEstimate/,
+    "Dashboard must not let historical imported Shots Left estimates override live active-bag progress",
   );
   assert.doesNotMatch(
     dashboardSource,
