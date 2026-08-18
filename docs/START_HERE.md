@@ -54,6 +54,8 @@ CSV exports define current research data evidence. Airtable metadata and formula
 
 - Do not invent selectors, formulas, relationships, thresholds, or engine behavior.
 - Preserve raw evidence and historical aliases.
+- Treat technical `Rating` as capped at 10 and personal `Preference Rating` as capped at 11, with 11 reserved for rare benchmark shots. Do not conflate those scores in onboarding, Coffee AI guidance, dashboards, or intelligence engines.
+- Treat `Signature Shot` as extraordinary and automatically also a `Reference Shot`; the reverse is not automatic.
 - Do not delete meaningful history; supersede it.
 - Plan and obtain approval before implementation.
 - Limit work to the approved phase.

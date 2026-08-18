@@ -248,6 +248,8 @@ export interface ShotWriteFields {
   /** @nullable */
   yield?: number | null;
   /** @nullable */
+  ratio?: string | null;
+  /** @nullable */
   temperature?: number | null;
   /** @nullable */
   pourDelay?: number | null;
@@ -327,6 +329,8 @@ export interface ShotInput {
   doseCorrection?: number | null;
   /** @nullable */
   yield?: number | null;
+  /** @nullable */
+  ratio?: string | null;
   /** @nullable */
   temperature?: number | null;
   /** @nullable */
@@ -611,4 +615,3 @@ export type GetInsightsParams = {
 bean?: string;
 bag?: string;
 };
-

@@ -9,6 +9,7 @@ import {
   ImportHopperRangeBaselinesCsvBody,
   ImportHoppersCsvBody,
   UpdateHopperBody,
+  UpdateShotBody,
 } from "@workspace/api-zod";
 import { toShotApi } from "./lib/api-shapes";
 import { getCoffeeLogAirtableConfig } from "./lib/airtable-config";
@@ -17,6 +18,8 @@ test("generated request validators match required runtime fields", () => {
   assert.equal(CreateShotBody.safeParse({}).success, false);
   const shot = CreateShotBody.parse({ shotDate: "2026-06-25T03:30:00.000Z" });
   assert.equal(shot.includeInAnalysis, true);
+  assert.equal(CreateShotBody.safeParse({ shotDate: "2026-06-25T03:30:00.000Z", ratio: "2.00", preferenceRating: 11 }).success, true);
+  assert.equal(UpdateShotBody.safeParse({ ratio: "2.00", preferenceRating: 11 }).success, true);
 
   assert.equal(CreateHopperBody.safeParse({}).success, false);
   assert.equal(CreateHopperBody.safeParse({ name: "Phase 1" }).success, true);
@@ -32,6 +35,41 @@ test("generated request validators match required runtime fields", () => {
     ImportHopperRangeBaselinesCsvBody.safeParse({ csvText: "Hopper Range\n75–100%" }).success,
     true,
   );
+});
+
+test("Shot route enforces rating, ratio, and signature/reference invariants", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("./routes/shots.ts", import.meta.url)),
+    "utf8",
+  );
+
+  assert.match(source, /function calculatedRatio/);
+  assert.equal(source.includes("Number(output) / Number(dose)"), true);
+  assert.equal(source.includes("normalized.signatureShot === true"), true);
+  assert.equal(source.includes("normalized.isReference = true"), true);
+  assert.match(source, /Technical rating cannot exceed 10/);
+  assert.match(source, /Preference rating cannot exceed 11/);
+});
+
+test("Shot detail exposes evaluation fields that affect interpretation", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  for (const requiredText of [
+    "Preference Rating",
+    "Signature Shot",
+    "Reference Shot",
+    "Fault Status",
+    "Shot Classification",
+    "Bean Achievement",
+    "Expression Style",
+    "Taste Zone",
+    "Include in Analysis",
+  ]) {
+    assert.match(source, new RegExp(requiredText));
+  }
 });
 
 test("API response shaping excludes internal evidence fields", () => {

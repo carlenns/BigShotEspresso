@@ -30,6 +30,35 @@ import { toShotApi } from "../lib/api-shapes";
 
 const router: IRouter = Router();
 
+function calculatedRatio(dose: number | null | undefined, output: number | null | undefined): string | null {
+  if (dose == null || output == null || Number(dose) <= 0 || Number(output) <= 0) return null;
+  return (Math.round((Number(output) / Number(dose)) * 100) / 100).toFixed(2);
+}
+
+function normalizeShotInput<T extends Partial<InsertShot>>(data: T): T {
+  const normalized: T = { ...data };
+
+  if (normalized.signatureShot === true) normalized.isReference = true;
+  if (normalized.isReference === false) normalized.signatureShot = false;
+
+  if (normalized.ratio == null || normalized.ratio === "") {
+    const ratio = calculatedRatio(normalized.dose, normalized.yield);
+    if (ratio != null) normalized.ratio = ratio;
+  }
+
+  return normalized;
+}
+
+function validateRatings(data: Partial<InsertShot>): string | null {
+  if (data.rating != null && Number(data.rating) > 10) {
+    return "Technical rating cannot exceed 10.";
+  }
+  if (data.preferenceRating != null && Number(data.preferenceRating) > 11) {
+    return "Preference rating cannot exceed 11.";
+  }
+  return null;
+}
+
 // --- GET /shots/reference (must be before /:id) ---
 router.get("/shots/reference", async (req, res): Promise<void> => {
   const params = ListReferenceShotsQueryParams.safeParse(req.query);
@@ -274,8 +303,14 @@ router.post("/shots", async (req, res): Promise<void> => {
     res.status(400).json({ error: "shotDate is required" });
     return;
   }
-  const { scaleTime: _scaleTime, ...data } = parsed.data;
-  const shot = await db.insert(shotsTable).values({ ...data, shotDate: parsed.data.shotDate }).returning();
+  const { scaleTime: _scaleTime, ...parsedData } = parsed.data;
+  const data = normalizeShotInput({ ...parsedData, shotDate: parsed.data.shotDate });
+  const ratingError = validateRatings(data);
+  if (ratingError) {
+    res.status(400).json({ error: ratingError });
+    return;
+  }
+  const shot = await db.insert(shotsTable).values(data).returning();
   res.status(201).json(toShotApi(shot[0]!));
 });
 
@@ -341,7 +376,13 @@ router.patch("/shots/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: body.error.message });
     return;
   }
-  const { scaleTime: _scaleTime, ...data } = body.data;
+  const { scaleTime: _scaleTime, ...parsedData } = body.data;
+  const data = normalizeShotInput(parsedData);
+  const ratingError = validateRatings(data);
+  if (ratingError) {
+    res.status(400).json({ error: ratingError });
+    return;
+  }
   const shot = await db.update(shotsTable).set(data).where(eq(shotsTable.id, Number(params.data.id))).returning();
   if (!shot[0]) { res.status(404).json({ error: "Shot not found" }); return; }
   res.json(toShotApi(shot[0]));

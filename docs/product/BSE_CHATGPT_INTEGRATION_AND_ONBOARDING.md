@@ -68,6 +68,8 @@ BSE should teach users to log observations as a repeatable experiment while rema
 - Record mechanical conditions before attributing variation to operator inconsistency.
 - Preserve faults, interruptions, and unusual shots as evidence, while using explicit eligibility fields to control serious analysis.
 - Separate sensory observations from mechanical measurements and capture taste evolution as the shot cools when useful.
+- Keep `Rating` and `Preference Rating` conceptually separate. `Rating` is the technical/extraction score and is capped at 10. `Preference Rating` is the user's personal enjoyment score and may reach 11 only for rare, once-in-a-blue-moon benchmark shots that exceed the ordinary scale.
+- Explain that a Signature Shot is extraordinary and must also be a Reference Shot; a Reference Shot is not automatically a Signature Shot.
 - Change one important variable at a time when the user's goal is causal learning, while still supporting real-world multi-variable sessions.
 - Mark unknowns as unknown; do not infer missing measurements or selector values.
 
@@ -107,23 +109,33 @@ The user creates a BSE account, reviews the data and privacy model, and identifi
 
 The user records the machine, grinder, basket conventions, and other approved defaults. BSE validates these fields. The assistant may explain them, but must not invent unknown specifications.
 
-### 3. Teach the minimum viable logging protocol
+### 3. Teach scoring semantics
+
+BSE onboarding must teach the difference between technical quality and personal preference:
+
+- `Rating` means technical/extraction quality and is capped at 10.
+- `Preference Rating` means personal enjoyment and is capped at 11.
+- `11` is intentionally available only for the rare shot that feels over the top, personally exceptional, or benchmark-setting.
+- Preference scores above 10 must not be treated as universal technical superiority in DCI, OSI, HMI, MSI, BLI, or GSP.
+- Coffee AI responses must preserve this distinction and avoid normalizing an 11-point preference score back into a 10-point technical rating.
+
+### 4. Teach the minimum viable logging protocol
 
 Use a short guided example to distinguish initial output, actual basket dose, corrections, yield, timing, faults, and sensory notes. Explain why timestamps, hopper state, and cooling observations matter.
 
-### 4. Log a first guided shot
+### 5. Log a first guided shot
 
 ChatGPT can gather observations conversationally and prepare a complete proposed record. The user reviews any assumptions, calculations, and unknowns before a supported write. BSE performs final validation and returns the stored and calculated result.
 
-### 5. Connect ChatGPT optionally
+### 6. Connect ChatGPT optionally
 
 If an approved BSE app/connector is available, the user authenticates directly and grants the smallest useful permissions. Onboarding explains which data ChatGPT can retrieve and which actions it can request.
 
-### 6. Deliver an early evidence-backed insight
+### 7. Deliver an early evidence-backed insight
 
 After sufficient eligible data exists, BSE supplies a small, explainable result—for example, a comparable historical shot or a detected logging gap. Sparse evidence must produce “insufficient evidence,” not a fabricated recommendation.
 
-### 7. Introduce advanced research progressively
+### 8. Introduce advanced research progressively
 
 Hopper mechanics, lifecycle analysis, exception analysis, prediction, and community contribution appear only when the roadmap, evidence, and user readiness support them.
 

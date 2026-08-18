@@ -176,6 +176,7 @@ export const CreateShotBody = zod.object({
   "doseCorrectionType": zod.string().optional(),
   "doseCorrection": zod.number().nullish(),
   "yield": zod.number().nullish(),
+  "ratio": zod.string().nullish(),
   "temperature": zod.number().nullish(),
   "pourDelay": zod.number().nullish(),
   "pourTime": zod.number().nullish(),
@@ -363,6 +364,7 @@ export const UpdateShotBody = zod.object({
   "doseCorrectionType": zod.string().optional(),
   "doseCorrection": zod.number().nullish(),
   "yield": zod.number().nullish(),
+  "ratio": zod.string().nullish(),
   "temperature": zod.number().nullish(),
   "pourDelay": zod.number().nullish(),
   "pourTime": zod.number().nullish(),
@@ -1095,5 +1097,4 @@ export const ImportHopperRangeBaselinesCsvResponse = zod.object({
   "skipped": zod.number(),
   "errors": zod.array(zod.string())
 })
-
 

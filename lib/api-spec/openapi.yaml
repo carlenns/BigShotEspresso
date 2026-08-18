@@ -499,8 +499,8 @@ components:
         pourDelay: { type: ["integer", "null"] }
         pourTime: { type: ["integer", "null"] }
         flowTime: { type: ["integer", "null"] }
-        rating: { type: ["number", "null"] }
-        preferenceRating: { type: ["number", "null"] }
+        rating: { type: ["number", "null"], maximum: 10, description: "Technical/extraction rating. Capped at 10." }
+        preferenceRating: { type: ["number", "null"], maximum: 11, description: "Personal enjoyment score. Capped at 11 for rare benchmark shots." }
         ratingDifference: { type: ["number", "null"], readOnly: true }
         avgWeightedRating: { type: ["number", "null"], readOnly: true }
         rated: { type: ["boolean", "null"] }
@@ -606,6 +606,7 @@ components:
         doseCorrectionType: { type: string }
         doseCorrection: { type: ["number", "null"] }
         yield: { type: ["number", "null"] }
+        ratio: { type: ["string", "null"], readOnly: true, description: "Calculated as yield divided by dose when dose and yield are present." }
         temperature: { type: ["integer", "null"] }
         pourDelay: { type: ["integer", "null"] }
         pourTime: { type: ["integer", "null"] }

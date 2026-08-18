@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-import { ArrowLeft, Trash2, Edit, Copy, Star } from "lucide-react";
+import { ArrowLeft, Trash2, Star } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -82,7 +82,15 @@ export default function ShotDetail() {
             <DetailItem label="Time" value={`${shot.pourTime}s`} />
             <DetailItem label="Temp" value={shot.temperature ? `${shot.temperature}°C` : "-"} />
             <DetailItem label="Ratio" value={shot.ratio || "-"} />
+            <DetailItem label="Flow Time" value={shot.flowTime != null ? `${shot.flowTime}s` : "-"} />
+            <DetailItem label="First Pour Delay" value={shot.pourDelay != null ? `${shot.pourDelay}s` : "-"} />
             <DetailItem label="Status" value={shot.status || "-"} />
+            <DetailItem label="Include in Analysis" value={shot.includeInAnalysis ? "Yes" : "No"} />
+            <DetailItem label="Fault Status" value={<ChipList values={shot.faultStatus} />} />
+            <DetailItem label="Shot Classification" value={<ChipList values={shot.shotClassification} />} />
+            <DetailItem label="Bean Achievement" value={<ChipList values={shot.beanAchievement} />} />
+            <DetailItem label="Expression Style" value={<ChipList values={shot.expressionStyle} />} />
+            <DetailItem label="Taste Zone" value={shot.tasteZone || shot.zone || "-"} />
             <div className="col-span-2 sm:col-span-4 mt-4">
               <p className="text-sm font-medium text-muted-foreground mb-1">Notes</p>
               <p className="text-sm bg-muted/30 p-3 rounded-md">{shot.notes || "No notes recorded."}</p>
@@ -99,10 +107,27 @@ export default function ShotDetail() {
               {shot.rating || "-"}
             </div>
             <p className="text-sm text-muted-foreground flex items-center">
-              <Star className="h-4 w-4 mr-1 text-yellow-500 fill-current" /> Rating out of 10
+              <Star className="h-4 w-4 mr-1 text-yellow-500 fill-current" /> Technical rating out of 10
             </p>
+            <div className="mt-5 text-center">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Preference Rating</p>
+              <p className="text-2xl font-semibold font-serif">
+                {shot.preferenceRating != null ? shot.preferenceRating : "—"}
+                {shot.preferenceRating != null && Number(shot.preferenceRating) > 10 && (
+                  <span className="ml-1 text-primary">/11</span>
+                )}
+              </p>
+              <p className="text-xs text-muted-foreground max-w-52">
+                Personal score. 11 is reserved for rare, over-the-top benchmark shots.
+              </p>
+            </div>
+            {shot.signatureShot && (
+              <div className="mt-6 bg-amber-100 text-amber-800 px-4 py-2 rounded-full text-sm font-medium">
+                Signature Shot
+              </div>
+            )}
             {shot.isReference && (
-              <div className="mt-6 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
+              <div className="mt-3 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
                 Reference Shot
               </div>
             )}
@@ -144,5 +169,18 @@ function DetailItem({ label, value }: { label: string, value: React.ReactNode })
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
       <p className="font-mono text-lg">{value}</p>
     </div>
+  );
+}
+
+function ChipList({ values }: { values?: string[] | null }) {
+  if (!values || values.length === 0) return <>-</>;
+  return (
+    <span className="flex flex-wrap gap-1">
+      {values.map((value) => (
+        <span key={value} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-sans text-primary">
+          {value}
+        </span>
+      ))}
+    </span>
   );
 }

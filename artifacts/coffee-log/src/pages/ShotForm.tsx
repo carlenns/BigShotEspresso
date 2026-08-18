@@ -53,7 +53,7 @@ const formSchema = z.object({
   flowTime: z.coerce.number().optional(),
   temperature: z.coerce.number().optional(),
   rating: z.number().min(0).max(10).optional(),
-  preferenceRating: z.number().min(0).max(10).optional(),
+  preferenceRating: z.number().min(0).max(11).optional(),
   // Shot Evaluation
   status: z.string().optional(),
   faultStatus: z.array(z.string()).optional(),
@@ -309,17 +309,20 @@ export default function ShotForm() {
                     <span>Preference Rating <span className="text-muted-foreground text-xs font-normal">optional</span></span>
                     {field.value != null && <span className="font-bold tabular-nums">{field.value.toFixed(2)}</span>}
                   </FormLabel>
+                  <p className="text-xs text-muted-foreground">
+                    Personal preference can reach 11 for a rare once-in-a-blue-moon shot. Technical rating stays capped at 10.
+                  </p>
                   <div className="flex gap-3 items-center">
                     <FormControl>
                       <Slider
-                        min={0} max={10} step={0.05}
+                        min={0} max={11} step={0.05}
                         value={[field.value ?? 0]}
                         onValueChange={(v) => field.onChange(Math.round(v[0] * 100) / 100)}
                         className="flex-1"
                       />
                     </FormControl>
                     <Input
-                      type="number" min={0} max={10} step={0.01}
+                      type="number" min={0} max={11} step={0.01}
                       value={field.value ?? ""}
                       onChange={(e) => { const v = e.target.value === "" ? undefined : parseFloat(e.target.value); field.onChange(v); }}
                       className="w-20 text-right tabular-nums"
