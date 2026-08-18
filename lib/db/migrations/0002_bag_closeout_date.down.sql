@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE bags
+  DROP COLUMN IF EXISTS closed_out_date;
+
+COMMIT;

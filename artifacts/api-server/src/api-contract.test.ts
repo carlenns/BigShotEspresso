@@ -72,6 +72,23 @@ test("Shot detail exposes evaluation fields that affect interpretation", async (
   }
 });
 
+test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {
+  const [appSource, formSource, detailSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  assert.match(appSource, /path="\/shots\/:id\/edit"/);
+  assert.match(detailSource, /href=\{`\/shots\/\$\{id\}\/edit`\}/);
+  assert.match(formSource, /useUpdateShot/);
+  assert.match(formSource, /tasteZoneOptions/);
+  assert.match(formSource, /FormLabel>Taste Zone/);
+  assert.match(formSource, /const activeBags = bags\.filter\(\(b\) => b\.isActive\)/);
+  assert.match(formSource, /const visibleBags = showPreviousBags \? bags : activeBags/);
+  assert.match(formSource, /Show previous bags/);
+});
+
 test("API response shaping excludes internal evidence fields", () => {
   const response = toShotApi({
     id: 1,

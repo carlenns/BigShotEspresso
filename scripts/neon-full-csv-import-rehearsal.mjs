@@ -180,8 +180,13 @@ async function resetAndBootstrap(client) {
     path.join(root, "lib/db/migrations/0001_phase1_data_foundation.sql"),
     "utf8",
   );
+  const bagCloseout = await readFile(
+    path.join(root, "lib/db/migrations/0002_bag_closeout_date.sql"),
+    "utf8",
+  );
   await client.query(bootstrap);
   await client.query(phase1);
+  await client.query(bagCloseout);
 }
 
 async function seedBeansAndBags(client, exportDir) {
@@ -220,10 +225,10 @@ async function seedBeansAndBags(client, exportDir) {
     await client.query(
       `insert into bags (
         bean_id, bag_number, bag_name, purchase_date, roast_date, opened_date,
-        bag_weight, remaining_estimate, cost, is_active, start_grind_setting,
+        closed_out_date, bag_weight, remaining_estimate, cost, is_active, start_grind_setting,
         current_grind_setting, default_dose, default_yield, dial_in_notes, notes
       )
-      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
       [
         beanId,
         str(bag["Bag ID"]),
@@ -231,6 +236,7 @@ async function seedBeansAndBags(client, exportDir) {
         str(bag["Bag Purchased Date"]),
         str(bag["Roast Date Used"]) ?? str(bag["Actual Roast Date"]) ?? str(bag["Estimated Roast Date"]),
         str(bag["Opened Date"]),
+        str(bag["End Date"]),
         num(bag["Bag Size (g)"]),
         null,
         num(bag["Bag Cost"]),

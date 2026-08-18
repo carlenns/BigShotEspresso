@@ -177,7 +177,24 @@ test("CSV-seeded Beans and Bags are visible without Airtable record IDs", async 
   );
   assert.match(
     bagsSource,
-    /currentGrindSetting: statsMap\.get\(b\.id\)\?\.latestGrind \?\? b\.currentGrindSetting/,
+    /currentGrindSetting: bagStats\?\.latestGrind \?\? b\.currentGrindSetting/,
     "Bags list response must expose latest-shot current grind when available",
   );
+  assert.match(
+    bagsSource,
+    /closedOutDate = !b\.isActive \? b\.closedOutDate \?\? bagStats\?\.latestShotDate \?\? null : null/,
+    "Bags list must prefer stored closeout date before falling back to latest eligible shot date",
+  );
+  assert.match(
+    bagsSource,
+    /daysSinceClosedOut/,
+    "Bags list response must expose days since an inactive bag was closed out",
+  );
+
+  const bagsPageSource = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
+    "utf8",
+  );
+  assert.match(bagsPageSource, /Closed \{bag\.daysSinceClosedOut\}d ago/);
+  assert.match(bagsPageSource, /Closed: \{bag\.closedOutDate\.slice\(0, 10\)\}/);
 });

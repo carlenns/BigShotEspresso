@@ -12,6 +12,14 @@ const rollbackMigrationUrl = new URL(
   "../../../lib/db/migrations/0001_phase1_data_foundation.down.sql",
   import.meta.url,
 );
+const bagCloseoutMigrationUrl = new URL(
+  "../../../lib/db/migrations/0002_bag_closeout_date.sql",
+  import.meta.url,
+);
+const bagCloseoutRollbackUrl = new URL(
+  "../../../lib/db/migrations/0002_bag_closeout_date.down.sql",
+  import.meta.url,
+);
 
 async function loadMigration(url: URL): Promise<string> {
   return readFile(fileURLToPath(url), "utf8");
@@ -69,9 +77,13 @@ test("Phase 1 migration applies, is repeatable, and rolls back without losing le
 
   const forward = await loadMigration(forwardMigrationUrl);
   const rollback = await loadMigration(rollbackMigrationUrl);
+  const bagCloseout = await loadMigration(bagCloseoutMigrationUrl);
+  const bagCloseoutRollback = await loadMigration(bagCloseoutRollbackUrl);
 
   await db.exec(forward);
+  await db.exec(bagCloseout);
   await db.exec(forward);
+  await db.exec(bagCloseout);
 
   const migrated = await db.query<{
     flow_time: number;
@@ -133,7 +145,17 @@ test("Phase 1 migration applies, is repeatable, and rolls back without losing le
   `);
   assert.equal(indexes.rows.length, 4);
 
+  const closeoutColumn = await db.query<{ column_name: string }>(`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_name = 'bags'
+      AND column_name = 'closed_out_date'
+  `);
+  assert.equal(closeoutColumn.rows[0]?.column_name, "closed_out_date");
+
+  await db.exec(bagCloseoutRollback);
   await db.exec(rollback);
+  await db.exec(bagCloseoutRollback);
   await db.exec(rollback);
 
   const restored = await db.query<{

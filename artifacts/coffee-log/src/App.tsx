@@ -29,6 +29,7 @@ function Router() {
         <Route path="/shots" component={ShotList} />
         <Route path="/shots/quick" component={QuickLog} />
         <Route path="/shots/new" component={ShotForm} />
+        <Route path="/shots/:id/edit" component={ShotForm} />
         <Route path="/shots/:id" component={ShotDetail} />
         <Route path="/reference" component={ReferenceShots} />
         <Route path="/beans" component={Beans} />

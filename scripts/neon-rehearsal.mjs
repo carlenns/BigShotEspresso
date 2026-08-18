@@ -106,8 +106,16 @@ async function main() {
     path.join(root, "lib/db/migrations/0001_phase1_data_foundation.sql"),
     "utf8",
   );
+  const closeoutForward = await readFile(
+    path.join(root, "lib/db/migrations/0002_bag_closeout_date.sql"),
+    "utf8",
+  );
   const rollback = await readFile(
     path.join(root, "lib/db/migrations/0001_phase1_data_foundation.down.sql"),
+    "utf8",
+  );
+  const closeoutRollback = await readFile(
+    path.join(root, "lib/db/migrations/0002_bag_closeout_date.down.sql"),
     "utf8",
   );
 
@@ -166,7 +174,9 @@ async function main() {
   `);
 
   await client.query(forward);
+  await client.query(closeoutForward);
   await client.query(forward);
+  await client.query(closeoutForward);
 
   const migrated = await client.query(`
     select
@@ -199,7 +209,9 @@ async function main() {
     returning include_in_analysis
   `);
 
+  await client.query(closeoutRollback);
   await client.query(rollback);
+  await client.query(closeoutRollback);
   await client.query(rollback);
 
   const restored = await client.query(`
@@ -214,6 +226,7 @@ async function main() {
   `);
 
   await client.query(forward);
+  await client.query(closeoutForward);
 
   const hopperCsv = await readFile(
     path.join(root, "artifacts/api-server/test-fixtures/csv/Hopper-Grid view.csv"),

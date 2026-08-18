@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS bags (
   purchase_date text,
   roast_date text,
   opened_date text,
+  closed_out_date text,
   bag_weight real,
   remaining_estimate real,
   cost real,

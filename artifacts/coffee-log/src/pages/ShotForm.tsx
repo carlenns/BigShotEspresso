@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useRoute } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -13,7 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save } from "lucide-react";
-import { useCreateShot, getListShotsQueryKey, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
+import {
+  useCreateShot,
+  useGetShot,
+  useUpdateShot,
+  getListShotsQueryKey,
+  getGetDashboardSummaryQueryKey,
+  getGetShotQueryKey,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
@@ -35,6 +42,13 @@ function fetchTasteSelectors(): Promise<TasteSelector[]> { return fetch("/api/ta
 
 function nowDateTimeLocal(): string {
   const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function toDateTimeLocal(value: string): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return nowDateTimeLocal();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
@@ -63,28 +77,42 @@ const formSchema = z.object({
   expressionStyle: z.array(z.string()).optional(),
   beanAchievement: z.array(z.string()).optional(),
   shotClassification: z.array(z.string()).optional(),
+  tasteZone: z.string().optional(),
   includeInAnalysis: z.boolean().default(true),
   notes: z.string().optional(),
   sensoryNotes: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
+type ShotMutationResult = { id?: number };
 
 export default function ShotForm() {
+  const [, params] = useRoute("/shots/:id/edit");
+  const editingId = params?.id ? Number(params.id) : null;
+  const isEditing = Number.isFinite(editingId);
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const createShot = useCreateShot();
+  const updateShot = useUpdateShot();
   const [selectedTastes, setSelectedTastes] = useState<number[]>([]);
+  const [showPreviousBags, setShowPreviousBags] = useState(false);
 
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: tasteSelectors = [] } = useQuery({ queryKey: ["taste-selectors"], queryFn: fetchTasteSelectors });
   const { data: selectorOpts } = useQuery({ queryKey: ["selector-options"], queryFn: fetchSelectorOptions });
+  const { data: existingShot } = useGetShot(editingId ?? 0, {
+    query: {
+      enabled: isEditing && !!editingId,
+      queryKey: editingId ? getGetShotQueryKey(editingId) : ["shot", "disabled"],
+    },
+  });
 
   const statusOptions = selectorOpts?.status ?? [];
   const faultStatusOptions = selectorOpts?.faultStatus ?? [];
   const expressionStyleOptions = selectorOpts?.expressionStyle ?? [];
   const beanAchievementOptions = selectorOpts?.beanAchievement ?? [];
+  const tasteZoneOptions = ["Center", "Sour", "Bitter", "Weak", "Harsh", "Flat", "Outside"];
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -101,14 +129,48 @@ export default function ShotForm() {
       expressionStyle: [],
       beanAchievement: [],
       shotClassification: [],
+      tasteZone: undefined,
       includeInAnalysis: true,
     },
   });
 
   const selectedBagId = form.watch("bagId");
 
+  useEffect(() => {
+    if (!existingShot || !isEditing) return;
+    form.reset({
+      shotDate: existingShot.shotDate ? toDateTimeLocal(existingShot.shotDate) : nowDateTimeLocal(),
+      bagId: existingShot.bagId ?? undefined,
+      bean: existingShot.bean ?? undefined,
+      bag: existingShot.bag ?? undefined,
+      grindSetting: existingShot.grindSetting ?? undefined,
+      grindTime: existingShot.grindTime ?? undefined,
+      dose: existingShot.dose ?? undefined,
+      yield: existingShot.yield ?? undefined,
+      pourDelay: existingShot.pourDelay ?? undefined,
+      pourTime: existingShot.pourTime ?? undefined,
+      flowTime: existingShot.flowTime ?? undefined,
+      temperature: existingShot.temperature ?? undefined,
+      rating: existingShot.rating ?? undefined,
+      preferenceRating: existingShot.preferenceRating ?? undefined,
+      status: existingShot.status ?? undefined,
+      faultStatus: existingShot.faultStatus ?? [],
+      isReference: existingShot.isReference ?? false,
+      signatureShot: existingShot.signatureShot ?? false,
+      sourShot: existingShot.sourShot ?? false,
+      expressionStyle: existingShot.expressionStyle ?? [],
+      beanAchievement: existingShot.beanAchievement ?? [],
+      shotClassification: existingShot.shotClassification ?? [],
+      tasteZone: existingShot.tasteZone ?? undefined,
+      includeInAnalysis: existingShot.includeInAnalysis ?? true,
+      notes: existingShot.notes ?? undefined,
+      sensoryNotes: existingShot.sensoryNotes ?? undefined,
+    });
+  }, [existingShot, isEditing, form]);
+
   // Auto-fill from bag selection
   useEffect(() => {
+    if (isEditing) return;
     if (!selectedBagId) return;
     const bag = bags.find((b) => b.id === Number(selectedBagId));
     if (!bag) return;
@@ -124,8 +186,8 @@ export default function ShotForm() {
   const toggleTaste = (id: number) => setSelectedTastes((prev) => prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]);
 
   const onSubmit = async (values: FormValues) => {
-    createShot.mutate({ data: values }, {
-      onSuccess: async (data) => {
+    const handlers = {
+      onSuccess: async (data: ShotMutationResult) => {
         if (selectedTastes.length > 0 && data.id) {
           await fetch(`/api/shots/${data.id}/taste-selectors`, {
             method: "PUT",
@@ -133,18 +195,25 @@ export default function ShotForm() {
             body: JSON.stringify({ ids: selectedTastes }),
           });
         }
-        toast({ title: "Shot logged" });
+        toast({ title: isEditing ? "Shot updated" : "Shot logged" });
         queryClient.invalidateQueries({ queryKey: getListShotsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+        if (data.id) queryClient.invalidateQueries({ queryKey: getGetShotQueryKey(data.id) });
         setLocation(`/shots/${data.id}`);
       },
-      onError: () => toast({ title: "Failed to log shot", variant: "destructive" }),
-    });
+      onError: () => toast({ title: isEditing ? "Failed to update shot" : "Failed to log shot", variant: "destructive" }),
+    };
+
+    if (isEditing && editingId) updateShot.mutate({ id: editingId, data: values }, handlers);
+    else createShot.mutate({ data: values }, handlers);
   };
 
   const ratingVal = form.watch("rating") ?? 7;
   const activeBagId = form.watch("bagId");
-  const activeBag = bags.find((b) => b.isActive);
+  const activeBags = bags.filter((b) => b.isActive);
+  const previousBags = bags.filter((b) => !b.isActive);
+  const visibleBags = showPreviousBags ? bags : activeBags;
+  const saving = createShot.isPending || updateShot.isPending;
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6 animate-in fade-in duration-300">
@@ -153,8 +222,8 @@ export default function ShotForm() {
           <Link href="/shots"><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold font-serif">Log New Shot</h1>
-          <p className="text-sm text-muted-foreground">BigShotEspresso</p>
+          <h1 className="text-2xl font-bold font-serif">{isEditing ? "Edit Shot" : "Log New Shot"}</h1>
+          <p className="text-sm text-muted-foreground">{isEditing ? "Update saved shot details" : "BigShotEspresso"}</p>
         </div>
       </div>
 
@@ -190,7 +259,7 @@ export default function ShotForm() {
                   >
                     No bag
                   </button>
-                  {bags.map((bag) => (
+                  {visibleBags.map((bag) => (
                     <button
                       type="button"
                       key={bag.id}
@@ -202,6 +271,17 @@ export default function ShotForm() {
                     </button>
                   ))}
                 </div>
+                {previousBags.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto px-0 text-xs"
+                    onClick={() => setShowPreviousBags((v) => !v)}
+                  >
+                    {showPreviousBags ? "Hide previous bags" : `Show previous bags (${previousBags.length})`}
+                  </Button>
+                )}
                 {activeBagId && (() => {
                   const b = bags.find((b) => b.id === activeBagId);
                   return b?.dialInNotes ? <p className="text-xs text-muted-foreground italic">Dial-in note: {b.dialInNotes}</p> : null;
@@ -354,6 +434,20 @@ export default function ShotForm() {
                   </div>
                 </div>
               )}
+
+              <FormField control={form.control} name="tasteZone" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Taste Zone</FormLabel>
+                  <Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={field.value ?? "__none__"}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Select taste zone…" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      <SelectItem value="__none__">— not set —</SelectItem>
+                      {tasteZoneOptions.map((zone) => <SelectItem key={zone} value={zone}>{zone}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
               <FormField control={form.control} name="sensoryNotes" render={({ field }) => (
                 <FormItem>
@@ -519,11 +613,11 @@ export default function ShotForm() {
           {/* Submit */}
           <div className="flex justify-end gap-4">
             <Button variant="outline" type="button" asChild>
-              <Link href="/shots">Cancel</Link>
+              <Link href={isEditing && editingId ? `/shots/${editingId}` : "/shots"}>Cancel</Link>
             </Button>
-            <Button type="submit" disabled={createShot.isPending} className="gap-2">
+            <Button type="submit" disabled={saving} className="gap-2">
               <Save className="h-4 w-4" />
-              {createShot.isPending ? "Saving…" : "Save Shot"}
+              {saving ? "Saving…" : isEditing ? "Update Shot" : "Save Shot"}
             </Button>
           </div>
         </form>

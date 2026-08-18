@@ -11,6 +11,7 @@ export const bagsTable = pgTable("bags", {
   purchaseDate: text("purchase_date"),
   roastDate: text("roast_date"),
   openedDate: text("opened_date"),
+  closedOutDate: text("closed_out_date"),
   bagWeight: real("bag_weight"),
   remainingEstimate: real("remaining_estimate"),
   cost: real("cost"),

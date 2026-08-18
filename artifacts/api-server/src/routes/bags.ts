@@ -16,6 +16,7 @@ router.get("/bags", async (_req, res): Promise<void> => {
       purchaseDate: bagsTable.purchaseDate,
       roastDate: bagsTable.roastDate,
       openedDate: bagsTable.openedDate,
+      closedOutDate: bagsTable.closedOutDate,
       bagWeight: bagsTable.bagWeight,
       remainingEstimate: bagsTable.remainingEstimate,
       cost: bagsTable.cost,
@@ -44,20 +45,32 @@ router.get("/bags", async (_req, res): Promise<void> => {
       minGrind: sql<number | null>`min(${shotsTable.grindSetting})`,
       maxGrind: sql<number | null>`max(${shotsTable.grindSetting})`,
       latestGrind: sql<number | null>`(array_agg(${shotsTable.grindSetting} ORDER BY ${shotsTable.shotDate} DESC NULLS LAST))[1]`,
+      latestShotDate: sql<string | null>`max(${shotsTable.shotDate})`,
     })
     .from(shotsTable)
     .where(and(isNotNull(shotsTable.bagId), ...eligibleShotConditions))
     .groupBy(shotsTable.bagId);
 
   const statsMap = new Map(stats.map((s) => [s.bagId, s]));
-  res.json(bags.map((b) => ({
-    ...b,
-    currentGrindSetting: statsMap.get(b.id)?.latestGrind ?? b.currentGrindSetting,
-    shotCount: statsMap.get(b.id)?.shotCount ?? 0,
-    referenceCount: statsMap.get(b.id)?.referenceCount ?? 0,
-    avgRating: statsMap.get(b.id)?.avgRating ?? null,
-    grindRange: statsMap.get(b.id) ? { min: statsMap.get(b.id)!.minGrind, max: statsMap.get(b.id)!.maxGrind } : null,
-  })));
+  res.json(bags.map((b) => {
+    const bagStats = statsMap.get(b.id);
+    const closedOutDate = !b.isActive ? b.closedOutDate ?? bagStats?.latestShotDate ?? null : null;
+    const closedOutAt = closedOutDate ? new Date(closedOutDate) : null;
+    const daysSinceClosedOut = closedOutAt && !Number.isNaN(closedOutAt.getTime())
+      ? Math.max(0, Math.floor((Date.now() - closedOutAt.getTime()) / 86_400_000))
+      : null;
+
+    return {
+      ...b,
+      currentGrindSetting: bagStats?.latestGrind ?? b.currentGrindSetting,
+      shotCount: bagStats?.shotCount ?? 0,
+      referenceCount: bagStats?.referenceCount ?? 0,
+      avgRating: bagStats?.avgRating ?? null,
+      grindRange: bagStats ? { min: bagStats.minGrind, max: bagStats.maxGrind } : null,
+      closedOutDate,
+      daysSinceClosedOut,
+    };
+  }));
 });
 
 router.get("/bags/:id", async (req, res): Promise<void> => {
@@ -71,7 +84,8 @@ router.get("/bags/:id", async (req, res): Promise<void> => {
       beanRoastLevel: beansTable.roastLevel, beanProcess: beansTable.process,
       bagNumber: bagsTable.bagNumber, bagName: bagsTable.bagName,
       purchaseDate: bagsTable.purchaseDate, roastDate: bagsTable.roastDate,
-      openedDate: bagsTable.openedDate, bagWeight: bagsTable.bagWeight,
+      openedDate: bagsTable.openedDate, closedOutDate: bagsTable.closedOutDate,
+      bagWeight: bagsTable.bagWeight,
       remainingEstimate: bagsTable.remainingEstimate, cost: bagsTable.cost,
       isActive: bagsTable.isActive,
       startGrindSetting: bagsTable.startGrindSetting, currentGrindSetting: bagsTable.currentGrindSetting,
@@ -127,6 +141,7 @@ const parseBagBody = (body: Record<string, unknown>) => ({
   purchaseDate: body.purchaseDate as string | undefined,
   roastDate: body.roastDate as string | undefined,
   openedDate: body.openedDate as string | undefined,
+  closedOutDate: body.closedOutDate as string | undefined,
   bagWeight: body.bagWeight != null ? Number(body.bagWeight) : undefined,
   remainingEstimate: body.remainingEstimate != null ? Number(body.remainingEstimate) : undefined,
   cost: body.cost != null ? Number(body.cost) : undefined,

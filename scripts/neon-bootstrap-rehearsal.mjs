@@ -126,10 +126,15 @@ async function main() {
     path.join(root, "lib/db/migrations/0001_phase1_data_foundation.sql"),
     "utf8",
   );
+  const bagCloseout = await readFile(
+    path.join(root, "lib/db/migrations/0002_bag_closeout_date.sql"),
+    "utf8",
+  );
 
   await client.query(bootstrap);
   await client.query(bootstrap);
   await client.query(phase1);
+  await client.query(bagCloseout);
 
   const tables = await client.query(
     "select table_name from information_schema.tables where table_schema = $1 order by table_name",
