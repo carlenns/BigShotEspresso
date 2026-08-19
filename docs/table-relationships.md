@@ -67,8 +67,11 @@ The Hopper table is a state-tracking ledger supporting HMI, DCI, and OSI—not a
    - Maintenance, purge, refill, and reconciliation events remain in the state history even when excluded from extraction analytics.
 
 4. **Phase transition**
-   - `Hopper Phase` values observed: Phase 1, Phase 2, Phase 3, End of Bag, Grinder Cleanout.
-   - A transition may create a new Hopper state or change the current state; the exact Airtable automation/manual rule is not present in the exports and remains unresolved.
+   - `Hopper Phase` values observed or approved: Phase 1, Phase 2, Phase 3, End of Bag, Single Bag Phase, Grinder Cleanout.
+   - A phase is a measured operating window, not necessarily the total physical beans present in the hopper.
+   - When the user resets to a new phase, the newly added measurable quantity becomes the phase baseline. Unmeasured leftover beans may be intentionally ignored when the user cannot accurately count them.
+   - For large bags, users commonly may use Phase 1, Phase 2, Phase 3, and End of Bag. For small bags, `Single Bag Phase` means the entire bag is treated as one tracked phase.
+   - A transition may create a new Hopper state or change the current state; the app must preserve explicit user phase selection and must not infer unmeasured leftover inventory.
 
 5. **Close/reconcile**
    - End the state when the hopper is emptied, reconciled, cleaned, or superseded.
@@ -76,7 +79,16 @@ The Hopper table is a state-tracking ledger supporting HMI, DCI, and OSI—not a
 
 ### Hopper percentage
 
-Confirmed fields are `Starting Beans (g)`, `Hopper Mass (g)`, and `Hopper %`. The exports do not expose the Airtable formula, so the denominator must not be invented. Likely interpretations include current mass divided by hopper capacity or current state starting mass. Formula inspection is required.
+Confirmed fields are `Starting Beans (g)`, `Hopper Mass (g)`, and `Hopper %`. Going forward, hopper percentage should be based on the active measured phase baseline, not assumed whole-bag inventory.
+
+The grinder/accessory model should include:
+
+- `Hopper Size` or `Hopper Capacity`, describing the physical grinder hopper capacity.
+- `Preferred Hopper Phase Fill Amount`, describing how much the user normally adds for a tracked phase.
+
+The preferred phase fill amount is user-configurable. For example, a 1kg-bag workflow may use 300g phases, while another user may choose 250g phases. The phase fill amount becomes the denominator for phase percentage unless a specific fill/reconciliation event supplies a different measured baseline.
+
+The app may check the selected phase fill amount against estimated bag remaining, but it must ask the user to confirm or adjust rather than silently changing the phase. Bag-level remaining estimates are useful warnings; the active hopper phase is the operational source for current hopper mass when hopper tracking is enabled.
 
 ### Hopper baseline calculations
 
@@ -91,9 +103,8 @@ Shots receive the selected range baseline as `Baseline Unaided Output (g)`. `Bas
 
 ### Unresolved hopper assignment rules
 
-- Whether every fill creates a new Hopper record.
-- Whether a top-up continues the current record or starts a new phase.
-- Exact Hopper percentage denominator.
+- Whether every fill creates a new Hopper record or whether some fills update the active state.
+- Whether a top-up continues the current record or starts a new phase; the user should explicitly choose when a refill is a phase transition.
 - How Shot timestamps are assigned when states overlap.
 - Whether only one Hopper record may be Active.
 - How retention, purge, and reconciliation alter `Hopper Mass (g)`.

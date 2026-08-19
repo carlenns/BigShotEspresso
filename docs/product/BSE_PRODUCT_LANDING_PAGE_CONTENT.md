@@ -108,10 +108,12 @@ Launch concepts:
 
 - Hopper fill
 - Hopper top-up
+- Hopper phase selection, such as Phase 1, Phase 2, Phase 3, End of Bag, or Single Bag Phase
 - Hopper reconciliation
 - Hopper cleanout
 - Hopper-to-shot assignment
 - Hopper state linked to bag and shot history
+- Grinder/accessory hopper size and preferred phase fill amount
 
 The landing page should describe this simply. It should not promise predictive hopper intelligence until HMI is implemented and approved.
 

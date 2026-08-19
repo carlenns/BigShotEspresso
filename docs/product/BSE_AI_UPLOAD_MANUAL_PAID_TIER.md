@@ -142,6 +142,8 @@ Ask:
 - grinder name/brand/model
 - primary use
 - hopper-fed or single-dose
+- physical hopper size/capacity, if known
+- preferred hopper phase fill amount, if the user tracks hopper phases
 - timed dosing or manual
 - minimum timed pulse
 - increment size after the minimum pulse
@@ -281,6 +283,21 @@ Important events:
 - phase transition
 - cleanout
 - reconciliation
+
+Hopper phases are measured operating windows. Ask whether the user uses fixed phase amounts, such as 300g, 250g, or another quantity. Do not assume the physical hopper is full just because a phase starts.
+
+Approved phase labels include:
+
+- Phase 1
+- Phase 2
+- Phase 3
+- End of Bag
+- Single Bag Phase
+- Custom
+
+Use `Single Bag Phase` when a small bag or simple workflow treats the whole bag as one tracked phase.
+
+When the user starts a new phase, the newly added measurable quantity becomes the phase baseline. Any unmeasured leftover beans may be intentionally ignored if the user cannot accurately count them.
 
 Hopper state can matter because fullness may affect grinder output. Do not claim a hopper effect without evidence.
 

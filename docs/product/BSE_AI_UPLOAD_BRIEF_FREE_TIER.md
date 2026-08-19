@@ -68,6 +68,7 @@ Ask the user:
 14. Do you want each bag to default to that target dose?
 15. Do you use actual roast dates, estimated roast dates, or both?
 16. If roast date is estimated, how confident is the estimate?
+17. If you use a hopper, what is its capacity and do you use fixed phase fills such as 300g, 250g, End of Bag, or Single Bag Phase?
 
 ## Core setup concepts
 
