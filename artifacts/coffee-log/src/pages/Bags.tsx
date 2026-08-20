@@ -18,6 +18,9 @@ interface Bean { id: number; name: string; }
 interface Bag {
   id: number; beanId: number | null; beanName: string | null; bagNumber: string | null;
   bagName: string | null; purchaseDate: string | null; roastDate: string | null;
+  roastDateUsed: string | null; estimatedRoastWindow: string | null; actualRoastDate: string | null;
+  estimatedRoastDate: string | null; freshnessDatingMethod: string | null;
+  roastDateConfidence: string | null; roastDateNotes: string | null;
   openedDate: string | null; bagWeight: number | null; remainingEstimate: number | null;
   cost: number | null; isActive: boolean;
   startGrindSetting: number | null; currentGrindSetting: number | null;
@@ -31,6 +34,8 @@ interface Bag {
 
 function fetchBags(): Promise<Bag[]> { return fetch("/api/bags").then((r) => r.json()); }
 function fetchBeans(): Promise<Bean[]> { return fetch("/api/beans").then((r) => r.json()); }
+
+const ROAST_DATE_CONFIDENCE = ["Exact", "Estimated High", "Estimated Medium", "Estimated Low", "Unknown"];
 
 function todayDate(): string {
   const d = new Date();
@@ -47,12 +52,12 @@ export default function Bags() {
   const [editing, setEditing] = useState<Bag | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
 
-  const blankForm = () => ({ beanId: "", bagNumber: "", bagName: "", purchaseDate: "", roastDate: "", openedDate: "", closedOutDate: "", bagWeight: "", remainingEstimate: "", cost: "", isActive: "false", startGrindSetting: "", currentGrindSetting: "", startGrindTime: "", currentGrindTime: "", defaultDose: "", defaultYield: "", defaultTemp: "", dialInNotes: "", notes: "" });
+  const blankForm = () => ({ beanId: "", bagNumber: "", bagName: "", purchaseDate: "", roastDate: "", roastDateUsed: "", estimatedRoastWindow: "", actualRoastDate: "", estimatedRoastDate: "", freshnessDatingMethod: "", roastDateConfidence: "", roastDateNotes: "", openedDate: "", closedOutDate: "", bagWeight: "", remainingEstimate: "", cost: "", isActive: "false", startGrindSetting: "", currentGrindSetting: "", startGrindTime: "", currentGrindTime: "", defaultDose: "", defaultYield: "", defaultTemp: "", dialInNotes: "", notes: "" });
 
   const openNew = () => { setEditing(null); setForm(blankForm()); setOpen(true); };
   const openEdit = (b: Bag) => {
     setEditing(b);
-    setForm({ beanId: String(b.beanId ?? ""), bagNumber: b.bagNumber ?? "", bagName: b.bagName ?? "", purchaseDate: b.purchaseDate ?? "", roastDate: b.roastDate ?? "", openedDate: b.openedDate ?? "", closedOutDate: b.closedOutDate?.slice(0, 10) ?? "", bagWeight: String(b.bagWeight ?? ""), remainingEstimate: String(b.remainingEstimate ?? ""), cost: String(b.cost ?? ""), isActive: String(b.isActive), startGrindSetting: String(b.startGrindSetting ?? ""), currentGrindSetting: String(b.currentGrindSetting ?? ""), startGrindTime: String(b.startGrindTime ?? ""), currentGrindTime: String(b.currentGrindTime ?? ""), defaultDose: String(b.defaultDose ?? ""), defaultYield: String(b.defaultYield ?? ""), defaultTemp: String(b.defaultTemp ?? ""), dialInNotes: b.dialInNotes ?? "", notes: b.notes ?? "" });
+    setForm({ beanId: String(b.beanId ?? ""), bagNumber: b.bagNumber ?? "", bagName: b.bagName ?? "", purchaseDate: b.purchaseDate ?? "", roastDate: b.roastDate ?? "", roastDateUsed: b.roastDateUsed ?? "", estimatedRoastWindow: b.estimatedRoastWindow ?? "", actualRoastDate: b.actualRoastDate ?? "", estimatedRoastDate: b.estimatedRoastDate ?? "", freshnessDatingMethod: b.freshnessDatingMethod ?? "", roastDateConfidence: b.roastDateConfidence ?? "", roastDateNotes: b.roastDateNotes ?? "", openedDate: b.openedDate ?? "", closedOutDate: b.closedOutDate?.slice(0, 10) ?? "", bagWeight: String(b.bagWeight ?? ""), remainingEstimate: String(b.remainingEstimate ?? ""), cost: String(b.cost ?? ""), isActive: String(b.isActive), startGrindSetting: String(b.startGrindSetting ?? ""), currentGrindSetting: String(b.currentGrindSetting ?? ""), startGrindTime: String(b.startGrindTime ?? ""), currentGrindTime: String(b.currentGrindTime ?? ""), defaultDose: String(b.defaultDose ?? ""), defaultYield: String(b.defaultYield ?? ""), defaultTemp: String(b.defaultTemp ?? ""), dialInNotes: b.dialInNotes ?? "", notes: b.notes ?? "" });
     setOpen(true);
   };
 
@@ -136,6 +141,22 @@ export default function Bags() {
             <div className="space-y-1.5"><Label>Bag Name / Label</Label><Input value={form.bagName} onChange={(e) => set("bagName", e.target.value)} placeholder="e.g. Summer 2026" /></div>
             <div className="space-y-1.5"><Label>Purchase Date</Label><Input value={form.purchaseDate} onChange={(e) => set("purchaseDate", e.target.value)} placeholder="2026-05-20" /></div>
             <div className="space-y-1.5"><Label>Roast Date</Label><Input value={form.roastDate} onChange={(e) => set("roastDate", e.target.value)} placeholder="2026-05-15" /></div>
+            <div className="space-y-1.5"><Label>Roast Date Used</Label><Input value={form.roastDateUsed} onChange={(e) => set("roastDateUsed", e.target.value)} placeholder="Actual or estimated date used by app" /></div>
+            <div className="space-y-1.5">
+              <Label>Roast Date Confidence</Label>
+              <Select value={form.roastDateConfidence || "__none__"} onValueChange={(v) => set("roastDateConfidence", v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— not set —</SelectItem>
+                  {ROAST_DATE_CONFIDENCE.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5"><Label>Actual Roast Date</Label><Input value={form.actualRoastDate} onChange={(e) => set("actualRoastDate", e.target.value)} placeholder="2026-08-15" /></div>
+            <div className="space-y-1.5"><Label>Estimated Roast Date</Label><Input value={form.estimatedRoastDate} onChange={(e) => set("estimatedRoastDate", e.target.value)} placeholder="2026-08-10" /></div>
+            <div className="col-span-2 space-y-1.5"><Label>Estimated Roast Window</Label><Input value={form.estimatedRoastWindow} onChange={(e) => set("estimatedRoastWindow", e.target.value)} placeholder="2026-08-03 to 2026-08-17" /></div>
+            <div className="col-span-2 space-y-1.5"><Label>Freshness Dating Method</Label><Input value={form.freshnessDatingMethod} onChange={(e) => set("freshnessDatingMethod", e.target.value)} placeholder="Bag label, staff estimate, roaster workflow…" /></div>
+            <div className="col-span-2 space-y-1.5"><Label>Roast Date Notes</Label><Input value={form.roastDateNotes} onChange={(e) => set("roastDateNotes", e.target.value)} placeholder="Evidence for actual/estimated roast date…" /></div>
             <div className="space-y-1.5"><Label>Opened Date</Label><Input type="date" value={form.openedDate} onChange={(e) => set("openedDate", e.target.value)} placeholder="2026-05-22" /></div>
             <div className="space-y-1.5"><Label>Closed Out Date</Label><Input type="date" value={form.closedOutDate} onChange={(e) => set("closedOutDate", e.target.value)} placeholder="2026-08-17" /></div>
             <div className="space-y-1.5"><Label>Bag Weight (g)</Label><Input type="number" value={form.bagWeight} onChange={(e) => set("bagWeight", e.target.value)} placeholder="250" /></div>
@@ -192,6 +213,8 @@ function BagRow({ bag, onEdit }: { bag: Bag; onEdit: (b: Bag) => void }) {
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-muted-foreground">
               {bag.roastDate && <span>Roasted: {bag.roastDate}</span>}
+              {bag.roastDateConfidence && <span>Roast confidence: {bag.roastDateConfidence}</span>}
+              {bag.estimatedRoastWindow && <span>Estimated roast: {bag.estimatedRoastWindow}</span>}
               {bag.openedDate && <span>Opened: {bag.openedDate}</span>}
               {!bag.isActive && bag.closedOutDate && <span>Closed: {bag.closedOutDate.slice(0, 10)}</span>}
               {bag.currentGrindSetting != null && <span>Grind: <strong className="text-foreground">{bag.currentGrindSetting}</strong></span>}
