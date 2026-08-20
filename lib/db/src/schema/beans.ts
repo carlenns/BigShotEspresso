@@ -5,11 +5,13 @@ import { z } from "zod/v4";
 export const beansTable = pgTable("beans", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  coffeeName: text("coffee_name"),
   origin: text("origin"),
   region: text("region"),
   roaster: text("roaster"),
   roastLevel: text("roast_level"),
   process: text("process"),
+  certification: text("certification"),
   variety: text("variety"),
   altitude: text("altitude"),
   roasterNotes: text("roaster_notes"),

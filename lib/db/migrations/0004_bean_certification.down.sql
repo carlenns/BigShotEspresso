@@ -1,0 +1,7 @@
+BEGIN;
+
+ALTER TABLE beans
+  DROP COLUMN IF EXISTS coffee_name,
+  DROP COLUMN IF EXISTS certification;
+
+COMMIT;

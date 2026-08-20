@@ -12,6 +12,7 @@ import ReferenceShots from "@/pages/ReferenceShots";
 import ImportAudit from "@/pages/ImportAudit";
 import Settings from "@/pages/Settings";
 import Beans from "@/pages/Beans";
+import BeanForm from "@/pages/BeanForm";
 import Bags from "@/pages/Bags";
 import BagDetail from "@/pages/BagDetail";
 import Equipment from "@/pages/Equipment";
@@ -32,6 +33,8 @@ function Router() {
         <Route path="/shots/:id/edit" component={ShotForm} />
         <Route path="/shots/:id" component={ShotDetail} />
         <Route path="/reference" component={ReferenceShots} />
+        <Route path="/beans/new" component={BeanForm} />
+        <Route path="/beans/:id/edit" component={BeanForm} />
         <Route path="/beans" component={Beans} />
         <Route path="/bags" component={Bags} />
         <Route path="/bags/:id" component={BagDetail} />

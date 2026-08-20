@@ -41,11 +41,13 @@ router.post("/beans", async (req, res): Promise<void> => {
   if (!String(body.name ?? "").trim()) { res.status(400).json({ error: "name is required" }); return; }
   const [row] = await db.insert(beansTable).values({
     name: String(body.name),
+    coffeeName: body.coffeeName as string | undefined,
     origin: body.origin as string | undefined,
     region: body.region as string | undefined,
     roaster: body.roaster as string | undefined,
     roastLevel: body.roastLevel as string | undefined,
     process: body.process as string | undefined,
+    certification: body.certification as string | undefined,
     variety: body.variety as string | undefined,
     altitude: body.altitude as string | undefined,
     roasterNotes: body.roasterNotes as string | undefined,
@@ -61,11 +63,13 @@ router.patch("/beans/:id", async (req, res): Promise<void> => {
   const body = req.body as Record<string, unknown>;
   const [row] = await db.update(beansTable).set({
     name: body.name as string | undefined,
+    coffeeName: body.coffeeName as string | undefined,
     origin: body.origin as string | undefined,
     region: body.region as string | undefined,
     roaster: body.roaster as string | undefined,
     roastLevel: body.roastLevel as string | undefined,
     process: body.process as string | undefined,
+    certification: body.certification as string | undefined,
     variety: body.variety as string | undefined,
     altitude: body.altitude as string | undefined,
     roasterNotes: body.roasterNotes as string | undefined,

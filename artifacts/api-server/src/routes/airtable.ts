@@ -251,7 +251,10 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
         const country  = str(findField(f, ["Country", "Origin", "Country of Origin"]));
         const region   = str(findField(f, ["Region"]));
         const process  = str(findField(f, ["Process", "Processing"]));
-        const primary  = str(findField(f, ["Beans", "Name", "Bean Name", "Bean", "Coffee Name", "Coffee"]));
+        const certification = str(findField(f, ["Certification"]));
+        const coffeeName = str(findField(f, ["Name"]));
+        const active = bool(findField(f, ["Active"]));
+        const primary  = str(findField(f, ["Beans", "Bean Name", "Bean", "Coffee Name", "Coffee"]));
 
         // Reconstruct display name in priority order
         let name: string;
@@ -274,13 +277,15 @@ router.post("/airtable/sync", async (_req, res): Promise<void> => {
           const existing = await db.select({ id: beansTable.id }).from(beansTable).where(eq(beansTable.airtableRecordId, r.id));
           const vals = {
             name,
+            coffeeName,
             origin: country,
             region,
             roaster,
             roastLevel: str(findField(f, ["Roast Level ( ChatGPT )", "Roast Level", "Roast"])),
             process,
+            certification,
             notes: str(findField(f, ["Notes", "User Notes"])),
-            isActive: true,
+            isActive: active ?? true,
             airtableRecordId: r.id,
           };
           if (existing.length) {
