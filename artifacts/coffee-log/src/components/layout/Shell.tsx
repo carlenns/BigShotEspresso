@@ -140,7 +140,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 border-t bg-background px-1 pb-safe md:hidden">
-        {[...primaryNav, libraryNav[1]].map((item) => {
+        {[...primaryNav, libraryNav[0], libraryNav[1]].map((item) => {
           const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
           return (
             <Link
