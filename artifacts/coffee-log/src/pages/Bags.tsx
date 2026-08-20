@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Star, Package, Pencil, ChevronRight } from "lucide-react";
+import { Archive, Plus, Star, Package, Pencil, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Bean { id: number; name: string; }
@@ -51,6 +51,8 @@ export default function Bags() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Bag | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [closeoutBag, setCloseoutBag] = useState<Bag | null>(null);
+  const [closeoutForm, setCloseoutForm] = useState({ closedOutDate: todayDate(), remainingEstimate: "", reconciliationNotes: "" });
 
   const blankForm = () => ({ beanId: "", bagNumber: "", bagName: "", purchaseDate: "", roastDate: "", roastDateUsed: "", estimatedRoastWindow: "", actualRoastDate: "", estimatedRoastDate: "", freshnessDatingMethod: "", roastDateConfidence: "", roastDateNotes: "", openedDate: "", closedOutDate: "", bagWeight: "", remainingEstimate: "", cost: "", isActive: "false", startGrindSetting: "", currentGrindSetting: "", startGrindTime: "", currentGrindTime: "", defaultDose: "", defaultYield: "", defaultTemp: "", dialInNotes: "", notes: "" });
 
@@ -81,7 +83,54 @@ export default function Bags() {
     onError: (e) => toast({ title: "Error", description: String(e), variant: "destructive" }),
   });
 
+  const closeBagMutation = useMutation({
+    mutationFn: async () => {
+      if (!closeoutBag) throw new Error("No bag selected");
+      const existingNotes = closeoutBag.notes?.trim();
+      const closeoutNotes = [
+        existingNotes,
+        [
+          `Closeout ${closeoutForm.closedOutDate || todayDate()}.`,
+          closeoutForm.remainingEstimate ? `Remaining beans/chute mass: ${closeoutForm.remainingEstimate}g.` : "Remaining beans/chute mass not recorded.",
+          closeoutForm.reconciliationNotes.trim() || null,
+        ].filter(Boolean).join(" "),
+      ].filter(Boolean).join("\n\n");
+
+      const body: Record<string, unknown> = {
+        isActive: false,
+        closedOutDate: closeoutForm.closedOutDate || todayDate(),
+        notes: closeoutNotes,
+      };
+      if (closeoutForm.remainingEstimate !== "") body.remainingEstimate = Number(closeoutForm.remainingEstimate);
+
+      const r = await fetch(`/api/bags/${closeoutBag.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      return r.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["bags"] });
+      qc.invalidateQueries({ queryKey: ["intelligence"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-intelligence"] });
+      setCloseoutBag(null);
+      toast({ title: "Bag closed out", description: "The bag is inactive and closeout evidence was saved." });
+    },
+    onError: (e) => toast({ title: "Closeout failed", description: String(e), variant: "destructive" }),
+  });
+
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const openCloseout = (bag: Bag) => {
+    setCloseoutBag(bag);
+    setCloseoutForm({
+      closedOutDate: bag.closedOutDate?.slice(0, 10) ?? todayDate(),
+      remainingEstimate: bag.remainingEstimate != null ? String(bag.remainingEstimate) : "",
+      reconciliationNotes: "",
+    });
+  };
 
   const activeBags = bags.filter((b) => b.isActive);
   const inactiveBags = bags.filter((b) => !b.isActive);
@@ -111,13 +160,13 @@ export default function Bags() {
           {activeBags.length > 0 && (
             <section>
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Active</h2>
-              <div className="space-y-2">{activeBags.map((b) => <BagRow key={b.id} bag={b} onEdit={openEdit} />)}</div>
+              <div className="space-y-2">{activeBags.map((b) => <BagRow key={b.id} bag={b} onEdit={openEdit} onCloseout={openCloseout} />)}</div>
             </section>
           )}
           {inactiveBags.length > 0 && (
             <section className="opacity-80">
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Previous Bags</h2>
-              <div className="space-y-2">{inactiveBags.map((b) => <BagRow key={b.id} bag={b} onEdit={openEdit} />)}</div>
+              <div className="space-y-2">{inactiveBags.map((b) => <BagRow key={b.id} bag={b} onEdit={openEdit} onCloseout={openCloseout} />)}</div>
             </section>
           )}
         </div>
@@ -192,11 +241,62 @@ export default function Bags() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!closeoutBag} onOpenChange={(isOpen) => !isOpen && setCloseoutBag(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Close Out Bag</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+              <p className="font-medium">{closeoutBag?.beanName ?? "Unknown Bean"}</p>
+              <p className="text-muted-foreground">Bag #{closeoutBag?.bagNumber ?? closeoutBag?.id}</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Closed Out Date</Label>
+              <Input
+                type="date"
+                value={closeoutForm.closedOutDate}
+                onChange={(e) => setCloseoutForm((current) => ({ ...current, closedOutDate: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Remaining Beans / Chute Mass (g)</Label>
+              <Input
+                type="number"
+                step="0.1"
+                min="0"
+                value={closeoutForm.remainingEstimate}
+                onChange={(e) => setCloseoutForm((current) => ({ ...current, remainingEstimate: e.target.value }))}
+                placeholder="e.g. 121"
+              />
+              <p className="text-xs text-muted-foreground">This is reconciliation evidence. It does not rewrite past shot consumption.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Closeout Notes</Label>
+              <Input
+                value={closeoutForm.reconciliationNotes}
+                onChange={(e) => setCloseoutForm((current) => ({ ...current, reconciliationNotes: e.target.value }))}
+                placeholder="e.g. weighed old beans and chute grind-out"
+              />
+            </div>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+              Closing a bag marks it inactive and saves the date/remaining mass. Hopper phase closeout is still a separate future workflow.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCloseoutBag(null)}>Cancel</Button>
+            <Button onClick={() => closeBagMutation.mutate()} disabled={closeBagMutation.isPending}>
+              {closeBagMutation.isPending ? "Closing…" : "Close Bag"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function BagRow({ bag, onEdit }: { bag: Bag; onEdit: (b: Bag) => void }) {
+function BagRow({ bag, onEdit, onCloseout }: { bag: Bag; onEdit: (b: Bag) => void; onCloseout: (b: Bag) => void }) {
   return (
     <Card className={cn("transition-colors hover:border-primary/40", bag.isActive && "border-primary/50 bg-primary/5")}>
       <CardContent className="p-4">
@@ -233,6 +333,11 @@ function BagRow({ bag, onEdit }: { bag: Bag; onEdit: (b: Bag) => void }) {
                 </p>
               )}
             </div>
+            {bag.isActive && (
+              <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => onCloseout(bag)}>
+                <Archive className="h-3.5 w-3.5" /> Close
+              </Button>
+            )}
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(bag)}><Pencil className="h-4 w-4" /></Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
               <Link href={`/bags/${bag.id}`}><ChevronRight className="h-4 w-4" /></Link>
