@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { ChipSelector } from "@/components/ui/chip-selector";
-import { TASTE_ZONE_OPTIONS, curatedOptions, curatedScalarOptions } from "@/lib/selector-options";
+import { TASTE_ZONE_OPTIONS, curatedOptions, curatedScalarOptions, describeAnalysisEligibility } from "@/lib/selector-options";
 
 interface Bag {
   id: number; beanName: string | null; bagNumber: string | null; bagName: string | null; isActive: boolean;
@@ -135,6 +135,7 @@ export default function ShotForm() {
   const tasteZoneOptions = form.watch("tasteZone") && !TASTE_ZONE_OPTIONS.includes(form.watch("tasteZone")!)
     ? [...TASTE_ZONE_OPTIONS, form.watch("tasteZone")!]
     : TASTE_ZONE_OPTIONS;
+  const analysisEligibility = describeAnalysisEligibility(form.watch("status"), form.watch("faultStatus") ?? []);
 
   const selectedBagId = form.watch("bagId");
 
@@ -206,8 +207,10 @@ export default function ShotForm() {
       onError: () => toast({ title: isEditing ? "Failed to update shot" : "Failed to log shot", variant: "destructive" }),
     };
 
-    if (isEditing && editingId) updateShot.mutate({ id: editingId, data: values }, handlers);
-    else createShot.mutate({ data: values }, handlers);
+    const payload = { ...values, includeInAnalysis: describeAnalysisEligibility(values.status, values.faultStatus ?? []).included };
+
+    if (isEditing && editingId) updateShot.mutate({ id: editingId, data: payload }, handlers);
+    else createShot.mutate({ data: payload }, handlers);
   };
 
   const ratingVal = form.watch("rating") ?? 7;
@@ -545,15 +548,19 @@ export default function ShotForm() {
                       <FormLabel className="font-normal cursor-pointer">Sour Shot</FormLabel>
                     </FormItem>
                   )} />
-                  <FormField control={form.control} name="includeInAnalysis" render={({ field }) => (
-                    <FormItem className="flex items-center gap-2.5 space-y-0">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <FormLabel className="font-normal cursor-pointer">Include in Analysis</FormLabel>
-                    </FormItem>
-                  )} />
                 </div>
+              </div>
+
+              <div className={cn(
+                "rounded-lg border p-3 text-sm",
+                analysisEligibility.included
+                  ? "border-green-200 bg-green-50 text-green-900 dark:border-green-900/60 dark:bg-green-950/30 dark:text-green-200"
+                  : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
+              )}>
+                <p className="font-medium">
+                  Shot is {analysisEligibility.included ? "included" : "excluded"} in analysis
+                </p>
+                <p className="mt-1 text-xs opacity-80">{analysisEligibility.reason}</p>
               </div>
 
               {/* Expression Style — multi-select */}

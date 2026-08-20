@@ -15,7 +15,7 @@ import { useCreateShot, getListShotsQueryKey, getGetDashboardSummaryQueryKey } f
 import { Zap, ArrowRight, Coffee, CheckCircle2, Settings, Minus, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChipSelector } from "@/components/ui/chip-selector";
-import { curatedOptions, curatedScalarOptions, type SelectorOptions } from "@/lib/selector-options";
+import { curatedOptions, curatedScalarOptions, describeAnalysisEligibility, type SelectorOptions } from "@/lib/selector-options";
 
 // ── Field type definitions ────────────────────────────────────────────────────
 
@@ -180,6 +180,7 @@ export default function QuickLog() {
   const expressionStyleOptions = curatedOptions("expressionStyle", evalValues.expressionStyle);
   const beanAchievementOptions = curatedOptions("beanAchievement", evalValues.beanAchievement);
   const shotClassificationOptions = curatedOptions("shotClassification", evalValues.shotClassification);
+  const analysisEligibility = describeAnalysisEligibility(evalValues.status, evalValues.faultStatus);
 
   // Pre-fill from active bag + settings
   useEffect(() => {
@@ -244,7 +245,7 @@ export default function QuickLog() {
     if (evalValues.expressionStyle.length) body.expressionStyle = evalValues.expressionStyle;
     if (evalValues.beanAchievement.length) body.beanAchievement = evalValues.beanAchievement;
     if (evalValues.shotClassification.length) body.shotClassification = evalValues.shotClassification;
-    body.includeInAnalysis = evalValues.includeInAnalysis;
+    body.includeInAnalysis = analysisEligibility.included;
     if (evalValues.notes) body.notes = evalValues.notes;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -447,17 +448,19 @@ export default function QuickLog() {
                       Sour Shot
                     </label>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Checkbox
-                      id="eval-includeInAnalysis"
-                      checked={evalValues.includeInAnalysis}
-                      onCheckedChange={(checked) => setEval("includeInAnalysis", checked === true)}
-                    />
-                    <label htmlFor="eval-includeInAnalysis" className="text-sm leading-none cursor-pointer select-none">
-                      Include in Analysis
-                    </label>
-                  </div>
                 </div>
+              </div>
+
+              <div className={cn(
+                "rounded-lg border p-3 text-sm",
+                analysisEligibility.included
+                  ? "border-green-200 bg-green-50 text-green-900 dark:border-green-900/60 dark:bg-green-950/30 dark:text-green-200"
+                  : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
+              )}>
+                <p className="font-medium">
+                  Shot is {analysisEligibility.included ? "included" : "excluded"} in analysis
+                </p>
+                <p className="mt-1 text-xs opacity-80">{analysisEligibility.reason}</p>
               </div>
 
               {/* Expression Style — multi-select */}
