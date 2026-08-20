@@ -15,6 +15,7 @@ import { useCreateShot, getListShotsQueryKey, getGetDashboardSummaryQueryKey } f
 import { Zap, ArrowRight, Coffee, CheckCircle2, Settings, Minus, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChipSelector } from "@/components/ui/chip-selector";
+import { curatedOptions, curatedScalarOptions, type SelectorOptions } from "@/lib/selector-options";
 
 // ── Field type definitions ────────────────────────────────────────────────────
 
@@ -83,16 +84,7 @@ export function getEnabledFieldIds(settings: Record<string, string>): string[] {
     .map((f) => f.id);
 }
 
-// ── Selector options — sourced from Airtable-synced records ─────────────────
-
-export interface SelectorOptions {
-  expressionStyle: string[];
-  beanAchievement: string[];
-  shotClassification: string[];
-  status: string[];
-  faultStatus: string[];
-  drinkType: string[];
-}
+// ── Selector options — fetched as historical evidence, curated for entry UI ──
 
 export async function fetchSelectorOptions(): Promise<SelectorOptions> {
   return fetch("/api/shots/selector-options").then((r) => r.json());
@@ -152,12 +144,6 @@ export default function QuickLog() {
 
   const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
   const { data: intelData } = useQuery({ queryKey: ["intelligence"], queryFn: fetchActiveBag });
-  const { data: selectorOpts } = useQuery({ queryKey: ["selector-options"], queryFn: fetchSelectorOptions });
-
-  const statusOptions = selectorOpts?.status ?? [];
-  const faultStatusOptions = selectorOpts?.faultStatus ?? [];
-  const expressionStyleOptions = selectorOpts?.expressionStyle ?? [];
-  const beanAchievementOptions = selectorOpts?.beanAchievement ?? [];
 
   const activeBag = intelData?.activeBag ?? null;
   const enabledIds = settings ? getEnabledFieldIds(settings) : QUICK_LOG_FIELDS.filter((f) => f.defaultOn).map((f) => f.id);
@@ -175,6 +161,7 @@ export default function QuickLog() {
   const [values, setValues] = useState<FieldValues>({});
   const [savedId, setSavedId] = useState<number | null>(null);
   const [showEvaluation, setShowEvaluation] = useState(false);
+  const [showAdvancedEvaluation, setShowAdvancedEvaluation] = useState(false);
   const [shotDate, setShotDate] = useState(nowDateTimeLocal);
   const [evalValues, setEvalValues] = useState<EvalValues>({
     status: "",
@@ -188,6 +175,11 @@ export default function QuickLog() {
     includeInAnalysis: true,
     notes: "",
   });
+  const statusOptions = curatedScalarOptions("status", evalValues.status);
+  const faultStatusOptions = curatedOptions("faultStatus", evalValues.faultStatus);
+  const expressionStyleOptions = curatedOptions("expressionStyle", evalValues.expressionStyle);
+  const beanAchievementOptions = curatedOptions("beanAchievement", evalValues.beanAchievement);
+  const shotClassificationOptions = curatedOptions("shotClassification", evalValues.shotClassification);
 
   // Pre-fill from active bag + settings
   useEffect(() => {
@@ -469,32 +461,46 @@ export default function QuickLog() {
               </div>
 
               {/* Expression Style — multi-select */}
-              <div className="space-y-2">
-                <Label className="text-base font-medium">Expression Style</Label>
-                <ChipSelector
-                  options={expressionStyleOptions}
-                  value={evalValues.expressionStyle}
-                  onChange={(v) => setEval("expressionStyle", v)}
-                />
-              </div>
+              <div className="rounded-lg border p-3 space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedEvaluation((v) => !v)}
+                  className="flex w-full items-center justify-between text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <span>Advanced tags</span>
+                  {showAdvancedEvaluation ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
 
-              {/* Bean Achievement — multi-select */}
-              <div className="space-y-2">
-                <Label className="text-base font-medium">Bean Achievement</Label>
-                <ChipSelector
-                  options={beanAchievementOptions}
-                  value={evalValues.beanAchievement}
-                  onChange={(v) => setEval("beanAchievement", v)}
-                />
-              </div>
+                {showAdvancedEvaluation && (
+                  <div className="space-y-5 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <div className="space-y-2">
+                      <Label className="text-base font-medium">Expression Style</Label>
+                      <ChipSelector
+                        options={expressionStyleOptions}
+                        value={evalValues.expressionStyle}
+                        onChange={(v) => setEval("expressionStyle", v)}
+                      />
+                    </div>
 
-              <div className="space-y-2">
-                <Label className="text-base font-medium">Shot Classification</Label>
-                <ChipSelector
-                  options={selectorOpts?.shotClassification ?? []}
-                  value={evalValues.shotClassification}
-                  onChange={(v) => setEval("shotClassification", v)}
-                />
+                    <div className="space-y-2">
+                      <Label className="text-base font-medium">Bean Achievement</Label>
+                      <ChipSelector
+                        options={beanAchievementOptions}
+                        value={evalValues.beanAchievement}
+                        onChange={(v) => setEval("beanAchievement", v)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-base font-medium">Shot Classification</Label>
+                      <ChipSelector
+                        options={shotClassificationOptions}
+                        value={evalValues.shotClassification}
+                        onChange={(v) => setEval("shotClassification", v)}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Notes */}

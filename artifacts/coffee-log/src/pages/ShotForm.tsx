@@ -25,8 +25,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { fetchSelectorOptions } from "@/pages/QuickLog";
 import { ChipSelector } from "@/components/ui/chip-selector";
+import { TASTE_ZONE_OPTIONS, curatedOptions, curatedScalarOptions } from "@/lib/selector-options";
 
 interface Bag {
   id: number; beanName: string | null; bagNumber: string | null; bagName: string | null; isActive: boolean;
@@ -100,19 +100,12 @@ export default function ShotForm() {
 
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: tasteSelectors = [] } = useQuery({ queryKey: ["taste-selectors"], queryFn: fetchTasteSelectors });
-  const { data: selectorOpts } = useQuery({ queryKey: ["selector-options"], queryFn: fetchSelectorOptions });
   const { data: existingShot } = useGetShot(editingId ?? 0, {
     query: {
       enabled: isEditing && !!editingId,
       queryKey: editingId ? getGetShotQueryKey(editingId) : ["shot", "disabled"],
     },
   });
-
-  const statusOptions = selectorOpts?.status ?? [];
-  const faultStatusOptions = selectorOpts?.faultStatus ?? [];
-  const expressionStyleOptions = selectorOpts?.expressionStyle ?? [];
-  const beanAchievementOptions = selectorOpts?.beanAchievement ?? [];
-  const tasteZoneOptions = ["Center", "Sour", "Bitter", "Weak", "Harsh", "Flat", "Outside"];
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -133,6 +126,15 @@ export default function ShotForm() {
       includeInAnalysis: true,
     },
   });
+
+  const statusOptions = curatedScalarOptions("status", form.watch("status"));
+  const faultStatusOptions = curatedOptions("faultStatus", form.watch("faultStatus") ?? []);
+  const expressionStyleOptions = curatedOptions("expressionStyle", form.watch("expressionStyle") ?? []);
+  const beanAchievementOptions = curatedOptions("beanAchievement", form.watch("beanAchievement") ?? []);
+  const shotClassificationOptions = curatedOptions("shotClassification", form.watch("shotClassification") ?? []);
+  const tasteZoneOptions = form.watch("tasteZone") && !TASTE_ZONE_OPTIONS.includes(form.watch("tasteZone")!)
+    ? [...TASTE_ZONE_OPTIONS, form.watch("tasteZone")!]
+    : TASTE_ZONE_OPTIONS;
 
   const selectedBagId = form.watch("bagId");
 
@@ -588,7 +590,7 @@ export default function ShotForm() {
                 <FormItem>
                   <FormLabel>Shot Classification</FormLabel>
                   <ChipSelector
-                    options={selectorOpts?.shotClassification ?? []}
+                    options={shotClassificationOptions}
                     value={field.value ?? []}
                     onChange={field.onChange}
                   />
