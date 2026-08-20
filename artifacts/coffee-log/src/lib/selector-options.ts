@@ -78,33 +78,30 @@ export function curatedScalarOptions<K extends keyof SelectorOptions>(
 }
 
 const INCLUDED_STATUSES = new Set(["Good", "Pretty Good", "Dialed In"]);
-const EXCLUDED_STATUSES = new Set(["Needs Work", "Sink Shot", "Grinder Setup", "Maintenance"]);
 const GOOD_FAULT_VALUES = new Set(["Good"]);
 
 export function describeAnalysisEligibility(status?: string | null, faultStatus: string[] = []): {
   included: boolean;
   reason: string;
 } {
-  if (status && EXCLUDED_STATUSES.has(status)) {
-    return { included: false, reason: `${status} shots are excluded from performance analysis.` };
+  if (!status || !INCLUDED_STATUSES.has(status)) {
+    return {
+      included: false,
+      reason: "Excluded: Shot Status must be Good, Pretty Good, or Dialed In.",
+    };
+  }
+
+  if (!faultStatus.includes("Good")) {
+    return {
+      included: false,
+      reason: "Excluded: Fault Status must include Good.",
+    };
   }
 
   const realFaults = faultStatus.filter((fault) => fault && !GOOD_FAULT_VALUES.has(fault));
   if (realFaults.length > 0) {
-    return { included: false, reason: `Excluded because Fault Status contains: ${realFaults.join(", ")}.` };
+    return { included: false, reason: `Excluded because Fault Status also contains: ${realFaults.join(", ")}.` };
   }
 
-  if (status && INCLUDED_STATUSES.has(status)) {
-    return { included: true, reason: `${status} with no active fault is included in analysis.` };
-  }
-
-  if (faultStatus.includes("Good")) {
-    return { included: true, reason: "Good Fault Status with no active fault is included in analysis." };
-  }
-
-  if (!status && faultStatus.length === 0) {
-    return { included: true, reason: "Included by default. Set Shot Status or Fault Status if this was setup, maintenance, or a problem shot." };
-  }
-
-  return { included: false, reason: "Excluded until Shot Status/Fault Status indicate this was a good analysis shot." };
+  return { included: true, reason: `${status} with Fault Status Good is included in analysis.` };
 }
