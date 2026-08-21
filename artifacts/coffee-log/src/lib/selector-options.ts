@@ -38,7 +38,6 @@ export const CURATED_SELECTOR_OPTIONS: SelectorOptions = {
     "Refined Shot",
     "Experiment",
     "Fast First Pour",
-    "Sour",
     "Flat",
     "Muted",
     "Boring",
