@@ -71,7 +71,16 @@ interface Intelligence {
     bagPhase: "Opening / Dial-In" | "Established Performance" | "Mature Bag" | "End of Bag";
     bagConfidence: "Low" | "Medium" | "High";
     bestYieldRange: RangeVal | null; bestPourDelayRange: RangeVal | null;
-    bestShot: { id: number; rating: number | null; dose: number | null; yield: number | null; grindSetting: number | null; pourTime: number | null; shotDate: string } | null;
+    bestShot: {
+      id: number; rating: number | null; preferenceRating: number | null;
+      isReference: boolean | null; signatureShot: boolean | null;
+      dose: number | null; targetDose: number | null; initialGrindWeight: number | null;
+      overGrindRemoved: number | null; topUpGrind: number | null;
+      yield: number | null; ratio: number | null;
+      grindSetting: number | null; grindTime: number | null;
+      pourDelay: number | null; pourTime: number | null; flowTime: number | null;
+      shotDate: string;
+    } | null;
   } | null;
   bagProgress: {
     startingWeight: number | null; consumed: number; remaining: number | null;
@@ -384,21 +393,7 @@ export default function Dashboard() {
                 </div>
 
                 {bi.bestShot && (
-                  <div className="flex items-center justify-between rounded-lg border px-3 py-2.5 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Best shot</p>
-                      <p className="text-sm font-medium tabular-nums">
-                        {bi.bestShot.dose}g → {bi.bestShot.yield}g
-                        {bi.bestShot.grindSetting != null && ` · ⚙${bi.bestShot.grindSetting}`}
-                        {bi.bestShot.pourTime != null && ` · ${bi.bestShot.pourTime}s`}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{format(new Date(bi.bestShot.shotDate), "d MMM yyyy")}</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-amber-600 font-bold text-lg shrink-0">
-                      <Star className="h-4 w-4 fill-current" />
-                      {Number(bi.bestShot.rating).toFixed(2)}
-                    </div>
-                  </div>
+                  <BestShotRecipeCard shot={bi.bestShot} />
                 )}
               </CardContent>
             </Card>
@@ -918,6 +913,86 @@ function DeltaStatusMarker({ status }: { status: ReturnType<typeof deltaStatus> 
             : undefined
       }
     />
+  );
+}
+
+function BestShotRecipeCard({
+  shot,
+}: {
+  shot: NonNullable<NonNullable<Intelligence["bagIntelligence"]>["bestShot"]>;
+}) {
+  const targetDose = shot.targetDose ?? 18;
+  const doseDiffersFromTarget = shot.dose != null && Math.abs(shot.dose - targetDose) >= 0.05;
+  const hasDoseCorrection =
+    doseDiffersFromTarget ||
+    (shot.initialGrindWeight != null && Math.abs(shot.initialGrindWeight - targetDose) >= 0.05) ||
+    (shot.overGrindRemoved != null && Math.abs(shot.overGrindRemoved) >= 0.05) ||
+    (shot.topUpGrind != null && Math.abs(shot.topUpGrind) >= 0.05);
+
+  const fmt = (value: number | null, unit = "", digits = 1) =>
+    value == null ? null : `${Number(value).toFixed(digits).replace(/\.0$/, "")}${unit}`;
+  const ratio = shot.ratio == null ? null : `${Number(shot.ratio).toFixed(2)}×`;
+
+  return (
+    <div className="rounded-lg border px-3 py-3 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="text-xs text-muted-foreground">Best shot · Repeat this shot</p>
+            {shot.signatureShot && (
+              <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                Signature
+              </span>
+            )}
+            {shot.isReference && (
+              <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                Reference
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">{format(new Date(shot.shotDate), "d MMM yyyy")}</p>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="flex items-center justify-end gap-1 text-amber-600 font-bold text-lg">
+            <Star className="h-4 w-4 fill-current" />
+            {shot.rating != null ? Number(shot.rating).toFixed(2) : "—"}
+          </div>
+          {shot.preferenceRating != null && (
+            <p className="text-[10px] text-muted-foreground">pref {Number(shot.preferenceRating).toFixed(2)}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-1 text-sm tabular-nums">
+        <p className="font-medium">
+          {shot.grindSetting != null && <>Grind {shot.grindSetting}</>}
+          {shot.grindSetting != null && shot.grindTime != null && " · "}
+          {shot.grindTime != null && <>{fmt(shot.grindTime, "s")} time</>}
+        </p>
+        <p className="text-muted-foreground">
+          {shot.pourDelay != null && <>Delay {fmt(shot.pourDelay, "s")}</>}
+          {shot.pourDelay != null && shot.pourTime != null && " · "}
+          {shot.pourTime != null && <>Pour {fmt(shot.pourTime, "s")}</>}
+          {(shot.pourDelay != null || shot.pourTime != null) && shot.flowTime != null && " · "}
+          {shot.flowTime != null && <>Flow {fmt(shot.flowTime, "s")}</>}
+        </p>
+        <p className="text-muted-foreground">
+          {shot.yield != null && <>Yield {fmt(shot.yield, "g")}</>}
+          {shot.yield != null && ratio && " · "}
+          {ratio && <>Ratio {ratio}</>}
+        </p>
+      </div>
+
+      {hasDoseCorrection && (
+        <p className="rounded-md bg-background/70 px-2 py-1.5 text-xs text-muted-foreground tabular-nums">
+          Dose detail:
+          {shot.initialGrindWeight != null && <> {fmt(shot.initialGrindWeight, "g")} initial</>}
+          {shot.dose != null && <> → {fmt(shot.dose, "g")} basket</>}
+          {shot.overGrindRemoved != null && Math.abs(shot.overGrindRemoved) >= 0.05 && <> · {fmt(shot.overGrindRemoved, "g")} removed</>}
+          {shot.topUpGrind != null && Math.abs(shot.topUpGrind) >= 0.05 && <> · {fmt(shot.topUpGrind, "g")} top-up</>}
+        </p>
+      )}
+    </div>
   );
 }
 

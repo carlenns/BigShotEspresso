@@ -84,6 +84,30 @@ test("Today's Coffee Brief uses active-bag performance windows only", async () =
   assert.doesNotMatch(source, /bestPourDelayWindow: timingWindows\.pourDelayRange/);
 });
 
+test("Best Shot recipe exposes repeatability fields and hides default dose noise", async () => {
+  const [routeSource, dashboardSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("./routes/dashboard.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Dashboard.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  for (const required of [
+    "targetDose: activeBagRow.defaultDose ?? 18",
+    "initialGrindWeight: bestShot.initialGrindWeight",
+    "overGrindRemoved: bestShot.overGrindRemoved",
+    "topUpGrind: bestShot.topUpGrind",
+    "grindTime: bestShot.grindTime",
+    "pourDelay: bestShot.pourDelay",
+    "flowTime: bestShot.flowTime",
+  ]) {
+    assert.match(routeSource, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+
+  assert.match(dashboardSource, /function BestShotRecipeCard/);
+  assert.match(dashboardSource, /Repeat this shot/);
+  assert.match(dashboardSource, /Dose detail:/);
+  assert.match(dashboardSource, /Math\.abs\(shot\.dose - targetDose\) >= 0\.05/);
+});
+
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {
   const [appSource, formSource, detailSource, selectorSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)), "utf8"),

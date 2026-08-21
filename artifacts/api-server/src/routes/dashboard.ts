@@ -483,8 +483,26 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
       bestYieldRange,
       bestPourDelayRange,
       bestShot: bestShot ? {
-        id: bestShot.id, rating: bestShot.rating, dose: bestShot.dose, yield: bestShot.yield,
-        grindSetting: bestShot.grindSetting, pourTime: bestShot.pourTime, shotDate: bestShot.shotDate,
+        id: bestShot.id,
+        rating: bestShot.rating,
+        preferenceRating: bestShot.preferenceRating,
+        isReference: bestShot.isReference,
+        signatureShot: bestShot.signatureShot,
+        dose: bestShot.dose,
+        targetDose: activeBagRow.defaultDose ?? 18,
+        initialGrindWeight: bestShot.initialGrindWeight,
+        overGrindRemoved: bestShot.overGrindRemoved,
+        topUpGrind: bestShot.topUpGrind,
+        yield: bestShot.yield,
+        ratio: bestShot.yield != null && bestShot.dose != null && Number(bestShot.dose) > 0
+          ? Math.round(Number(bestShot.yield) / Number(bestShot.dose) * 100) / 100
+          : null,
+        grindSetting: bestShot.grindSetting,
+        grindTime: bestShot.grindTime,
+        pourDelay: bestShot.pourDelay,
+        pourTime: bestShot.pourTime,
+        flowTime: bestShot.flowTime,
+        shotDate: bestShot.shotDate,
       } : null,
     },
     bagProgress: activeBagRow.bagWeight || beanMassConsumed > 0 ? {
