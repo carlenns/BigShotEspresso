@@ -183,7 +183,7 @@ export default function ShotForm() {
   });
 
   const statusOptions = curatedScalarOptions("status", form.watch("status"));
-  const faultStatusOptions = curatedOptions("faultStatus", form.watch("faultStatus") ?? []);
+  const faultStatusOptions = curatedOptions("faultStatus", form.watch("faultStatus")?.slice(0, 1) ?? []);
   const expressionStyleOptions = curatedOptions("expressionStyle", form.watch("expressionStyle") ?? []);
   const beanAchievementOptions = curatedOptions("beanAchievement", form.watch("beanAchievement") ?? []);
   const shotClassificationOptions = curatedOptions("shotClassification", form.watch("shotClassification") ?? []);
@@ -560,7 +560,13 @@ export default function ShotForm() {
                 <FormField control={form.control} name="faultStatus" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fault Status</FormLabel>
-                    <ChipSelector options={faultStatusOptions} value={field.value ?? []} onChange={field.onChange} />
+                    <FormControl>
+                      <ScalarChipSelector
+                        options={faultStatusOptions}
+                        value={(field.value ?? [])[0]}
+                        onChange={(value) => field.onChange(value ? [value] : [])}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
