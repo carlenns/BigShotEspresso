@@ -405,8 +405,10 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     openDays,
     bagPhase,
     bagConfidence,
-    bestYieldWindow: timingWindows.yieldRange ? { min: timingWindows.yieldRange.min, max: timingWindows.yieldRange.max } : null,
-    bestPourDelayWindow: timingWindows.pourDelayRange ? { min: timingWindows.pourDelayRange.min, max: timingWindows.pourDelayRange.max } : null,
+    // The brief is labelled as current-bag guidance, so it must not display
+    // same-bean/global fallback windows from timingWindows.
+    bestYieldWindow: bestYieldRange ? { min: bestYieldRange.min, max: bestYieldRange.max } : null,
+    bestPourDelayWindow: bestPourDelayRange ? { min: bestPourDelayRange.min, max: bestPourDelayRange.max } : null,
     grindTrend,
     topWatchlistItem: topWatchlistItem ? { type: topWatchlistItem.type, message: topWatchlistItem.message } : null,
   };

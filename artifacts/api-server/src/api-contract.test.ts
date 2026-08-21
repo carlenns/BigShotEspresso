@@ -72,6 +72,18 @@ test("Shot detail exposes evaluation fields that affect interpretation", async (
   }
 });
 
+test("Today's Coffee Brief uses active-bag performance windows only", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("./routes/dashboard.ts", import.meta.url)),
+    "utf8",
+  );
+
+  assert.match(source, /bestYieldWindow: bestYieldRange/);
+  assert.match(source, /bestPourDelayWindow: bestPourDelayRange/);
+  assert.doesNotMatch(source, /bestYieldWindow: timingWindows\.yieldRange/);
+  assert.doesNotMatch(source, /bestPourDelayWindow: timingWindows\.pourDelayRange/);
+});
+
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {
   const [appSource, formSource, detailSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)), "utf8"),
