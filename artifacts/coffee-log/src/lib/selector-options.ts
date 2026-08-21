@@ -12,7 +12,6 @@ export const TASTE_ZONE_OPTIONS = ["Center", "Edge", "Outside"];
 export const CURATED_SELECTOR_OPTIONS: SelectorOptions = {
   status: [
     "Good",
-    "Pretty Good",
     "Dialed In",
     "Needs Work",
     "Sink Shot",
@@ -104,7 +103,7 @@ export function curatedScalarOptions<K extends keyof SelectorOptions>(
   return selectedValue && !options.includes(selectedValue) ? [...options, selectedValue] : options;
 }
 
-const INCLUDED_STATUSES = new Set(["Good", "Pretty Good", "Dialed In"]);
+const INCLUDED_STATUSES = new Set(["Good", "Dialed In"]);
 const GOOD_FAULT_VALUES = new Set(["Good"]);
 
 export function describeAnalysisEligibility(status?: string | null, faultStatus: string[] = []): {
@@ -114,7 +113,7 @@ export function describeAnalysisEligibility(status?: string | null, faultStatus:
   if (!status || !INCLUDED_STATUSES.has(status)) {
     return {
       included: false,
-      reason: "Excluded: Shot Status must be Good, Pretty Good, or Dialed In.",
+      reason: "Excluded: Shot Status must be Good or Dialed In.",
     };
   }
 

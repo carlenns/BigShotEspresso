@@ -85,10 +85,11 @@ test("Today's Coffee Brief uses active-bag performance windows only", async () =
 });
 
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {
-  const [appSource, formSource, detailSource] = await Promise.all([
+  const [appSource, formSource, detailSource, selectorSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)), "utf8"),
     readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)), "utf8"),
     readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/lib/selector-options.ts", import.meta.url)), "utf8"),
   ]);
 
   assert.match(appSource, /path="\/shots\/:id\/edit"/);
@@ -115,6 +116,9 @@ test("Shot form supports editing, active-bag-first entry, and Taste Zone selecti
   assert.match(formSource, /onChange=\{\(value\) => field\.onChange\(value \? \[value\] : \[\]\)\}/);
   assert.doesNotMatch(formSource, /SelectValue placeholder="Select/);
   assert.doesNotMatch(formSource, /import \{ ChipSelector \}/);
+  assert.match(selectorSource, /const INCLUDED_STATUSES = new Set\(\["Good", "Dialed In"\]\)/);
+  assert.match(selectorSource, /Shot Status must be Good or Dialed In/);
+  assert.doesNotMatch(selectorSource, /"Pretty Good"/);
   assert.match(formSource, /setSelectedTastes\(existingTasteSelectors\.map\(\(selector\) => selector\.id\)\)/);
   assert.match(formSource, /setShowAdvancedEvaluation\(hasAdvancedEvaluation\)/);
   assert.match(formSource, /data\.id && \(isEditing \|\| selectedTastes\.length > 0\)/);
