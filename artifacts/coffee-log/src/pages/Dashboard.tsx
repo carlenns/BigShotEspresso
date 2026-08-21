@@ -885,6 +885,42 @@ function deltaStatus(pct: number | null): "on-target" | "close" | "off" | "none"
   return "off";
 }
 
+function deltaStatusLabel(status: ReturnType<typeof deltaStatus>): string {
+  return status === "on-target" ? "Within 10%"
+    : status === "close" ? "Within 20%"
+    : status === "off" ? "Outside 20%"
+    : "No comparison";
+}
+
+function DeltaStatusMarker({ status }: { status: ReturnType<typeof deltaStatus> }) {
+  return (
+    <span
+      role="img"
+      aria-label={deltaStatusLabel(status)}
+      title={deltaStatusLabel(status)}
+      className={cn(
+        "inline-block h-2.5 w-2.5 rounded-full shrink-0 border border-current/40",
+        status === "on-target" && "bg-green-500 text-green-700 dark:text-green-300",
+        status === "close" && "bg-amber-500 text-amber-700 dark:text-amber-300",
+        status === "off" && "bg-destructive text-destructive",
+        status === "none" && "bg-muted-foreground/30 text-muted-foreground/40",
+      )}
+      style={
+        status === "close"
+          ? {
+              backgroundImage: "repeating-linear-gradient(135deg, transparent 0 2px, rgba(0,0,0,.38) 2px 4px)",
+            }
+          : status === "off"
+            ? {
+                backgroundImage:
+                  "repeating-linear-gradient(45deg, transparent 0 2px, rgba(255,255,255,.55) 2px 4px), repeating-linear-gradient(135deg, transparent 0 2px, rgba(0,0,0,.35) 2px 4px)",
+              }
+            : undefined
+      }
+    />
+  );
+}
+
 function ShotComparisonCard({ data, beanName }: { data: ShotComparison; beanName: string | null }) {
   const s = data.latestShot;
   const r = data.bagReference;
@@ -900,12 +936,6 @@ function ShotComparisonCard({ data, beanName }: { data: ShotComparison; beanName
   const hasAnyLatest = metrics.some((m) => m.latestVal != null);
   const hasAnyRef    = metrics.some((m) => m.refVal != null);
 
-  const dotCls = (status: ReturnType<typeof deltaStatus>) => cn(
-    "inline-block h-2 w-2 rounded-full shrink-0",
-    status === "on-target" ? "bg-green-500" :
-    status === "close"     ? "bg-amber-500" :
-    status === "off"       ? "bg-destructive" : "bg-muted-foreground/30"
-  );
   const deltaCls = (status: ReturnType<typeof deltaStatus>) =>
     status === "on-target" ? "text-green-600 dark:text-green-400" :
     status === "close"     ? "text-amber-600 dark:text-amber-400" :
@@ -1001,7 +1031,7 @@ function ShotComparisonCard({ data, beanName }: { data: ShotComparison; beanName
                           : <span className="text-muted-foreground font-normal">—</span>}
                       </td>
                       <td className="py-2 text-center">
-                        <span className={dotCls(status)} />
+                        <DeltaStatusMarker status={status} />
                       </td>
                     </tr>
                   );
@@ -1018,9 +1048,9 @@ function ShotComparisonCard({ data, beanName }: { data: ShotComparison; beanName
         {/* Legend */}
         {hasAnyLatest && hasAnyRef && (
           <div className="flex items-center gap-3 flex-wrap text-[10px] text-muted-foreground pt-1 border-t">
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500 inline-block" /> Within 10%</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500 inline-block" /> Within 20%</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive inline-block" /> Outside 20%</span>
+            <span className="flex items-center gap-1"><DeltaStatusMarker status="on-target" /> Within 10%</span>
+            <span className="flex items-center gap-1"><DeltaStatusMarker status="close" /> Within 20%</span>
+            <span className="flex items-center gap-1"><DeltaStatusMarker status="off" /> Outside 20%</span>
           </div>
         )}
       </CardContent>
