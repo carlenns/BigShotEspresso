@@ -172,9 +172,14 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   const dialInSpeed = firstRefIdx >= 0 ? firstRefIdx : null;
 
   // ── Bag Progress ──────────────────────────────────────────────────────────
-  const dosesConsumed = activeBagShots.reduce((acc, s) => {
+  const beanMassConsumed = activeBagShots.reduce((acc, s) => {
     const d = Number(s.dose ?? 0);
-    return acc + (d > 0 ? d : 0);
+    const waste = Number(s.grindWaste ?? 0);
+    const removed = Number(s.overGrindRemoved ?? 0);
+    return acc
+      + (d > 0 ? d : 0)
+      + (waste > 0 ? waste : 0)
+      + (removed > 0 ? removed : 0);
   }, 0);
   const avgDose = ratedShots.length
     ? Math.round((ratedShots.reduce((a, s) => a + Number(s.dose ?? 0), 0) / ratedShots.length) * 10) / 10
@@ -186,11 +191,11 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
 
   if (activeBagRow.remainingEstimate != null) {
     remaining = Number(activeBagRow.remainingEstimate);
-  } else if (activeBagRow.bagWeight != null && dosesConsumed > 0) {
-    remaining = Math.max(0, Number(activeBagRow.bagWeight) - dosesConsumed);
+  } else if (activeBagRow.bagWeight != null && beanMassConsumed > 0) {
+    remaining = Math.max(0, Number(activeBagRow.bagWeight) - beanMassConsumed);
   }
   if (activeBagRow.bagWeight != null && activeBagRow.bagWeight > 0) {
-    completionPct = Math.min(100, Math.round((dosesConsumed / Number(activeBagRow.bagWeight)) * 1000) / 10);
+    completionPct = Math.min(100, Math.round((beanMassConsumed / Number(activeBagRow.bagWeight)) * 1000) / 10);
   }
   if (estimatedShotsRemaining == null && remaining != null && avgDose && avgDose > 0) {
     estimatedShotsRemaining = Math.floor(remaining / avgDose);
@@ -474,9 +479,9 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
         grindSetting: bestShot.grindSetting, pourTime: bestShot.pourTime, shotDate: bestShot.shotDate,
       } : null,
     },
-    bagProgress: activeBagRow.bagWeight || dosesConsumed > 0 ? {
+    bagProgress: activeBagRow.bagWeight || beanMassConsumed > 0 ? {
       startingWeight: activeBagRow.bagWeight,
-      consumed: Math.round(dosesConsumed * 10) / 10,
+      consumed: Math.round(beanMassConsumed * 10) / 10,
       remaining,
       avgDose,
       estimatedShotsRemaining,

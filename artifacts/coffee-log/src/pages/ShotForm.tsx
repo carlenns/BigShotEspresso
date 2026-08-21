@@ -12,7 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Save } from "lucide-react";
 import {
   useCreateShot,
   useGetShot,
@@ -97,6 +97,7 @@ export default function ShotForm() {
   const updateShot = useUpdateShot();
   const [selectedTastes, setSelectedTastes] = useState<number[]>([]);
   const [showPreviousBags, setShowPreviousBags] = useState(false);
+  const [showAdvancedEvaluation, setShowAdvancedEvaluation] = useState(false);
 
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: tasteSelectors = [] } = useQuery({ queryKey: ["taste-selectors"], queryFn: fetchTasteSelectors });
@@ -563,47 +564,56 @@ export default function ShotForm() {
                 <p className="mt-1 text-xs opacity-80">{analysisEligibility.reason}</p>
               </div>
 
-              {/* Expression Style — multi-select */}
-              <FormField control={form.control} name="expressionStyle" render={({ field }) => {
-                return (
-                  <FormItem>
-                    <FormLabel>Expression Style</FormLabel>
-                    <ChipSelector
-                      options={expressionStyleOptions}
-                      value={field.value ?? []}
-                      onChange={field.onChange}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                );
-              }} />
+              <div className="rounded-lg border p-3 space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedEvaluation((value) => !value)}
+                  className="flex w-full items-center justify-between text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <span>Advanced tags</span>
+                  {showAdvancedEvaluation ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
 
-              {/* Bean Achievement — multi-select */}
-              <FormField control={form.control} name="beanAchievement" render={({ field }) => {
-                return (
-                  <FormItem>
-                    <FormLabel>Bean Achievement</FormLabel>
-                    <ChipSelector
-                      options={beanAchievementOptions}
-                      value={field.value ?? []}
-                      onChange={field.onChange}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                );
-              }} />
+                {showAdvancedEvaluation && (
+                  <div className="space-y-5 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <FormField control={form.control} name="expressionStyle" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Expression Style</FormLabel>
+                        <ChipSelector
+                          options={expressionStyleOptions}
+                          value={field.value ?? []}
+                          onChange={field.onChange}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )} />
 
-              <FormField control={form.control} name="shotClassification" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Shot Classification</FormLabel>
-                  <ChipSelector
-                    options={shotClassificationOptions}
-                    value={field.value ?? []}
-                    onChange={field.onChange}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )} />
+                    <FormField control={form.control} name="beanAchievement" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Bean Achievement</FormLabel>
+                        <ChipSelector
+                          options={beanAchievementOptions}
+                          value={field.value ?? []}
+                          onChange={field.onChange}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+
+                    <FormField control={form.control} name="shotClassification" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Shot Classification</FormLabel>
+                        <ChipSelector
+                          options={shotClassificationOptions}
+                          value={field.value ?? []}
+                          onChange={field.onChange}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                )}
+              </div>
 
               {/* Notes */}
               <FormField control={form.control} name="notes" render={({ field }) => (

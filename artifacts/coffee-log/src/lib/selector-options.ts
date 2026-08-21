@@ -52,8 +52,6 @@ export const CURATED_SELECTOR_OPTIONS: SelectorOptions = {
   ],
   beanAchievement: [
     "Daily Driver",
-    "Reference",
-    "Signature",
     "Best of Bag",
     "Boundary Shot",
   ],

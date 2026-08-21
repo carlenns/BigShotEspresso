@@ -143,8 +143,23 @@ test("analytical route inventory uses the shared eligibility condition", async (
   );
   assert.match(
     dashboardSource,
-    /remaining = Math\.max\(0, Number\(activeBagRow\.bagWeight\) - dosesConsumed\)/,
-    "Dashboard shots-left estimate must derive from live active-bag consumption instead of stale imported Shot estimates",
+    /const beanMassConsumed = activeBagShots\.reduce/,
+    "Dashboard bag progress must count all bean mass consumed, not only final basket dose",
+  );
+  assert.match(
+    dashboardSource,
+    /\+ \(waste > 0 \? waste : 0\)/,
+    "Dashboard bag progress must include grinder setup and dial-in waste",
+  );
+  assert.match(
+    dashboardSource,
+    /\+ \(removed > 0 \? removed : 0\)/,
+    "Dashboard bag progress must include over-grind removed from the basket",
+  );
+  assert.match(
+    dashboardSource,
+    /remaining = Math\.max\(0, Number\(activeBagRow\.bagWeight\) - beanMassConsumed\)/,
+    "Dashboard shots-left estimate must derive from live active-bag bean consumption instead of stale imported Shot estimates",
   );
   assert.doesNotMatch(
     dashboardSource,
