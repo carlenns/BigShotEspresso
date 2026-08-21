@@ -94,7 +94,7 @@ test("Shot form supports editing, active-bag-first entry, and Taste Zone selecti
   assert.match(appSource, /path="\/shots\/:id\/edit"/);
   assert.match(detailSource, /href=\{`\/shots\/\$\{id\}\/edit`\}/);
   assert.match(formSource, /useUpdateShot/);
-  assert.match(formSource, /function ScalarChipSelector/);
+  assert.match(formSource, /function ScalarSelect/);
   assert.match(formSource, /tasteZoneOptions/);
   assert.match(formSource, /FormLabel>Taste Zone/);
   assert.match(formSource, /FormLabel>Shot Status/);
@@ -111,7 +111,7 @@ test("Shot form supports editing, active-bag-first entry, and Taste Zone selecti
   assert.match(formSource, /const savedTasteZone = existingShot\.tasteZone \?\? ""/);
   assert.match(formSource, /form\.setValue\("status", savedStatus\)/);
   assert.match(formSource, /form\.setValue\("tasteZone", savedTasteZone\)/);
-  assert.match(formSource, /<ScalarChipSelector/);
+  assert.match(formSource, /<ScalarSelect/);
   assert.match(formSource, /onChange=\{\(value\) => field\.onChange\(value \? \[value\] : \[\]\)\}/);
   assert.doesNotMatch(formSource, /SelectValue placeholder="Select/);
   assert.doesNotMatch(formSource, /import \{ ChipSelector \}/);

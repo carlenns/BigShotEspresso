@@ -89,48 +89,39 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 type ShotMutationResult = { id?: number };
 
-function ScalarChipSelector({
+function ScalarSelect({
   options,
   value,
   onChange,
+  placeholder = "— not set —",
 }: {
   options: string[];
   value?: string | null;
   onChange: (value: string | undefined) => void;
+  placeholder?: string;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
-      <button
-        type="button"
-        onClick={() => onChange(undefined)}
-        className={cn(
-          "px-3 py-1.5 rounded-full text-sm font-medium border transition-colors",
-          !value
-            ? "bg-primary text-primary-foreground border-primary"
-            : "bg-background text-foreground border-border hover:border-primary/50 hover:bg-accent"
-        )}
-      >
-        — not set —
-      </button>
+    <select
+      value={value ?? ""}
+      onChange={(event) => onChange(event.target.value || undefined)}
+      className={cn(
+        "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "disabled:cursor-not-allowed disabled:opacity-50"
+      )}
+    >
+      <option value="">{placeholder}</option>
       {options.map((option) => {
-        const selected = value === option;
         return (
-          <button
+          <option
             key={option}
-            type="button"
-            onClick={() => onChange(selected ? undefined : option)}
-            className={cn(
-              "px-3 py-1.5 rounded-full text-sm font-medium border transition-colors",
-              selected
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-background text-foreground border-border hover:border-primary/50 hover:bg-accent"
-            )}
+            value={option}
           >
             {option}
-          </button>
+          </option>
         );
       })}
-    </div>
+    </select>
   );
 }
 
@@ -512,7 +503,7 @@ export default function ShotForm() {
                 <FormItem>
                   <FormLabel>Taste Zone</FormLabel>
                   <FormControl>
-                    <ScalarChipSelector
+                    <ScalarSelect
                       options={tasteZoneOptions}
                       value={field.value}
                       onChange={field.onChange}
@@ -545,7 +536,7 @@ export default function ShotForm() {
                   <FormItem>
                     <FormLabel>Shot Status</FormLabel>
                     <FormControl>
-                      <ScalarChipSelector
+                      <ScalarSelect
                         options={statusOptions}
                         value={field.value}
                         onChange={field.onChange}
@@ -560,7 +551,7 @@ export default function ShotForm() {
                   <FormItem>
                     <FormLabel>Fault Status</FormLabel>
                     <FormControl>
-                      <ScalarChipSelector
+                      <ScalarSelect
                         options={faultStatusOptions}
                         value={(field.value ?? [])[0]}
                         onChange={(value) => field.onChange(value ? [value] : [])}
@@ -652,7 +643,7 @@ export default function ShotForm() {
                     <FormField control={form.control} name="expressionStyle" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Expression Style</FormLabel>
-                        <ScalarChipSelector
+                        <ScalarSelect
                           options={expressionStyleOptions}
                           value={(field.value ?? [])[0]}
                           onChange={(value) => field.onChange(value ? [value] : [])}
@@ -664,7 +655,7 @@ export default function ShotForm() {
                     <FormField control={form.control} name="beanAchievement" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Bean Achievement</FormLabel>
-                        <ScalarChipSelector
+                        <ScalarSelect
                           options={beanAchievementOptions}
                           value={(field.value ?? [])[0]}
                           onChange={(value) => field.onChange(value ? [value] : [])}
@@ -676,7 +667,7 @@ export default function ShotForm() {
                     <FormField control={form.control} name="shotClassification" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Shot Classification</FormLabel>
-                        <ScalarChipSelector
+                        <ScalarSelect
                           options={shotClassificationOptions}
                           value={(field.value ?? [])[0]}
                           onChange={(value) => field.onChange(value ? [value] : [])}
