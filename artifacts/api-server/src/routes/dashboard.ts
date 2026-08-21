@@ -122,6 +122,9 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     ))
     .orderBy(desc(sql`${shotsTable.shotDate}`));
 
+  const activeBagInventoryRecords = await db.select().from(shotsTable)
+    .where(eq(shotsTable.bagId, activeBagRow.id));
+
   const ratedShots = activeBagShots.filter((s) => s.rating != null);
   const topRated = ratedShots.filter((s) => Number(s.rating) >= 8.0);
 
@@ -172,7 +175,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   const dialInSpeed = firstRefIdx >= 0 ? firstRefIdx : null;
 
   // ── Bag Progress ──────────────────────────────────────────────────────────
-  const beanMassConsumed = activeBagShots.reduce((acc, s) => {
+  const beanMassConsumed = activeBagInventoryRecords.reduce((acc, s) => {
     const d = Number(s.dose ?? 0);
     const waste = Number(s.grindWaste ?? 0);
     const removed = Number(s.overGrindRemoved ?? 0);
@@ -313,7 +316,10 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     .leftJoin(beansTable, eq(bagsTable.beanId, beansTable.id))
     .where(and(isNotNull(shotsTable.grindSetting), ...eligibleShotConditions))
     .groupBy(shotsTable.bagId, bagsTable.bagNumber, beansTable.name, bagsTable.openedDate)
-    .orderBy(desc(sql`count(*)`))
+    .orderBy(
+      desc(sql`max(case when ${bagsTable.id} = ${activeBagRow.id} then 1 else 0 end)`),
+      desc(sql`count(*)`),
+    )
     .limit(5);
 
   // ── Watchlist (recommendation-style) ──────────────────────────────────────

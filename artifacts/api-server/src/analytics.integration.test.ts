@@ -143,8 +143,13 @@ test("analytical route inventory uses the shared eligibility condition", async (
   );
   assert.match(
     dashboardSource,
-    /const beanMassConsumed = activeBagShots\.reduce/,
-    "Dashboard bag progress must count all bean mass consumed, not only final basket dose",
+    /const activeBagInventoryRecords = await db\.select\(\)\.from\(shotsTable\)/,
+    "Dashboard must fetch all active-bag records separately for inventory consumption",
+  );
+  assert.match(
+    dashboardSource,
+    /const beanMassConsumed = activeBagInventoryRecords\.reduce/,
+    "Dashboard bag progress must count all active-bag bean mass consumed, not only analysis-eligible basket dose",
   );
   assert.match(
     dashboardSource,
@@ -165,6 +170,11 @@ test("analytical route inventory uses the shared eligibility condition", async (
     dashboardSource,
     /latestShotEstimate/,
     "Dashboard must not let historical imported Shots Left estimates override live active-bag progress",
+  );
+  assert.match(
+    dashboardSource,
+    /max\(case when \$\{bagsTable\.id\} = \$\{activeBagRow\.id\} then 1 else 0 end\)/,
+    "Bag History must pin the active bag even when a new bag has fewer shots than historical bags",
   );
   assert.doesNotMatch(
     dashboardSource,
