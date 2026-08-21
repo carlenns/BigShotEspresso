@@ -150,6 +150,8 @@ export default function ShotForm() {
 
   useEffect(() => {
     if (!existingShot || !isEditing) return;
+    const savedStatus = existingShot.status ?? "";
+    const savedTasteZone = existingShot.tasteZone ?? "";
     const hasAdvancedEvaluation =
       (existingShot.expressionStyle?.length ?? 0) > 0 ||
       (existingShot.beanAchievement?.length ?? 0) > 0 ||
@@ -169,7 +171,7 @@ export default function ShotForm() {
       temperature: existingShot.temperature ?? undefined,
       rating: existingShot.rating ?? undefined,
       preferenceRating: existingShot.preferenceRating ?? undefined,
-      status: existingShot.status ?? undefined,
+      status: savedStatus,
       faultStatus: existingShot.faultStatus ?? [],
       isReference: existingShot.isReference ?? false,
       signatureShot: existingShot.signatureShot ?? false,
@@ -177,11 +179,13 @@ export default function ShotForm() {
       expressionStyle: existingShot.expressionStyle ?? [],
       beanAchievement: existingShot.beanAchievement ?? [],
       shotClassification: existingShot.shotClassification ?? [],
-      tasteZone: existingShot.tasteZone ?? undefined,
+      tasteZone: savedTasteZone,
       includeInAnalysis: existingShot.includeInAnalysis ?? true,
       notes: existingShot.notes ?? undefined,
       sensoryNotes: existingShot.sensoryNotes ?? undefined,
     });
+    form.setValue("status", savedStatus);
+    form.setValue("tasteZone", savedTasteZone);
     setShowAdvancedEvaluation(hasAdvancedEvaluation);
   }, [existingShot, isEditing, form]);
 
@@ -462,7 +466,7 @@ export default function ShotForm() {
               <FormField control={form.control} name="tasteZone" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Taste Zone</FormLabel>
-                  <Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={field.value ?? "__none__"}>
+                  <Select onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)} value={field.value || "__none__"}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select taste zone…" /></SelectTrigger></FormControl>
                     <SelectContent>
                       <SelectItem value="__none__">— not set —</SelectItem>
@@ -495,7 +499,7 @@ export default function ShotForm() {
                 <FormField control={form.control} name="status" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Shot Status</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)} value={field.value ?? "__none__"}>
+                    <Select onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)} value={field.value || "__none__"}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="__none__">— not set —</SelectItem>
