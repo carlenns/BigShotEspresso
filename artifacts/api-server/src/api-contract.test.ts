@@ -99,6 +99,9 @@ test("Shot form supports editing, active-bag-first entry, and Taste Zone selecti
   assert.match(formSource, /FormLabel>Taste Zone/);
   assert.match(formSource, /FormLabel>Shot Status/);
   assert.match(formSource, /FormLabel>Fault Status/);
+  assert.match(formSource, /FormLabel>Expression Style/);
+  assert.match(formSource, /FormLabel>Bean Achievement/);
+  assert.match(formSource, /FormLabel>Shot Classification/);
   assert.match(formSource, /const activeBags = bags\.filter\(\(b\) => b\.isActive\)/);
   assert.match(formSource, /const visibleBags = showPreviousBags \? bags : activeBags/);
   assert.match(formSource, /Show previous bags/);
@@ -111,6 +114,7 @@ test("Shot form supports editing, active-bag-first entry, and Taste Zone selecti
   assert.match(formSource, /<ScalarChipSelector/);
   assert.match(formSource, /onChange=\{\(value\) => field\.onChange\(value \? \[value\] : \[\]\)\}/);
   assert.doesNotMatch(formSource, /SelectValue placeholder="Select/);
+  assert.doesNotMatch(formSource, /import \{ ChipSelector \}/);
   assert.match(formSource, /setSelectedTastes\(existingTasteSelectors\.map\(\(selector\) => selector\.id\)\)/);
   assert.match(formSource, /setShowAdvancedEvaluation\(hasAdvancedEvaluation\)/);
   assert.match(formSource, /data\.id && \(isEditing \|\| selectedTastes\.length > 0\)/);

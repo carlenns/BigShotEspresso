@@ -24,7 +24,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { ChipSelector } from "@/components/ui/chip-selector";
 import { TASTE_ZONE_OPTIONS, curatedOptions, curatedScalarOptions, describeAnalysisEligibility } from "@/lib/selector-options";
 
 interface Bag {
@@ -184,9 +183,9 @@ export default function ShotForm() {
 
   const statusOptions = curatedScalarOptions("status", form.watch("status"));
   const faultStatusOptions = curatedOptions("faultStatus", form.watch("faultStatus")?.slice(0, 1) ?? []);
-  const expressionStyleOptions = curatedOptions("expressionStyle", form.watch("expressionStyle") ?? []);
-  const beanAchievementOptions = curatedOptions("beanAchievement", form.watch("beanAchievement") ?? []);
-  const shotClassificationOptions = curatedOptions("shotClassification", form.watch("shotClassification") ?? []);
+  const expressionStyleOptions = curatedOptions("expressionStyle", form.watch("expressionStyle")?.slice(0, 1) ?? []);
+  const beanAchievementOptions = curatedOptions("beanAchievement", form.watch("beanAchievement")?.slice(0, 1) ?? []);
+  const shotClassificationOptions = curatedOptions("shotClassification", form.watch("shotClassification")?.slice(0, 1) ?? []);
   const tasteZoneOptions = form.watch("tasteZone") && !TASTE_ZONE_OPTIONS.includes(form.watch("tasteZone")!)
     ? [...TASTE_ZONE_OPTIONS, form.watch("tasteZone")!]
     : TASTE_ZONE_OPTIONS;
@@ -653,10 +652,10 @@ export default function ShotForm() {
                     <FormField control={form.control} name="expressionStyle" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Expression Style</FormLabel>
-                        <ChipSelector
+                        <ScalarChipSelector
                           options={expressionStyleOptions}
-                          value={field.value ?? []}
-                          onChange={field.onChange}
+                          value={(field.value ?? [])[0]}
+                          onChange={(value) => field.onChange(value ? [value] : [])}
                         />
                         <FormMessage />
                       </FormItem>
@@ -665,10 +664,10 @@ export default function ShotForm() {
                     <FormField control={form.control} name="beanAchievement" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Bean Achievement</FormLabel>
-                        <ChipSelector
+                        <ScalarChipSelector
                           options={beanAchievementOptions}
-                          value={field.value ?? []}
-                          onChange={field.onChange}
+                          value={(field.value ?? [])[0]}
+                          onChange={(value) => field.onChange(value ? [value] : [])}
                         />
                         <FormMessage />
                       </FormItem>
@@ -677,10 +676,10 @@ export default function ShotForm() {
                     <FormField control={form.control} name="shotClassification" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Shot Classification</FormLabel>
-                        <ChipSelector
+                        <ScalarChipSelector
                           options={shotClassificationOptions}
-                          value={field.value ?? []}
-                          onChange={field.onChange}
+                          value={(field.value ?? [])[0]}
+                          onChange={(value) => field.onChange(value ? [value] : [])}
                         />
                         <FormMessage />
                       </FormItem>
