@@ -94,8 +94,10 @@ test("Shot form supports editing, active-bag-first entry, and Taste Zone selecti
   assert.match(appSource, /path="\/shots\/:id\/edit"/);
   assert.match(detailSource, /href=\{`\/shots\/\$\{id\}\/edit`\}/);
   assert.match(formSource, /useUpdateShot/);
+  assert.match(formSource, /function ScalarChipSelector/);
   assert.match(formSource, /tasteZoneOptions/);
   assert.match(formSource, /FormLabel>Taste Zone/);
+  assert.match(formSource, /FormLabel>Shot Status/);
   assert.match(formSource, /const activeBags = bags\.filter\(\(b\) => b\.isActive\)/);
   assert.match(formSource, /const visibleBags = showPreviousBags \? bags : activeBags/);
   assert.match(formSource, /Show previous bags/);
@@ -105,7 +107,8 @@ test("Shot form supports editing, active-bag-first entry, and Taste Zone selecti
   assert.match(formSource, /const savedTasteZone = existingShot\.tasteZone \?\? ""/);
   assert.match(formSource, /form\.setValue\("status", savedStatus\)/);
   assert.match(formSource, /form\.setValue\("tasteZone", savedTasteZone\)/);
-  assert.match(formSource, /value=\{field\.value \|\| "__none__"\}/);
+  assert.match(formSource, /<ScalarChipSelector/);
+  assert.doesNotMatch(formSource, /SelectValue placeholder="Select/);
   assert.match(formSource, /setSelectedTastes\(existingTasteSelectors\.map\(\(selector\) => selector\.id\)\)/);
   assert.match(formSource, /setShowAdvancedEvaluation\(hasAdvancedEvaluation\)/);
   assert.match(formSource, /data\.id && \(isEditing \|\| selectedTastes\.length > 0\)/);

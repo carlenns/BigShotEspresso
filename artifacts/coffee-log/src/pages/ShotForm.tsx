@@ -9,7 +9,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, ChevronDown, ChevronUp, Save } from "lucide-react";
@@ -90,6 +89,51 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 type ShotMutationResult = { id?: number };
+
+function ScalarChipSelector({
+  options,
+  value,
+  onChange,
+}: {
+  options: string[];
+  value?: string | null;
+  onChange: (value: string | undefined) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        onClick={() => onChange(undefined)}
+        className={cn(
+          "px-3 py-1.5 rounded-full text-sm font-medium border transition-colors",
+          !value
+            ? "bg-primary text-primary-foreground border-primary"
+            : "bg-background text-foreground border-border hover:border-primary/50 hover:bg-accent"
+        )}
+      >
+        — not set —
+      </button>
+      {options.map((option) => {
+        const selected = value === option;
+        return (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onChange(selected ? undefined : option)}
+            className={cn(
+              "px-3 py-1.5 rounded-full text-sm font-medium border transition-colors",
+              selected
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background text-foreground border-border hover:border-primary/50 hover:bg-accent"
+            )}
+          >
+            {option}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function ShotForm() {
   const [, params] = useRoute("/shots/:id/edit");
@@ -468,13 +512,13 @@ export default function ShotForm() {
               <FormField control={form.control} name="tasteZone" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Taste Zone</FormLabel>
-                  <Select onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)} value={field.value || "__none__"}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select taste zone…" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      <SelectItem value="__none__">— not set —</SelectItem>
-                      {tasteZoneOptions.map((zone) => <SelectItem key={zone} value={zone}>{zone}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <ScalarChipSelector
+                      options={tasteZoneOptions}
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -501,13 +545,13 @@ export default function ShotForm() {
                 <FormField control={form.control} name="status" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Shot Status</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)} value={field.value || "__none__"}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="__none__">— not set —</SelectItem>
-                        {statusOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <ScalarChipSelector
+                        options={statusOptions}
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
