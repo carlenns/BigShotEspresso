@@ -37,6 +37,8 @@ interface Bag {
 
 interface TasteSelector { id: number; name: string; category: string; }
 
+const NO_TASTE_SELECTORS: TasteSelector[] = [];
+
 function fetchBags(): Promise<Bag[]> { return fetch("/api/bags").then((r) => r.json()); }
 function fetchTasteSelectors(): Promise<TasteSelector[]> { return fetch("/api/taste-selectors").then((r) => r.json()); }
 function fetchShotTasteSelectors(id: number): Promise<TasteSelector[]> {
@@ -104,7 +106,7 @@ export default function ShotForm() {
 
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: tasteSelectors = [] } = useQuery({ queryKey: ["taste-selectors"], queryFn: fetchTasteSelectors });
-  const { data: existingTasteSelectors = [] } = useQuery({
+  const { data: existingTasteSelectors = NO_TASTE_SELECTORS } = useQuery({
     queryKey: ["shot-taste-selectors", editingId],
     queryFn: () => fetchShotTasteSelectors(editingId!),
     enabled: isEditing && !!editingId,
