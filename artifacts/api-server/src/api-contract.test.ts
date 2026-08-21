@@ -87,6 +87,10 @@ test("Shot form supports editing, active-bag-first entry, and Taste Zone selecti
   assert.match(formSource, /const activeBags = bags\.filter\(\(b\) => b\.isActive\)/);
   assert.match(formSource, /const visibleBags = showPreviousBags \? bags : activeBags/);
   assert.match(formSource, /Show previous bags/);
+  assert.match(formSource, /fetchShotTasteSelectors/);
+  assert.match(formSource, /setSelectedTastes\(existingTasteSelectors\.map\(\(selector\) => selector\.id\)\)/);
+  assert.match(formSource, /setShowAdvancedEvaluation\(hasAdvancedEvaluation\)/);
+  assert.match(formSource, /data\.id && \(isEditing \|\| selectedTastes\.length > 0\)/);
 });
 
 test("API response shaping excludes internal evidence fields", () => {

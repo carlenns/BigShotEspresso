@@ -39,6 +39,9 @@ interface TasteSelector { id: number; name: string; category: string; }
 
 function fetchBags(): Promise<Bag[]> { return fetch("/api/bags").then((r) => r.json()); }
 function fetchTasteSelectors(): Promise<TasteSelector[]> { return fetch("/api/taste-selectors").then((r) => r.json()); }
+function fetchShotTasteSelectors(id: number): Promise<TasteSelector[]> {
+  return fetch(`/api/shots/${id}/taste-selectors`).then((r) => r.json());
+}
 
 function nowDateTimeLocal(): string {
   const d = new Date();
@@ -101,6 +104,11 @@ export default function ShotForm() {
 
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: tasteSelectors = [] } = useQuery({ queryKey: ["taste-selectors"], queryFn: fetchTasteSelectors });
+  const { data: existingTasteSelectors = [] } = useQuery({
+    queryKey: ["shot-taste-selectors", editingId],
+    queryFn: () => fetchShotTasteSelectors(editingId!),
+    enabled: isEditing && !!editingId,
+  });
   const { data: existingShot } = useGetShot(editingId ?? 0, {
     query: {
       enabled: isEditing && !!editingId,
@@ -142,6 +150,10 @@ export default function ShotForm() {
 
   useEffect(() => {
     if (!existingShot || !isEditing) return;
+    const hasAdvancedEvaluation =
+      (existingShot.expressionStyle?.length ?? 0) > 0 ||
+      (existingShot.beanAchievement?.length ?? 0) > 0 ||
+      (existingShot.shotClassification?.length ?? 0) > 0;
     form.reset({
       shotDate: existingShot.shotDate ? toDateTimeLocal(existingShot.shotDate) : nowDateTimeLocal(),
       bagId: existingShot.bagId ?? undefined,
@@ -170,7 +182,13 @@ export default function ShotForm() {
       notes: existingShot.notes ?? undefined,
       sensoryNotes: existingShot.sensoryNotes ?? undefined,
     });
+    setShowAdvancedEvaluation(hasAdvancedEvaluation);
   }, [existingShot, isEditing, form]);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    setSelectedTastes(existingTasteSelectors.map((selector) => selector.id));
+  }, [existingTasteSelectors, isEditing]);
 
   // Auto-fill from bag selection
   useEffect(() => {
@@ -192,7 +210,7 @@ export default function ShotForm() {
   const onSubmit = async (values: FormValues) => {
     const handlers = {
       onSuccess: async (data: ShotMutationResult) => {
-        if (selectedTastes.length > 0 && data.id) {
+        if (data.id && (isEditing || selectedTastes.length > 0)) {
           await fetch(`/api/shots/${data.id}/taste-selectors`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
