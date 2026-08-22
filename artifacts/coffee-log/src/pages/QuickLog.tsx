@@ -44,8 +44,6 @@ export const FIELD_GROUPS: { id: string; label: string; description: string; fie
     description: "Core shot data · enabled by default",
     fields: [
       { id: "dose",     label: "Target Dose", unit: "g", dbKey: "dose",      type: "number",  step: 0.1,  min: 0,  defaultOn: true  },
-      { id: "yield",    label: "Yield",     unit: "g",   dbKey: "yield",     type: "number",  step: 0.1,  min: 0,  defaultOn: true  },
-      { id: "flowTime", label: "Flow Time", unit: "s",   dbKey: "flowTime", type: "number",  step: 1,    min: 0,  defaultOn: true  },
       { id: "rating",   label: "Rating",    unit: "",    dbKey: "rating",    type: "rating",              defaultOn: true  },
     ],
   },
@@ -56,6 +54,8 @@ export const FIELD_GROUPS: { id: string; label: string; description: string; fie
     fields: [
       { id: "pourDelay", label: "First Pour Delay", unit: "s", dbKey: "pourDelay", type: "number", step: 1,   min: 0, defaultOn: false },
       { id: "pourTime",  label: "Pour Time",        unit: "s", dbKey: "pourTime",  type: "number", step: 1,   min: 0, defaultOn: false },
+      { id: "flowTime", label: "Flow Time", unit: "s",   dbKey: "flowTime", type: "number",  step: 1,    min: 0,  defaultOn: true  },
+      { id: "yield",    label: "Yield",     unit: "g",   dbKey: "yield",     type: "number",  step: 0.1,  min: 0,  defaultOn: true  },
     ],
   },
   {

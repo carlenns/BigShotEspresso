@@ -439,10 +439,10 @@ export default function ShotForm() {
                   )}
                 </div>
               )}
-              <FormField control={form.control} name="yield" render={({ field }) => (
+              <FormField control={form.control} name="pourDelay" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Yield (g)</FormLabel>
-                  <FormControl><Input type="number" step="0.1" {...field} value={field.value ?? ""} /></FormControl>
+                  <FormLabel>Pour Delay (s)</FormLabel>
+                  <FormControl><Input type="number" step="0.1" placeholder="7.0" {...field} value={field.value ?? ""} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -453,17 +453,17 @@ export default function ShotForm() {
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="pourDelay" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Pour Delay (s)</FormLabel>
-                  <FormControl><Input type="number" step="0.1" placeholder="7.0" {...field} value={field.value ?? ""} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
               <FormField control={form.control} name="flowTime" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Flow Time (s)</FormLabel>
                   <FormControl><Input type="number" step="1" {...field} value={field.value ?? ""} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="yield" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Yield (g)</FormLabel>
+                  <FormControl><Input type="number" step="0.1" {...field} value={field.value ?? ""} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
