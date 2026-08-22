@@ -42,7 +42,7 @@ export const FIELD_GROUPS: { id: string; label: string; description: string; fie
     label: "Essential",
     description: "Core shot data · enabled by default",
     fields: [
-      { id: "dose",     label: "Dose",      unit: "g",   dbKey: "dose",      type: "number",  step: 0.1,  min: 0,  defaultOn: true  },
+      { id: "dose",     label: "Target Dose", unit: "g", dbKey: "dose",      type: "number",  step: 0.1,  min: 0,  defaultOn: true  },
       { id: "yield",    label: "Yield",     unit: "g",   dbKey: "yield",     type: "number",  step: 0.1,  min: 0,  defaultOn: true  },
       { id: "flowTime", label: "Flow Time", unit: "s",   dbKey: "flowTime", type: "number",  step: 1,    min: 0,  defaultOn: true  },
       { id: "rating",   label: "Rating",    unit: "",    dbKey: "rating",    type: "rating",              defaultOn: true  },
@@ -65,7 +65,7 @@ export const FIELD_GROUPS: { id: string; label: string; description: string; fie
       { id: "temperature",       label: "Temperature",            unit: "°C", dbKey: "temperature",       type: "temperature", min: 88, max: 98, defaultOn: false },
       { id: "grindSetting",      label: "Grind Setting",          unit: "",   dbKey: "grindSetting",      type: "number",  step: 0.01, min: 0, defaultOn: false },
       { id: "grindTime",         label: "Grinder Time",           unit: "s",  dbKey: "grindTime",         type: "number",  step: 0.1,  min: 0, defaultOn: false },
-      { id: "grindOutputWeight", label: "Grinder Output Weight",  unit: "g",  dbKey: "initialGrindWeight",type: "number",  step: 0.1,  min: 0, defaultOn: false },
+      { id: "grindOutputWeight", label: "Initial Grinder Output", unit: "g",  dbKey: "initialGrindWeight", type: "number", step: 0.1, min: 0, defaultOn: true },
       { id: "grindChanged",      label: "Grind Changed This Shot",unit: "",   dbKey: "grindAdjusted",     type: "toggle",              defaultOn: false },
     ],
   },

@@ -63,6 +63,7 @@ const formSchema = z.object({
   bag: z.string().optional(),
   grindSetting: z.coerce.number().optional(),
   grindTime: z.coerce.number().optional(),
+  initialGrindWeight: z.coerce.number().optional(),
   dose: z.coerce.number().optional(),
   yield: z.coerce.number().optional(),
   pourDelay: z.coerce.number().optional(),
@@ -199,6 +200,7 @@ export default function ShotForm() {
       bag: existingShot.bag ?? undefined,
       grindSetting: existingShot.grindSetting ?? undefined,
       grindTime: existingShot.grindTime ?? undefined,
+      initialGrindWeight: existingShot.initialGrindWeight ?? undefined,
       dose: existingShot.dose ?? undefined,
       yield: existingShot.yield ?? undefined,
       pourDelay: existingShot.pourDelay ?? undefined,
@@ -372,6 +374,13 @@ export default function ShotForm() {
                   <FormMessage />
                 </FormItem>
               )} />
+              <FormField control={form.control} name="initialGrindWeight" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Initial Grinder Output (g)</FormLabel>
+                  <FormControl><Input type="number" step="0.1" placeholder="18.2" {...field} value={field.value ?? ""} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
               <FormField control={form.control} name="temperature" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Temp (°C)</FormLabel>
@@ -381,7 +390,7 @@ export default function ShotForm() {
               )} />
               <FormField control={form.control} name="dose" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Dose (g)</FormLabel>
+                  <FormLabel>Target / Basket Dose (g)</FormLabel>
                   <FormControl><Input type="number" step="0.1" {...field} value={field.value ?? ""} /></FormControl>
                   <FormMessage />
                 </FormItem>
