@@ -67,6 +67,7 @@ export const FIELD_GROUPS: { id: string; label: string; description: string; fie
       { id: "grindSetting",      label: "Grind Setting",          unit: "",   dbKey: "grindSetting",      type: "number",  step: 0.01, min: 0, defaultOn: false },
       { id: "grindTime",         label: "Grinder Time",           unit: "s",  dbKey: "grindTime",         type: "number",  step: 0.1,  min: 0, defaultOn: false },
       { id: "grindOutputWeight", label: "Initial Grinder Output", unit: "g",  dbKey: "initialGrindWeight", type: "number", step: 0.1, min: 0, defaultOn: true },
+      { id: "timeAdj",           label: "Top-Up Time Adj",        unit: "s",  dbKey: "timeAdj",           type: "number",  step: 0.1,  min: 0, defaultOn: false },
       { id: "grindChanged",      label: "Grind Changed This Shot",unit: "",   dbKey: "grindAdjusted",     type: "toggle",              defaultOn: false },
     ],
   },
@@ -242,6 +243,8 @@ export default function QuickLog() {
       calculateDoseCorrection(
         typeof body.initialGrindWeight === "number" ? body.initialGrindWeight : undefined,
         typeof body.dose === "number" ? body.dose : undefined,
+        typeof body.timeAdj === "number" ? body.timeAdj : undefined,
+        settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2,
       ),
     );
 

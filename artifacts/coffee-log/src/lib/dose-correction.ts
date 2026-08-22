@@ -3,6 +3,7 @@ export interface DoseCorrectionFields {
   overGrindRemoved?: number | null;
   doseCorrectionType?: string;
   doseCorrection?: number | null;
+  timeAdj?: number | null;
 }
 
 function roundToTenth(value: number): number {
@@ -12,6 +13,8 @@ function roundToTenth(value: number): number {
 export function calculateDoseCorrection(
   initialGrindWeight?: number | null,
   targetDose?: number | null,
+  existingTimeAdj?: number | null,
+  minimumTopUpTime = 0.2,
 ): DoseCorrectionFields {
   if (initialGrindWeight == null || targetDose == null) return {};
   if (!Number.isFinite(initialGrindWeight) || !Number.isFinite(targetDose)) return {};
@@ -35,6 +38,7 @@ export function calculateDoseCorrection(
       overGrindRemoved: null,
       doseCorrectionType: "Under → Top-Up",
       doseCorrection: correction,
+      timeAdj: existingTimeAdj ?? minimumTopUpTime,
     };
   }
 

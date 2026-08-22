@@ -43,6 +43,7 @@ function fetchTasteSelectors(): Promise<TasteSelector[]> { return fetch("/api/ta
 function fetchShotTasteSelectors(id: number): Promise<TasteSelector[]> {
   return fetch(`/api/shots/${id}/taste-selectors`).then((r) => r.json());
 }
+function fetchSettings(): Promise<Record<string, string>> { return fetch("/api/settings").then((r) => r.json()); }
 
 function nowDateTimeLocal(): string {
   const d = new Date();
@@ -65,6 +66,7 @@ const formSchema = z.object({
   grindSetting: z.coerce.number().optional(),
   grindTime: z.coerce.number().optional(),
   initialGrindWeight: z.coerce.number().optional(),
+  timeAdj: z.coerce.number().optional(),
   dose: z.coerce.number().optional(),
   yield: z.coerce.number().optional(),
   pourDelay: z.coerce.number().optional(),
@@ -141,6 +143,7 @@ export default function ShotForm() {
   const [showAdvancedEvaluation, setShowAdvancedEvaluation] = useState(false);
 
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
+  const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
   const { data: tasteSelectors = [] } = useQuery({ queryKey: ["taste-selectors"], queryFn: fetchTasteSelectors });
   const { data: existingTasteSelectors = NO_TASTE_SELECTORS } = useQuery({
     queryKey: ["shot-taste-selectors", editingId],
@@ -202,6 +205,7 @@ export default function ShotForm() {
       grindSetting: existingShot.grindSetting ?? undefined,
       grindTime: existingShot.grindTime ?? undefined,
       initialGrindWeight: existingShot.initialGrindWeight ?? undefined,
+      timeAdj: existingShot.timeAdj ?? undefined,
       dose: existingShot.dose ?? undefined,
       yield: existingShot.yield ?? undefined,
       pourDelay: existingShot.pourDelay ?? undefined,
@@ -271,7 +275,12 @@ export default function ShotForm() {
 
     const payload = {
       ...values,
-      ...calculateDoseCorrection(values.initialGrindWeight, values.dose),
+      ...calculateDoseCorrection(
+        values.initialGrindWeight,
+        values.dose,
+        values.timeAdj,
+        settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2,
+      ),
       includeInAnalysis: describeAnalysisEligibility(values.status, values.faultStatus ?? []).included,
     };
 
@@ -281,7 +290,12 @@ export default function ShotForm() {
 
   const ratingVal = form.watch("rating") ?? 7;
   const activeBagId = form.watch("bagId");
-  const correctionPreview = calculateDoseCorrection(form.watch("initialGrindWeight"), form.watch("dose"));
+  const correctionPreview = calculateDoseCorrection(
+    form.watch("initialGrindWeight"),
+    form.watch("dose"),
+    form.watch("timeAdj"),
+    settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2,
+  );
   const activeBags = bags.filter((b) => b.isActive);
   const previousBags = bags.filter((b) => !b.isActive);
   const visibleBags = showPreviousBags ? bags : activeBags;
@@ -387,6 +401,13 @@ export default function ShotForm() {
                   <FormMessage />
                 </FormItem>
               )} />
+              <FormField control={form.control} name="timeAdj" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Top-Up Time Adj (s)</FormLabel>
+                  <FormControl><Input type="number" step="0.1" placeholder={settings?.grindMinTime ?? "0.2"} {...field} value={field.value ?? ""} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
               <FormField control={form.control} name="temperature" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Temp (°C)</FormLabel>
@@ -408,7 +429,10 @@ export default function ShotForm() {
                     <p className="text-muted-foreground">Remove {correctionPreview.overGrindRemoved}g to reach target dose.</p>
                   )}
                   {correctionPreview.topUpGrind != null && (
-                    <p className="text-muted-foreground">Top up {correctionPreview.topUpGrind}g to reach target dose.</p>
+                    <p className="text-muted-foreground">
+                      Top up {correctionPreview.topUpGrind}g to reach target dose
+                      {correctionPreview.timeAdj != null ? ` using ${correctionPreview.timeAdj}s.` : "."}
+                    </p>
                   )}
                   {correctionPreview.doseCorrectionType === "None" && (
                     <p className="text-muted-foreground">Initial output matches target dose.</p>
