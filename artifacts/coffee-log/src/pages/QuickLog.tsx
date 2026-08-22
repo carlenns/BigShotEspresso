@@ -16,6 +16,7 @@ import { Zap, ArrowRight, Coffee, CheckCircle2, Settings, Minus, Plus, ChevronDo
 import { cn } from "@/lib/utils";
 import { ChipSelector } from "@/components/ui/chip-selector";
 import { curatedOptions, curatedScalarOptions, describeAnalysisEligibility, type SelectorOptions } from "@/lib/selector-options";
+import { calculateDoseCorrection } from "@/lib/dose-correction";
 
 // ── Field type definitions ────────────────────────────────────────────────────
 
@@ -235,6 +236,14 @@ export default function QuickLog() {
         if (!isNaN(n) && val !== "" && val !== undefined) body[field.dbKey] = n;
       }
     }
+
+    Object.assign(
+      body,
+      calculateDoseCorrection(
+        typeof body.initialGrindWeight === "number" ? body.initialGrindWeight : undefined,
+        typeof body.dose === "number" ? body.dose : undefined,
+      ),
+    );
 
     // Shot Evaluation fields (always applied)
     if (evalValues.status) body.status = evalValues.status;

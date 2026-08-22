@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { TASTE_ZONE_OPTIONS, curatedOptions, curatedScalarOptions, describeAnalysisEligibility } from "@/lib/selector-options";
+import { calculateDoseCorrection } from "@/lib/dose-correction";
 
 interface Bag {
   id: number; beanName: string | null; bagNumber: string | null; bagName: string | null; isActive: boolean;
@@ -268,7 +269,11 @@ export default function ShotForm() {
       onError: () => toast({ title: isEditing ? "Failed to update shot" : "Failed to log shot", variant: "destructive" }),
     };
 
-    const payload = { ...values, includeInAnalysis: describeAnalysisEligibility(values.status, values.faultStatus ?? []).included };
+    const payload = {
+      ...values,
+      ...calculateDoseCorrection(values.initialGrindWeight, values.dose),
+      includeInAnalysis: describeAnalysisEligibility(values.status, values.faultStatus ?? []).included,
+    };
 
     if (isEditing && editingId) updateShot.mutate({ id: editingId, data: payload }, handlers);
     else createShot.mutate({ data: payload }, handlers);
@@ -276,6 +281,7 @@ export default function ShotForm() {
 
   const ratingVal = form.watch("rating") ?? 7;
   const activeBagId = form.watch("bagId");
+  const correctionPreview = calculateDoseCorrection(form.watch("initialGrindWeight"), form.watch("dose"));
   const activeBags = bags.filter((b) => b.isActive);
   const previousBags = bags.filter((b) => !b.isActive);
   const visibleBags = showPreviousBags ? bags : activeBags;
@@ -395,6 +401,20 @@ export default function ShotForm() {
                   <FormMessage />
                 </FormItem>
               )} />
+              {correctionPreview.doseCorrectionType && (
+                <div className="rounded-md border bg-muted/40 p-3 text-sm sm:col-span-3">
+                  <p className="font-medium">Dose correction: {correctionPreview.doseCorrectionType}</p>
+                  {correctionPreview.overGrindRemoved != null && (
+                    <p className="text-muted-foreground">Remove {correctionPreview.overGrindRemoved}g to reach target dose.</p>
+                  )}
+                  {correctionPreview.topUpGrind != null && (
+                    <p className="text-muted-foreground">Top up {correctionPreview.topUpGrind}g to reach target dose.</p>
+                  )}
+                  {correctionPreview.doseCorrectionType === "None" && (
+                    <p className="text-muted-foreground">Initial output matches target dose.</p>
+                  )}
+                </div>
+              )}
               <FormField control={form.control} name="yield" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Yield (g)</FormLabel>
