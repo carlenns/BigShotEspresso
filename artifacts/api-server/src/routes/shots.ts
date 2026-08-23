@@ -59,6 +59,9 @@ function validateRatings(data: Partial<InsertShot>): string | null {
   return null;
 }
 
+// Carry forward grind setting/time only within the same active Bag.
+// Do not apply this to Beans or future Bags. Historical bean guidance must remain
+// advisory until explicitly accepted by the user during new-bag setup.
 async function carryForwardActiveBagGrindDefaults(
   bagId: number | null | undefined,
   data: Partial<InsertShot>,

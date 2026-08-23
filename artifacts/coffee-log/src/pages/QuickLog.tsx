@@ -15,6 +15,7 @@ import { useCreateShot, getListShotsQueryKey, getGetDashboardSummaryQueryKey } f
 import { Zap, ArrowRight, Coffee, CheckCircle2, Settings, Minus, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChipSelector } from "@/components/ui/chip-selector";
+import { DateTimeInput } from "@/components/ui/date-time-input";
 import { curatedOptions, curatedScalarOptions, describeAnalysisEligibility, type SelectorOptions } from "@/lib/selector-options";
 import { calculateDoseCorrection } from "@/lib/dose-correction";
 
@@ -332,12 +333,7 @@ export default function QuickLog() {
         <CardContent className="p-4">
           <div className="space-y-1.5">
             <Label className="text-sm font-medium text-muted-foreground">Date & Time</Label>
-            <Input
-              type="datetime-local"
-              value={shotDate}
-              onChange={(e) => setShotDate(e.target.value)}
-              className="h-10 text-sm tabular-nums"
-            />
+            <DateTimeInput value={shotDate} onChange={setShotDate} />
           </div>
         </CardContent>
       </Card>

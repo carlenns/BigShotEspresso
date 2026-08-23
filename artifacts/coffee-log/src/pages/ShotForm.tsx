@@ -23,6 +23,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
+import { DateTimeInput } from "@/components/ui/date-time-input";
 import { cn } from "@/lib/utils";
 import { TASTE_ZONE_OPTIONS, curatedOptions, curatedScalarOptions, describeAnalysisEligibility } from "@/lib/selector-options";
 import { calculateDoseCorrection } from "@/lib/dose-correction";
@@ -328,10 +329,9 @@ export default function ShotForm() {
                 <FormItem>
                   <FormLabel>Date & Time</FormLabel>
                   <FormControl>
-                    <Input
-                      type="datetime-local"
-                      {...field}
+                    <DateTimeInput
                       value={field.value?.toString().slice(0, 16) ?? ""}
+                      onChange={field.onChange}
                     />
                   </FormControl>
                   <FormMessage />
