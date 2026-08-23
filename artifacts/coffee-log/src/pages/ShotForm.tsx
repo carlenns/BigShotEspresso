@@ -66,6 +66,7 @@ const formSchema = z.object({
   grindSetting: z.coerce.number().optional(),
   grindTime: z.coerce.number().optional(),
   initialGrindWeight: z.coerce.number().optional(),
+  topUpGrind: z.coerce.number().optional(),
   timeAdj: z.coerce.number().optional(),
   dose: z.coerce.number().optional(),
   yield: z.coerce.number().optional(),
@@ -205,6 +206,7 @@ export default function ShotForm() {
       grindSetting: existingShot.grindSetting ?? undefined,
       grindTime: existingShot.grindTime ?? undefined,
       initialGrindWeight: existingShot.initialGrindWeight ?? undefined,
+      topUpGrind: existingShot.topUpGrind ?? undefined,
       timeAdj: existingShot.timeAdj ?? undefined,
       dose: existingShot.dose ?? undefined,
       yield: existingShot.yield ?? undefined,
@@ -280,6 +282,7 @@ export default function ShotForm() {
         values.dose,
         values.timeAdj,
         settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2,
+        values.topUpGrind,
       ),
       includeInAnalysis: describeAnalysisEligibility(values.status, values.faultStatus ?? []).included,
     };
@@ -295,6 +298,7 @@ export default function ShotForm() {
     form.watch("dose"),
     form.watch("timeAdj"),
     settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2,
+    form.watch("topUpGrind"),
   );
   const activeBags = bags.filter((b) => b.isActive);
   const previousBags = bags.filter((b) => !b.isActive);
@@ -398,6 +402,13 @@ export default function ShotForm() {
                 <FormItem>
                   <FormLabel>Initial Grinder Output (g)</FormLabel>
                   <FormControl><Input type="number" step="0.1" placeholder="18.2" {...field} value={field.value ?? ""} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="topUpGrind" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Top-Up Grind (g)</FormLabel>
+                  <FormControl><Input type="number" step="0.1" placeholder="0.1" {...field} value={field.value ?? ""} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />

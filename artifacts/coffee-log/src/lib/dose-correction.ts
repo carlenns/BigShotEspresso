@@ -15,6 +15,7 @@ export function calculateDoseCorrection(
   targetDose?: number | null,
   existingTimeAdj?: number | null,
   minimumTopUpTime = 0.2,
+  existingTopUpGrind?: number | null,
 ): DoseCorrectionFields {
   if (initialGrindWeight == null || targetDose == null) return {};
   if (!Number.isFinite(initialGrindWeight) || !Number.isFinite(targetDose)) return {};
@@ -32,7 +33,7 @@ export function calculateDoseCorrection(
   }
 
   if (delta < 0) {
-    const correction = Math.abs(delta);
+    const correction = existingTopUpGrind ?? Math.abs(delta);
     return {
       topUpGrind: correction,
       overGrindRemoved: null,
