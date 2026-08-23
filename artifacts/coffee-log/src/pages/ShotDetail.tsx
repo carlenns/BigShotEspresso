@@ -88,6 +88,13 @@ export default function ShotDetail() {
             <DetailItem label="Ratio" value={shot.ratio || "-"} />
             <DetailItem label="Flow Time" value={shot.flowTime != null ? `${shot.flowTime}s` : "-"} />
             <DetailItem label="First Pour Delay" value={shot.pourDelay != null ? `${shot.pourDelay}s` : "-"} />
+            {shot.grindSetting != null && <DetailItem label="Grind Setting" value={shot.grindSetting} />}
+            {shot.grindTime != null && <DetailItem label="Grind Time" value={`${shot.grindTime}s`} />}
+            {shot.initialGrindWeight != null && <DetailItem label="Initial Grinder Output" value={`${shot.initialGrindWeight}g`} />}
+            {shot.topUpGrind != null && <DetailItem label="Top-Up Grind Added" value={`${shot.topUpGrind}g`} />}
+            {shot.timeAdj != null && <DetailItem label="Top-Up Time Adj" value={`${shot.timeAdj}s`} />}
+            {shot.overGrindRemoved != null && <DetailItem label="Over-Grind Removed" value={`${shot.overGrindRemoved}g`} />}
+            {shot.grindAdjusted && <DetailItem label="Grind Event" value={shot.grindAdjusted} />}
             <DetailItem label="Status" value={displaySelectorValue(shot.status) || "-"} />
             {shot.grindWaste != null && <DetailItem label="Grind Waste" value={`${shot.grindWaste}g`} />}
             <DetailItem label="Include in Analysis" value={shot.includeInAnalysis ? "Yes" : "No"} />
@@ -96,8 +103,14 @@ export default function ShotDetail() {
             <DetailItem label="Bean Achievement" value={<ChipList values={shot.beanAchievement} />} />
             <DetailItem label="Expression Style" value={<ChipList values={shot.expressionStyle} />} />
             <DetailItem label="Taste Zone" value={shot.tasteZone || shot.zone || "-"} />
-            <div className="col-span-2 sm:col-span-4 mt-4">
-              <p className="text-sm font-medium text-muted-foreground mb-1">Notes</p>
+            {shot.sensoryNotes && (
+              <div className="col-span-2 sm:col-span-4 mt-4">
+                <p className="text-sm font-medium text-muted-foreground mb-1">Sensory Notes</p>
+                <p className="text-sm bg-muted/30 p-3 rounded-md">{shot.sensoryNotes}</p>
+              </div>
+            )}
+            <div className="col-span-2 sm:col-span-4 mt-2">
+              <p className="text-sm font-medium text-muted-foreground mb-1">Shot Notes</p>
               <p className="text-sm bg-muted/30 p-3 rounded-md">{shot.notes || "No notes recorded."}</p>
             </div>
           </CardContent>
