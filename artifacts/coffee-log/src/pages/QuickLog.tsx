@@ -68,7 +68,7 @@ export const FIELD_GROUPS: { id: string; label: string; description: string; fie
       { id: "grindSetting",      label: "Grind Setting",          unit: "",   dbKey: "grindSetting",      type: "number",  step: 0.01, min: 0, defaultOn: false },
       { id: "grindTime",         label: "Grinder Time",           unit: "s",  dbKey: "grindTime",         type: "number",  step: 0.1,  min: 0, defaultOn: false },
       { id: "grindOutputWeight", label: "Initial Grinder Output", unit: "g",  dbKey: "initialGrindWeight", type: "number", step: 0.1, min: 0, defaultOn: true },
-      { id: "topUpGrind",        label: "Top-Up Grind",           unit: "g",  dbKey: "topUpGrind",        type: "number",  step: 0.1,  min: 0, defaultOn: true },
+      { id: "topUpGrind",        label: "Top-Up Grind Added",     unit: "g",  dbKey: "topUpGrind",        type: "number",  step: 0.1,  min: 0, defaultOn: true },
       { id: "timeAdj",           label: "Top-Up Time Adj",        unit: "s",  dbKey: "timeAdj",           type: "number",  step: 0.1,  min: 0, defaultOn: false },
       { id: "grindChanged",      label: "Grind Changed This Shot",unit: "",   dbKey: "grindAdjusted",     type: "toggle",              defaultOn: false },
     ],
@@ -109,6 +109,7 @@ interface ActiveBagInfo {
   defaultYield: number | null;
   defaultTemp: number | null;
   currentGrindSetting: number | null;
+  currentGrindTime: number | null;
 }
 
 function fetchActiveBag(): Promise<{ activeBag: ActiveBagInfo | null }> {
@@ -201,6 +202,7 @@ export default function QuickLog() {
       yield:        prev.yield        !== undefined ? prev.yield        : defaultYield,
       temperature:  prev.temperature  !== undefined ? prev.temperature  : defaultTemp,
       grindSetting: prev.grindSetting !== undefined ? prev.grindSetting : (activeBag?.currentGrindSetting ?? ""),
+      grindTime:    prev.grindTime    !== undefined ? prev.grindTime    : (activeBag?.currentGrindTime ?? ""),
       rating:       prev.rating       !== undefined ? prev.rating       : (isEasyRating ? 7 : 7.00),
     }));
   }, [activeBag?.id, !!settings]);
@@ -293,6 +295,7 @@ export default function QuickLog() {
       dose:         activeBag?.defaultDose         ?? 18,
       yield:        activeBag?.defaultYield        ?? 36,
       grindSetting: activeBag?.currentGrindSetting ?? "",
+      grindTime:    activeBag?.currentGrindTime    ?? "",
       temperature:  activeBag?.defaultTemp         ?? (settings?.defaultBrewTemp ? Number(settings.defaultBrewTemp) : 94),
       rating:       isEasyRating ? 7 : 7.00,
     });
@@ -368,6 +371,12 @@ export default function QuickLog() {
                 value={values[field.dbKey] ?? ""}
                 onChange={(v) => setVal(field.dbKey, v)}
                 isEasyRating={isEasyRating}
+                suggestedValue={
+                  field.dbKey === "initialGrindWeight" ? values.dose :
+                  field.dbKey === "topUpGrind" ? 0.1 :
+                  field.dbKey === "timeAdj" ? (settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2) :
+                  undefined
+                }
               />
             ))}
 
@@ -624,11 +633,13 @@ function QuickField({
   value,
   onChange,
   isEasyRating,
+  suggestedValue,
 }: {
   field: QuickFieldDef;
   value: string | number | boolean;
   onChange: (v: string | number | boolean) => void;
   isEasyRating: boolean;
+  suggestedValue?: string | number | boolean;
 }) {
   if (field.type === "rating") {
     return isEasyRating
@@ -703,6 +714,20 @@ function QuickField({
         inputMode="decimal"
         value={value === "" ? "" : String(value)}
         onChange={(e) => onChange(e.target.value)}
+        onPointerDown={(event) => {
+          if (value !== "" || suggestedValue === undefined || suggestedValue === "") return;
+          const suggested = Number(suggestedValue);
+          if (!Number.isFinite(suggested)) return;
+          if (event.currentTarget.value === "") event.currentTarget.value = String(suggested);
+          onChange(suggested);
+        }}
+        onFocus={(event) => {
+          if (value !== "" || suggestedValue === undefined || suggestedValue === "") return;
+          const suggested = Number(suggestedValue);
+          if (!Number.isFinite(suggested)) return;
+          if (event.currentTarget.value === "") event.currentTarget.value = String(suggested);
+          onChange(suggested);
+        }}
         className="text-2xl font-bold h-14 tabular-nums text-center"
         step={field.step ?? 1}
         min={field.min}

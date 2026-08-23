@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { Search, Plus, Star, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { displaySelectorValue } from "@/lib/selector-options";
 
 // ── Shot Highlight helpers ────────────────────────────────────────────────────
 
@@ -149,7 +150,7 @@ export default function ShotList() {
                         <span className="font-semibold text-foreground truncate">{shot.bean || "Unknown Bean"}</span>
                         {shot.status && (
                           <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-secondary text-secondary-foreground rounded-sm shrink-0">
-                            {shot.status}
+                            {displaySelectorValue(shot.status)}
                           </span>
                         )}
                       </div>

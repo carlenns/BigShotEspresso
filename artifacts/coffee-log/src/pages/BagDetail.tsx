@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Star, Save, Coffee } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { displaySelectorValue } from "@/lib/selector-options";
 
 interface Shot {
   id: number; shotDate: string; dose: number | null; yield: number | null;
@@ -313,7 +314,7 @@ function ShotRow({ shot }: { shot: Shot }) {
             <span className="font-mono text-xs text-muted-foreground">
               {shot.shotDate ? format(new Date(shot.shotDate), "MMM d, yyyy h:mma") : "—"}
             </span>
-            {shot.status && <Badge variant="outline" className="text-xs">{shot.status}</Badge>}
+            {shot.status && <Badge variant="outline" className="text-xs">{displaySelectorValue(shot.status)}</Badge>}
             {shot.isReference && <Badge className="text-xs bg-primary/10 text-primary border-primary/20">REF</Badge>}
           </div>
           <span className="font-mono text-sm text-muted-foreground">

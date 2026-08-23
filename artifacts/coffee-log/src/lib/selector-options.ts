@@ -15,7 +15,7 @@ export const CURATED_SELECTOR_OPTIONS: SelectorOptions = {
     "Dialed In",
     "Needs Work",
     "Sink Shot",
-    "Grinder Setup",
+    "New Bag Setup",
     "Maintenance",
   ],
   faultStatus: [
@@ -99,6 +99,11 @@ export function curatedScalarOptions<K extends keyof SelectorOptions>(
 ): string[] {
   const options = CURATED_SELECTOR_OPTIONS[key] ?? [];
   return selectedValue && !options.includes(selectedValue) ? [...options, selectedValue] : options;
+}
+
+export function displaySelectorValue(value?: string | null): string {
+  if (value === "Grinder Setup") return "New Bag Setup";
+  return value ?? "";
 }
 
 const INCLUDED_STATUSES = new Set(["Good", "Dialed In"]);

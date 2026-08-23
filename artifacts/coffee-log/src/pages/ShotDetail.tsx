@@ -9,6 +9,7 @@ import { ArrowLeft, Trash2, Star, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { displaySelectorValue } from "@/lib/selector-options";
 
 export default function ShotDetail() {
   const [, params] = useRoute("/shots/:id");
@@ -87,7 +88,7 @@ export default function ShotDetail() {
             <DetailItem label="Ratio" value={shot.ratio || "-"} />
             <DetailItem label="Flow Time" value={shot.flowTime != null ? `${shot.flowTime}s` : "-"} />
             <DetailItem label="First Pour Delay" value={shot.pourDelay != null ? `${shot.pourDelay}s` : "-"} />
-            <DetailItem label="Status" value={shot.status || "-"} />
+            <DetailItem label="Status" value={displaySelectorValue(shot.status) || "-"} />
             {shot.grindWaste != null && <DetailItem label="Grind Waste" value={`${shot.grindWaste}g`} />}
             <DetailItem label="Include in Analysis" value={shot.includeInAnalysis ? "Yes" : "No"} />
             <DetailItem label="Fault Status" value={<ChipList values={shot.faultStatus} />} />
