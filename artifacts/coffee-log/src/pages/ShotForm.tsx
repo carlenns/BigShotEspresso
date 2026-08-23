@@ -554,7 +554,7 @@ export default function ShotForm() {
               <FormField control={form.control} name="rating" render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center justify-between">
-                    <span>Rating <span className="text-muted-foreground text-xs font-normal">(supports decimals, e.g. 8.78)</span></span>
+                    <span>Rating <span className="text-muted-foreground text-xs font-normal">(0.05 increments)</span></span>
                     <span className="font-bold text-primary tabular-nums text-lg">{field.value?.toFixed(2) ?? "—"}</span>
                   </FormLabel>
                   <div className="flex gap-3 items-center">
@@ -567,7 +567,7 @@ export default function ShotForm() {
                       />
                     </FormControl>
                     <Input
-                      type="number" min={0} max={10} step={0.01}
+                      type="number" min={0} max={10} step={0.05}
                       value={field.value ?? ""}
                       onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       className="w-20 text-right tabular-nums"
@@ -596,7 +596,7 @@ export default function ShotForm() {
                       />
                     </FormControl>
                     <Input
-                      type="number" min={0} max={11} step={0.01}
+                      type="number" min={0} max={11} step={0.05}
                       value={field.value ?? ""}
                       onChange={(e) => { const v = e.target.value === "" ? undefined : parseFloat(e.target.value); field.onChange(v); }}
                       className="w-20 text-right tabular-nums"

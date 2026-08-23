@@ -818,9 +818,9 @@ function PrecisionRatingField({
       <Slider
         min={0}
         max={10}
-        step={0.25}
+        step={0.05}
         value={[num]}
-        onValueChange={([v]) => onChange(v)}
+        onValueChange={([v]) => onChange(Math.round(v * 100) / 100)}
         className="w-full"
       />
       <div className="flex justify-between text-[11px] text-muted-foreground">
