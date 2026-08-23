@@ -445,6 +445,12 @@ export default function ShotForm() {
                       {correctionPreview.timeAdj != null ? ` using ${correctionPreview.timeAdj}s.` : "."}
                     </p>
                   )}
+                  {correctionPreview.doseCorrectionType === "Under → Top-Up" && correctionPreview.topUpGrind == null && (
+                    <p className="text-muted-foreground">
+                      Enter Top-Up Grind grams if used
+                      {correctionPreview.timeAdj != null ? `; time defaults to ${correctionPreview.timeAdj}s if blank.` : "."}
+                    </p>
+                  )}
                   {correctionPreview.doseCorrectionType === "None" && (
                     <p className="text-muted-foreground">Initial output matches target dose.</p>
                   )}

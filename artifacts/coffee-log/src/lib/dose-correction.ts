@@ -33,7 +33,7 @@ export function calculateDoseCorrection(
   }
 
   if (delta < 0) {
-    const correction = existingTopUpGrind ?? Math.abs(delta);
+    const correction = existingTopUpGrind ?? null;
     return {
       topUpGrind: correction,
       overGrindRemoved: null,
