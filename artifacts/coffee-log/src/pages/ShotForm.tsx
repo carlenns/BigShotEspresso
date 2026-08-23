@@ -519,7 +519,7 @@ export default function ShotForm() {
               <FormField control={form.control} name="pourDelay" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Pour Delay (s)</FormLabel>
-                  <FormControl><Input type="number" step="0.1" placeholder={latestShotDefaults?.pourDelay?.toString() ?? ""} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourDelay, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourDelay, event.currentTarget)} /></FormControl>
+                  <FormControl><Input type="number" step="1" placeholder={latestShotDefaults?.pourDelay?.toString() ?? ""} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourDelay, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourDelay, event.currentTarget)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
