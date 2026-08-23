@@ -658,7 +658,7 @@ export default function ShotForm() {
                     className="mt-1"
                   />
                   <div className="space-y-1">
-                    <FormLabel>Record grind change / purge waste</FormLabel>
+                    <Label>Record grind change / purge waste</Label>
                     <p className="text-xs text-muted-foreground">
                       Use for beans purged while changing grind. Counts against bag/hopper remaining, but not basket dose.
                     </p>
