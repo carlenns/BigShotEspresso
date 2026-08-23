@@ -88,6 +88,7 @@ export default function ShotDetail() {
             <DetailItem label="Flow Time" value={shot.flowTime != null ? `${shot.flowTime}s` : "-"} />
             <DetailItem label="First Pour Delay" value={shot.pourDelay != null ? `${shot.pourDelay}s` : "-"} />
             <DetailItem label="Status" value={shot.status || "-"} />
+            {shot.grindWaste != null && <DetailItem label="Grind Waste" value={`${shot.grindWaste}g`} />}
             <DetailItem label="Include in Analysis" value={shot.includeInAnalysis ? "Yes" : "No"} />
             <DetailItem label="Fault Status" value={<ChipList values={shot.faultStatus} />} />
             <DetailItem label="Shot Classification" value={<ChipList values={shot.shotClassification} />} />

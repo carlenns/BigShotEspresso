@@ -69,6 +69,7 @@ const formSchema = z.object({
   initialGrindWeight: z.coerce.number().optional(),
   topUpGrind: z.coerce.number().optional(),
   timeAdj: z.coerce.number().optional(),
+  grindWaste: z.coerce.number().optional(),
   dose: z.coerce.number().optional(),
   yield: z.coerce.number().optional(),
   pourDelay: z.coerce.number().optional(),
@@ -209,6 +210,7 @@ export default function ShotForm() {
       initialGrindWeight: existingShot.initialGrindWeight ?? undefined,
       topUpGrind: existingShot.topUpGrind ?? undefined,
       timeAdj: existingShot.timeAdj ?? undefined,
+      grindWaste: existingShot.grindWaste ?? undefined,
       dose: existingShot.dose ?? undefined,
       yield: existingShot.yield ?? undefined,
       pourDelay: existingShot.pourDelay ?? undefined,
@@ -630,6 +632,15 @@ export default function ShotForm() {
                     <FormMessage />
                   </FormItem>
                 )} />
+                {(form.watch("faultStatus") ?? []).includes("Grind Waste Intentional") && (
+                  <FormField control={form.control} name="grindWaste" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Grind Waste (g)</FormLabel>
+                      <FormControl><Input type="number" step="0.1" min="0" placeholder="32.2" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                )}
               </div>
 
               {/* Checkboxes */}

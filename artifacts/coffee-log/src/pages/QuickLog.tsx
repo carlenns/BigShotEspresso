@@ -254,6 +254,10 @@ export default function QuickLog() {
     // Shot Evaluation fields (always applied)
     if (evalValues.status) body.status = evalValues.status;
     if (evalValues.faultStatus.length) body.faultStatus = evalValues.faultStatus;
+    if (evalValues.faultStatus.includes("Grind Waste Intentional")) {
+      const grindWaste = Number(values.grindWaste);
+      if (!Number.isNaN(grindWaste) && values.grindWaste !== "" && values.grindWaste !== undefined) body.grindWaste = grindWaste;
+    }
     body.isReference = evalValues.isReference;
     body.signatureShot = evalValues.signatureShot;
     body.sourShot = evalValues.sourShot;
@@ -413,6 +417,21 @@ export default function QuickLog() {
                 <Label className="text-base font-medium">Fault Status</Label>
                 <ChipSelector options={faultStatusOptions} value={evalValues.faultStatus} onChange={(v) => setEval("faultStatus", v)} />
               </div>
+
+              {evalValues.faultStatus.includes("Grind Waste Intentional") && (
+                <div className="space-y-2">
+                  <Label className="text-base font-medium">Grind Waste (g)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={(values.grindWaste as number | string | undefined) ?? ""}
+                    onChange={(event) => setVal("grindWaste", event.target.value)}
+                    placeholder="32.2"
+                    className="h-11 text-lg tabular-nums"
+                  />
+                </div>
+              )}
 
               {/* Checkboxes */}
               <div className="space-y-3">
