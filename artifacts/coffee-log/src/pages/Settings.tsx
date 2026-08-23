@@ -60,8 +60,6 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
       { key: "defaultTargetYield", label: "Default Target Yield", type: "number", placeholder: "36", unit: "g" },
       { key: "defaultBrewRatio", label: "Default Brew Ratio", type: "text", placeholder: "1:2" },
       { key: "defaultBrewTemp", label: "Default Brew Temperature", type: "number", placeholder: "94", unit: "°C" },
-      { key: "defaultTargetPourTime", label: "Default Target Pour Time", type: "number", placeholder: "28", unit: "sec" },
-      { key: "defaultFirstPourDelay", label: "Default First Pour Delay", type: "number", placeholder: "8", unit: "sec" },
       { key: "defaultBasketSize", label: "Default Basket Size", type: "text", placeholder: "18g VST" },
       { key: "usePuckScreen", label: "Use Puck Screen by Default", type: "toggle" },
     ],
