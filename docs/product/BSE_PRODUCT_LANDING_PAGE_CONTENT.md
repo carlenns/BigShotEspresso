@@ -139,6 +139,7 @@ The landing page may say:
 - AI can help users ask better questions about puck prep, tapping, tamping, weighing, and routine consistency.
 - AI can answer setup and process questions using BSE onboarding, scientific logging, and product guidance.
 - BSE remains the source of truth for records, validation, calculations, and approved analytics.
+- BSE should provide a mobile-friendly AI Companion Setup flow with a clear copy button and downloadable/shareable onboarding files, so users can set up ChatGPT, Claude, Gemini, or another AI assistant from a phone as easily as from a computer.
 
 The page must not imply that ChatGPT replaces the app, owns the data, or performs unapproved intelligence-engine calculations.
 
@@ -146,14 +147,16 @@ The page must not imply that ChatGPT replaces the app, owns the data, or perform
 
 The landing page should explain this simply:
 
+- BSE works on its own, but works best with a coffee scale, properly configured equipment over time, and an AI chat companion for onboarding and workflow coaching.
 - Paid AI plans offer the best BSE experience because they usually provide stronger models, longer conversations, better file/context handling, and fewer usage interruptions.
 - Unpaid or free AI plans can still help, but the experience may be limited by upload restrictions, message limits, context limits, model access, or usage caps that are controlled by the AI provider and beyond BSE's control.
 - BSE should provide a compact free-tier AI upload brief for limited plans and a fuller onboarding manual for paid AI users.
 - This should be framed as user-funded AI support. BSE should not imply that an AI subscription is included in BSE billing.
+- Mobile setup should prioritize copy/share buttons and full-text fallback over requiring users to find downloaded `.md` files in the iOS Files app.
 
 Suggested wording for the onboarding intelligence section:
 
-> BigShotEspresso works best with a paid AI plan for deeper onboarding, longer context, and richer coffee coaching. Free AI plans can still help, but their experience may be limited by provider-controlled usage restrictions such as upload limits, message caps, or shorter context, which are beyond BSE's control.
+> BigShotEspresso works on its own, but it works best with a coffee scale, a gradually completed equipment setup, and an AI chat companion that understands the BSE onboarding files. Paid AI plans usually provide the smoothest experience for deeper setup and longer coffee coaching. Free AI plans can still help, but their experience may be limited by provider-controlled restrictions such as upload limits, message caps, project support, or shorter context, which are beyond BSE's control.
 
 ## Launch feature set
 
@@ -198,6 +201,29 @@ Approved future-facing language:
 
 > Future modules may include brew curves, Bluetooth scale/device compatibility, live extraction telemetry, and specialized workflows such as frozen or vacuum-packed doses. These are post-revenue research-and-development features and are not required for launch.
 
+## Future community and interaction possibilities
+
+BSE may eventually grow from a personal espresso lab notebook into a community evidence network. This is future scope only and must not be described as available at launch.
+
+Possible future community features:
+
+- Equipment leaderboards comparing grinder, burr, machine, basket, and workflow patterns.
+- Achievement badges such as first reference shot, first signature shot, natural 18g dose streaks, low-waste bag finish, dialed-in-under-five-shots, and no-weigh confidence milestones.
+- Optional user profiles for equipment setup, workflow method, taste preferences, and progress.
+- Discussion areas for bag dial-in, grinder setup, machine workflow, troubleshooting, and reference-shot sharing.
+- Opt-in community research views that aggregate anonymized equipment and workflow patterns with visible sample sizes and confidence limits.
+- Media-supported posts or shot records where users may attach photos of beans, bags, espresso, puck prep, or extraction results.
+
+Community language must stay modest:
+
+- Present leaderboards as playful and exploratory, not scientifically definitive.
+- Separate personal evidence from community comparison.
+- Require explicit opt-in before using user data for public/community research.
+- Avoid implying that one grinder, machine, or workflow is universally best.
+- Avoid any public ranking that exposes private user identity, location, purchase history, or unapproved personal data.
+
+Media and community interaction should be treated as post-launch scaling features. Photos, forums, comments, notifications, moderation, abuse controls, storage retention, image resizing, and privacy tooling can materially increase operating complexity and cost. The launch product should prove the personal workflow first.
+
 ## Trust and safety message
 
 The product should feel serious and trustworthy:
@@ -226,12 +252,12 @@ Do not claim:
 - Dial in with evidence.
 - Build your espresso record.
 - Learn from every shot.
-- Join the early release.
+- Join the early release as a Founder with special Lifetime Pricing
 
 ## Open content questions
 
-- Should the first public page target beginners, serious enthusiasts, or both equally?
-- Should launch pricing be shown publicly or kept for a private early-access flow?
-- Should the page emphasize AI strongly, or position AI as optional support?
-- Should the initial release be described as owner-tested/private beta, early access, or launch?
-- What screenshots should be used once the core workflow screens are stable?
+- Should the first public page target beginners, serious enthusiasts, or both equally? both
+- Should launch pricing be shown publicly or kept for a private early-access flow? ( publicly, $10/month US or special founder level $80 per annum, first 500 only, then $110/month )
+- Should the page emphasize AI strongly, or position AI as optional support? should emphasize a comparison with no ai and benefits with ai ( onboarding, record shots for user, etc etc )
+- Should the initial release be described as owner-tested/private beta, early access, or launch? ( early access for founders, 500 only )
+- What screenshots should be used once the core workflow screens are stable? will work on that later

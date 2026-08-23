@@ -114,6 +114,28 @@ The user creates a BSE account, reviews the data and privacy model, and identifi
 - Beginner or dialing-in user: guide the first coffee closely, explain each field, encourage tasting, and help the user connect sensory observations to measured variables without overclaiming causation.
 - Experienced user, barista, roaster, or confident taster: offer a faster setup path, preserve expert vocabulary, and avoid over-explaining basics unless requested.
 
+### 1A. Offer an AI Companion Setup Pack
+
+BSE should offer an optional AI Companion Setup Pack during or immediately after account creation. The pack helps the user create a project, custom assistant, Gem, Claude Project, or equivalent workspace in their chosen AI tool and upload the correct BSE onboarding context.
+
+This should be framed as optional help, not a requirement. BSE remains the system of record and the place where structured records are stored and validated.
+
+The setup flow should provide:
+
+- A large, mobile-friendly **Copy AI setup prompt** button.
+- A compact free-tier AI upload file for limited-context plans.
+- A fuller paid-tier onboarding manual for project-capable or larger-context AI plans.
+- Mobile-friendly download/share actions so phone-only users can send the files into their AI app without needing a desktop file browser.
+- Copy/share-first behavior, because finding downloaded `.md` files in the iOS Files app can be confusing for many users.
+- A “View full setup text” fallback for manual copy/paste.
+- Short setup instructions for ChatGPT, Claude, Gemini, and manual copy/paste.
+
+The bootstrap prompt must tell the external AI to ask whether the user wants Easy Start, Power Setup, or Defer Setup. Easy Start should ask only enough to log the first useful shot. Power Setup should support users who want to configure machine, grinder(s), baskets, scale, active bag, dose method, and preferences immediately. Defer Setup should let users begin logging even when they do not know their equipment details yet.
+
+See [AI Companion Setup Pack](BSE_AI_COMPANION_SETUP_PACK.md).
+
+The user-facing message should include a “Works Best With” explanation: BSE works on its own, but works best with a coffee scale, gradually completed equipment setup, and an AI chat companion that has been given the BSE setup files. Free AI plans can help, but may be limited by provider-controlled upload limits, message caps, context limits, and project/file support. Paid AI plans usually provide the smoothest onboarding experience.
+
 ### 2. Configure equipment and defaults
 
 The user records the machine, grinder, basket conventions, scale availability, timer availability, and other approved defaults. BSE validates these fields. The assistant may explain them, but must not invent unknown specifications.

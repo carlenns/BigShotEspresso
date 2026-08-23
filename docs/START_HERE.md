@@ -16,6 +16,7 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 ## Product guidance
 
 - [ChatGPT Integration and Onboarding Strategy](product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md) — product boundaries, scientific logging guidance, cost controls, privacy guardrails, and current-versus-future scope. This is guidance only and does not override the Constitution, roadmap, ADRs, or phase gates.
+- [AI Companion Setup Pack](product/BSE_AI_COMPANION_SETUP_PACK.md) — launch onboarding concept for helping users install/upload the correct BSE context into ChatGPT, Claude, Gemini, or another AI assistant while keeping BSE as the system of record.
 - [AI Upload Brief — Free Tier](product/BSE_AI_UPLOAD_BRIEF_FREE_TIER.md) — short single-file guide users can upload to ChatGPT, Gemini, Claude, or another AI assistant when context/file capacity is limited.
 - [AI Upload Manual — Paid Tier](product/BSE_AI_UPLOAD_MANUAL_PAID_TIER.md) — fuller AI onboarding and coaching manual for paid AI users before an official BSE integration exists.
 - [Product Landing Page Content Brief](product/BSE_PRODUCT_LANDING_PAGE_CONTENT.md) — public-facing product message, feature contents, audience, claims to avoid, and future-scope language for a future landing page.

@@ -250,6 +250,31 @@ Healthy theoretical margins do not prove a viable subscriber business. BSE must 
 7. Rebuild the financial model after the first 100 paid users and again before the founder cohort reaches 500.
 8. Do not add recurring server-side AI costs without a separately approved, measured revenue case.
 
+## Community, forums, leaderboards, and media cost note
+
+Future community features could strengthen BSE if the personal logging product proves retention. Examples include equipment leaderboards, workflow achievements, user profiles, bag/grinder discussion threads, opt-in research cohorts, and photo-supported records or posts.
+
+These features should not be assumed free inside the original US$10/month planning model. The cost impact depends heavily on scope:
+
+- Text-only leaderboards and achievements are likely modest if they use existing structured records and cached aggregate queries.
+- Forums add moderation, abuse handling, notification, privacy, and support burden even when database cost is small.
+- Photos and other media can become a meaningful variable cost because they require object storage, image processing/resizing, bandwidth, retention policy, privacy controls, and abuse prevention.
+- Community analytics require opt-in consent, de-identification, cohort-size protections, and careful explanation of correlation versus causation.
+
+The practical pricing assumption is:
+
+- US$10/month can remain plausible for a structured personal logging app with limited cached leaderboards and small controlled media use.
+- US$10/month becomes riskier if BSE includes unlimited photos, active forums, high-bandwidth media feeds, heavy notifications, server-side AI features, or hands-on support without limits.
+- Public community/media features should be gated behind measured pilot usage, storage quotas, compression, moderation rules, and a refreshed provider-cost model.
+
+Recommended staged approach:
+
+1. Launch personal logging and deterministic dashboards first.
+2. Add local achievements that use existing private data.
+3. Add opt-in aggregate leaderboards without photos.
+4. Add tightly limited photo attachments only if they serve a clear workflow purpose.
+5. Add forums/community interaction only after moderation, privacy, and support policies are funded.
+
 ## Go/no-go criteria for US$10/month
 
 US$10/month remains feasible if launch evidence shows all of the following:
@@ -268,4 +293,3 @@ If these conditions fail, the response should be evidence-driven: adjust price, 
 The historical model supports US$10/month as a credible launch hypothesis. It is materially safer than a $2/month price and becomes more plausible when users bring their own ChatGPT subscription and BSE minimizes automated AI spending.
 
 However, the attractive historical contribution figures are not a guarantee of net profit. Before launch, all provider prices, payment fees, taxes, exchange assumptions, infrastructure limits, and privacy/security obligations must be refreshed. After launch, subscriber retention, support burden, acquisition cost, and measured per-user infrastructure usage become the authoritative evidence.
-
