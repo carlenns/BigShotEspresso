@@ -28,7 +28,6 @@ export const CURATED_SELECTOR_OPTIONS: SelectorOptions = {
     "Under-extracted",
     "Over-extracted",
     "New Bean",
-    "Grind Waste Intentional",
   ],
   shotClassification: [
     "Daily Driver",

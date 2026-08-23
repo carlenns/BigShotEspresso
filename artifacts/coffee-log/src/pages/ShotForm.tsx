@@ -70,6 +70,7 @@ const formSchema = z.object({
   topUpGrind: z.coerce.number().optional(),
   timeAdj: z.coerce.number().optional(),
   grindWaste: z.coerce.number().optional(),
+  grindAdjusted: z.string().optional(),
   dose: z.coerce.number().optional(),
   yield: z.coerce.number().optional(),
   pourDelay: z.coerce.number().optional(),
@@ -144,6 +145,7 @@ export default function ShotForm() {
   const [selectedTastes, setSelectedTastes] = useState<number[]>([]);
   const [showPreviousBags, setShowPreviousBags] = useState(false);
   const [showAdvancedEvaluation, setShowAdvancedEvaluation] = useState(false);
+  const [recordGrindWaste, setRecordGrindWaste] = useState(false);
 
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
@@ -211,6 +213,7 @@ export default function ShotForm() {
       topUpGrind: existingShot.topUpGrind ?? undefined,
       timeAdj: existingShot.timeAdj ?? undefined,
       grindWaste: existingShot.grindWaste ?? undefined,
+      grindAdjusted: existingShot.grindAdjusted ?? undefined,
       dose: existingShot.dose ?? undefined,
       yield: existingShot.yield ?? undefined,
       pourDelay: existingShot.pourDelay ?? undefined,
@@ -234,6 +237,11 @@ export default function ShotForm() {
     });
     form.setValue("status", savedStatus);
     form.setValue("tasteZone", savedTasteZone);
+    setRecordGrindWaste(
+      existingShot.grindWaste != null ||
+      existingShot.grindAdjusted === "Grind change / purge waste" ||
+      (existingShot.faultStatus ?? []).includes("Grind Waste Intentional"),
+    );
     setShowAdvancedEvaluation(hasAdvancedEvaluation);
   }, [existingShot, isEditing, form]);
 
@@ -289,6 +297,11 @@ export default function ShotForm() {
       ),
       includeInAnalysis: describeAnalysisEligibility(values.status, values.faultStatus ?? []).included,
     };
+    if (recordGrindWaste) payload.grindAdjusted = "Grind change / purge waste";
+    else {
+      delete payload.grindWaste;
+      delete payload.grindAdjusted;
+    }
 
     if (isEditing && editingId) updateShot.mutate({ id: editingId, data: payload }, handlers);
     else createShot.mutate({ data: payload }, handlers);
@@ -632,7 +645,27 @@ export default function ShotForm() {
                     <FormMessage />
                   </FormItem>
                 )} />
-                {(form.watch("faultStatus") ?? []).includes("Grind Waste Intentional") && (
+                <div className="flex items-start gap-3 rounded-lg border bg-muted/20 p-3 md:col-span-2">
+                  <Checkbox
+                    checked={recordGrindWaste}
+                    onCheckedChange={(checked) => {
+                      const isChecked = checked === true;
+                      setRecordGrindWaste(isChecked);
+                      if (isChecked && (form.getValues("faultStatus") ?? []).length === 0) {
+                        form.setValue("faultStatus", ["Good"]);
+                      }
+                    }}
+                    className="mt-1"
+                  />
+                  <div className="space-y-1">
+                    <FormLabel>Record grind change / purge waste</FormLabel>
+                    <p className="text-xs text-muted-foreground">
+                      Use for beans purged while changing grind. Counts against bag/hopper remaining, but not basket dose.
+                    </p>
+                  </div>
+                </div>
+
+                {recordGrindWaste && (
                   <FormField control={form.control} name="grindWaste" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Grind Waste (g)</FormLabel>

@@ -166,6 +166,7 @@ export default function QuickLog() {
   const [savedId, setSavedId] = useState<number | null>(null);
   const [showEvaluation, setShowEvaluation] = useState(false);
   const [showAdvancedEvaluation, setShowAdvancedEvaluation] = useState(false);
+  const [recordGrindWaste, setRecordGrindWaste] = useState(false);
   const [shotDate, setShotDate] = useState(nowDateTimeLocal);
   const [evalValues, setEvalValues] = useState<EvalValues>({
     status: "",
@@ -254,9 +255,10 @@ export default function QuickLog() {
     // Shot Evaluation fields (always applied)
     if (evalValues.status) body.status = evalValues.status;
     if (evalValues.faultStatus.length) body.faultStatus = evalValues.faultStatus;
-    if (evalValues.faultStatus.includes("Grind Waste Intentional")) {
+    if (recordGrindWaste) {
       const grindWaste = Number(values.grindWaste);
       if (!Number.isNaN(grindWaste) && values.grindWaste !== "" && values.grindWaste !== undefined) body.grindWaste = grindWaste;
+      body.grindAdjusted = "Grind change / purge waste";
     }
     body.isReference = evalValues.isReference;
     body.signatureShot = evalValues.signatureShot;
@@ -286,6 +288,7 @@ export default function QuickLog() {
     setSavedId(null);
     setShotDate(nowDateTimeLocal());
     setEvalValues({ status: "", faultStatus: [], isReference: false, signatureShot: false, sourShot: false, expressionStyle: [], beanAchievement: [], shotClassification: [], includeInAnalysis: true, notes: "" });
+    setRecordGrindWaste(false);
     setValues({
       dose:         activeBag?.defaultDose         ?? 18,
       yield:        activeBag?.defaultYield        ?? 36,
@@ -418,7 +421,25 @@ export default function QuickLog() {
                 <ChipSelector options={faultStatusOptions} value={evalValues.faultStatus} onChange={(v) => setEval("faultStatus", v)} />
               </div>
 
-              {evalValues.faultStatus.includes("Grind Waste Intentional") && (
+              <div className="flex items-start gap-3 rounded-lg border bg-muted/20 p-3">
+                <Checkbox
+                  checked={recordGrindWaste}
+                  onCheckedChange={(checked) => {
+                    const isChecked = checked === true;
+                    setRecordGrindWaste(isChecked);
+                    if (isChecked && evalValues.faultStatus.length === 0) setEval("faultStatus", ["Good"]);
+                  }}
+                  className="mt-1"
+                />
+                <div className="space-y-1">
+                  <Label className="text-base font-medium">Record grind change / purge waste</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Use for beans purged while changing grind. Counts against bag/hopper remaining, but not basket dose.
+                  </p>
+                </div>
+              </div>
+
+              {recordGrindWaste && (
                 <div className="space-y-2">
                   <Label className="text-base font-medium">Grind Waste (g)</Label>
                   <Input
