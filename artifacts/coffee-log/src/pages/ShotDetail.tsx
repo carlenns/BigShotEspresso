@@ -30,6 +30,13 @@ export default function ShotDetail() {
     return <div className="text-center text-red-500 py-12">Failed to load shot data.</div>;
   }
 
+  const hasGrindEvent =
+    shot.grindAdjusted ||
+    shot.grindWaste != null ||
+    shot.topUpGrind != null ||
+    shot.timeAdj != null ||
+    shot.overGrindRemoved != null;
+
   const handleDelete = () => {
     deleteShot.mutate({ id }, {
       onSuccess: () => {
@@ -78,38 +85,54 @@ export default function ShotDetail() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Extraction Details</CardTitle>
+            <CardTitle>Shot Extraction</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-            <DetailItem label="Dose" value={`${shot.dose}g`} />
-            <DetailItem label="Yield" value={`${shot.yield}g`} />
-            <DetailItem label="Time" value={`${shot.pourTime}s`} />
-            <DetailItem label="Temp" value={shot.temperature ? `${shot.temperature}°C` : "-"} />
-            <DetailItem label="Ratio" value={shot.ratio || "-"} />
-            <DetailItem label="Flow Time" value={shot.flowTime != null ? `${shot.flowTime}s` : "-"} />
-            <DetailItem label="First Pour Delay" value={shot.pourDelay != null ? `${shot.pourDelay}s` : "-"} />
-            {shot.grindSetting != null && <DetailItem label="Grind Setting" value={shot.grindSetting} />}
-            {shot.grindTime != null && <DetailItem label="Grind Time" value={`${shot.grindTime}s`} />}
-            {shot.initialGrindWeight != null && <DetailItem label="Initial Grinder Output" value={`${shot.initialGrindWeight}g`} />}
-            {shot.topUpGrind != null && <DetailItem label="Top-Up Grind Added" value={`${shot.topUpGrind}g`} />}
-            {shot.timeAdj != null && <DetailItem label="Top-Up Time Adj" value={`${shot.timeAdj}s`} />}
-            {shot.overGrindRemoved != null && <DetailItem label="Over-Grind Removed" value={`${shot.overGrindRemoved}g`} />}
-            {shot.grindAdjusted && <DetailItem label="Grind Event" value={shot.grindAdjusted} />}
-            <DetailItem label="Status" value={displaySelectorValue(shot.status) || "-"} />
-            {shot.grindWaste != null && <DetailItem label="Grind Waste" value={`${shot.grindWaste}g`} />}
-            <DetailItem label="Include in Analysis" value={shot.includeInAnalysis ? "Yes" : "No"} />
-            <DetailItem label="Fault Status" value={<ChipList values={shot.faultStatus} />} />
-            <DetailItem label="Shot Classification" value={<ChipList values={shot.shotClassification} />} />
-            <DetailItem label="Bean Achievement" value={<ChipList values={shot.beanAchievement} />} />
-            <DetailItem label="Expression Style" value={<ChipList values={shot.expressionStyle} />} />
-            <DetailItem label="Taste Zone" value={shot.tasteZone || shot.zone || "-"} />
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              <DetailItem label="Basket Dose" value={`${shot.dose}g`} />
+              <DetailItem label="Yield" value={`${shot.yield}g`} />
+              <DetailItem label="Pour Time" value={`${shot.pourTime}s`} />
+              <DetailItem label="Temp" value={shot.temperature ? `${shot.temperature}°C` : "-"} />
+              <DetailItem label="Ratio" value={shot.ratio || "-"} />
+              <DetailItem label="Flow Time" value={shot.flowTime != null ? `${shot.flowTime}s` : "-"} />
+              <DetailItem label="First Pour Delay" value={shot.pourDelay != null ? `${shot.pourDelay}s` : "-"} />
+              {shot.grindSetting != null && <DetailItem label="Grind Setting" value={shot.grindSetting} />}
+              {shot.grindTime != null && <DetailItem label="Grind Time" value={`${shot.grindTime}s`} />}
+              {shot.initialGrindWeight != null && <DetailItem label="Initial Grinder Output" value={`${shot.initialGrindWeight}g`} />}
+              <DetailItem label="Status" value={displaySelectorValue(shot.status) || "-"} />
+              <DetailItem label="Include in Analysis" value={shot.includeInAnalysis ? "Yes" : "No"} />
+              <DetailItem label="Fault Status" value={<ChipList values={shot.faultStatus} />} />
+              <DetailItem label="Shot Classification" value={<ChipList values={shot.shotClassification} />} />
+              <DetailItem label="Bean Achievement" value={<ChipList values={shot.beanAchievement} />} />
+              <DetailItem label="Expression Style" value={<ChipList values={shot.expressionStyle} />} />
+              <DetailItem label="Taste Zone" value={shot.tasteZone || shot.zone || "-"} />
+            </div>
+
+            {hasGrindEvent && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900 dark:bg-amber-950/20">
+                <div className="mb-3">
+                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">Recorded Grind / Waste Event</p>
+                  <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
+                    This is inventory and workflow evidence attached to the shot. It is not part of the brewed basket dose or extraction yield.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                  {shot.grindAdjusted && <DetailItem label="Event Type" value={shot.grindAdjusted} />}
+                  {shot.grindWaste != null && <DetailItem label="Purge / Setup Waste" value={`${shot.grindWaste}g`} />}
+                  {shot.topUpGrind != null && <DetailItem label="Top-Up Added" value={`${shot.topUpGrind}g`} />}
+                  {shot.timeAdj != null && <DetailItem label="Top-Up Time Adj" value={`${shot.timeAdj}s`} />}
+                  {shot.overGrindRemoved != null && <DetailItem label="Removed From Dose" value={`${shot.overGrindRemoved}g`} />}
+                </div>
+              </div>
+            )}
+
             {shot.sensoryNotes && (
-              <div className="col-span-2 sm:col-span-4 mt-4">
+              <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Sensory Notes</p>
                 <p className="text-sm bg-muted/30 p-3 rounded-md">{shot.sensoryNotes}</p>
               </div>
             )}
-            <div className="col-span-2 sm:col-span-4 mt-2">
+            <div>
               <p className="text-sm font-medium text-muted-foreground mb-1">Shot Notes</p>
               <p className="text-sm bg-muted/30 p-3 rounded-md">{shot.notes || "No notes recorded."}</p>
             </div>
