@@ -70,7 +70,6 @@ const formSchema = z.object({
   topUpGrind: z.coerce.number().optional(),
   timeAdj: z.coerce.number().optional(),
   grindWaste: z.coerce.number().optional(),
-  grindAdjusted: z.string().optional(),
   dose: z.coerce.number().optional(),
   yield: z.coerce.number().optional(),
   pourDelay: z.coerce.number().optional(),
@@ -213,7 +212,6 @@ export default function ShotForm() {
       topUpGrind: existingShot.topUpGrind ?? undefined,
       timeAdj: existingShot.timeAdj ?? undefined,
       grindWaste: existingShot.grindWaste ?? undefined,
-      grindAdjusted: existingShot.grindAdjusted ?? undefined,
       dose: existingShot.dose ?? undefined,
       yield: existingShot.yield ?? undefined,
       pourDelay: existingShot.pourDelay ?? undefined,
@@ -286,7 +284,7 @@ export default function ShotForm() {
       onError: () => toast({ title: isEditing ? "Failed to update shot" : "Failed to log shot", variant: "destructive" }),
     };
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       ...values,
       ...calculateDoseCorrection(
         values.initialGrindWeight,
@@ -303,8 +301,10 @@ export default function ShotForm() {
       delete payload.grindAdjusted;
     }
 
-    if (isEditing && editingId) updateShot.mutate({ id: editingId, data: payload }, handlers);
-    else createShot.mutate({ data: payload }, handlers);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (isEditing && editingId) updateShot.mutate({ id: editingId, data: payload as any }, handlers);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    else createShot.mutate({ data: payload as any }, handlers);
   };
 
   const ratingVal = form.watch("rating") ?? 7;

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
 import {
-  BookOpen, Coffee, Database, LayoutDashboard,
+  BookOpen, Coffee, LayoutDashboard,
   Package, Settings, Sprout, Wrench, Tag, Layers, Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,7 +35,6 @@ const tasteNav: NavItem[] = [
 ];
 
 const systemNav: NavItem[] = [
-  { title: "Sync Audit", href: "/audit", icon: Database },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
 

@@ -9,7 +9,6 @@ import ShotList from "@/pages/ShotList";
 import ShotForm from "@/pages/ShotForm";
 import ShotDetail from "@/pages/ShotDetail";
 import ReferenceShots from "@/pages/ReferenceShots";
-import ImportAudit from "@/pages/ImportAudit";
 import Settings from "@/pages/Settings";
 import Beans from "@/pages/Beans";
 import BeanForm from "@/pages/BeanForm";
@@ -41,7 +40,6 @@ function Router() {
         <Route path="/equipment" component={Equipment} />
         <Route path="/accessories" component={Accessories} />
         <Route path="/taste-selectors" component={TasteSelectors} />
-        <Route path="/audit" component={ImportAudit} />
         <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
