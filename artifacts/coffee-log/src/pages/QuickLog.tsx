@@ -112,7 +112,19 @@ interface ActiveBagInfo {
   currentGrindTime: number | null;
 }
 
-function fetchActiveBag(): Promise<{ activeBag: ActiveBagInfo | null }> {
+interface LatestShotDefaults {
+  id?: number;
+  pourDelay: number | null;
+  pourTime: number | null;
+  flowTime: number | null;
+  yield: number | null;
+  dose: number | null;
+}
+
+function fetchActiveBag(): Promise<{
+  activeBag: ActiveBagInfo | null;
+  shotComparison?: { latestShot?: LatestShotDefaults | null } | null;
+}> {
   return fetch("/api/dashboard/intelligence").then((r) => r.json());
 }
 
@@ -151,6 +163,7 @@ export default function QuickLog() {
   const { data: intelData } = useQuery({ queryKey: ["intelligence"], queryFn: fetchActiveBag });
 
   const activeBag = intelData?.activeBag ?? null;
+  const latestShotDefaults = intelData?.shotComparison?.latestShot ?? null;
   const enabledIds = settings ? getEnabledFieldIds(settings) : QUICK_LOG_FIELDS.filter((f) => f.defaultOn).map((f) => f.id);
 
   // Grind Changed auto-shows when grindSetting is enabled
@@ -195,7 +208,7 @@ export default function QuickLog() {
       activeBag?.defaultTemp ??
       (settings?.defaultBrewTemp ? Number(settings.defaultBrewTemp) : 94);
     const defaultDose = activeBag?.defaultDose ?? (settings?.defaultDose ? Number(settings.defaultDose) : 18);
-    const defaultYield = activeBag?.defaultYield ?? (settings?.defaultTargetYield ? Number(settings.defaultTargetYield) : 36);
+    const defaultYield = latestShotDefaults?.yield ?? activeBag?.defaultYield ?? (settings?.defaultTargetYield ? Number(settings.defaultTargetYield) : 36);
 
     setValues((prev) => ({
       dose:         prev.dose         !== undefined ? prev.dose         : defaultDose,
@@ -203,9 +216,12 @@ export default function QuickLog() {
       temperature:  prev.temperature  !== undefined ? prev.temperature  : defaultTemp,
       grindSetting: prev.grindSetting !== undefined ? prev.grindSetting : (activeBag?.currentGrindSetting ?? ""),
       grindTime:    prev.grindTime    !== undefined ? prev.grindTime    : (activeBag?.currentGrindTime ?? ""),
+      pourDelay:    prev.pourDelay    !== undefined ? prev.pourDelay    : (latestShotDefaults?.pourDelay ?? ""),
+      pourTime:     prev.pourTime     !== undefined ? prev.pourTime     : (latestShotDefaults?.pourTime ?? ""),
+      flowTime:     prev.flowTime     !== undefined ? prev.flowTime     : (latestShotDefaults?.flowTime ?? ""),
       rating:       prev.rating       !== undefined ? prev.rating       : (isEasyRating ? 7 : 7.00),
     }));
-  }, [activeBag?.id, !!settings]);
+  }, [activeBag?.id, latestShotDefaults?.id, !!settings]);
 
   const setVal = (dbKey: string, val: string | number | boolean) =>
     setValues((prev) => ({ ...prev, [dbKey]: val }));
@@ -293,10 +309,13 @@ export default function QuickLog() {
     setRecordGrindWaste(false);
     setValues({
       dose:         activeBag?.defaultDose         ?? 18,
-      yield:        activeBag?.defaultYield        ?? 36,
+      yield:        latestShotDefaults?.yield      ?? activeBag?.defaultYield ?? 36,
       grindSetting: activeBag?.currentGrindSetting ?? "",
       grindTime:    activeBag?.currentGrindTime    ?? "",
       temperature:  activeBag?.defaultTemp         ?? (settings?.defaultBrewTemp ? Number(settings.defaultBrewTemp) : 94),
+      pourDelay:    latestShotDefaults?.pourDelay  ?? "",
+      pourTime:     latestShotDefaults?.pourTime   ?? "",
+      flowTime:     latestShotDefaults?.flowTime   ?? "",
       rating:       isEasyRating ? 7 : 7.00,
     });
   };
@@ -375,6 +394,10 @@ export default function QuickLog() {
                   field.dbKey === "initialGrindWeight" ? values.dose :
                   field.dbKey === "topUpGrind" ? 0.1 :
                   field.dbKey === "timeAdj" ? (settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2) :
+                  field.dbKey === "pourDelay" ? latestShotDefaults?.pourDelay ?? undefined :
+                  field.dbKey === "pourTime" ? latestShotDefaults?.pourTime ?? undefined :
+                  field.dbKey === "flowTime" ? latestShotDefaults?.flowTime ?? undefined :
+                  field.dbKey === "yield" ? latestShotDefaults?.yield ?? undefined :
                   undefined
                 }
               />

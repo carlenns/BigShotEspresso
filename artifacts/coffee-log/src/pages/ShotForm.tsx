@@ -45,6 +45,23 @@ function fetchShotTasteSelectors(id: number): Promise<TasteSelector[]> {
   return fetch(`/api/shots/${id}/taste-selectors`).then((r) => r.json());
 }
 function fetchSettings(): Promise<Record<string, string>> { return fetch("/api/settings").then((r) => r.json()); }
+function fetchActiveBagIntelligence(): Promise<ActiveBagIntelligence> {
+  return fetch("/api/dashboard/intelligence").then((r) => r.json());
+}
+
+interface LatestShotDefaults {
+  pourDelay: number | null;
+  pourTime: number | null;
+  flowTime: number | null;
+  yield: number | null;
+  dose: number | null;
+}
+
+interface ActiveBagIntelligence {
+  shotComparison?: {
+    latestShot?: LatestShotDefaults | null;
+  } | null;
+}
 
 function nowDateTimeLocal(): string {
   const d = new Date();
@@ -168,6 +185,7 @@ export default function ShotForm() {
 
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
+  const { data: activeBagIntelligence } = useQuery({ queryKey: ["intelligence"], queryFn: fetchActiveBagIntelligence });
   const { data: tasteSelectors = [] } = useQuery({ queryKey: ["taste-selectors"], queryFn: fetchTasteSelectors });
   const { data: existingTasteSelectors = NO_TASTE_SELECTORS } = useQuery({
     queryKey: ["shot-taste-selectors", editingId],
@@ -341,7 +359,8 @@ export default function ShotForm() {
   const visibleBags = showPreviousBags ? bags : activeBags;
   const selectedBag = selectedBagId ? bags.find((b) => b.id === Number(selectedBagId)) : undefined;
   const defaultDose = selectedBag?.defaultDose ?? (settings?.defaultDose ? Number(settings.defaultDose) : 18);
-  const defaultYield = selectedBag?.defaultYield ?? (settings?.defaultTargetYield ? Number(settings.defaultTargetYield) : 36);
+  const latestShotDefaults = activeBagIntelligence?.shotComparison?.latestShot ?? null;
+  const defaultYield = latestShotDefaults?.yield ?? selectedBag?.defaultYield ?? (settings?.defaultTargetYield ? Number(settings.defaultTargetYield) : 36);
   const defaultTemp = selectedBag?.defaultTemp ?? (settings?.defaultBrewTemp ? Number(settings.defaultBrewTemp) : 94);
   const defaultTopUpTime = settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2;
   const saving = createShot.isPending || updateShot.isPending;
@@ -500,21 +519,21 @@ export default function ShotForm() {
               <FormField control={form.control} name="pourDelay" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Pour Delay (s)</FormLabel>
-                  <FormControl><Input type="number" step="0.1" placeholder="7.0" {...field} value={field.value ?? ""} /></FormControl>
+                  <FormControl><Input type="number" step="0.1" placeholder={latestShotDefaults?.pourDelay?.toString() ?? ""} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourDelay, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourDelay, event.currentTarget)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="pourTime" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Pour Time (s)</FormLabel>
-                  <FormControl><Input type="number" step="1" {...field} value={field.value ?? ""} /></FormControl>
+                  <FormControl><Input type="number" step="1" placeholder={latestShotDefaults?.pourTime?.toString() ?? ""} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourTime, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourTime, event.currentTarget)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="flowTime" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Flow Time (s)</FormLabel>
-                  <FormControl><Input type="number" step="1" {...field} value={field.value ?? ""} /></FormControl>
+                  <FormControl><Input type="number" step="1" placeholder={latestShotDefaults?.flowTime?.toString() ?? ""} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, latestShotDefaults?.flowTime, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, latestShotDefaults?.flowTime, event.currentTarget)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
