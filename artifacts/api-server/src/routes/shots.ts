@@ -59,6 +59,21 @@ function validateRatings(data: Partial<InsertShot>): string | null {
   return null;
 }
 
+async function carryForwardActiveBagGrindDefaults(
+  bagId: number | null | undefined,
+  data: Partial<InsertShot>,
+): Promise<void> {
+  if (bagId == null) return;
+  const updates: { currentGrindSetting?: number; currentGrindTime?: number } = {};
+  if (data.grindSetting != null) updates.currentGrindSetting = Number(data.grindSetting);
+  if (data.grindTime != null) updates.currentGrindTime = Number(data.grindTime);
+  if (Object.keys(updates).length === 0) return;
+
+  await db.update(bagsTable)
+    .set(updates)
+    .where(and(eq(bagsTable.id, bagId), eq(bagsTable.isActive, true)));
+}
+
 // --- GET /shots/reference (must be before /:id) ---
 router.get("/shots/reference", async (req, res): Promise<void> => {
   const params = ListReferenceShotsQueryParams.safeParse(req.query);
@@ -311,6 +326,7 @@ router.post("/shots", async (req, res): Promise<void> => {
     return;
   }
   const shot = await db.insert(shotsTable).values(data).returning();
+  await carryForwardActiveBagGrindDefaults(shot[0]?.bagId, data);
   res.status(201).json(toShotApi(shot[0]!));
 });
 
@@ -385,6 +401,7 @@ router.patch("/shots/:id", async (req, res): Promise<void> => {
   }
   const shot = await db.update(shotsTable).set(data).where(eq(shotsTable.id, Number(params.data.id))).returning();
   if (!shot[0]) { res.status(404).json({ error: "Shot not found" }); return; }
+  await carryForwardActiveBagGrindDefaults(shot[0].bagId, data);
   res.json(toShotApi(shot[0]));
 });
 
