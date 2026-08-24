@@ -22,12 +22,15 @@ export const CURATED_SELECTOR_OPTIONS: SelectorOptions = {
     "Good",
     "Sour",
     "Bitter",
-    "Fast",
-    "Slow",
+    "Fast Flow",
+    "Slow Flow",
     "Channeling",
     "Under-extracted",
     "Over-extracted",
-    "New Bean",
+    "Dose Uncertainty",
+    "Grinder Issue",
+    "Workflow Error",
+    "Evaluation Compromised",
   ],
   shotClassification: [
     "Good Shot",
@@ -110,23 +113,20 @@ export function describeAnalysisEligibility(status?: string | null, faultStatus:
   included: boolean;
   reason: string;
 } {
-  if (!status || !INCLUDED_STATUSES.has(status)) {
-    return {
-      included: false,
-      reason: "Excluded: Shot Status must be Good or Dialed In.",
-    };
-  }
+  const reasons: string[] = [];
 
-  if (!faultStatus.includes("Good")) {
-    return {
-      included: false,
-      reason: "Excluded: Fault Status must include Good.",
-    };
+  if (!status || !INCLUDED_STATUSES.has(status)) {
+    reasons.push("Shot Status must be Good or Dialed In.");
   }
 
   const realFaults = faultStatus.filter((fault) => fault && !GOOD_FAULT_VALUES.has(fault));
-  if (realFaults.length > 0) {
-    return { included: false, reason: `Excluded because Fault Status also contains: ${realFaults.join(", ")}.` };
+  if (faultStatus.length !== 1 || faultStatus[0] !== "Good") {
+    reasons.push("Fault Status must be Good.");
+  }
+
+  if (reasons.length > 0) {
+    const faultDetail = realFaults.length > 0 ? ` Current fault/exception: ${realFaults.join(", ")}.` : "";
+    return { included: false, reason: `Excluded: ${reasons.join(" ")}${faultDetail}` };
   }
 
   return { included: true, reason: `${status} with Fault Status Good is included in analysis.` };
