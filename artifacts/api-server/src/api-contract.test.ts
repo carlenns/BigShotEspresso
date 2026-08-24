@@ -177,6 +177,33 @@ test("Bags page exposes launch-safe bag lifecycle workflow", async () => {
   }
 });
 
+test("Settings equipment defaults use saved equipment and accessory selectors", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/Settings.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  for (const requiredText of [
+    "fetchGrinders",
+    "fetchMachines",
+    "fetchAccessories",
+    "EquipmentDefaultsSection",
+    "Choose from equipment and active accessories",
+    "Typed legacy values remain selectable",
+    "Add Machine",
+    "Add Grinder",
+    "Add Basket",
+    "Add Scale",
+    "Add Tamper",
+    "Add Puck Screen",
+    "defaultRegularGrinder",
+    "defaultGrinder",
+    "defaultBasketSize",
+  ]) {
+    assert.match(source, new RegExp(requiredText));
+  }
+});
+
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {
   const [appSource, formSource, detailSource, selectorSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)), "utf8"),

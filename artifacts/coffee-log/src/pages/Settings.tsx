@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,22 @@ type FieldDef = {
   placeholder?: string;
   unit?: string;
 };
+
+type Grinder = { id: number; name: string; brand: string | null; model: string | null; type: string | null; isDefault: boolean };
+type Machine = { id: number; name: string; brand: string | null; model: string | null; brewMethod: string | null; isDefault: boolean };
+type Accessory = { id: number; type: string; brand: string | null; model: string | null; size: string | null; isActive: boolean; isDefault: boolean };
+
+function fetchGrinders(): Promise<Grinder[]> {
+  return fetch("/api/equipment/grinders").then((r) => r.json());
+}
+
+function fetchMachines(): Promise<Machine[]> {
+  return fetch("/api/equipment/machines").then((r) => r.json());
+}
+
+function fetchAccessories(): Promise<Accessory[]> {
+  return fetch("/api/accessories").then((r) => r.json());
+}
 
 const SECTIONS: { title: string; icon: React.ElementType; description: string; fields: FieldDef[] }[] = [
   {
@@ -126,6 +143,9 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: saved, isLoading } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
+  const { data: grinders = [] } = useQuery({ queryKey: ["equipment", "grinders"], queryFn: fetchGrinders });
+  const { data: machines = [] } = useQuery({ queryKey: ["equipment", "machines"], queryFn: fetchMachines });
+  const { data: accessories = [] } = useQuery({ queryKey: ["accessories"], queryFn: fetchAccessories });
   const [values, setValues] = useState<Record<string, string>>({});
   const [dirty, setDirty] = useState(false);
 
@@ -202,7 +222,7 @@ export default function Settings() {
           {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-48 rounded-lg bg-muted animate-pulse" />)}
         </div>
       ) : (
-        SECTIONS.map((section, si) => (
+        SECTIONS.filter((section) => section.title !== "Equipment Defaults").map((section, si) => (
           <Card key={si}>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -228,6 +248,16 @@ export default function Settings() {
         ))
       )}
 
+      {!isLoading && (
+        <EquipmentDefaultsSection
+          values={values}
+          set={set}
+          grinders={grinders}
+          machines={machines}
+          accessories={accessories}
+        />
+      )}
+
       {/* ── Logging Preferences ───────────────────────────────────────────── */}
       <LoggingPreferencesSection values={values} set={set} />
 
@@ -238,6 +268,168 @@ export default function Settings() {
         </Button>
       </div>
     </div>
+  );
+}
+
+// ── Equipment Defaults Section ────────────────────────────────────────────────
+
+function equipmentLabel(item: { name?: string; brand: string | null; model: string | null; size?: string | null }) {
+  if (item.name) return item.name;
+  return [item.brand, item.model, item.size].filter(Boolean).join(" — ") || "Unnamed";
+}
+
+function SettingsSelect({
+  label,
+  value,
+  options,
+  onChange,
+  addHref,
+  addLabel,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  addHref: string;
+  addLabel: string;
+}) {
+  const uniqueOptions = Array.from(new Set(options.filter(Boolean)));
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <Label className="text-sm">{label}</Label>
+        <Button variant="link" size="sm" className="h-auto p-0 text-xs" asChild>
+          <Link href={addHref}>{addLabel}</Link>
+        </Button>
+      </div>
+      <Select value={value || "__none__"} onValueChange={(v) => onChange(v === "__none__" ? "" : v)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Choose saved equipment…" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none__">— not set —</SelectItem>
+          {value && !uniqueOptions.includes(value) && (
+            <SelectItem value={value}>{value} · typed value</SelectItem>
+          )}
+          {uniqueOptions.map((option) => (
+            <SelectItem key={option} value={option}>{option}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function EquipmentDefaultsSection({
+  values,
+  set,
+  grinders,
+  machines,
+  accessories,
+}: {
+  values: Record<string, string>;
+  set: (key: string, value: string) => void;
+  grinders: Grinder[];
+  machines: Machine[];
+  accessories: Accessory[];
+}) {
+  const activeAccessories = accessories.filter((accessory) => accessory.isActive);
+  const accessoryOptions = (type: string) => activeAccessories
+    .filter((accessory) => accessory.type === type)
+    .map((accessory) => equipmentLabel(accessory));
+  const grinderOptions = grinders.map((grinder) => equipmentLabel(grinder));
+  const machineOptions = machines.map((machine) => equipmentLabel(machine));
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Wrench className="h-5 w-5 text-primary" />
+          <CardTitle>Equipment Defaults</CardTitle>
+        </div>
+        <CardDescription>
+          Choose from equipment and active accessories you have already entered. These labels pre-fill future shot workflows.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <SettingsSelect
+            label="Espresso Machine"
+            value={values.defaultMachine ?? ""}
+            options={machineOptions}
+            onChange={(value) => set("defaultMachine", value)}
+            addHref="/equipment"
+            addLabel="Add Machine"
+          />
+          <SettingsSelect
+            label="Regular Grinder"
+            value={values.defaultRegularGrinder ?? values.defaultGrinder ?? ""}
+            options={grinderOptions}
+            onChange={(value) => {
+              set("defaultRegularGrinder", value);
+              set("defaultGrinder", value);
+            }}
+            addHref="/equipment"
+            addLabel="Add Grinder"
+          />
+          <SettingsSelect
+            label="Decaf Grinder"
+            value={values.defaultDecafGrinder ?? ""}
+            options={grinderOptions}
+            onChange={(value) => set("defaultDecafGrinder", value)}
+            addHref="/equipment"
+            addLabel="Add Grinder"
+          />
+          <SettingsSelect
+            label="Pour-Over Grinder"
+            value={values.defaultPourOverGrinder ?? ""}
+            options={grinderOptions}
+            onChange={(value) => set("defaultPourOverGrinder", value)}
+            addHref="/equipment"
+            addLabel="Add Grinder"
+          />
+          <SettingsSelect
+            label="Default Basket"
+            value={values.defaultBasket ?? values.defaultBasketSize ?? ""}
+            options={accessoryOptions("basket")}
+            onChange={(value) => {
+              set("defaultBasket", value);
+              set("defaultBasketSize", value);
+            }}
+            addHref="/accessories"
+            addLabel="Add Basket"
+          />
+          <SettingsSelect
+            label="Default Scale"
+            value={values.defaultScale ?? ""}
+            options={accessoryOptions("scale")}
+            onChange={(value) => set("defaultScale", value)}
+            addHref="/accessories"
+            addLabel="Add Scale"
+          />
+          <SettingsSelect
+            label="Default Tamper"
+            value={values.defaultTamper ?? ""}
+            options={accessoryOptions("tamper")}
+            onChange={(value) => set("defaultTamper", value)}
+            addHref="/accessories"
+            addLabel="Add Tamper"
+          />
+          <SettingsSelect
+            label="Default Puck Screen"
+            value={values.defaultPuckScreen ?? ""}
+            options={accessoryOptions("puck_screen")}
+            onChange={(value) => set("defaultPuckScreen", value)}
+            addHref="/accessories"
+            addLabel="Add Puck Screen"
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Typed legacy values remain selectable until you replace them with saved equipment records.
+          User-specific active equipment will become stricter after accounts/OAuth are added.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 

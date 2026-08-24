@@ -354,3 +354,28 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 
 - Dedicated lifecycle-event schema/API/UI remains future work.
 - Hopper phase transition behavior still needs final implementation authority before the app mutates or creates hopper phase state from the UI.
+
+# Equipment Defaults Selector UI — 2026-08-24
+
+## Completed
+
+- Replaced free-typed Equipment Defaults fields in Settings with dropdowns backed by saved equipment and accessories.
+- Added direct “Add” links beside each default so users can jump to Equipment or Accessories setup when a needed item does not exist yet.
+- Preserved existing typed legacy values as selectable options until the user replaces them with saved records.
+- Kept the change scoped to Settings UI and launch-safe defaults only.
+
+## Verified
+
+- Workspace typecheck passed.
+- Phase 1.5/API test suite passed: 28 passed, 0 failed.
+- Render production build passed.
+
+## Assumptions
+
+- Machines and grinders currently have default flags but no active flag, so all saved machines and grinders are shown for now.
+- Accessories already have active state, so only active accessories are shown in accessory default selectors.
+
+## Unresolved
+
+- Add links route to the Equipment or Accessories page; they do not yet open a preselected “new equipment” modal.
+- Per-user active equipment defaults should be revisited after users/OAuth are implemented.
