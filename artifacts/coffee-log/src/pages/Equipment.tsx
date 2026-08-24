@@ -203,7 +203,7 @@ export default function Equipment() {
 
       {/* Grinder Dialog */}
       <Dialog open={gOpen} onOpenChange={setGOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingG ? "Edit Grinder" : "Add Grinder"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-2">
             <div className="col-span-2 space-y-1.5"><Label>Name *</Label><Input value={gForm.name} onChange={(e) => setG("name", e.target.value)} placeholder="e.g. Eureka Magnifico" /></div>
@@ -305,7 +305,7 @@ export default function Equipment() {
 
       {/* Machine Dialog */}
       <Dialog open={mOpen} onOpenChange={setMOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingM ? "Edit Machine" : "Add Machine"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-2">
             <div className="col-span-2 space-y-1.5"><Label>Name *</Label><Input value={mForm.name} onChange={(e) => setM("name", e.target.value)} placeholder="e.g. Profitec Go" /></div>

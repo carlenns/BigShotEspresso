@@ -280,7 +280,7 @@ export default function Bags() {
       </Dialog>
 
       <Dialog open={!!closeoutBag} onOpenChange={(isOpen) => !isOpen && setCloseoutBag(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Close Out Bag</DialogTitle>
           </DialogHeader>

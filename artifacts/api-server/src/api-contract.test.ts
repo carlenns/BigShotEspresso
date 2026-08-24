@@ -170,6 +170,20 @@ test("equipment entry offers reviewable suggested setup details", async () => {
   assert.match(accessoriesSource, /30 lb/);
 });
 
+test("large setup dialogs stay scrollable inside small windows", async () => {
+  const [equipmentSource, accessoriesSource, bagsSource, tasteSelectorsSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Equipment.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Accessories.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/TasteSelectors.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  for (const source of [equipmentSource, accessoriesSource, bagsSource, tasteSelectorsSource]) {
+    assert.match(source, /max-h-\[90vh\]/);
+    assert.match(source, /overflow-y-auto/);
+  }
+});
+
 test("Bags page exposes launch-safe bag lifecycle workflow", async () => {
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
