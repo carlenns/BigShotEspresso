@@ -10,7 +10,9 @@ BigShotEspresso is a structured espresso logging and learning system for people 
 
 It is not just a coffee diary. It is a practical scientific process for espresso: record what happened, taste the result, compare against prior evidence, and gradually build a more consistent workflow and palate.
 
-BSE works best when the user has a coffee scale and access to ChatGPT or another capable conversational AI subscription. The scale provides essential shot evidence such as dose and yield. The AI subscription helps the user ask questions, understand the system, improve workflow consistency, and receive guided onboarding. BSE should remain usable without AI, but the public message may say that the strongest experience combines BSE, a scale, and conversational AI.
+BSE works best when the user has a coffee scale, some way to time shots, and access to ChatGPT or another capable conversational AI subscription. The scale provides essential shot evidence such as dose and yield. A shot timer, machine timer, phone timer, or scale timer helps the user record pour delay, pour time, and flow time consistently. The AI subscription helps the user ask questions, understand the system, improve workflow consistency, and receive guided onboarding.
+
+BSE must remain useful without AI. A user can still log shots, compare results, build reference windows, and make good coffee without a chat companion. The tradeoff is that the learning curve is steeper: the user must read the guidance, understand the workflow, and interpret their records more independently. The public message should be clear that the strongest experience combines BSE, a scale, and conversational AI, but AI is a learning accelerator rather than the system of record.
 
 ## Primary audience
 
@@ -36,6 +38,10 @@ The product helps users answer:
 - Which bag, grind, dose, yield, timing, and workflow conditions produced success?
 - Am I improving, or just guessing?
 
+BSE should explain why the timing and scale fields matter. In practical use, first pour delay and yield are especially useful signals because they often reveal whether the grind, puck prep, and extraction are moving in a good direction. A machine timer, scale timer, phone timer, or separate shot timer can teach the user which timing changes actually matter.
+
+First pour delay should be explained as an observed signal, not a direct control. The user does not usually “set” first pour delay; they influence it indirectly through grind setting, puck prep, dose, and machine workflow. Repeated low or high first-pour readings can tell the user when grind changes may be needed. In plain terms, a lower first-pour delay usually indicates faster flow and lower puck resistance, while a higher first-pour delay usually indicates higher resistance and slower flow.
+
 ## Suggested hero message
 
 ### Headline options
@@ -49,7 +55,9 @@ The product helps users answer:
 
 BigShotEspresso helps you record the mechanics and taste of each shot, track beans and bags over time, and build a repeatable process for better espresso.
 
-For best results, use BSE with a coffee scale and a conversational AI assistant such as ChatGPT for guided setup, technique questions, and learning support.
+For best results, use BSE with a basic coffee scale, some way to time shots, and a conversational AI assistant such as ChatGPT for guided setup, technique questions, and learning support. This does not need to be expensive: even a roughly $30 scale and a simple timer can dramatically improve workflow consistency by letting the user measure dose, yield, and timing instead of guessing.
+
+Some users may arrive before they have chosen a machine, grinder, scale, or timer. BSE should support AI-guided equipment discovery as an onboarding use case: help the user understand which equipment features matter for repeatable logging, what tradeoffs to consider, and which questions to ask before buying. Current product recommendations, prices, availability, and specifications must be verified from current sources and should not be hard-coded into BSE marketing or onboarding as permanent truth.
 
 ## Product pillars
 
@@ -72,6 +80,8 @@ Record the important facts of each extraction:
 - Faults, notes, and sensory observations
 
 The product should explain that tasting and rating shots is part of the learning process. Repeated tasting helps users build their palate and connect mechanical changes to flavor.
+
+The product should also teach that some numbers carry more practical signal than others. First pour delay and yield should be highlighted as high-value observations because they are easy to record, easy to compare, and often strongly connected to shot quality. The app and onboarding should avoid implying one universal first-pour target across all coffees: lighter roasts may often behave better with shorter first-pour delays, while darker roasts may sometimes prefer a longer first-pour window. BSE should learn this through the user's records rather than inventing a fixed threshold.
 
 ### 2. Bean and bag lifecycle tracking
 
@@ -148,6 +158,7 @@ The page must not imply that ChatGPT replaces the app, owns the data, or perform
 The landing page should explain this simply:
 
 - BSE works on its own, but works best with a coffee scale, properly configured equipment over time, and an AI chat companion for onboarding and workflow coaching.
+- Without AI, BSE can still help users make good shots through structured logging, comparison, and reference evidence; with AI, users receive a gentler learning curve and more active coaching.
 - Paid AI plans offer the best BSE experience because they usually provide stronger models, longer conversations, better file/context handling, and fewer usage interruptions.
 - Unpaid or free AI plans can still help, but the experience may be limited by upload restrictions, message limits, context limits, model access, or usage caps that are controlled by the AI provider and beyond BSE's control.
 - BSE should provide a compact free-tier AI upload brief for limited plans and a fuller onboarding manual for paid AI users.
@@ -156,7 +167,7 @@ The landing page should explain this simply:
 
 Suggested wording for the onboarding intelligence section:
 
-> BigShotEspresso works on its own, but it works best with a coffee scale, a gradually completed equipment setup, and an AI chat companion that understands the BSE onboarding files. Paid AI plans usually provide the smoothest experience for deeper setup and longer coffee coaching. Free AI plans can still help, but their experience may be limited by provider-controlled restrictions such as upload limits, message caps, project support, or shorter context, which are beyond BSE's control.
+> BigShotEspresso works on its own: you can log shots, compare results, build reference windows, and make better coffee without AI. But the learning curve is steeper. BSE works best with a coffee scale, gradually completed equipment setup, and an AI chat companion that understands the BSE onboarding files. Paid AI plans usually provide the smoothest experience for deeper setup and longer coffee coaching. Free AI plans can still help, but their experience may be limited by provider-controlled restrictions such as upload limits, message caps, project support, or shorter context, which are beyond BSE's control.
 
 ## Launch feature set
 
@@ -169,6 +180,8 @@ The launch product should focus on:
 - Bag lifecycle workflow
 - Equipment defaults
 - Machine capability capture, including PID/timer behavior where available
+- Personal equipment setup with future curated machine/grinder/accessory library support
+- AI-guided equipment setup and equipment-selection coaching
 - Active bag context
 - Dose correction evidence
 - Optional hopper workflow
@@ -187,6 +200,8 @@ The landing page should avoid presenting these as current product features:
 - Brew-curve capture
 - Machine telemetry
 - Live device import
+- Verified shared equipment library
+- Live shopping or current-product recommendation engine
 - Predictive AI
 - Community research exports
 - Frozen-dose inventory

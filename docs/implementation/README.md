@@ -11,6 +11,7 @@ Implementation records are subordinate to the Constitution, ADRs, architecture, 
 - [Release Security Hardening Checklist](release-security-hardening-checklist.md)
 - [Owner-Only Release Smoke Test](owner-only-release-smoke-test.md)
 - [Route Exposure Audit](route-exposure-audit.md)
+- [Bag and Hopper Lifecycle Plan](bag-hopper-lifecycle-plan.md)
 - [Replit Deployment Prep](replit-deployment-prep.md)
 - [Render Deployment Prep](render-deployment-prep.md)
 - [Render Environment Checklist](render-environment-checklist.md)
@@ -20,6 +21,7 @@ Implementation records are subordinate to the Constitution, ADRs, architecture, 
 - [Neon Postgres Rehearsal Report](neon-postgres-rehearsal-report.md)
 - [One-Service Render Implementation Report](one-service-render-implementation-report.md)
 - [Dependency Security Audit — 2026-08-17](dependency-security-audit-2026-08-17.md)
+- [Equipment Capability and Shared Library Model](../architecture/equipment-capability-library-model.md)
 
 ## Required implementation record
 

@@ -12,7 +12,7 @@ BigShotEspresso (BSE) is the structured espresso platform. It owns the durable d
 
 ChatGPT is an optional, user-provided conversational layer. A user may connect ChatGPT to approved BSE data and actions to receive onboarding, education, scientific logging guidance, interpretation, and help completing supported workflows. This does not make ChatGPT the system of record, does not transfer BSE governance to ChatGPT, and does not create a new BSE intelligence engine.
 
-The product should clearly explain that BSE works best when paired with a coffee scale and a capable conversational AI subscription such as ChatGPT or another approved assistant. A scale provides essential mechanical evidence such as dose and yield. Conversational AI helps users understand the process, ask technique questions, and complete onboarding. BSE must remain usable without AI, but AI-assisted onboarding should be strongly encouraged for users who want the best learning experience.
+The product should clearly explain that BSE works best when paired with a coffee scale and a capable conversational AI subscription such as ChatGPT or another approved assistant. A scale provides essential mechanical evidence such as dose and yield. Conversational AI helps users understand the process, ask technique questions, and complete onboarding. BSE must remain usable without AI: a user can still log shots, compare results, build reference evidence, and make good coffee. The tradeoff is a steeper learning curve. AI-assisted onboarding should be strongly encouraged for users who want the best learning experience.
 
 The intended commercial model is bring your own ChatGPT account or subscription. BSE should minimize company-funded, server-side AI inference and recurring AI automations unless a later, approved business case demonstrates that they are necessary, safe, measurable, and economically sustainable.
 
@@ -77,6 +77,55 @@ Many early users may arrive because they are frustrated, inconsistent, or trying
 - Explain that a Signature Shot is extraordinary and must also be a Reference Shot; a Reference Shot is not automatically a Signature Shot.
 - Change one important variable at a time when the user's goal is causal learning, while still supporting real-world multi-variable sessions.
 - Mark unknowns as unknown; do not infer missing measurements or selector values.
+
+### Workflow interview and default scientific coaching
+
+AI-assisted onboarding should interview the user's actual workflow before offering coaching. BSE must not assume that every user hopper doses, single doses, weighs before basket, uses a dose cup, owns one grinder, or follows the owner's personal routine.
+
+The assistant should ask how the user currently handles:
+
+- bean feed method, including hopper dosing, single dosing, frozen single doses, or custom routines;
+- dose collection, including dose cup or direct-to-portafilter;
+- dose verification, including weighed/corrected before basket, weighed after basket, assumed dose, or no scale;
+- timed versus manual grinder use;
+- new-bag dial-in, stable-bag logging, troubleshooting, and between-bag maintenance.
+
+The default BSE coaching style should treat espresso as a practical scientific experiment:
+
+1. Stabilize the user's routine.
+2. Keep dose, yield, temperature, puck prep, basket, screen/paper, and workflow timing consistent where possible.
+3. Change only one important variable at a time.
+4. Record exactly what changed and what stayed the same.
+5. Taste the result and compare it to the previous shot.
+6. Avoid causal claims until comparable evidence exists.
+
+This applies to ordinary users, beginners, and most dialing-in sessions. If the user is frustrated, desperate, lost, or unable to dial in, the assistant should slow down even further and explicitly explain the one-variable method.
+
+Power users may intentionally use BSE for broader taste discovery, unusual recipes, brew curves, or less controlled experiments. The assistant should support those users while clearly distinguishing exploration from controlled evidence.
+
+### Learning phases
+
+Onboarding may present BSE as a phased learning system:
+
+1. System Phase 1 — Initial Setup Phase. Record enough equipment, bag, dose, temperature, grinder, scale, and workflow information to begin logging.
+2. System Phase 2 — Scientific Process / Baseline Phase. Stabilize the routine and change one important variable at a time. This is the default method for learning espresso because it creates comparable evidence.
+3. System Phase 3 — Focused Optimization Phase. Choose one operational question and optimize it deliberately. Example: get timed grinder output close to an 18g target by modifying grind time while keeping target dose, temperature, hopper fill amount, puck prep, and other variables stable.
+4. Stable Routine Phase. Repeat successful conditions, mark reference shots, and preserve the settings that produced consistent coffee.
+5. Exploration Phase. Support power users or curious users who intentionally explore recipes, brew curves, baskets, dose/yield changes, puck-prep changes, or taste-discovery experiments, while labeling the evidence as exploratory unless controlled.
+
+During the Scientific Process / Baseline Phase, onboarding should usually tell users to put advanced machine variables on hold unless they are the explicit test variable. This includes flow control, pressure profiling, preinfusion changes, brew curves, unusual temperature changes, and other advanced machine controls. The user should first learn how to make good, consistent espresso with a stable routine. After that, those advanced controls can become their own named System Phase or Exploration Phase.
+
+The product should teach that imperfections such as small over-doses, top-ups, or imperfect shots are useful if they are recorded honestly. The problem is not imperfection; the problem is changing too many variables without knowing what caused the result.
+
+System phases should eventually be first-class analysis context. Users may label phases with specific names and purposes, such as `System Phase 3 — Timed Dose Optimization`, `Bluetooth Brew Curve Scale Test`, or `New Grinder Baseline`. Starting a new piece of equipment, workflow, basket, scale, grinder, brew-curve capture method, or major technique change should allow the user to begin a new phase.
+
+Future analysis should support filtering and comparison by system phase. Examples:
+
+- exclude initial setup phases from serious analysis;
+- inspect only the phase where the user modified grind time to improve natural 18g dosing;
+- compare pre/post equipment phases, such as before and after adding a brew-curve scale;
+- compare phases where flow control, preinfusion, or brew curves were held stable versus deliberately changed;
+- explain that a phase boundary changes evidence context and may reduce comparability across phases.
 
 ### Data-quality benefits
 
@@ -150,10 +199,29 @@ Machine setup should capture concrete capabilities rather than assuming that one
 - A timer that starts automatically with pump, lever, or brew activation.
 - A timer that must be started manually.
 - No built-in timer, requiring an external timer.
+- Pressure adjustment, such as an internal screw, OPV adjustment, external knob, or other mechanism.
+- Whether pressure adjustment is normally set once and held stable or intentionally changed during shot workflows.
+- Preinfusion, flow control, pressure profiling, brew-curve capture, Bluetooth telemetry, or other advanced controls.
 
-Onboarding should also ask whether the user has a scale and explain that BSE's strongest mechanical evidence depends on dose and yield. Users without a scale may still log shots, but BSE should clearly describe that analysis confidence will be lower.
+Onboarding should also ask whether the user has a scale and some way to time shots. This may be a built-in machine shot timer, a scale timer, a phone timer, or a separate espresso timer. BSE's strongest mechanical evidence depends on dose, yield, and timing. Users without a scale or timer may still log shots, but BSE should clearly describe that analysis confidence will be lower.
+
+This recommendation should be gentle, not annoying or elitist. A basic scale and shot timer are high-value consistency tools. Even a roughly $30 scale and a simple timing method can dramatically improve workflow consistency because the user can measure dose, yield, and timing instead of guessing.
+
+If a user is unable to dial in beans and does not have a scale, onboarding should become more direct: a scale is strongly recommended because repeatable, consistent good shots usually require measured dose and yield. BSE can still guide the process, but missing dose/yield evidence limits the app and the user's ability to learn. If the user's grinder provides reliable weighed dosing, a separate scale may be less necessary for dose, but beverage yield still needs a reliable measurement path for the strongest workflow.
 
 The assistant should be prepared to answer user questions about why these equipment details matter, using approved BSE onboarding, scientific-process, and product-guidance documents. If the assistant does not know a machine specification, it should ask the user to confirm rather than guessing.
+
+When explaining shot timing, onboarding should emphasize practical learning. First pour delay and yield are high-signal observations: they are simple to record, easy to compare across shots, and often teach the user whether grind and puck prep are moving in the right direction. The goal is not to collect numbers for their own sake; it is to help the user discover which measurements actually change the cup.
+
+First pour delay should be framed as a signal, not a direct user-controlled setting. The user generally changes grind setting, grind time, puck prep, dose, or workflow; first pour delay is what the shot reports back. In plain terms, lower first-pour delay usually means faster flow and lower puck resistance, while higher first-pour delay usually means higher resistance and slower flow. Several repeated short first-pour readings may suggest the grind is becoming loose and may need tightening, but the AI should wait for repeated evidence rather than reacting to one shot. As a normal rule of thumb, wait for at least three comparable shots before recommending a grind tightening based on first-pour trend alone, unless the shot is obviously defective. It must consider roast level, bean age, yield, taste, and the user's own reference evidence before giving advice. Do not invent a universal first-pour target: lighter roasts and darker roasts may prefer different windows.
+
+If first pour delay remains similar but yield changes and the cup improves, the AI should treat yield as the likely useful variable for that observation rather than immediately recommending a grind change. Example: two shots with similar first-pour delay may taste different because the user stopped the shot at a different yield; if the slightly higher yield produces better sweetness or caramel, preserve that as yield evidence.
+
+Example: a PID display may show brew temperature at rest, switch to a shot timer when the pump button is pressed, and return to temperature display after the shot. Onboarding should record that exact behavior rather than merely marking `PID = yes`.
+
+Long term, BSE may maintain a curated shared equipment library. User-entered equipment details should begin as personal records. Shared library records should become globally selectable only after BSE review marks them verified. Conflicting or new user-submitted equipment facts should be flagged for review rather than silently becoming product truth.
+
+Some users may come to BSE before buying equipment. The AI onboarding flow may help them think through machine, grinder, scale, and timer choices by asking about budget, space, milk-drink needs, desired workflow, scale availability, timing needs, and tolerance for manual technique. This should be framed as equipment-selection coaching, not as an unverified shopping engine. If the assistant names current machines, grinders, scales, or prices, it must verify current information from reliable sources and label region, date, and uncertainty.
 
 ### 3. Establish workflow methods and coaching expectations
 

@@ -26,6 +26,8 @@ BSE works best with:
 
 The app remains the system of record. AI is a coach and guide, not the authoritative database.
 
+BSE can still help without AI. The user can log shots, compare results, and build better habits inside the app. AI simply makes the learning curve gentler by explaining the process, asking better questions, and helping the user stay consistent.
+
 ## How the AI should help
 
 The AI should help the user:
@@ -70,6 +72,46 @@ Ask the user:
 16. If roast date is estimated, how confident is the estimate?
 17. If you use a hopper, what is its capacity and do you use fixed phase fills such as 300g, 250g, End of Bag, or Single Bag Phase?
 
+## Default scientific method
+
+The AI should help the user treat espresso as a simple experiment by default.
+
+First, interview the user's real workflow:
+
+- hopper-fed or single-dose;
+- dose cup or direct-to-portafilter;
+- weighed/corrected dose or assumed dose;
+- timed dosing or manual grinding;
+- new bag, stable bag, or troubleshooting.
+
+Then guide the user to:
+
+1. Keep the routine stable.
+2. Change one important variable at a time.
+3. Record exactly what changed.
+4. Taste the coffee.
+5. Compare against the previous shot.
+
+Do not tell the user to change grind, dose, yield, temperature, and puck prep all at once. BSE works because it creates comparable evidence.
+
+Power users can intentionally run broader taste-discovery experiments, but the AI should explain when the evidence is less controlled.
+
+## Simple learning phases
+
+The AI can guide the user through simple phases:
+
+1. System Phase 1 — Initial setup: record enough machine, grinder, bag, dose, and workflow information to log useful shots.
+2. System Phase 2 — Scientific process / baseline building: keep the routine stable and change one variable at a time.
+3. System Phase 3 — Focused optimization: pick one question, such as getting timed grinder output close to an 18g target by adjusting grind time.
+4. Stable routine: repeat what works and mark good reference shots.
+5. Exploration: try new tastes or recipes, while knowing the evidence is less controlled unless carefully designed.
+
+During baseline building, advanced machine features such as flow control, pressure profiling, preinfusion changes, brew curves, or unusual temperature changes should usually be put on hold unless that feature is the one thing being tested. First learn to make good, consistent espresso. Then test advanced features as their own named phase.
+
+Small mistakes are not failures. A top-up, over-grind removal, or imperfect shot can still be useful evidence if recorded clearly.
+
+Users may name their phases, such as `System Phase 3 — Timed Dose Optimization`. Later they should be able to view or filter shots by phase, such as ignoring initial setup records or studying only the phase where they tried to improve natural 18g grinder dosing.
+
 ## Core setup concepts
 
 ### Bean
@@ -93,6 +135,8 @@ The bag supplies shot defaults such as target dose and starting grinder setting.
 Machine, grinder, scale, basket, and accessories should be recorded because they shape the workflow and evidence quality.
 
 Machine capabilities should be explicit. Do not assume PID means shot timer.
+
+Also ask whether the machine has adjustable pressure, flow control, preinfusion, pressure profiling, brew curves, or Bluetooth/telemetry support. If the PID display shows temperature at rest but turns into a shot timer when the pump starts, record that exact behavior. If the machine has a pressure screw or similar adjustment, ask whether it is set once and held stable or changed during shots. During baseline learning, advanced machine controls should usually stay fixed unless they are the one variable being tested.
 
 ### Workflow methods
 
@@ -128,7 +172,19 @@ For each shot, capture as many of these as possible:
 - include in analysis
 - reference/signature status if applicable
 
-Scale-based logging is best. If the user has no scale, they can still log, but the AI should explain that confidence is lower because dose and yield evidence are missing.
+Scale-based logging is best. A basic coffee scale and some way to time the shot should be gently recommended because they improve consistency and make the records far more useful. The timer may be built into the machine, built into the scale, run on a phone, or be a separate shot timer. If the user has no scale or timer, they can still log, but the AI should explain that confidence is lower because dose, yield, and timing evidence are missing.
+
+Do not make this annoying or elitist. Even a roughly $30 scale and a simple timing method can dramatically improve workflow consistency because the user can measure dose, yield, and timing instead of guessing.
+
+If the user is unable to dial in beans and has no scale, be more direct: a scale is strongly recommended because repeatable good espresso usually depends on knowing dose and yield. If the grinder has reliable weighed dosing, a separate dose scale may be less necessary, but the user still needs some way to measure beverage yield for best results.
+
+If the user asks what equipment to buy, help them think through needs before naming products. Ask about budget, region, space, milk drinks, manual comfort, grinder ownership, scale/timer availability, and whether they want a beginner-friendly or enthusiast setup. Current model recommendations, prices, and specifications must be verified from current sources rather than guessed.
+
+Explain why the scale and timer matter in plain language: first pour delay and yield are two of the most useful clues for learning espresso. They help the user see whether the grind and puck prep are changing the shot in a useful direction.
+
+First pour delay is a signal, not a direct setting. The user usually affects it by changing grind setting, puck prep, dose, or workflow. Lower first-pour delay usually means faster flow and lower puck resistance. Higher first-pour delay usually means higher resistance and slower flow. Do not overreact to one shot. As a rule of thumb, wait for at least three comparable shots before recommending a grind change from first-pour trend alone, unless the shot is obviously defective. Do not teach one universal first-pour target. Roast level, yield, taste, and the user's own reference evidence matter.
+
+If first pour delay is similar across two shots but a slightly different yield improves the cup, treat that as yield evidence first, not automatic grind-change evidence.
 
 ## Dose correction rule
 
