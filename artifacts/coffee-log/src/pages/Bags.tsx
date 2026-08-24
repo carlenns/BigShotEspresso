@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Archive, Plus, Star, Package, Pencil, ChevronRight } from "lucide-react";
+import { Archive, Plus, Star, Package, Pencil, ChevronRight, ClipboardCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Bean { id: number; name: string; }
@@ -148,6 +148,41 @@ export default function Bags() {
         </div>
         <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Bag</Button>
       </div>
+
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <ClipboardCheck className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+            <div className="space-y-3">
+              <div>
+                <h2 className="font-semibold">Bag Lifecycle Flow</h2>
+                <p className="text-sm text-muted-foreground">
+                  Use this flow when switching coffees: preserve old-bag evidence, then start the new bag cleanly.
+                </p>
+              </div>
+              <ol className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  "Close / Reconcile Old Bag",
+                  "Record Maintenance Or Purge Waste",
+                  "Create Or Select Bean",
+                  "Create New Active Bag",
+                  "Fill / Reset Hopper Phase",
+                  "Dial In Before Stable Logging",
+                ].map((step, index) => (
+                  <li key={step} className="rounded-md border bg-background/75 px-3 py-2">
+                    <span className="text-xs font-medium text-primary">Step {index + 1}</span>
+                    <p>{step}</p>
+                  </li>
+                ))}
+              </ol>
+              <p className="text-xs text-muted-foreground">
+                Launch-safe note: closeout is saved on the bag today. Dedicated lifecycle events for maintenance,
+                hopper phase changes, and cleanout are planned next, so those actions are not mixed into drink-shot analysis.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {isLoading ? (
         <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div>

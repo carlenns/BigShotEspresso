@@ -157,6 +157,26 @@ test("equipment entry offers reviewable suggested setup details", async () => {
   assert.match(accessoriesSource, /30 lb/);
 });
 
+test("Bags page exposes launch-safe bag lifecycle workflow", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  for (const requiredText of [
+    "Bag Lifecycle Flow",
+    "Close / Reconcile Old Bag",
+    "Record Maintenance Or Purge Waste",
+    "Create Or Select Bean",
+    "Create New Active Bag",
+    "Fill / Reset Hopper Phase",
+    "Dial In Before Stable Logging",
+    "Dedicated lifecycle events",
+  ]) {
+    assert.match(source, new RegExp(requiredText));
+  }
+});
+
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {
   const [appSource, formSource, detailSource, selectorSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)), "utf8"),

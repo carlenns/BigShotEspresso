@@ -330,3 +330,27 @@ The local code and test foundation is stable, but the two source-of-truth deploy
 2. Apply, verify, roll back, and reapply the migration against an anonymized production/Replit PostgreSQL snapshot.
 
 After both checks pass, Phase 2 should begin with DCI. No intelligence engine was implemented during Phase 1.5.
+
+# Bag Lifecycle Flow UI — 2026-08-24
+
+## Completed
+
+- Added a launch-safe Bag Lifecycle Flow guide to the Bags page.
+- Made the current bag workflow explicit: close/reconcile old bag, record maintenance or purge waste, create/select bean, create new active bag, fill/reset hopper phase, then dial in before stable logging.
+- Kept this as workflow guidance only. No lifecycle-event table, hopper formula, intelligence engine, prediction, or automatic recommendation logic was introduced.
+
+## Verified
+
+- Workspace typecheck passed.
+- Phase 1.5/API test suite passed: 27 passed, 0 failed.
+- Render production build passed.
+
+## Assumptions
+
+- The existing closeout dialog remains the launch-safe closeout mechanism until a dedicated lifecycle-event model is approved.
+- Maintenance, purge, cleanout, and hopper phase transitions should be visibly guided now but modeled as first-class events later.
+
+## Unresolved
+
+- Dedicated lifecycle-event schema/API/UI remains future work.
+- Hopper phase transition behavior still needs final implementation authority before the app mutates or creates hopper phase state from the UI.
