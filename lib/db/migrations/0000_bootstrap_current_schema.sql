@@ -25,6 +25,9 @@ CREATE TABLE IF NOT EXISTS grinders (
   type text,
   burr_size text,
   burr_type text,
+  adjustment_type text,
+  grind_setting_precision integer,
+  grind_step_increment real,
   is_default boolean NOT NULL DEFAULT false,
   notes text,
   created_at timestamptz NOT NULL DEFAULT now()

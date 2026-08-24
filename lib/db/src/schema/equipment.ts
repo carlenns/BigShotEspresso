@@ -1,4 +1,4 @@
-import { pgTable, serial, text, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, boolean, timestamp, real, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -10,6 +10,9 @@ export const grindersTable = pgTable("grinders", {
   type: text("type"), // espresso | decaf | pour-over | hand
   burrSize: text("burr_size"),
   burrType: text("burr_type"),
+  adjustmentType: text("adjustment_type"), // stepless | stepped | indexed | unknown
+  grindSettingPrecision: integer("grind_setting_precision"),
+  grindStepIncrement: real("grind_step_increment"),
   isDefault: boolean("is_default").notNull().default(false),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

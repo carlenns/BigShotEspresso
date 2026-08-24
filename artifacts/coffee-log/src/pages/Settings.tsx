@@ -222,7 +222,8 @@ export default function Settings() {
           {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-48 rounded-lg bg-muted animate-pulse" />)}
         </div>
       ) : (
-        SECTIONS.filter((section) => section.title !== "Equipment Defaults").map((section, si) => (
+        <>
+        {SECTIONS.filter((section) => section.title !== "Equipment Defaults" && section.title !== "Grinder Defaults").map((section, si) => (
           <Card key={si}>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -245,7 +246,9 @@ export default function Settings() {
             </CardContent>
             {si < SECTIONS.length - 1 && <Separator />}
           </Card>
-        ))
+        ))}
+        <GrinderDefaultsSection values={values} set={set} grinders={grinders} />
+        </>
       )}
 
       {!isLoading && (
@@ -276,6 +279,54 @@ export default function Settings() {
 function equipmentLabel(item: { name?: string; brand: string | null; model: string | null; size?: string | null }) {
   if (item.name) return item.name;
   return [item.brand, item.model, item.size].filter(Boolean).join(" — ") || "Unnamed";
+}
+
+function GrinderDefaultsSection({
+  values,
+  set,
+  grinders,
+}: {
+  values: Record<string, string>;
+  set: (key: string, value: string) => void;
+  grinders: Grinder[];
+}) {
+  const grinderOptions = grinders.map((grinder) => equipmentLabel(grinder));
+  const fields = SECTIONS.find((section) => section.title === "Grinder Defaults")?.fields.filter((field) => field.key !== "defaultGrinder") ?? [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Zap className="h-5 w-5 text-primary" />
+          <CardTitle>Grinder Defaults</CardTitle>
+        </div>
+        <CardDescription>Grind settings are carried forward until you change them.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <SettingsSelect
+            label="Default Grinder"
+            value={values.defaultGrinder ?? values.defaultRegularGrinder ?? ""}
+            options={grinderOptions}
+            onChange={(value) => {
+              set("defaultGrinder", value);
+              set("defaultRegularGrinder", value);
+            }}
+            addHref="/equipment"
+            addLabel="Add Grinder"
+          />
+          {fields.map((field) => (
+            <FieldControl
+              key={field.key}
+              field={field}
+              value={values[field.key] ?? ""}
+              onChange={(v) => set(field.key, v)}
+            />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function SettingsSelect({

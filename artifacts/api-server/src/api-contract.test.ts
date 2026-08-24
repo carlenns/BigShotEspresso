@@ -188,7 +188,9 @@ test("Settings equipment defaults use saved equipment and accessory selectors", 
     "fetchMachines",
     "fetchAccessories",
     "EquipmentDefaultsSection",
+    "GrinderDefaultsSection",
     "Choose from equipment and active accessories",
+    "Default Grinder",
     "Typed legacy values remain selectable",
     "Add Machine",
     "Add Grinder",
@@ -202,6 +204,36 @@ test("Settings equipment defaults use saved equipment and accessory selectors", 
   ]) {
     assert.match(source, new RegExp(requiredText));
   }
+});
+
+test("Grinder records support adjustment style and precision metadata", async () => {
+  const [schemaSource, migrationSource, routeSource, equipmentSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../../lib/db/src/schema/equipment.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/migrations/0005_grinder_adjustment_model.sql", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/equipment.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Equipment.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  for (const requiredText of [
+    "adjustmentType",
+    "grindSettingPrecision",
+    "grindStepIncrement",
+  ]) {
+    assert.match(schemaSource, new RegExp(requiredText));
+    assert.match(routeSource, new RegExp(requiredText));
+    assert.match(equipmentSource, new RegExp(requiredText));
+  }
+
+  for (const requiredText of [
+    "adjustment_type",
+    "grind_setting_precision",
+    "grind_step_increment",
+  ]) {
+    assert.match(migrationSource, new RegExp(requiredText));
+  }
+
+  assert.match(equipmentSource, /Stepless grinders can be recorded to two decimals/);
+  assert.match(equipmentSource, /Approximate spacing between visible grinder marks/);
 });
 
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {

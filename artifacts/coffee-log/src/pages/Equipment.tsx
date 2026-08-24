@@ -18,11 +18,25 @@ import {
   matchingSuggestions,
 } from "@/lib/equipment-suggestions";
 
-interface Grinder { id: number; name: string; brand: string | null; model: string | null; type: string | null; burrSize: string | null; burrType: string | null; isDefault: boolean; notes: string | null; }
+interface Grinder {
+  id: number;
+  name: string;
+  brand: string | null;
+  model: string | null;
+  type: string | null;
+  burrSize: string | null;
+  burrType: string | null;
+  adjustmentType: string | null;
+  grindSettingPrecision: number | null;
+  grindStepIncrement: number | null;
+  isDefault: boolean;
+  notes: string | null;
+}
 interface Machine { id: number; name: string; brand: string | null; model: string | null; brewMethod: string | null; isDefault: boolean; notes: string | null; }
 
 const GRINDER_TYPES = ["Espresso", "Decaf", "Pour-over", "Hand", "Multi-use"];
 const BURR_TYPES = ["Flat", "Conical", "Hybrid"];
+const GRINDER_ADJUSTMENT_TYPES = ["Stepless", "Stepped", "Indexed", "Unknown"];
 const BREW_METHODS = ["Espresso", "Pour-over", "AeroPress", "French Press", "Moka Pot", "Lever", "Other"];
 
 function fetchGrinders(): Promise<Grinder[]> { return fetch("/api/equipment/grinders").then((r) => r.json()); }
@@ -41,8 +55,8 @@ export default function Equipment() {
   const [gForm, setGForm] = useState<Record<string, string>>({});
   const [mForm, setMForm] = useState<Record<string, string>>({});
 
-  const openNewG = () => { setEditingG(null); setGForm({ name: "", brand: "", model: "", type: "", burrSize: "", burrType: "", isDefault: "false", notes: "" }); setGOpen(true); };
-  const openEditG = (g: Grinder) => { setEditingG(g); setGForm({ name: g.name, brand: g.brand ?? "", model: g.model ?? "", type: g.type ?? "", burrSize: g.burrSize ?? "", burrType: g.burrType ?? "", isDefault: String(g.isDefault), notes: g.notes ?? "" }); setGOpen(true); };
+  const openNewG = () => { setEditingG(null); setGForm({ name: "", brand: "", model: "", type: "", burrSize: "", burrType: "", adjustmentType: "", grindSettingPrecision: "2", grindStepIncrement: "", isDefault: "false", notes: "" }); setGOpen(true); };
+  const openEditG = (g: Grinder) => { setEditingG(g); setGForm({ name: g.name, brand: g.brand ?? "", model: g.model ?? "", type: g.type ?? "", burrSize: g.burrSize ?? "", burrType: g.burrType ?? "", adjustmentType: g.adjustmentType ?? "", grindSettingPrecision: g.grindSettingPrecision != null ? String(g.grindSettingPrecision) : "", grindStepIncrement: g.grindStepIncrement != null ? String(g.grindStepIncrement) : "", isDefault: String(g.isDefault), notes: g.notes ?? "" }); setGOpen(true); };
 
   const openNewM = () => { setEditingM(null); setMForm({ name: "", brand: "", model: "", brewMethod: "", isDefault: "false", notes: "" }); setMOpen(true); };
   const openEditM = (m: Machine) => { setEditingM(m); setMForm({ name: m.name, brand: m.brand ?? "", model: m.model ?? "", brewMethod: m.brewMethod ?? "", isDefault: String(m.isDefault), notes: m.notes ?? "" }); setMOpen(true); };
@@ -120,7 +134,15 @@ export default function Equipment() {
                       {g.isDefault && <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Default</Badge>}
                     </div>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                      {[g.brand, g.model, g.burrSize, g.burrType ? `${g.burrType} burrs` : null].filter(Boolean).join(" · ")}
+                      {[
+                        g.brand,
+                        g.model,
+                        g.burrSize,
+                        g.burrType ? `${g.burrType} burrs` : null,
+                        g.adjustmentType,
+                        g.grindSettingPrecision != null ? `${g.grindSettingPrecision} Decimal Places` : null,
+                        g.grindStepIncrement != null ? `${g.grindStepIncrement} Setting Markers` : null,
+                      ].filter(Boolean).join(" · ")}
                     </p>
                     {g.notes && <p className="text-xs text-muted-foreground mt-1">{g.notes}</p>}
                   </div>
@@ -191,7 +213,7 @@ export default function Equipment() {
                       <p className="text-sm font-medium">{suggestion.label}</p>
                       <p className="text-xs text-muted-foreground">{suggestion.confidence}</p>
                       <p className="text-xs text-muted-foreground">
-                        {suggestion.values.burrSize} {suggestion.values.burrType.toLowerCase()} burrs · {suggestion.values.type}
+                        {suggestion.values.burrSize} {suggestion.values.burrType.toLowerCase()} burrs · {suggestion.values.type} · {suggestion.values.adjustmentType}
                       </p>
                     </div>
                     <Button
@@ -229,6 +251,27 @@ export default function Equipment() {
               </Select>
             </div>
             <div className="space-y-1.5"><Label>Burr Size</Label><Input value={gForm.burrSize} onChange={(e) => setG("burrSize", e.target.value)} placeholder="e.g. 65mm" /></div>
+            <div className="space-y-1.5">
+              <Label>Adjustment Type</Label>
+              <Select value={gForm.adjustmentType || "__none__"} onValueChange={(v) => setG("adjustmentType", v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— not set —</SelectItem>
+                  {GRINDER_ADJUSTMENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Stepless grinders can be recorded to two decimals, but exact repeatability may be visual/approximate.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Setting Precision</Label>
+              <Input type="number" min="0" max="3" step="1" value={gForm.grindSettingPrecision} onChange={(e) => setG("grindSettingPrecision", e.target.value)} placeholder="2" />
+              <p className="text-xs text-muted-foreground">How many decimals to display for this grinder.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Marker Increment</Label>
+              <Input type="number" min="0" step="0.01" value={gForm.grindStepIncrement} onChange={(e) => setG("grindStepIncrement", e.target.value)} placeholder="0.33" />
+              <p className="text-xs text-muted-foreground">Approximate spacing between visible grinder marks, e.g. 0.33.</p>
+            </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <Label className="font-normal">Set as Default</Label>
               <Switch checked={gForm.isDefault === "true"} onCheckedChange={(v) => setG("isDefault", String(v))} />

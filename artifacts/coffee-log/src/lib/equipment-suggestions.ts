@@ -12,6 +12,9 @@ export type GrinderSuggestion = {
     type: string;
     burrSize: string;
     burrType: string;
+    adjustmentType: string;
+    grindSettingPrecision: string;
+    grindStepIncrement: string;
     notes: string;
   };
 };
@@ -51,6 +54,9 @@ export const GRINDER_SUGGESTIONS: GrinderSuggestion[] = [
       type: "Espresso",
       burrSize: "55mm",
       burrType: "Flat",
+      adjustmentType: "Stepless",
+      grindSettingPrecision: "2",
+      grindStepIncrement: "0.33",
       notes: "Suggested profile. Review before saving; burr/version details may vary by model year or region.",
     },
   },

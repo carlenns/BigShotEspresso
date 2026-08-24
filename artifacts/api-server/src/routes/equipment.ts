@@ -23,6 +23,9 @@ router.post("/equipment/grinders", async (req, res): Promise<void> => {
     type: body.type as string | undefined,
     burrSize: body.burrSize as string | undefined,
     burrType: body.burrType as string | undefined,
+    adjustmentType: body.adjustmentType as string | undefined,
+    grindSettingPrecision: body.grindSettingPrecision != null && body.grindSettingPrecision !== "" ? Number(body.grindSettingPrecision) : undefined,
+    grindStepIncrement: body.grindStepIncrement != null && body.grindStepIncrement !== "" ? Number(body.grindStepIncrement) : undefined,
     isDefault: Boolean(body.isDefault),
     notes: body.notes as string | undefined,
   }).returning();
@@ -41,6 +44,9 @@ router.patch("/equipment/grinders/:id", async (req, res): Promise<void> => {
     type: body.type as string | undefined,
     burrSize: body.burrSize as string | undefined,
     burrType: body.burrType as string | undefined,
+    adjustmentType: body.adjustmentType as string | undefined,
+    grindSettingPrecision: body.grindSettingPrecision != null && body.grindSettingPrecision !== "" ? Number(body.grindSettingPrecision) : undefined,
+    grindStepIncrement: body.grindStepIncrement != null && body.grindStepIncrement !== "" ? Number(body.grindStepIncrement) : undefined,
     isDefault: body.isDefault != null ? Boolean(body.isDefault) : undefined,
     notes: body.notes as string | undefined,
   }).where(eq(grindersTable.id, id)).returning();

@@ -379,3 +379,30 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 
 - Add links route to the Equipment or Accessories page; they do not yet open a preselected “new equipment” modal.
 - Per-user active equipment defaults should be revisited after users/OAuth are implemented.
+
+# Grinder Adjustment Metadata — 2026-08-24
+
+## Completed
+
+- Added grinder-level adjustment metadata so BSE can distinguish stepless, stepped, indexed, or unknown grinders.
+- Added grinder setting precision so stepless grinders can be displayed with appropriate decimals without pretending the reading is perfectly exact.
+- Added marker increment so grinders with visual marks between whole numbers can record their approximate spacing, such as 0.33.
+- Updated the Equipment UI and grinder suggestion flow to collect and display this metadata.
+- Preserved Settings grinder defaults as current-use preferences rather than equipment capability records.
+
+## Verified
+
+- Workspace typecheck passed.
+- Phase 1.5/API test suite passed: 29 passed, 0 failed.
+- Render production build passed.
+
+## Assumptions
+
+- Grinder adjustment type belongs on the grinder record.
+- Current/default grind setting and grind time remain in Settings and bag/shot workflows.
+- Eureka Mignon Magnifico is treated as stepless with two-decimal display and approximately 0.33 marker spacing, pending user review.
+
+## Unresolved
+
+- Settings does not yet automatically inherit precision/step behavior from the selected grinder.
+- Existing production database will need the new additive migration applied during deployment.
