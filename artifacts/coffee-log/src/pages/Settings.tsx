@@ -203,13 +203,13 @@ export default function Settings() {
                 ["Target Yield", values.defaultTargetYield ? `${values.defaultTargetYield}g` : undefined],
                 ["Temperature", values.defaultBrewTemp ? `${values.defaultBrewTemp}°C` : undefined],
                 ["Machine", values.defaultMachine],
-                ["Score Weighting", `${values.ratingTechnicalWeight || "40"}% tech / ${values.ratingPreferenceWeight || "60"}% pref`],
+                ["Score Weighting", `${values.ratingTechnicalWeight || "40"}% technical / ${values.ratingPreferenceWeight || "60"}% preference`],
               ]
                 .filter(([, v]) => v)
                 .map(([label, val]) => (
-                  <div key={label as string} className="flex gap-1 min-w-0">
+                  <div key={label as string} className="flex flex-wrap gap-x-1 min-w-0">
                     <span className="text-muted-foreground shrink-0">{label}:</span>
-                    <span className="font-medium truncate">{val}</span>
+                    <span className="font-medium break-words">{val}</span>
                   </div>
                 ))}
             </div>
