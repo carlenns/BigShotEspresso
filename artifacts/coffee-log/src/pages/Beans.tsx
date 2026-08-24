@@ -27,6 +27,9 @@ interface Bean {
   bagCount: number;
   shotCount: number;
   avgRating: number | null;
+  avgPrefRating: number | null;
+  weightedScore: number | null;
+  ratingWeights: { technicalWeight: number; preferenceWeight: number };
   referenceCount: number;
 }
 
@@ -141,7 +144,16 @@ function BeanCard({ bean: b, onDelete }: { bean: Bean; onDelete: (id: number) =>
         </div>
         <div className="flex items-center justify-between pt-2 border-t text-sm">
           <span className="text-muted-foreground">{b.bagCount} bag{b.bagCount !== 1 ? "s" : ""} · {b.shotCount} shots</span>
-          {b.avgRating != null && (
+          {b.weightedScore != null ? (
+            <span className="flex flex-col items-end text-right">
+              <span className="flex items-center gap-1 text-amber-600 font-medium">
+                <Star className="h-3.5 w-3.5 fill-current" />{Number(b.weightedScore).toFixed(2)}
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                Weighted · Tech {b.ratingWeights.technicalWeight}% / Pref {b.ratingWeights.preferenceWeight}%
+              </span>
+            </span>
+          ) : b.avgRating != null && (
             <span className="flex items-center gap-1 text-amber-600 font-medium">
               <Star className="h-3.5 w-3.5 fill-current" />{Number(b.avgRating).toFixed(1)}
             </span>

@@ -108,6 +108,29 @@ test("Best Shot recipe exposes repeatability fields and hides default dose noise
   assert.match(dashboardSource, /Math\.abs\(shot\.dose - targetDose\) >= 0\.05/);
 });
 
+test("weighted score is calculated from ratings and settings, not uploaded as source data", async () => {
+  const [helperSource, settingsSource, dashboardSource, beanRouteSource, bagRouteSource, openApiSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("./lib/rating-weighting.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Settings.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/dashboard.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/beans.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/bags.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/api-spec/openapi.yaml", import.meta.url)), "utf8"),
+  ]);
+
+  assert.match(helperSource, /weightedShotScore/);
+  assert.match(helperSource, /preferenceRating/);
+  assert.match(helperSource, /preference = preferenceRating/);
+  assert.match(settingsSource, /Personal Score Weighting/);
+  assert.match(settingsSource, /ratingTechnicalWeight/);
+  assert.match(settingsSource, /ratingPreferenceWeight/);
+  assert.match(dashboardSource, /weightedScore/);
+  assert.match(beanRouteSource, /weightedScore/);
+  assert.match(bagRouteSource, /weightedScore/);
+  assert.doesNotMatch(openApiSource.match(/ShotWriteFields:[\s\S]*?ShotInput:/)?.[0] ?? "", /weightedScore/);
+  assert.doesNotMatch(openApiSource.match(/ShotWriteFields:[\s\S]*?ShotInput:/)?.[0] ?? "", /avgWeightedRating/);
+});
+
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {
   const [appSource, formSource, detailSource, selectorSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)), "utf8"),

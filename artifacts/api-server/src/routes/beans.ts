@@ -1,11 +1,16 @@
 import { Router, type IRouter } from "express";
 import { and, eq, sql } from "drizzle-orm";
-import { db, beansTable, bagsTable, shotsTable } from "@workspace/db";
+import { db, beansTable, bagsTable, shotsTable, settingsTable } from "@workspace/db";
 import { eligibleShotConditions } from "../lib/shot-eligibility";
+import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weighting";
 
 const router: IRouter = Router();
 
 router.get("/beans", async (_req, res): Promise<void> => {
+  const settingRows = await db.select().from(settingsTable);
+  const settings = Object.fromEntries(settingRows.map((row) => [row.key, row.value]));
+  const ratingWeights = getRatingWeights(settings);
+
   const beans = await db.select().from(beansTable).orderBy(beansTable.name);
   const stats = await db
     .select({
@@ -13,17 +18,38 @@ router.get("/beans", async (_req, res): Promise<void> => {
       bagCount: sql<number>`count(distinct ${bagsTable.id})::int`,
       shotCount: sql<number>`count(${shotsTable.id})::int`,
       avgRating: sql<number | null>`round(avg(${shotsTable.rating})::numeric, 2)`,
+      avgPrefRating: sql<number | null>`round(avg(${shotsTable.preferenceRating})::numeric, 2)`,
       referenceCount: sql<number>`count(${shotsTable.id}) filter (where ${shotsTable.isReference} = true)::int`,
     })
     .from(bagsTable)
     .leftJoin(shotsTable, and(eq(shotsTable.bagId, bagsTable.id), ...eligibleShotConditions))
     .groupBy(bagsTable.beanId);
+
+  const eligibleShots = await db
+    .select({
+      beanId: bagsTable.beanId,
+      rating: shotsTable.rating,
+      preferenceRating: shotsTable.preferenceRating,
+    })
+    .from(bagsTable)
+    .leftJoin(shotsTable, and(eq(shotsTable.bagId, bagsTable.id), ...eligibleShotConditions))
+    .where(sql`${shotsTable.rating} is not null`);
+
   const statsMap = new Map(stats.map((s) => [s.beanId, s]));
+  const weightedMap = new Map<number, number | null>();
+  for (const bean of beans) {
+    const beanShots = eligibleShots.filter((shot) => shot.beanId === bean.id);
+    weightedMap.set(bean.id, averageWeightedShotScore(beanShots, ratingWeights));
+  }
+
   res.json(beans.map((b) => ({
     ...b,
     bagCount: statsMap.get(b.id)?.bagCount ?? 0,
     shotCount: statsMap.get(b.id)?.shotCount ?? 0,
     avgRating: statsMap.get(b.id)?.avgRating ?? null,
+    avgPrefRating: statsMap.get(b.id)?.avgPrefRating ?? null,
+    weightedScore: weightedMap.get(b.id) ?? null,
+    ratingWeights,
     referenceCount: statsMap.get(b.id)?.referenceCount ?? 0,
   })));
 });

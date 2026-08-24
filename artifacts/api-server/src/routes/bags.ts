@@ -1,11 +1,16 @@
 import { Router, type IRouter } from "express";
 import { and, eq, sql, desc, isNotNull } from "drizzle-orm";
-import { db, bagsTable, beansTable, shotsTable } from "@workspace/db";
+import { db, bagsTable, beansTable, shotsTable, settingsTable } from "@workspace/db";
 import { eligibleShotConditions } from "../lib/shot-eligibility";
+import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weighting";
 
 const router: IRouter = Router();
 
 router.get("/bags", async (_req, res): Promise<void> => {
+  const settingRows = await db.select().from(settingsTable);
+  const settings = Object.fromEntries(settingRows.map((row) => [row.key, row.value]));
+  const ratingWeights = getRatingWeights(settings);
+
   const bags = await db
     .select({
       id: bagsTable.id,
@@ -50,6 +55,7 @@ router.get("/bags", async (_req, res): Promise<void> => {
       referenceCount: sql<number>`count(*) filter (where ${shotsTable.isReference} = true)::int`,
       dailyDriverCount: sql<number>`count(*) filter (where ${shotsTable.beanAchievement} @> array['Daily Driver']::text[])::int`,
       avgRating: sql<number | null>`round(avg(${shotsTable.rating})::numeric, 2)`,
+      avgPrefRating: sql<number | null>`round(avg(${shotsTable.preferenceRating})::numeric, 2)`,
       minGrind: sql<number | null>`min(${shotsTable.grindSetting})`,
       maxGrind: sql<number | null>`max(${shotsTable.grindSetting})`,
       latestGrind: sql<number | null>`(array_agg(${shotsTable.grindSetting} ORDER BY ${shotsTable.shotDate} DESC NULLS LAST))[1]`,
@@ -59,7 +65,22 @@ router.get("/bags", async (_req, res): Promise<void> => {
     .where(and(isNotNull(shotsTable.bagId), ...eligibleShotConditions))
     .groupBy(shotsTable.bagId);
 
+  const eligibleRatedShots = await db
+    .select({
+      bagId: shotsTable.bagId,
+      rating: shotsTable.rating,
+      preferenceRating: shotsTable.preferenceRating,
+    })
+    .from(shotsTable)
+    .where(and(isNotNull(shotsTable.bagId), isNotNull(shotsTable.rating), ...eligibleShotConditions));
+
   const statsMap = new Map(stats.map((s) => [s.bagId, s]));
+  const weightedMap = new Map<number, number | null>();
+  for (const bag of bags) {
+    const bagShots = eligibleRatedShots.filter((shot) => shot.bagId === bag.id);
+    weightedMap.set(bag.id, averageWeightedShotScore(bagShots, ratingWeights));
+  }
+
   res.json(bags.map((b) => {
     const bagStats = statsMap.get(b.id);
     const closedOutDate = !b.isActive ? b.closedOutDate ?? bagStats?.latestShotDate ?? null : null;
@@ -75,6 +96,9 @@ router.get("/bags", async (_req, res): Promise<void> => {
       referenceCount: bagStats?.referenceCount ?? 0,
       dailyDriverCount: bagStats?.dailyDriverCount ?? 0,
       avgRating: bagStats?.avgRating ?? null,
+      avgPrefRating: bagStats?.avgPrefRating ?? null,
+      weightedScore: weightedMap.get(b.id) ?? null,
+      ratingWeights,
       grindRange: bagStats ? { min: bagStats.minGrind, max: bagStats.maxGrind } : null,
       closedOutDate,
       daysSinceClosedOut,
@@ -120,8 +144,15 @@ router.get("/bags/:id", async (req, res): Promise<void> => {
     .orderBy(desc(sql`${shotsTable.shotDate}`));
 
   const ratedShots = shots.filter((s) => s.rating != null);
+  const settingRows = await db.select().from(settingsTable);
+  const settings = Object.fromEntries(settingRows.map((row) => [row.key, row.value]));
+  const ratingWeights = getRatingWeights(settings);
   const dailyDriverShots = shots.filter((s) => s.beanAchievement?.includes("Daily Driver"));
   const avgRating = ratedShots.length ? ratedShots.reduce((a, s) => a + Number(s.rating), 0) / ratedShots.length : null;
+  const avgPrefRating = ratedShots.filter((s) => s.preferenceRating != null).length
+    ? ratedShots.filter((s) => s.preferenceRating != null).reduce((a, s) => a + Number(s.preferenceRating), 0) / ratedShots.filter((s) => s.preferenceRating != null).length
+    : null;
+  const weightedScore = averageWeightedShotScore(ratedShots, ratingWeights);
   const grindSettings = shots.map((s) => s.grindSetting).filter((v): v is number => v != null);
   const statusBreakdown = shots.reduce<Record<string, number>>((acc, s) => { const k = s.status ?? "Unknown"; acc[k] = (acc[k] ?? 0) + 1; return acc; }, {});
 
@@ -132,6 +163,9 @@ router.get("/bags/:id", async (req, res): Promise<void> => {
     dailyDriverRate: shots.length ? Math.round((dailyDriverShots.length / shots.length) * 1000) / 10 : null,
     ratedShots: ratedShots.length,
     avgRating: avgRating != null ? Math.round(avgRating * 100) / 100 : null,
+    avgPrefRating: avgPrefRating != null ? Math.round(avgPrefRating * 100) / 100 : null,
+    weightedScore,
+    ratingWeights,
     avgDose: ratedShots.length ? Math.round((ratedShots.reduce((a, s) => a + Number(s.dose ?? 0), 0) / ratedShots.length) * 10) / 10 : null,
     avgYield: ratedShots.length ? Math.round((ratedShots.reduce((a, s) => a + Number(s.yield ?? 0), 0) / ratedShots.length) * 10) / 10 : null,
     avgPourTime: ratedShots.length ? Math.round((ratedShots.reduce((a, s) => a + Number(s.pourTime ?? 0), 0) / ratedShots.length) * 10) / 10 : null,

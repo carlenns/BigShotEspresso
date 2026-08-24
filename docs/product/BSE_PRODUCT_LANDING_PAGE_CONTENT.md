@@ -85,6 +85,10 @@ The product should explain that tasting and rating shots is part of the learning
 
 BigShotEspresso should also explain the meaning of a `Daily Driver`. A Daily Driver is not merely a high score; it is a personal achievement marker for a coffee or recipe the user would happily drink every day. It captures comfort, repeatability, and individual taste preference. This makes Daily Driver useful for bag summaries, bean history, rebuy decisions, and future opt-in leaderboards focused on everyday drinkability rather than only peak technical scores.
 
+BigShotEspresso should distinguish between calculated scoring and purchasing preference. The app may let users choose how bag and bean rankings blend technical rating and preference rating, but those weighted scores are display calculations only. They must not overwrite the original `Rating` or `Preference Rating`, and they should not be uploaded to future community data as fixed facts because users can change the weighting at any time.
+
+Future product scope should include a dedicated `Preference & Buying Profile` or shopping-oriented page. Its purpose would be to help users understand what they historically like buying and drinking: roasters, origins, roast levels, processes, flavour families, price bands, Daily Driver rate, reference-shot rate, repeat-purchase signals, and preference-weighted outcomes. That page could eventually recommend coffees to buy based on the user's own evidence, but recommendations must clearly separate observed history from inferred suggestions.
+
 The product should also teach that some numbers carry more practical signal than others. First pour delay and yield should be highlighted as high-value observations because they are easy to record, easy to compare, and often strongly connected to shot quality. The app and onboarding should avoid implying one universal first-pour target across all coffees: lighter roasts may often behave better with shorter first-pour delays, while darker roasts may sometimes prefer a longer first-pour window. BSE should learn this through the user's records rather than inventing a fixed threshold.
 
 ### 2. Bean and bag lifecycle tracking

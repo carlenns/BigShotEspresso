@@ -3,6 +3,7 @@ import { sql, desc, isNotNull, eq, ne, and, lt } from "drizzle-orm";
 import { db, shotsTable, bagsTable, beansTable, settingsTable } from "@workspace/db";
 import { GetRecentShotsQueryParams, GetBestRatedShotsQueryParams } from "@workspace/api-zod";
 import { eligibleShotConditions } from "../lib/shot-eligibility";
+import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weighting";
 
 const router: IRouter = Router();
 
@@ -64,6 +65,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   const settingRows = await db.select().from(settingsTable);
   const settings: Record<string, string> = {};
   for (const r of settingRows) settings[r.key] = r.value;
+  const ratingWeights = getRatingWeights(settings);
 
   // ── Active bag ────────────────────────────────────────────────────────────
   const [activeBagRow] = await db
@@ -134,6 +136,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   const avgPrefRating = ratedShots.filter((s) => s.preferenceRating != null).length
     ? Math.round((ratedShots.filter((s) => s.preferenceRating != null).reduce((a, s) => a + Number(s.preferenceRating), 0) / ratedShots.filter((s) => s.preferenceRating != null).length) * 100) / 100
     : null;
+  const weightedScore = averageWeightedShotScore(ratedShots, ratingWeights);
   const bestRating = ratedShots.length ? Math.max(...ratedShots.map((s) => Number(s.rating))) : null;
 
   const refCount = activeBagShots.filter((s) => s.isReference).length;
@@ -475,6 +478,8 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
       dailyDriverCount,
       avgRating,
       avgPrefRating,
+      weightedScore,
+      ratingWeights,
       bestRating,
       last3Avg,
       referenceRate,

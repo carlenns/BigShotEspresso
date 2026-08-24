@@ -28,6 +28,8 @@ interface Bag {
   defaultDose: number | null; defaultYield: number | null; defaultTemp: number | null;
   dialInNotes: string | null; notes: string | null;
   shotCount: number; referenceCount: number; dailyDriverCount: number; avgRating: number | null;
+  avgPrefRating: number | null; weightedScore: number | null;
+  ratingWeights: { technicalWeight: number; preferenceWeight: number };
   grindRange: { min: number | null; max: number | null } | null;
   closedOutDate: string | null; daysSinceClosedOut: number | null;
 }
@@ -329,7 +331,16 @@ function BagRow({ bag, onEdit, onCloseout }: { bag: Bag; onEdit: (b: Bag) => voi
               <p className="text-muted-foreground">
                 {bag.shotCount} shots · {bag.referenceCount} refs · {bag.dailyDriverCount} daily drivers
               </p>
-              {bag.avgRating != null && (
+              {bag.weightedScore != null ? (
+                <div className="text-right">
+                  <p className="flex items-center gap-1 text-amber-600 font-medium justify-end">
+                    <Star className="h-3.5 w-3.5 fill-current" />{Number(bag.weightedScore).toFixed(2)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Weighted · Tech {bag.ratingWeights.technicalWeight}% / Pref {bag.ratingWeights.preferenceWeight}%
+                  </p>
+                </div>
+              ) : bag.avgRating != null && (
                 <p className="flex items-center gap-1 text-amber-600 font-medium justify-end">
                   <Star className="h-3.5 w-3.5 fill-current" />{Number(bag.avgRating).toFixed(1)}
                 </p>

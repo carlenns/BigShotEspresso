@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Save, Settings as SettingsIcon, Coffee, Zap, Wrench, ClipboardList,
+  Save, Settings as SettingsIcon, Coffee, Zap, Wrench, ClipboardList, Star,
 } from "lucide-react";
 import { FIELD_GROUPS } from "@/pages/QuickLog";
 import { cn } from "@/lib/utils";
@@ -49,6 +49,15 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
       { key: "unitSystem", label: "Unit System", type: "select", options: ["Metric (g, ml)", "Imperial (oz)"] },
       { key: "timeFormat", label: "Time Format", type: "select", options: ["12hr", "24hr"] },
       { key: "temperatureUnit", label: "Temperature Unit", type: "select", options: ["°C", "°F"] },
+    ],
+  },
+  {
+    title: "Personal Score Weighting",
+    icon: Star,
+    description: "Controls how BSE ranks bags and beans. Technical Rating measures execution; Preference Rating measures how much you personally enjoyed it. These settings recalculate live and never change saved shot ratings.",
+    fields: [
+      { key: "ratingTechnicalWeight", label: "Technical Rating Weight", type: "number", placeholder: "40", unit: "%" },
+      { key: "ratingPreferenceWeight", label: "Preference Rating Weight", type: "number", placeholder: "60", unit: "%" },
     ],
   },
   {
@@ -174,6 +183,7 @@ export default function Settings() {
                 ["Target Yield", values.defaultTargetYield ? `${values.defaultTargetYield}g` : undefined],
                 ["Temperature", values.defaultBrewTemp ? `${values.defaultBrewTemp}°C` : undefined],
                 ["Machine", values.defaultMachine],
+                ["Score Weighting", `${values.ratingTechnicalWeight || "40"}% tech / ${values.ratingPreferenceWeight || "60"}% pref`],
               ]
                 .filter(([, v]) => v)
                 .map(([label, val]) => (

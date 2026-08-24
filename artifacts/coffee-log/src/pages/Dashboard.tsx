@@ -64,6 +64,8 @@ interface Intelligence {
   bagIntelligence: {
     totalShots: number; referenceShots: number; dailyDriverCount: number;
     avgRating: number | null; avgPrefRating: number | null;
+    weightedScore: number | null;
+    ratingWeights: { technicalWeight: number; preferenceWeight: number };
     bestRating: number | null; last3Avg: number | null;
     referenceRate: number | null;
     signatureShotCount: number | null;
@@ -381,6 +383,15 @@ export default function Dashboard() {
                   {bi.avgPrefRating != null && (
                     <IntelStat label="Avg pref rating" value={bi.avgPrefRating.toFixed(2)} />
                   )}
+                  {bi.weightedScore != null && (
+                    <IntelStat
+                      label="Weighted score"
+                      value={bi.weightedScore.toFixed(2)}
+                      accent={bi.weightedScore >= 8}
+                      icon={Star}
+                      note={`Tech ${bi.ratingWeights.technicalWeight}% · Pref ${bi.ratingWeights.preferenceWeight}%`}
+                    />
+                  )}
                   <IntelStat
                     label="Reference rate"
                     value={bi.referenceRate != null ? `${bi.referenceRate}%` : "—"}
@@ -637,7 +648,7 @@ function SectionLabel({ children, scope, className }: { children: React.ReactNod
   );
 }
 
-function IntelStat({ label, value, accent, dim, icon: Icon, highlight }: { label: string; value: string; accent?: boolean; dim?: boolean; icon?: React.ElementType; highlight?: boolean }) {
+function IntelStat({ label, value, accent, dim, icon: Icon, highlight, note }: { label: string; value: string; accent?: boolean; dim?: boolean; icon?: React.ElementType; highlight?: boolean; note?: string }) {
   return (
     <div className={cn("rounded-lg px-3 py-2.5", highlight ? "bg-primary/10" : "bg-muted/40")}>
       <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">{label}</p>
@@ -645,6 +656,7 @@ function IntelStat({ label, value, accent, dim, icon: Icon, highlight }: { label
         {Icon && <Icon className="h-3.5 w-3.5 fill-current" />}
         {value}
       </p>
+      {note && <p className="text-[10px] text-muted-foreground mt-0.5">{note}</p>}
     </div>
   );
 }

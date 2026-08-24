@@ -34,6 +34,8 @@ interface BagDetailResponse {
   analysis: {
     totalShots: number; referenceShots: number; ratedShots: number; avgRating: number | null;
     dailyDriverShots: number; dailyDriverRate: number | null;
+    avgPrefRating: number | null; weightedScore: number | null;
+    ratingWeights: { technicalWeight: number; preferenceWeight: number };
     avgDose: number | null; avgYield: number | null; avgPourTime: number | null;
     grindRange: { min: number; max: number } | null;
     statusBreakdown: Record<string, number>;
@@ -142,6 +144,13 @@ export default function BagDetail() {
           highlight={analysis.dailyDriverShots > 0}
         />
         <StatCard label="Avg Rating" value={analysis.avgRating != null ? Number(analysis.avgRating).toFixed(1) : "—"} highlight={analysis.avgRating != null && analysis.avgRating >= 7} />
+        <StatCard label="Avg Pref Rating" value={analysis.avgPrefRating != null ? Number(analysis.avgPrefRating).toFixed(2) : "—"} />
+        <StatCard
+          label="Weighted Score"
+          value={analysis.weightedScore != null ? Number(analysis.weightedScore).toFixed(2) : "—"}
+          sublabel={`Tech ${analysis.ratingWeights.technicalWeight}% · Pref ${analysis.ratingWeights.preferenceWeight}%`}
+          highlight={analysis.weightedScore != null && analysis.weightedScore >= 8}
+        />
         <StatCard label="Rated Shots" value={analysis.ratedShots} />
         <StatCard label="Avg Dose" value={analysis.avgDose != null ? `${analysis.avgDose}g` : "—"} />
         <StatCard label="Avg Yield" value={analysis.avgYield != null ? `${analysis.avgYield}g` : "—"} />
@@ -298,7 +307,7 @@ export default function BagDetail() {
   );
 }
 
-function StatCard({ label, value, highlight }: { label: string; value: string | number; highlight?: boolean }) {
+function StatCard({ label, value, highlight, sublabel }: { label: string; value: string | number; highlight?: boolean; sublabel?: string }) {
   return (
     <Card>
       <CardHeader className="pb-1 pt-4 px-4">
@@ -306,6 +315,7 @@ function StatCard({ label, value, highlight }: { label: string; value: string | 
       </CardHeader>
       <CardContent className="px-4 pb-4">
         <p className={cn("text-2xl font-bold", highlight && "text-amber-600")}>{value}</p>
+        {sublabel && <p className="text-[10px] text-muted-foreground mt-1">{sublabel}</p>}
       </CardContent>
     </Card>
   );

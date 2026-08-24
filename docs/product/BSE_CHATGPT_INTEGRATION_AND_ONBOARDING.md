@@ -247,8 +247,19 @@ BSE onboarding must teach the difference between technical quality and personal 
 - `11` is intentionally available only for the rare shot that feels over the top, personally exceptional, or benchmark-setting.
 - Preference scores above 10 must not be treated as universal technical superiority in DCI, OSI, HMI, MSI, BLI, or GSP.
 - Coffee AI responses must preserve this distinction and avoid normalizing an 11-point preference score back into a 10-point technical rating.
+- If the app uses a weighted score, explain that it is a user-adjustable ranking lens only. The durable source facts remain `Rating` and `Preference Rating`; changing the weighting recalculates bag and bean summaries without changing historical shot records.
 
-### 4.1 Teach Daily Driver semantics
+### 4.1 Teach preference and buying profile semantics
+
+Coffee AI should eventually help users build a `Preference & Buying Profile`: what origins, roasters, roast levels, processes, flavour families, and price/value patterns they repeatedly enjoy. This should be treated as a separate shopping and preference-discovery workflow, not as a replacement for shot logging.
+
+The assistant may use the user's historical `Rating`, `Preference Rating`, `Daily Driver`, reference-shot, and bag/bean rollup evidence to explain what the user tends to like. It must clearly distinguish:
+
+- observed history, such as "your highest preference scores are from medium roasts";
+- calculated ranking lenses, such as weighted technical/preference score;
+- tentative buying suggestions, which are recommendations rather than source data.
+
+### 4.2 Teach Daily Driver semantics
 
 `Daily Driver` is a personal bean achievement, not a generic synonym for “good.” It marks a shot or coffee expression that the user would genuinely want to drink every day: repeatable, enjoyable, comfortable, and aligned with that user’s own taste preferences.
 
