@@ -76,6 +76,7 @@ router.post("/equipment/machines", async (req, res): Promise<void> => {
     brand: body.brand as string | undefined,
     model: body.model as string | undefined,
     brewMethod: body.brewMethod as string | undefined,
+    stockBasket: body.stockBasket as string | undefined,
     isDefault: Boolean(body.isDefault),
     notes: body.notes as string | undefined,
   }).returning();
@@ -92,6 +93,7 @@ router.patch("/equipment/machines/:id", async (req, res): Promise<void> => {
     brand: body.brand as string | undefined,
     model: body.model as string | undefined,
     brewMethod: body.brewMethod as string | undefined,
+    stockBasket: body.stockBasket as string | undefined,
     isDefault: body.isDefault != null ? Boolean(body.isDefault) : undefined,
     notes: body.notes as string | undefined,
   }).where(eq(machinesTable.id, id)).returning();

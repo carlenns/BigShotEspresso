@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE machines
+  DROP COLUMN IF EXISTS stock_basket;
+
+COMMIT;

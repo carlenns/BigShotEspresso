@@ -406,3 +406,27 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 
 - Settings does not yet automatically inherit precision/step behavior from the selected grinder.
 - Existing production database will need the new additive migration applied during deployment.
+
+# Equipment Default Source Corrections — 2026-08-24
+
+## Completed
+
+- Corrected the Settings defaults summary layout so labels do not wrap awkwardly or hide useful values.
+- Added machine-level stock basket support so a machine's included basket can be used as a default without requiring a separate basket accessory record.
+- Updated Settings so Default Basket can be selected from machine stock baskets or active basket accessories.
+- Updated Settings accessory labels so puck-screen specifications, such as thickness, can appear in default selections.
+
+## Verified
+
+- Workspace typecheck passed.
+- Phase 1.5/API test suite passed: 30 passed, 0 failed.
+- Render production build passed.
+
+## Assumptions
+
+- Stock basket belongs to the machine record when it is the basket supplied with the machine.
+- Puck screen remains an accessory because it is removable workflow equipment.
+
+## Unresolved
+
+- A future add-flow can route directly to a preselected accessory type, such as Add Puck Screen, instead of only routing to the Accessories page.

@@ -29,6 +29,7 @@ export type MachineSuggestion = {
     brand: string;
     model: string;
     brewMethod: string;
+    stockBasket: string;
     notes: string;
   };
 };
@@ -73,6 +74,7 @@ export const MACHINE_SUGGESTIONS: MachineSuggestion[] = [
       brand: "Profitec",
       model: "Go",
       brewMethod: "Espresso",
+      stockBasket: "Profitec Go Stock Basket",
       notes: [
         "Suggested profile. Review before saving.",
         "Known workflow note from user setup: PID displays brew temperature, then switches to shot timer when the pump starts.",

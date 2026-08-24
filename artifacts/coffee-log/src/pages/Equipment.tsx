@@ -32,7 +32,7 @@ interface Grinder {
   isDefault: boolean;
   notes: string | null;
 }
-interface Machine { id: number; name: string; brand: string | null; model: string | null; brewMethod: string | null; isDefault: boolean; notes: string | null; }
+interface Machine { id: number; name: string; brand: string | null; model: string | null; brewMethod: string | null; stockBasket: string | null; isDefault: boolean; notes: string | null; }
 
 const GRINDER_TYPES = ["Espresso", "Decaf", "Pour-over", "Hand", "Multi-use"];
 const BURR_TYPES = ["Flat", "Conical", "Hybrid"];
@@ -58,8 +58,8 @@ export default function Equipment() {
   const openNewG = () => { setEditingG(null); setGForm({ name: "", brand: "", model: "", type: "", burrSize: "", burrType: "", adjustmentType: "", grindSettingPrecision: "2", grindStepIncrement: "", isDefault: "false", notes: "" }); setGOpen(true); };
   const openEditG = (g: Grinder) => { setEditingG(g); setGForm({ name: g.name, brand: g.brand ?? "", model: g.model ?? "", type: g.type ?? "", burrSize: g.burrSize ?? "", burrType: g.burrType ?? "", adjustmentType: g.adjustmentType ?? "", grindSettingPrecision: g.grindSettingPrecision != null ? String(g.grindSettingPrecision) : "", grindStepIncrement: g.grindStepIncrement != null ? String(g.grindStepIncrement) : "", isDefault: String(g.isDefault), notes: g.notes ?? "" }); setGOpen(true); };
 
-  const openNewM = () => { setEditingM(null); setMForm({ name: "", brand: "", model: "", brewMethod: "", isDefault: "false", notes: "" }); setMOpen(true); };
-  const openEditM = (m: Machine) => { setEditingM(m); setMForm({ name: m.name, brand: m.brand ?? "", model: m.model ?? "", brewMethod: m.brewMethod ?? "", isDefault: String(m.isDefault), notes: m.notes ?? "" }); setMOpen(true); };
+  const openNewM = () => { setEditingM(null); setMForm({ name: "", brand: "", model: "", brewMethod: "", stockBasket: "", isDefault: "false", notes: "" }); setMOpen(true); };
+  const openEditM = (m: Machine) => { setEditingM(m); setMForm({ name: m.name, brand: m.brand ?? "", model: m.model ?? "", brewMethod: m.brewMethod ?? "", stockBasket: m.stockBasket ?? "", isDefault: String(m.isDefault), notes: m.notes ?? "" }); setMOpen(true); };
 
   const saveG = useMutation({
     mutationFn: async () => {
@@ -183,7 +183,7 @@ export default function Equipment() {
                       {m.brewMethod && <Badge variant="outline" className="text-xs">{m.brewMethod}</Badge>}
                       {m.isDefault && <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Default</Badge>}
                     </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">{[m.brand, m.model].filter(Boolean).join(" · ")}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">{[m.brand, m.model, m.stockBasket ? `Stock Basket: ${m.stockBasket}` : null].filter(Boolean).join(" · ")}</p>
                     {m.notes && <p className="text-xs text-muted-foreground mt-1">{m.notes}</p>}
                   </div>
                   <div className="flex gap-1 shrink-0">
@@ -329,6 +329,11 @@ export default function Equipment() {
             <div className="flex items-center justify-between rounded-lg border p-3">
               <Label className="font-normal">Set as Default</Label>
               <Switch checked={mForm.isDefault === "true"} onCheckedChange={(v) => setM("isDefault", String(v))} />
+            </div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>Stock Basket</Label>
+              <Input value={mForm.stockBasket} onChange={(e) => setM("stockBasket", e.target.value)} placeholder="e.g. Profitec Go Stock Basket" />
+              <p className="text-xs text-muted-foreground">Use this when the basket is the machine's included/default basket, not a separate accessory.</p>
             </div>
             <div className="col-span-2 space-y-1.5"><Label>Notes</Label><Input value={mForm.notes} onChange={(e) => setM("notes", e.target.value)} /></div>
           </div>

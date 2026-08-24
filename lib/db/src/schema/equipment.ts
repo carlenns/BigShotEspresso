@@ -24,6 +24,7 @@ export const machinesTable = pgTable("machines", {
   brand: text("brand"),
   model: text("model"),
   brewMethod: text("brew_method"), // espresso | pour-over | aeropress | french-press | moka | lever
+  stockBasket: text("stock_basket"),
   isDefault: boolean("is_default").notNull().default(false),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

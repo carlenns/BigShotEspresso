@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS machines (
   brand text,
   model text,
   brew_method text,
+  stock_basket text,
   is_default boolean NOT NULL DEFAULT false,
   notes text,
   created_at timestamptz NOT NULL DEFAULT now()

@@ -39,8 +39,8 @@ type FieldDef = {
 };
 
 type Grinder = { id: number; name: string; brand: string | null; model: string | null; type: string | null; isDefault: boolean };
-type Machine = { id: number; name: string; brand: string | null; model: string | null; brewMethod: string | null; isDefault: boolean };
-type Accessory = { id: number; type: string; brand: string | null; model: string | null; size: string | null; isActive: boolean; isDefault: boolean };
+type Machine = { id: number; name: string; brand: string | null; model: string | null; brewMethod: string | null; stockBasket: string | null; isDefault: boolean };
+type Accessory = { id: number; type: string; brand: string | null; model: string | null; size: string | null; isActive: boolean; isDefault: boolean; specs: Record<string, unknown> | null };
 
 function fetchGrinders(): Promise<Grinder[]> {
   return fetch("/api/equipment/grinders").then((r) => r.json());
@@ -194,7 +194,7 @@ export default function Settings() {
             <CardTitle className="text-sm text-primary uppercase tracking-wider">Current Defaults Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-1 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-1 text-sm">
               {[
                 ["Grinder", values.defaultGrinder || values.defaultRegularGrinder],
                 ["Grind Setting", values.defaultGrindSetting],
@@ -207,8 +207,8 @@ export default function Settings() {
               ]
                 .filter(([, v]) => v)
                 .map(([label, val]) => (
-                  <div key={label as string} className="flex gap-1">
-                    <span className="text-muted-foreground">{label}:</span>
+                  <div key={label as string} className="flex gap-1 min-w-0">
+                    <span className="text-muted-foreground shrink-0">{label}:</span>
                     <span className="font-medium truncate">{val}</span>
                   </div>
                 ))}
@@ -276,9 +276,14 @@ export default function Settings() {
 
 // ── Equipment Defaults Section ────────────────────────────────────────────────
 
-function equipmentLabel(item: { name?: string; brand: string | null; model: string | null; size?: string | null }) {
+function equipmentLabel(item: { name?: string; brand: string | null; model: string | null; size?: string | null; specs?: Record<string, unknown> | null }) {
   if (item.name) return item.name;
-  return [item.brand, item.model, item.size].filter(Boolean).join(" — ") || "Unnamed";
+  const specValues = item.specs
+    ? Object.entries(item.specs)
+      .filter(([, value]) => value !== null && value !== undefined && value !== "" && value !== false && value !== "false")
+      .map(([key, value]) => `${key}: ${String(value)}`)
+    : [];
+  return [item.brand, item.model, item.size, ...specValues].filter(Boolean).join(" — ") || "Unnamed";
 }
 
 function GrinderDefaultsSection({
@@ -390,6 +395,9 @@ function EquipmentDefaultsSection({
     .map((accessory) => equipmentLabel(accessory));
   const grinderOptions = grinders.map((grinder) => equipmentLabel(grinder));
   const machineOptions = machines.map((machine) => equipmentLabel(machine));
+  const stockBasketOptions = machines
+    .map((machine) => machine.stockBasket)
+    .filter((stockBasket): stockBasket is string => Boolean(stockBasket));
 
   return (
     <Card>
@@ -442,7 +450,7 @@ function EquipmentDefaultsSection({
           <SettingsSelect
             label="Default Basket"
             value={values.defaultBasket ?? values.defaultBasketSize ?? ""}
-            options={accessoryOptions("basket")}
+            options={[...stockBasketOptions, ...accessoryOptions("basket")]}
             onChange={(value) => {
               set("defaultBasket", value);
               set("defaultBasketSize", value);

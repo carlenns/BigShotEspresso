@@ -192,6 +192,8 @@ test("Settings equipment defaults use saved equipment and accessory selectors", 
     "Choose from equipment and active accessories",
     "Default Grinder",
     "Typed legacy values remain selectable",
+    "stockBasketOptions",
+    "specValues",
     "Add Machine",
     "Add Grinder",
     "Add Basket",
@@ -234,6 +236,24 @@ test("Grinder records support adjustment style and precision metadata", async ()
 
   assert.match(equipmentSource, /Stepless grinders can be recorded to two decimals/);
   assert.match(equipmentSource, /Approximate spacing between visible grinder marks/);
+});
+
+test("Machine records can provide stock basket defaults", async () => {
+  const [schemaSource, migrationSource, routeSource, equipmentSource, settingsSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../../lib/db/src/schema/equipment.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/migrations/0006_machine_stock_basket.sql", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/equipment.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Equipment.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Settings.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  for (const source of [schemaSource, routeSource, equipmentSource, settingsSource]) {
+    assert.match(source, /stockBasket/);
+  }
+
+  assert.match(migrationSource, /stock_basket/);
+  assert.match(equipmentSource, /Stock Basket/);
+  assert.match(settingsSource, /stockBasketOptions/);
 });
 
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {
