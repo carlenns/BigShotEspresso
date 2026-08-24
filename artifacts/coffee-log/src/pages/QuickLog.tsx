@@ -14,9 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useCreateShot, getListShotsQueryKey, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 import { Zap, ArrowRight, Coffee, CheckCircle2, Settings, Minus, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ChipSelector } from "@/components/ui/chip-selector";
 import { DateTimeInput } from "@/components/ui/date-time-input";
-import { curatedOptions, curatedScalarOptions, describeAnalysisEligibility, type SelectorOptions } from "@/lib/selector-options";
+import { curatedScalarOptions, describeAnalysisEligibility, type SelectorOptions } from "@/lib/selector-options";
 import { calculateDoseCorrection } from "@/lib/dose-correction";
 
 // ── Field type definitions ────────────────────────────────────────────────────
@@ -195,10 +194,10 @@ export default function QuickLog() {
     notes: "",
   });
   const statusOptions = curatedScalarOptions("status", evalValues.status);
-  const faultStatusOptions = curatedOptions("faultStatus", evalValues.faultStatus);
-  const expressionStyleOptions = curatedOptions("expressionStyle", evalValues.expressionStyle);
-  const beanAchievementOptions = curatedOptions("beanAchievement", evalValues.beanAchievement);
-  const shotClassificationOptions = curatedOptions("shotClassification", evalValues.shotClassification);
+  const faultStatusOptions = curatedScalarOptions("faultStatus", evalValues.faultStatus[0]);
+  const expressionStyleOptions = curatedScalarOptions("expressionStyle", evalValues.expressionStyle[0]);
+  const beanAchievementOptions = curatedScalarOptions("beanAchievement", evalValues.beanAchievement[0]);
+  const shotClassificationOptions = curatedScalarOptions("shotClassification", evalValues.shotClassification[0]);
   const analysisEligibility = describeAnalysisEligibility(evalValues.status, evalValues.faultStatus);
 
   // Pre-fill from active bag + settings
@@ -450,7 +449,18 @@ export default function QuickLog() {
               {/* Fault Status */}
               <div className="space-y-2">
                 <Label className="text-base font-medium">Fault Status</Label>
-                <ChipSelector options={faultStatusOptions} value={evalValues.faultStatus} onChange={(v) => setEval("faultStatus", v)} />
+                <Select
+                  value={evalValues.faultStatus[0] || "__none__"}
+                  onValueChange={(v) => setEval("faultStatus", v === "__none__" ? [] : [v])}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— not set —</SelectItem>
+                    {faultStatusOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex items-start gap-3 rounded-lg border bg-muted/20 p-3">
@@ -545,7 +555,7 @@ export default function QuickLog() {
                 <p className="mt-1 text-xs opacity-80">{analysisEligibility.reason}</p>
               </div>
 
-              {/* Expression Style — multi-select */}
+              {/* Advanced single-choice tags */}
               <div className="rounded-lg border p-3 space-y-3">
                 <button
                   type="button"
@@ -560,29 +570,50 @@ export default function QuickLog() {
                   <div className="space-y-5 animate-in fade-in slide-in-from-top-1 duration-200">
                     <div className="space-y-2">
                       <Label className="text-base font-medium">Expression Style</Label>
-                      <ChipSelector
-                        options={expressionStyleOptions}
-                        value={evalValues.expressionStyle}
-                        onChange={(v) => setEval("expressionStyle", v)}
-                      />
+                      <Select
+                        value={evalValues.expressionStyle[0] || "__none__"}
+                        onValueChange={(v) => setEval("expressionStyle", v === "__none__" ? [] : [v])}
+                      >
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder="Select…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">— not set —</SelectItem>
+                          {expressionStyleOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="space-y-2">
                       <Label className="text-base font-medium">Bean Achievement</Label>
-                      <ChipSelector
-                        options={beanAchievementOptions}
-                        value={evalValues.beanAchievement}
-                        onChange={(v) => setEval("beanAchievement", v)}
-                      />
+                      <Select
+                        value={evalValues.beanAchievement[0] || "__none__"}
+                        onValueChange={(v) => setEval("beanAchievement", v === "__none__" ? [] : [v])}
+                      >
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder="Select…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">— not set —</SelectItem>
+                          {beanAchievementOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="space-y-2">
                       <Label className="text-base font-medium">Shot Classification</Label>
-                      <ChipSelector
-                        options={shotClassificationOptions}
-                        value={evalValues.shotClassification}
-                        onChange={(v) => setEval("shotClassification", v)}
-                      />
+                      <Select
+                        value={evalValues.shotClassification[0] || "__none__"}
+                        onValueChange={(v) => setEval("shotClassification", v === "__none__" ? [] : [v])}
+                      >
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder="Select…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">— not set —</SelectItem>
+                          {shotClassificationOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 )}

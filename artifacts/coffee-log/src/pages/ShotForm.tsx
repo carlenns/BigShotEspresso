@@ -76,25 +76,35 @@ function toDateTimeLocal(value: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+const optionalNumber = z.preprocess(
+  (value) => (value === "" || value === null || value === undefined ? undefined : value),
+  z.coerce.number().optional(),
+);
+
+const optionalRating = (max: number) => z.preprocess(
+  (value) => (value === "" || value === null || value === undefined ? undefined : value),
+  z.coerce.number().min(0).max(max).optional(),
+);
+
 const formSchema = z.object({
   shotDate: z.string(),
-  bagId: z.coerce.number().optional(),
+  bagId: optionalNumber,
   bean: z.string().optional(),
   bag: z.string().optional(),
-  grindSetting: z.coerce.number().optional(),
-  grindTime: z.coerce.number().optional(),
-  initialGrindWeight: z.coerce.number().optional(),
-  topUpGrind: z.coerce.number().optional(),
-  timeAdj: z.coerce.number().optional(),
-  grindWaste: z.coerce.number().optional(),
-  dose: z.coerce.number().optional(),
-  yield: z.coerce.number().optional(),
-  pourDelay: z.coerce.number().optional(),
-  pourTime: z.coerce.number().optional(),
-  flowTime: z.coerce.number().optional(),
-  temperature: z.coerce.number().optional(),
-  rating: z.number().min(0).max(10).optional(),
-  preferenceRating: z.number().min(0).max(11).optional(),
+  grindSetting: optionalNumber,
+  grindTime: optionalNumber,
+  initialGrindWeight: optionalNumber,
+  topUpGrind: optionalNumber,
+  timeAdj: optionalNumber,
+  grindWaste: optionalNumber,
+  dose: optionalNumber,
+  yield: optionalNumber,
+  pourDelay: optionalNumber,
+  pourTime: optionalNumber,
+  flowTime: optionalNumber,
+  temperature: optionalNumber,
+  rating: optionalRating(10),
+  preferenceRating: optionalRating(11),
   // Shot Evaluation
   status: z.string().optional(),
   faultStatus: z.array(z.string()).optional(),
