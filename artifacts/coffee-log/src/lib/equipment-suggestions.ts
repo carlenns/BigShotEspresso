@@ -145,6 +145,19 @@ export const ACCESSORY_SUGGESTIONS: AccessorySuggestion[] = [
       notes: "Suggested from product lookup. Stainless magnetic dosing funnel/dosing ring with magnets for 58mm portafilters; review exact selected size before saving.",
     },
   },
+  {
+    kind: "accessory",
+    match: ["dosing cup", "dose cup", "b09s3pwhby"],
+    label: "Dosing Cup",
+    confidence: "User-confirmed",
+    values: {
+      type: "dosing_cup",
+      brand: "",
+      model: "Dosing Cup",
+      size: "",
+      notes: "User-confirmed current accessory from Amazon ASIN B09S3PWHBY. Tare weight: 68.7g. Review brand and size before saving.",
+    },
+  },
 ];
 
 function normalise(value: string): string {

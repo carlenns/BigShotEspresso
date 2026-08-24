@@ -147,6 +147,8 @@ test("equipment entry offers reviewable suggested setup details", async () => {
   assert.match(librarySource, /Maestri House Mini Espresso Scale/);
   assert.match(librarySource, /Bamynoir WDT Distribution Tool/);
   assert.match(librarySource, /MATOW Magnetic Dosing Funnel/);
+  assert.match(librarySource, /Dosing Cup/);
+  assert.match(librarySource, /68\.7g/);
   assert.match(equipmentSource, /Suggested Equipment Details/);
   assert.match(equipmentSource, /Review before saving/);
   assert.match(accessoriesSource, /Suggested Accessory Details/);
