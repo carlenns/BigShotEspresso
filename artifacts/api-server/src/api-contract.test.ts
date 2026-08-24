@@ -104,7 +104,7 @@ test("Best Shot recipe exposes repeatability fields and hides default dose noise
 
   assert.match(dashboardSource, /function BestShotRecipeCard/);
   assert.match(dashboardSource, /Repeat this shot/);
-  assert.match(dashboardSource, /Dose detail:/);
+  assert.match(dashboardSource, /Dose Detail:/);
   assert.match(dashboardSource, /Math\.abs\(shot\.dose - targetDose\) >= 0\.05/);
 });
 
