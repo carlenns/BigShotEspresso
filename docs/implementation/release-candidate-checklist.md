@@ -57,6 +57,7 @@ Current access assumption:
 | Core runtime API checks | Read-only smoke passed against Neon | Yes |
 | Dashboard correctness | Partially ready | Yes |
 | Shot entry/edit workflow | API smoke passed against Neon; UI manual smoke pending | Yes |
+| Color-blind friendly UI cues | Required for important indicators | Yes |
 | Access-control/public-launch decision | Proposed owner-only | Yes |
 | Admin/debug visibility | Needs scope decision | Strongly recommended |
 | Render deployment prep | Planned | Yes |
@@ -100,6 +101,20 @@ Verification:
 - GitHub secret scanning/security alerts reviewed where available.
 - Dependency audit reviewed.
 - Admin routes reviewed before public deployment.
+
+## Gate 2.5 — Accessibility and Color-Blind Friendly UI
+
+Required:
+
+- Important app meaning is not communicated by color alone.
+- Status dots, icons, badges, charts, and dashboard comparison markers include redundant cues such as labels, shape, pattern, contrast, or text.
+- Red/yellow/green states remain readable for color-blind users.
+- Mobile logging and dashboard review remain understandable without relying on subtle color differences.
+
+Verification:
+
+- Manual review of shot logging, shot detail, dashboard comparison, current bag intelligence, reference windows, and warning/success states.
+- Confirm that critical states such as included/excluded analysis, reference confidence, within/outside comparison, and warning/success messages have text or pattern support.
 
 ## Gate 3 — Neon Postgres Rehearsal
 

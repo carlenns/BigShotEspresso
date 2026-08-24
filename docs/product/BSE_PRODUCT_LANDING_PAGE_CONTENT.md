@@ -14,6 +14,8 @@ BSE works best when the user has a coffee scale, some way to time shots, and acc
 
 BSE must remain useful without AI. A user can still log shots, compare results, build reference windows, and make good coffee without a chat companion. The tradeoff is that the learning curve is steeper: the user must read the guidance, understand the workflow, and interpret their records more independently. The public message should be clear that the strongest experience combines BSE, a scale, and conversational AI, but AI is a learning accelerator rather than the system of record.
 
+The interface should be color-blind friendly wherever practical. Important meaning must not depend on color alone. Icons, status dots, charts, badges, comparison markers, and dashboard indicators should use text, shape, pattern, contrast, labels, or other redundant cues in addition to color. This is a standing UI/UX rule for launch and future community features.
+
 ## Primary audience
 
 Early customers are expected to include:

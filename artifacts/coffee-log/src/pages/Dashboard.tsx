@@ -966,31 +966,31 @@ function BestShotRecipeCard({
 
       <div className="grid gap-1 text-sm tabular-nums">
         <p className="font-medium">
-          {shot.grindSetting != null && <><span className="text-[10px] uppercase tracking-wide text-muted-foreground">Grind Setting</span> {shot.grindSetting}</>}
+          {shot.grindSetting != null && <><span className="text-muted-foreground">Grind Setting</span> {shot.grindSetting}</>}
           {shot.grindSetting != null && shot.grindTime != null && " · "}
-          {shot.grindTime != null && <><span className="text-[10px] uppercase tracking-wide text-muted-foreground">Grind Time</span> {fmt(shot.grindTime, "s")}</>}
+          {shot.grindTime != null && <><span className="text-muted-foreground">Grind Time</span> {fmt(shot.grindTime, "s")}</>}
         </p>
         <p className="text-muted-foreground">
-          {shot.pourDelay != null && <><span className="text-[10px] uppercase tracking-wide">Delay</span> {fmt(shot.pourDelay, "s")}</>}
+          {shot.pourDelay != null && <><span>Delay</span> {fmt(shot.pourDelay, "s")}</>}
           {shot.pourDelay != null && shot.pourTime != null && " · "}
-          {shot.pourTime != null && <><span className="text-[10px] uppercase tracking-wide">Pour</span> {fmt(shot.pourTime, "s")}</>}
+          {shot.pourTime != null && <><span>Pour</span> {fmt(shot.pourTime, "s")}</>}
           {(shot.pourDelay != null || shot.pourTime != null) && shot.flowTime != null && " · "}
-          {shot.flowTime != null && <><span className="text-[10px] uppercase tracking-wide">Flow</span> {fmt(shot.flowTime, "s")}</>}
+          {shot.flowTime != null && <><span>Flow</span> {fmt(shot.flowTime, "s")}</>}
         </p>
         <p className="text-muted-foreground">
-          {shot.yield != null && <><span className="text-[10px] uppercase tracking-wide">Yield</span> {fmt(shot.yield, "g")}</>}
+          {shot.yield != null && <><span>Yield</span> {fmt(shot.yield, "g")}</>}
           {shot.yield != null && ratio && " · "}
-          {ratio && <><span className="text-[10px] uppercase tracking-wide">Ratio</span> {ratio}</>}
+          {ratio && <><span>Ratio</span> {ratio}</>}
         </p>
       </div>
 
       {hasDoseCorrection && (
         <p className="rounded-md bg-background/70 px-2 py-1.5 text-xs text-muted-foreground tabular-nums">
-          <span className="uppercase tracking-wide">Dose Detail:</span>
-          {shot.initialGrindWeight != null && <> <span className="uppercase tracking-wide">Initial</span> {fmt(shot.initialGrindWeight, "g")}</>}
-          {shot.dose != null && <> → <span className="uppercase tracking-wide">Basket</span> {fmt(shot.dose, "g")}</>}
-          {shot.overGrindRemoved != null && Math.abs(shot.overGrindRemoved) >= 0.05 && <> · <span className="uppercase tracking-wide">Removed</span> {fmt(shot.overGrindRemoved, "g")}</>}
-          {shot.topUpGrind != null && Math.abs(shot.topUpGrind) >= 0.05 && <> · <span className="uppercase tracking-wide">Top-Up Added</span> {fmt(shot.topUpGrind, "g")}</>}
+          <span>Dose Detail:</span>
+          {shot.initialGrindWeight != null && <> <span>Initial</span> {fmt(shot.initialGrindWeight, "g")}</>}
+          {shot.dose != null && <> → <span>Basket</span> {fmt(shot.dose, "g")}</>}
+          {shot.overGrindRemoved != null && Math.abs(shot.overGrindRemoved) >= 0.05 && <> · <span>Removed</span> {fmt(shot.overGrindRemoved, "g")}</>}
+          {shot.topUpGrind != null && Math.abs(shot.topUpGrind) >= 0.05 && <> · <span>Top-Up Added</span> {fmt(shot.topUpGrind, "g")}</>}
         </p>
       )}
     </div>
