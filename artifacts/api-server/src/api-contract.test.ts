@@ -131,6 +131,30 @@ test("weighted score is calculated from ratings and settings, not uploaded as so
   assert.doesNotMatch(openApiSource.match(/ShotWriteFields:[\s\S]*?ShotInput:/)?.[0] ?? "", /avgWeightedRating/);
 });
 
+test("equipment entry offers reviewable suggested setup details", async () => {
+  const [librarySource, equipmentSource, accessoriesSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/lib/equipment-suggestions.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Equipment.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Accessories.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  assert.match(librarySource, /BSE suggested — review before saving/);
+  assert.match(librarySource, /User-confirmed/);
+  assert.match(librarySource, /Eureka Mignon Magnifico/);
+  assert.match(librarySource, /Profitec Go/);
+  assert.match(librarySource, /Normcore Spring-Loaded Tamper/);
+  assert.match(librarySource, /Normcore 58\.5mm Puck Screen Set/);
+  assert.match(librarySource, /Maestri House Mini Espresso Scale/);
+  assert.match(librarySource, /Bamynoir WDT Distribution Tool/);
+  assert.match(librarySource, /MATOW Magnetic Dosing Funnel/);
+  assert.match(equipmentSource, /Suggested Equipment Details/);
+  assert.match(equipmentSource, /Review before saving/);
+  assert.match(accessoriesSource, /Suggested Accessory Details/);
+  assert.match(accessoriesSource, /15 lb/);
+  assert.match(accessoriesSource, /25 lb/);
+  assert.match(accessoriesSource, /30 lb/);
+});
+
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {
   const [appSource, formSource, detailSource, selectorSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)), "utf8"),

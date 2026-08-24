@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ACCESSORY_SUGGESTIONS, matchingSuggestions } from "@/lib/equipment-suggestions";
 
 const TYPES = [
   { value: "basket", label: "Basket" },
@@ -100,6 +101,10 @@ export default function Accessories() {
   });
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const accessorySuggestions = matchingSuggestions(
+    ACCESSORY_SUGGESTIONS,
+    `${TYPE_LABEL[form.type] ?? form.type ?? ""} ${form.brand ?? ""} ${form.model ?? ""} ${form.notes ?? ""}`,
+  );
 
   const typeSpecificFields = () => {
     if (form.type === "basket") return (
@@ -119,7 +124,20 @@ export default function Accessories() {
           <Label className="text-sm font-normal">Spring-loaded</Label>
           <Switch checked={form.springLoaded === "true"} onCheckedChange={(v) => set("springLoaded", String(v))} />
         </div>
-        {form.springLoaded === "true" && <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Spring Pressure</Label><Input value={form.springPressure} onChange={(e) => set("springPressure", e.target.value)} placeholder="15kg" /></div>}
+        {form.springLoaded === "true" && (
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Spring Pressure</Label>
+            <Select value={form.springPressure || "__none__"} onValueChange={(v) => set("springPressure", v === "__none__" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="Select spring…" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— not set —</SelectItem>
+                {["15 lb", "25 lb", "30 lb"].map((spring) => (
+                  <SelectItem key={spring} value={spring}>{spring}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
     );
     if (form.type === "puck_screen") return (
@@ -214,6 +232,29 @@ export default function Accessories() {
             </div>
             <div className="space-y-1.5"><Label>Brand</Label><Input value={form.brand} onChange={(e) => set("brand", e.target.value)} placeholder="e.g. Normcore" /></div>
             <div className="space-y-1.5"><Label>Model</Label><Input value={form.model} onChange={(e) => set("model", e.target.value)} placeholder="e.g. V4" /></div>
+            {accessorySuggestions.length > 0 && (
+              <div className="col-span-2 rounded-lg border bg-primary/5 p-3 space-y-2">
+                <p className="text-xs font-medium text-primary">Suggested Accessory Details</p>
+                <p className="text-xs text-muted-foreground">Review before saving — accessories can vary by size and version.</p>
+                {accessorySuggestions.map((suggestion) => (
+                  <div key={suggestion.label} className="flex items-center justify-between gap-3 rounded-md bg-background/80 border p-2">
+                    <div>
+                      <p className="text-sm font-medium">{suggestion.label}</p>
+                      <p className="text-xs text-muted-foreground">{suggestion.confidence}</p>
+                      <p className="text-xs text-muted-foreground">{suggestion.values.notes}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setForm((current) => ({ ...current, ...suggestion.values }))}
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="space-y-1.5"><Label>Size</Label><Input value={form.size} onChange={(e) => set("size", e.target.value)} placeholder="e.g. 58mm" /></div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <Label className="font-normal text-sm">Set as Default</Label>

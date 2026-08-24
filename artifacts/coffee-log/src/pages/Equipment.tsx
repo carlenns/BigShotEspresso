@@ -12,6 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Wrench } from "lucide-react";
+import {
+  GRINDER_SUGGESTIONS,
+  MACHINE_SUGGESTIONS,
+  matchingSuggestions,
+} from "@/lib/equipment-suggestions";
 
 interface Grinder { id: number; name: string; brand: string | null; model: string | null; type: string | null; burrSize: string | null; burrType: string | null; isDefault: boolean; notes: string | null; }
 interface Machine { id: number; name: string; brand: string | null; model: string | null; brewMethod: string | null; isDefault: boolean; notes: string | null; }
@@ -78,6 +83,8 @@ export default function Equipment() {
 
   const setG = (k: string, v: string) => setGForm((f) => ({ ...f, [k]: v }));
   const setM = (k: string, v: string) => setMForm((f) => ({ ...f, [k]: v }));
+  const grinderSuggestions = matchingSuggestions(GRINDER_SUGGESTIONS, `${gForm.name ?? ""} ${gForm.brand ?? ""} ${gForm.model ?? ""}`);
+  const machineSuggestions = matchingSuggestions(MACHINE_SUGGESTIONS, `${mForm.name ?? ""} ${mForm.brand ?? ""} ${mForm.model ?? ""}`);
 
   return (
     <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -174,6 +181,31 @@ export default function Equipment() {
           <DialogHeader><DialogTitle>{editingG ? "Edit Grinder" : "Add Grinder"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-2">
             <div className="col-span-2 space-y-1.5"><Label>Name *</Label><Input value={gForm.name} onChange={(e) => setG("name", e.target.value)} placeholder="e.g. Eureka Magnifico" /></div>
+            {grinderSuggestions.length > 0 && (
+              <div className="col-span-2 rounded-lg border bg-primary/5 p-3 space-y-2">
+                <p className="text-xs font-medium text-primary">Suggested Equipment Details</p>
+                <p className="text-xs text-muted-foreground">Review before saving — models and revisions can differ.</p>
+                {grinderSuggestions.map((suggestion) => (
+                  <div key={suggestion.label} className="flex items-center justify-between gap-3 rounded-md bg-background/80 border p-2">
+                    <div>
+                      <p className="text-sm font-medium">{suggestion.label}</p>
+                      <p className="text-xs text-muted-foreground">{suggestion.confidence}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {suggestion.values.burrSize} {suggestion.values.burrType.toLowerCase()} burrs · {suggestion.values.type}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setGForm((current) => ({ ...current, ...suggestion.values }))}
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="space-y-1.5"><Label>Brand</Label><Input value={gForm.brand} onChange={(e) => setG("brand", e.target.value)} placeholder="Eureka" /></div>
             <div className="space-y-1.5"><Label>Model</Label><Input value={gForm.model} onChange={(e) => setG("model", e.target.value)} placeholder="Magnifico" /></div>
             <div className="space-y-1.5">
@@ -216,6 +248,29 @@ export default function Equipment() {
           <DialogHeader><DialogTitle>{editingM ? "Edit Machine" : "Add Machine"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-2">
             <div className="col-span-2 space-y-1.5"><Label>Name *</Label><Input value={mForm.name} onChange={(e) => setM("name", e.target.value)} placeholder="e.g. Profitec Go" /></div>
+            {machineSuggestions.length > 0 && (
+              <div className="col-span-2 rounded-lg border bg-primary/5 p-3 space-y-2">
+                <p className="text-xs font-medium text-primary">Suggested Equipment Details</p>
+                <p className="text-xs text-muted-foreground">Review before saving — machine revisions and modifications can differ.</p>
+                {machineSuggestions.map((suggestion) => (
+                  <div key={suggestion.label} className="flex items-center justify-between gap-3 rounded-md bg-background/80 border p-2">
+                    <div>
+                      <p className="text-sm font-medium">{suggestion.label}</p>
+                      <p className="text-xs text-muted-foreground">{suggestion.confidence}</p>
+                      <p className="text-xs text-muted-foreground">{suggestion.values.brewMethod}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setMForm((current) => ({ ...current, ...suggestion.values }))}
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="space-y-1.5"><Label>Brand</Label><Input value={mForm.brand} onChange={(e) => setM("brand", e.target.value)} /></div>
             <div className="space-y-1.5"><Label>Model</Label><Input value={mForm.model} onChange={(e) => setM("model", e.target.value)} /></div>
             <div className="space-y-1.5">
