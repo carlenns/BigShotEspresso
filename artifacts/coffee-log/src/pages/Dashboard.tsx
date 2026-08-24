@@ -932,7 +932,7 @@ function BestShotRecipeCard({
 
   const fmt = (value: number | null, unit = "", digits = 1) =>
     value == null ? null : `${Number(value).toFixed(digits).replace(/\.0$/, "")}${unit}`;
-  const ratio = shot.ratio == null ? null : `${Number(shot.ratio).toFixed(2)}×`;
+  const ratio = shot.ratio == null ? null : Number(shot.ratio).toFixed(2);
 
   return (
     <div className="rounded-lg border px-3 py-3 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 space-y-2">
@@ -966,9 +966,9 @@ function BestShotRecipeCard({
 
       <div className="grid gap-1 text-sm tabular-nums">
         <p className="font-medium">
-          {shot.grindSetting != null && <>Grind {shot.grindSetting}</>}
+          {shot.grindSetting != null && <>Grind Setting {shot.grindSetting}</>}
           {shot.grindSetting != null && shot.grindTime != null && " · "}
-          {shot.grindTime != null && <>{fmt(shot.grindTime, "s")} time</>}
+          {shot.grindTime != null && <>{fmt(shot.grindTime, "s")} Grind Time</>}
         </p>
         <p className="text-muted-foreground">
           {shot.pourDelay != null && <>Delay {fmt(shot.pourDelay, "s")}</>}
@@ -987,10 +987,10 @@ function BestShotRecipeCard({
       {hasDoseCorrection && (
         <p className="rounded-md bg-background/70 px-2 py-1.5 text-xs text-muted-foreground tabular-nums">
           Dose detail:
-          {shot.initialGrindWeight != null && <> {fmt(shot.initialGrindWeight, "g")} initial</>}
-          {shot.dose != null && <> → {fmt(shot.dose, "g")} basket</>}
-          {shot.overGrindRemoved != null && Math.abs(shot.overGrindRemoved) >= 0.05 && <> · {fmt(shot.overGrindRemoved, "g")} removed</>}
-          {shot.topUpGrind != null && Math.abs(shot.topUpGrind) >= 0.05 && <> · {fmt(shot.topUpGrind, "g")} top-up</>}
+          {shot.initialGrindWeight != null && <> {fmt(shot.initialGrindWeight, "g")} Initial</>}
+          {shot.dose != null && <> → {fmt(shot.dose, "g")} Basket</>}
+          {shot.overGrindRemoved != null && Math.abs(shot.overGrindRemoved) >= 0.05 && <> · {fmt(shot.overGrindRemoved, "g")} Removed</>}
+          {shot.topUpGrind != null && Math.abs(shot.topUpGrind) >= 0.05 && <> · {fmt(shot.topUpGrind, "g")} Top-Up Added</>}
         </p>
       )}
     </div>
