@@ -274,6 +274,25 @@ test("Runtime startup applies additive equipment schema guards", async () => {
   }
 });
 
+test("Mobile shell exposes setup and system navigation", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/components/layout/Shell.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  for (const requiredText of [
+    "mobileMoreNav",
+    "Setup &amp; System",
+    "Open setup menu",
+    "/equipment",
+    "/accessories",
+    "/taste-selectors",
+    "/settings",
+  ]) {
+    assert.match(source, new RegExp(requiredText));
+  }
+});
+
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {
   const [appSource, formSource, detailSource, selectorSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)), "utf8"),

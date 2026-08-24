@@ -2,12 +2,20 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import {
   BookOpen, Coffee, LayoutDashboard,
-  Package, Settings, Sprout, Wrench, Tag, Layers, Zap
+  Menu, Package, Settings, Sprout, Wrench, Tag, Layers, Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NavItem {
   title: string;
@@ -35,6 +43,13 @@ const tasteNav: NavItem[] = [
 ];
 
 const systemNav: NavItem[] = [
+  { title: "Settings", href: "/settings", icon: Settings },
+];
+
+const mobileMoreNav: NavItem[] = [
+  { title: "Equipment", href: "/equipment", icon: Wrench },
+  { title: "Accessories", href: "/accessories", icon: Layers },
+  { title: "Taste Selectors", href: "/taste-selectors", icon: Tag },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -86,11 +101,32 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <span className="font-serif text-base font-semibold text-foreground tracking-tight">BigShot<span className="text-primary">Espresso</span></span>
           <span className="text-[10px] text-muted-foreground leading-none">Log · Analyse · Repeat</span>
         </div>
-        <Button variant="default" size="sm" asChild className="rounded-full px-3 h-8 text-xs gap-1">
-          <Link href="/shots/quick">
-            <Zap className="h-3.5 w-3.5" /> Quick Log
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="default" size="sm" asChild className="rounded-full px-3 h-8 text-xs gap-1">
+            <Link href="/shots/quick">
+              <Zap className="h-3.5 w-3.5" /> Quick Log
+            </Link>
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" aria-label="Open setup menu">
+                <Menu className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Setup &amp; System</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {mobileMoreNav.map((item) => (
+                <DropdownMenuItem key={item.href} asChild>
+                  <Link href={item.href} className="flex w-full items-center gap-2">
+                    <item.icon className="h-4 w-4" />
+                    {item.title}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
 
       {/* Desktop Sidebar */}
