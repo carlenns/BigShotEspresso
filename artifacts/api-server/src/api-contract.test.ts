@@ -256,6 +256,32 @@ test("Machine records can provide stock basket defaults", async () => {
   assert.match(settingsSource, /stockBasketOptions/);
 });
 
+test("Equipment and accessories preserve personal short labels separately from full names", async () => {
+  const [equipmentSchema, accessorySchema, equipmentRoute, accessoryRoute, equipmentPage, accessoriesPage, dashboardRoute, migrationSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../../lib/db/src/schema/equipment.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/src/schema/accessories.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/equipment.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/accessories.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Equipment.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Accessories.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/dashboard.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/migrations/0007_equipment_short_labels.sql", import.meta.url)), "utf8"),
+  ]);
+
+  for (const source of [equipmentSchema, accessorySchema, equipmentRoute, accessoryRoute, equipmentPage, accessoriesPage]) {
+    assert.match(source, /shortLabel/);
+  }
+
+  assert.match(equipmentSchema, /short_label/);
+  assert.match(accessorySchema, /short_label/);
+  assert.match(migrationSource, /short_label/);
+  assert.match(equipmentPage, /Short Label/);
+  assert.match(accessoriesPage, /Short Label/);
+  assert.match(dashboardRoute, /function compactLabel/);
+  assert.match(dashboardRoute, /function compactPuckScreenLabel/);
+  assert.match(dashboardRoute, /Full name remains the system\/library identity|shortLabel/);
+});
+
 test("Dashboard summarizes puck screen display by useful thickness only", async () => {
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/pages/Dashboard.tsx", import.meta.url)),
@@ -277,6 +303,7 @@ test("Runtime startup applies additive equipment schema guards", async () => {
   assert.match(indexSource, /ensureRuntimeSchema/);
 
   for (const requiredText of [
+    "ADD COLUMN IF NOT EXISTS short_label",
     "ADD COLUMN IF NOT EXISTS adjustment_type",
     "ADD COLUMN IF NOT EXISTS grind_setting_precision",
     "ADD COLUMN IF NOT EXISTS grind_step_increment",
@@ -294,6 +321,10 @@ test("Mobile shell exposes setup and system navigation", async () => {
 
   for (const requiredText of [
     "mobileMoreNav",
+    "mobileBottomNav",
+    "Swipeable mobile navigation",
+    "overflow-x-auto",
+    "snap-x",
     "Setup &amp; System",
     "Open setup menu",
     "/equipment",

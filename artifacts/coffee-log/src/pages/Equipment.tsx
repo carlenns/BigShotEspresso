@@ -21,6 +21,7 @@ import {
 interface Grinder {
   id: number;
   name: string;
+  shortLabel: string | null;
   brand: string | null;
   model: string | null;
   type: string | null;
@@ -32,7 +33,7 @@ interface Grinder {
   isDefault: boolean;
   notes: string | null;
 }
-interface Machine { id: number; name: string; brand: string | null; model: string | null; brewMethod: string | null; stockBasket: string | null; isDefault: boolean; notes: string | null; }
+interface Machine { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; brewMethod: string | null; stockBasket: string | null; isDefault: boolean; notes: string | null; }
 
 const GRINDER_TYPES = ["Espresso", "Decaf", "Pour-over", "Hand", "Multi-use"];
 const BURR_TYPES = ["Flat", "Conical", "Hybrid"];
@@ -55,11 +56,11 @@ export default function Equipment() {
   const [gForm, setGForm] = useState<Record<string, string>>({});
   const [mForm, setMForm] = useState<Record<string, string>>({});
 
-  const openNewG = () => { setEditingG(null); setGForm({ name: "", brand: "", model: "", type: "", burrSize: "", burrType: "", adjustmentType: "", grindSettingPrecision: "2", grindStepIncrement: "", isDefault: "false", notes: "" }); setGOpen(true); };
-  const openEditG = (g: Grinder) => { setEditingG(g); setGForm({ name: g.name, brand: g.brand ?? "", model: g.model ?? "", type: g.type ?? "", burrSize: g.burrSize ?? "", burrType: g.burrType ?? "", adjustmentType: g.adjustmentType ?? "", grindSettingPrecision: g.grindSettingPrecision != null ? String(g.grindSettingPrecision) : "", grindStepIncrement: g.grindStepIncrement != null ? String(g.grindStepIncrement) : "", isDefault: String(g.isDefault), notes: g.notes ?? "" }); setGOpen(true); };
+  const openNewG = () => { setEditingG(null); setGForm({ name: "", shortLabel: "", brand: "", model: "", type: "", burrSize: "", burrType: "", adjustmentType: "", grindSettingPrecision: "2", grindStepIncrement: "", isDefault: "false", notes: "" }); setGOpen(true); };
+  const openEditG = (g: Grinder) => { setEditingG(g); setGForm({ name: g.name, shortLabel: g.shortLabel ?? "", brand: g.brand ?? "", model: g.model ?? "", type: g.type ?? "", burrSize: g.burrSize ?? "", burrType: g.burrType ?? "", adjustmentType: g.adjustmentType ?? "", grindSettingPrecision: g.grindSettingPrecision != null ? String(g.grindSettingPrecision) : "", grindStepIncrement: g.grindStepIncrement != null ? String(g.grindStepIncrement) : "", isDefault: String(g.isDefault), notes: g.notes ?? "" }); setGOpen(true); };
 
-  const openNewM = () => { setEditingM(null); setMForm({ name: "", brand: "", model: "", brewMethod: "", stockBasket: "", isDefault: "false", notes: "" }); setMOpen(true); };
-  const openEditM = (m: Machine) => { setEditingM(m); setMForm({ name: m.name, brand: m.brand ?? "", model: m.model ?? "", brewMethod: m.brewMethod ?? "", stockBasket: m.stockBasket ?? "", isDefault: String(m.isDefault), notes: m.notes ?? "" }); setMOpen(true); };
+  const openNewM = () => { setEditingM(null); setMForm({ name: "", shortLabel: "", brand: "", model: "", brewMethod: "", stockBasket: "", isDefault: "false", notes: "" }); setMOpen(true); };
+  const openEditM = (m: Machine) => { setEditingM(m); setMForm({ name: m.name, shortLabel: m.shortLabel ?? "", brand: m.brand ?? "", model: m.model ?? "", brewMethod: m.brewMethod ?? "", stockBasket: m.stockBasket ?? "", isDefault: String(m.isDefault), notes: m.notes ?? "" }); setMOpen(true); };
 
   const saveG = useMutation({
     mutationFn: async () => {
@@ -130,6 +131,7 @@ export default function Equipment() {
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold">{g.name}</span>
+                      {g.shortLabel && <Badge variant="secondary" className="text-xs">{g.shortLabel}</Badge>}
                       {g.type && <Badge variant="outline" className="text-xs">{g.type}</Badge>}
                       {g.isDefault && <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Default</Badge>}
                     </div>
@@ -180,6 +182,7 @@ export default function Equipment() {
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold">{m.name}</span>
+                      {m.shortLabel && <Badge variant="secondary" className="text-xs">{m.shortLabel}</Badge>}
                       {m.brewMethod && <Badge variant="outline" className="text-xs">{m.brewMethod}</Badge>}
                       {m.isDefault && <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Default</Badge>}
                     </div>
@@ -203,6 +206,11 @@ export default function Equipment() {
           <DialogHeader><DialogTitle>{editingG ? "Edit Grinder" : "Add Grinder"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-2">
             <div className="col-span-2 space-y-1.5"><Label>Name *</Label><Input value={gForm.name} onChange={(e) => setG("name", e.target.value)} placeholder="e.g. Eureka Magnifico" /></div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>Short Label</Label>
+              <Input value={gForm.shortLabel} onChange={(e) => setG("shortLabel", e.target.value)} placeholder="e.g. EMM or Magnifico" />
+              <p className="text-xs text-muted-foreground">Personal compact label for dashboards. Full name remains the system/library identity.</p>
+            </div>
             {grinderSuggestions.length > 0 && (
               <div className="col-span-2 rounded-lg border bg-primary/5 p-3 space-y-2">
                 <p className="text-xs font-medium text-primary">Suggested Equipment Details</p>
@@ -291,6 +299,11 @@ export default function Equipment() {
           <DialogHeader><DialogTitle>{editingM ? "Edit Machine" : "Add Machine"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-2">
             <div className="col-span-2 space-y-1.5"><Label>Name *</Label><Input value={mForm.name} onChange={(e) => setM("name", e.target.value)} placeholder="e.g. Profitec Go" /></div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>Short Label</Label>
+              <Input value={mForm.shortLabel} onChange={(e) => setM("shortLabel", e.target.value)} placeholder="e.g. PG" />
+              <p className="text-xs text-muted-foreground">Personal compact label for dashboards. Full name remains the system/library identity.</p>
+            </div>
             {machineSuggestions.length > 0 && (
               <div className="col-span-2 rounded-lg border bg-primary/5 p-3 space-y-2">
                 <p className="text-xs font-medium text-primary">Suggested Equipment Details</p>

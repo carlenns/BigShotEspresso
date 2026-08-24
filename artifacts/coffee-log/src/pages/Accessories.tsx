@@ -32,14 +32,14 @@ const TYPES = [
 const TYPE_LABEL: Record<string, string> = Object.fromEntries(TYPES.map((t) => [t.value, t.label]));
 
 interface Accessory {
-  id: number; type: string; brand: string | null; model: string | null;
+  id: number; type: string; shortLabel: string | null; brand: string | null; model: string | null;
   size: string | null; notes: string | null; isActive: boolean; isDefault: boolean;
   specs: Record<string, string> | null;
 }
 
 function fetchAccessories(): Promise<Accessory[]> { return fetch("/api/accessories").then((r) => r.json()); }
 
-const BLANK = { type: "", brand: "", model: "", size: "", notes: "", isActive: "true", isDefault: "false", diameter: "", thickness: "", ratedDose: "", ridgeless: "false", springLoaded: "false", springPressure: "", needleCount: "", needleThickness: "" };
+const BLANK = { type: "", shortLabel: "", brand: "", model: "", size: "", notes: "", isActive: "true", isDefault: "false", diameter: "", thickness: "", ratedDose: "", ridgeless: "false", springLoaded: "false", springPressure: "", needleCount: "", needleThickness: "" };
 
 export default function Accessories() {
   const qc = useQueryClient();
@@ -67,7 +67,7 @@ export default function Accessories() {
     setEditing(a);
     const specs = a.specs ?? {};
     setForm({
-      type: a.type, brand: a.brand ?? "", model: a.model ?? "", size: a.size ?? "",
+      type: a.type, shortLabel: a.shortLabel ?? "", brand: a.brand ?? "", model: a.model ?? "", size: a.size ?? "",
       notes: a.notes ?? "", isActive: String(a.isActive), isDefault: String(a.isDefault),
       diameter: String(specs.diameter ?? ""), thickness: String(specs.thickness ?? ""),
       ratedDose: String(specs.ratedDose ?? ""), ridgeless: String(specs.ridgeless ?? "false"),
@@ -86,7 +86,7 @@ export default function Accessories() {
       if (form.type === "tamper") { if (form.diameter) specs.diameter = form.diameter; specs.springLoaded = form.springLoaded === "true"; if (form.springPressure) specs.springPressure = form.springPressure; }
       if (form.type === "puck_screen") { if (form.diameter) specs.diameter = form.diameter; if (form.thickness) specs.thickness = form.thickness; }
       if (form.type === "wdt_tool") { if (form.needleCount) specs.needleCount = form.needleCount; if (form.needleThickness) specs.needleThickness = form.needleThickness; }
-      const body = { type: form.type, brand: form.brand || undefined, model: form.model || undefined, size: form.size || undefined, notes: form.notes || undefined, isActive: form.isActive === "true", isDefault: form.isDefault === "true", specs: Object.keys(specs).length ? specs : undefined };
+      const body = { type: form.type, shortLabel: form.shortLabel || undefined, brand: form.brand || undefined, model: form.model || undefined, size: form.size || undefined, notes: form.notes || undefined, isActive: form.isActive === "true", isDefault: form.isDefault === "true", specs: Object.keys(specs).length ? specs : undefined };
       const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error(await r.text());
       return r.json();
@@ -191,6 +191,7 @@ export default function Accessories() {
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">{a.brand ?? "—"} {a.model ?? ""}</span>
+                          {a.shortLabel && <Badge variant="secondary" className="text-xs">{a.shortLabel}</Badge>}
                           {a.size && <Badge variant="outline" className="text-xs">{a.size}</Badge>}
                           {a.isDefault && <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Default</Badge>}
                           {!a.isActive && <Badge variant="secondary" className="text-xs">Inactive</Badge>}
@@ -232,6 +233,11 @@ export default function Accessories() {
             </div>
             <div className="space-y-1.5"><Label>Brand</Label><Input value={form.brand} onChange={(e) => set("brand", e.target.value)} placeholder="e.g. Normcore" /></div>
             <div className="space-y-1.5"><Label>Model</Label><Input value={form.model} onChange={(e) => set("model", e.target.value)} placeholder="e.g. V4" /></div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>Short Label</Label>
+              <Input value={form.shortLabel} onChange={(e) => set("shortLabel", e.target.value)} placeholder="e.g. NC, VST Comp, MH Scale" />
+              <p className="text-xs text-muted-foreground">Personal compact label for dashboards. Full name remains the system/library identity.</p>
+            </div>
             {accessorySuggestions.length > 0 && (
               <div className="col-span-2 rounded-lg border bg-primary/5 p-3 space-y-2">
                 <p className="text-xs font-medium text-primary">Suggested Accessory Details</p>

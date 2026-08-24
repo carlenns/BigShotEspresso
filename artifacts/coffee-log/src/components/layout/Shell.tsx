@@ -37,6 +37,12 @@ const mobileBottomNav: NavItem[] = [
   { title: "Quick Log",       href: "/shots/quick", icon: Zap,             exact: true },
   { title: "Shot Log",        href: "/shots",       icon: BookOpen },
   { title: "Reference Shots", href: "/reference",   icon: Coffee },
+  { title: "Beans", href: "/beans", icon: Sprout },
+  { title: "Bags", href: "/bags", icon: Package },
+  { title: "Equipment", href: "/equipment", icon: Wrench },
+  { title: "Accessories", href: "/accessories", icon: Layers },
+  { title: "Taste", href: "/taste-selectors", icon: Tag },
+  { title: "Settings", href: "/settings", icon: Settings },
 ];
 
 const libraryNav: NavItem[] = [
@@ -168,15 +174,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 border-t bg-background px-1 pb-safe md:hidden">
-        {[...mobileBottomNav, libraryNav[0], libraryNav[1]].map((item) => {
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 h-16 overflow-x-auto border-t bg-background px-1 pb-safe md:hidden"
+        aria-label="Swipeable mobile navigation"
+      >
+        <div className="flex h-full min-w-max snap-x snap-mandatory">
+        {mobileBottomNav.map((item) => {
           const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors",
+                "flex w-20 shrink-0 snap-start flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -185,6 +195,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </Link>
           );
         })}
+        </div>
       </nav>
     </div>
   );

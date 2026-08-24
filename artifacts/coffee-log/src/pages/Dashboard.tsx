@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 function formatPuckScreenSummary(value: string | null): string | null {
   if (!value) return null;
+  if (value.includes("Puck Screen")) return value;
   const brand = value.match(/\(([^—)-]+)/)?.[1]?.trim();
   const thickness = value.match(/thickness:\s*([0-9]+(?:\.[0-9]+)?)\s*(?:mm)?/i)?.[1]
     ?? value.match(/\b([0-9]+(?:\.[0-9]+)?)\s*mm\b/i)?.[1];

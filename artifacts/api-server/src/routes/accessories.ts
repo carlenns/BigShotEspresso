@@ -39,6 +39,7 @@ router.post("/accessories", async (req, res): Promise<void> => {
     .where(eq(accessoriesTable.type, body.type as string));
   const [row] = await db.insert(accessoriesTable).values({
     type: body.type as string,
+    shortLabel: body.shortLabel as string | undefined,
     brand: body.brand as string | undefined,
     model: body.model as string | undefined,
     size: body.size as string | undefined,
@@ -59,6 +60,7 @@ router.patch("/accessories/:id", async (req, res): Promise<void> => {
   }
   const [row] = await db.update(accessoriesTable).set({
     type: body.type as string | undefined,
+    shortLabel: body.shortLabel as string | undefined,
     brand: body.brand as string | undefined,
     model: body.model as string | undefined,
     size: body.size as string | undefined,

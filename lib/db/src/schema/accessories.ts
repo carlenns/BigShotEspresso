@@ -21,6 +21,7 @@ export type AccessoryType = (typeof ACCESSORY_TYPES)[number];
 export const accessoriesTable = pgTable("accessories", {
   id: serial("id").primaryKey(),
   type: text("type").notNull(),
+  shortLabel: text("short_label"),
   brand: text("brand"),
   model: text("model"),
   size: text("size"),

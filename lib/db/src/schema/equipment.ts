@@ -5,6 +5,7 @@ import { z } from "zod/v4";
 export const grindersTable = pgTable("grinders", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  shortLabel: text("short_label"),
   brand: text("brand"),
   model: text("model"),
   type: text("type"), // espresso | decaf | pour-over | hand
@@ -21,6 +22,7 @@ export const grindersTable = pgTable("grinders", {
 export const machinesTable = pgTable("machines", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  shortLabel: text("short_label"),
   brand: text("brand"),
   model: text("model"),
   brewMethod: text("brew_method"), // espresso | pour-over | aeropress | french-press | moka | lever

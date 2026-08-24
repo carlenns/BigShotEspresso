@@ -38,9 +38,9 @@ type FieldDef = {
   unit?: string;
 };
 
-type Grinder = { id: number; name: string; brand: string | null; model: string | null; type: string | null; isDefault: boolean };
-type Machine = { id: number; name: string; brand: string | null; model: string | null; brewMethod: string | null; stockBasket: string | null; isDefault: boolean };
-type Accessory = { id: number; type: string; brand: string | null; model: string | null; size: string | null; isActive: boolean; isDefault: boolean; specs: Record<string, unknown> | null };
+type Grinder = { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; type: string | null; isDefault: boolean };
+type Machine = { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; brewMethod: string | null; stockBasket: string | null; isDefault: boolean };
+type Accessory = { id: number; type: string; shortLabel: string | null; brand: string | null; model: string | null; size: string | null; isActive: boolean; isDefault: boolean; specs: Record<string, unknown> | null };
 
 function fetchGrinders(): Promise<Grinder[]> {
   return fetch("/api/equipment/grinders").then((r) => r.json());

@@ -1,11 +1,44 @@
 import { Router, type IRouter } from "express";
 import { sql, desc, isNotNull, eq, ne, and, lt } from "drizzle-orm";
-import { db, shotsTable, bagsTable, beansTable, settingsTable } from "@workspace/db";
+import { db, shotsTable, bagsTable, beansTable, settingsTable, grindersTable, machinesTable, accessoriesTable } from "@workspace/db";
 import { GetRecentShotsQueryParams, GetBestRatedShotsQueryParams } from "@workspace/api-zod";
 import { eligibleShotConditions } from "../lib/shot-eligibility";
 import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weighting";
 
 const router: IRouter = Router();
+
+function equipmentLabel(item: { name?: string | null; brand?: string | null; model?: string | null; size?: string | null; specs?: unknown }) {
+  if (item.name) return item.name;
+  const specs = item.specs && typeof item.specs === "object" ? item.specs as Record<string, unknown> : null;
+  const specValues = specs
+    ? Object.entries(specs)
+      .filter(([, value]) => value !== null && value !== undefined && value !== "" && value !== false && value !== "false")
+      .map(([key, value]) => `${key}: ${String(value)}`)
+    : [];
+  return [item.brand, item.model, item.size, ...specValues].filter(Boolean).join(" — ") || "Unnamed";
+}
+
+function compactLabel(
+  savedValue: string | undefined,
+  rows: Array<{ name?: string | null; shortLabel?: string | null; brand?: string | null; model?: string | null; size?: string | null; specs?: unknown }>,
+): string | null {
+  if (!savedValue) return null;
+  const match = rows.find((row) => equipmentLabel(row) === savedValue);
+  return match?.shortLabel || savedValue;
+}
+
+function compactPuckScreenLabel(
+  savedValue: string | undefined,
+  rows: Array<{ type?: string | null; name?: string | null; shortLabel?: string | null; brand?: string | null; model?: string | null; size?: string | null; specs?: unknown }>,
+): string | null {
+  if (!savedValue) return null;
+  const match = rows.find((row) => row.type === "puck_screen" && equipmentLabel(row) === savedValue);
+  if (!match) return savedValue;
+  const specs = match.specs && typeof match.specs === "object" ? match.specs as Record<string, unknown> : {};
+  const thickness = specs.thickness ? String(specs.thickness) : null;
+  const label = match.shortLabel || match.brand || "Puck Screen";
+  return `${label} Puck Screen${thickness ? ` ${thickness}` : ""}`;
+}
 
 // ── Robust range helper ───────────────────────────────────────────────────────
 function robustRange(vals: number[]): {
@@ -66,6 +99,11 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   const settings: Record<string, string> = {};
   for (const r of settingRows) settings[r.key] = r.value;
   const ratingWeights = getRatingWeights(settings);
+  const [grinders, machines, accessories] = await Promise.all([
+    db.select().from(grindersTable),
+    db.select().from(machinesTable),
+    db.select().from(accessoriesTable),
+  ]);
 
   // ── Active bag ────────────────────────────────────────────────────────────
   const [activeBagRow] = await db
@@ -466,11 +504,11 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
       openDays,
       roastAge,
       shotCount: activeBagShots.length,
-      grinder: settings.defaultGrinder || settings.defaultRegularGrinder || null,
-      machine: settings.defaultMachine || null,
-      basket: settings.defaultBasket || null,
+      grinder: compactLabel(settings.defaultGrinder || settings.defaultRegularGrinder, grinders),
+      machine: compactLabel(settings.defaultMachine, machines),
+      basket: compactLabel(settings.defaultBasket, accessories) ?? settings.defaultBasket ?? null,
       usePuckScreen: settings.usePuckScreen === "true",
-      puckScreen: settings.defaultPuckScreen || null,
+      puckScreen: compactPuckScreenLabel(settings.defaultPuckScreen, accessories),
     },
     bagIntelligence: {
       totalShots: activeBagShots.length,
