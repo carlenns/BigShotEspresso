@@ -256,6 +256,24 @@ test("Machine records can provide stock basket defaults", async () => {
   assert.match(settingsSource, /stockBasketOptions/);
 });
 
+test("Runtime startup applies additive equipment schema guards", async () => {
+  const [indexSource, runtimeSchemaSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("./index.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./lib/runtime-schema.ts", import.meta.url)), "utf8"),
+  ]);
+
+  assert.match(indexSource, /ensureRuntimeSchema/);
+
+  for (const requiredText of [
+    "ADD COLUMN IF NOT EXISTS adjustment_type",
+    "ADD COLUMN IF NOT EXISTS grind_setting_precision",
+    "ADD COLUMN IF NOT EXISTS grind_step_increment",
+    "ADD COLUMN IF NOT EXISTS stock_basket",
+  ]) {
+    assert.match(runtimeSchemaSource, new RegExp(requiredText));
+  }
+});
+
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {
   const [appSource, formSource, detailSource, selectorSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)), "utf8"),

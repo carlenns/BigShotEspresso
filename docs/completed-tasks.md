@@ -430,3 +430,25 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 ## Unresolved
 
 - A future add-flow can route directly to a preselected accessory type, such as Add Puck Screen, instead of only routing to the Accessories page.
+
+# Runtime Equipment Schema Guard — 2026-08-24
+
+## Completed
+
+- Added a startup schema guard for additive equipment columns so live Postgres can catch up when Render deploys equipment-field changes.
+- Covered grinder adjustment metadata columns and machine stock basket.
+- The guard uses `ADD COLUMN IF NOT EXISTS` only and does not overwrite existing data.
+
+## Verified
+
+- Workspace typecheck passed.
+- Phase 1.5/API test suite passed: 31 passed, 0 failed.
+- Render production build passed.
+
+## Assumptions
+
+- This is a launch-stabilization guard for additive columns, not a replacement for a full migration runner.
+
+## Unresolved
+
+- A formal production migration runner remains the better long-term solution before public release.
