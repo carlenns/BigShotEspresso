@@ -640,7 +640,7 @@ export default function QuickLog() {
         <Button variant="link" size="sm" className="h-auto p-0 text-xs text-muted-foreground" asChild>
           <Link href="/shots/new">
             <Coffee className="h-3 w-3 mr-1" />
-            Full log form
+            Detailed Log
           </Link>
         </Button>
         <Button variant="link" size="sm" className="h-auto p-0 text-xs text-muted-foreground" asChild>
@@ -664,6 +664,9 @@ function PageHeader({ activeBag }: { activeBag: ActiveBagInfo | null }) {
           <Zap className="h-7 w-7 text-primary" />
           Quick Log
         </h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Fast shot entry — best while brewing. Use Detailed Log for the full editable record.
+        </p>
         {activeBag ? (
           <p className="text-muted-foreground text-sm mt-1">
             {activeBag.beanName ?? "Unknown bean"}
@@ -675,7 +678,7 @@ function PageHeader({ activeBag }: { activeBag: ActiveBagInfo | null }) {
       </div>
       <Button variant="ghost" size="sm" className="text-muted-foreground shrink-0 mt-1" asChild>
         <Link href="/shots/new">
-          Full log <ArrowRight className="h-3.5 w-3.5 ml-1" />
+          Detailed Log <ArrowRight className="h-3.5 w-3.5 ml-1" />
         </Link>
       </Button>
     </div>

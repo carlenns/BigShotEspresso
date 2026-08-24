@@ -293,6 +293,26 @@ test("Mobile shell exposes setup and system navigation", async () => {
   }
 });
 
+test("Logging UI distinguishes Quick Log from the full Detailed Log", async () => {
+  const [shellSource, quickSource, formSource, settingsSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/components/layout/Shell.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/QuickLog.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Settings.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  assert.match(shellSource, /Detailed Log/);
+  assert.doesNotMatch(shellSource, /Full Log Form/);
+  assert.match(quickSource, /Fast shot entry/);
+  assert.match(quickSource, /best while brewing/);
+  assert.match(quickSource, /Use Detailed Log for the full editable record/);
+  assert.match(formSource, /Detailed Log/);
+  assert.match(formSource, /Complete shot record/);
+  assert.match(formSource, /review, tasting notes, and advanced details/);
+  assert.match(settingsSource, /Detailed Log remains available for the full editable record/);
+  assert.match(settingsSource, /available on mobile and desktop/);
+});
+
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {
   const [appSource, formSource, detailSource, selectorSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)), "utf8"),

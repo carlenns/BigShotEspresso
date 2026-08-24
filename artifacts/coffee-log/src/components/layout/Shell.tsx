@@ -27,6 +27,14 @@ interface NavItem {
 const primaryNav: NavItem[] = [
   { title: "Dashboard",       href: "/",            icon: LayoutDashboard, exact: true },
   { title: "Quick Log",       href: "/shots/quick", icon: Zap,             exact: true },
+  { title: "Detailed Log",    href: "/shots/new",   icon: Coffee,          exact: true },
+  { title: "Shot Log",        href: "/shots",       icon: BookOpen },
+  { title: "Reference Shots", href: "/reference",   icon: Coffee },
+];
+
+const mobileBottomNav: NavItem[] = [
+  { title: "Dashboard",       href: "/",            icon: LayoutDashboard, exact: true },
+  { title: "Quick Log",       href: "/shots/quick", icon: Zap,             exact: true },
   { title: "Shot Log",        href: "/shots",       icon: BookOpen },
   { title: "Reference Shots", href: "/reference",   icon: Coffee },
 ];
@@ -150,20 +158,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </nav>
         </ScrollArea>
 
-        <div className="p-4 border-t border-sidebar-border space-y-2">
-          <Button className="w-full justify-start gap-2 shadow-sm" asChild>
-            <Link href="/shots/quick">
-              <Zap className="h-4 w-4" />
-              Quick Log
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-muted-foreground" asChild>
-            <Link href="/shots/new">
-              <Coffee className="h-3.5 w-3.5" />
-              Full Log Form
-            </Link>
-          </Button>
-        </div>
       </aside>
 
       {/* Main Content */}
@@ -175,7 +169,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 border-t bg-background px-1 pb-safe md:hidden">
-        {[...primaryNav, libraryNav[0], libraryNav[1]].map((item) => {
+        {[...mobileBottomNav, libraryNav[0], libraryNav[1]].map((item) => {
           const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
           return (
             <Link

@@ -509,7 +509,7 @@ function LoggingPreferencesSection({
           <CardTitle>Logging Preferences</CardTitle>
         </div>
         <CardDescription>
-          Choose which fields appear in Quick Log. Essential fields are on by default — enable extras when you want more detail.
+          Choose which fields appear in Quick Log. Quick Log is fast shot entry while brewing; Detailed Log remains available for the full editable record.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -555,6 +555,8 @@ function LoggingPreferencesSection({
         ))}
         <p className="text-xs text-muted-foreground pt-1">
           Quick Log always records the date and links to your active bag automatically.
+          <br />
+          Detailed Log is available on mobile and desktop whenever you want every field.
           <br />
           <span className="text-[11px]">Grind Changed This Shot also appears automatically whenever Grind Setting is enabled.</span>
         </p>

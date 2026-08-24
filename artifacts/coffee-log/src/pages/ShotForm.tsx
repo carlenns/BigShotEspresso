@@ -382,8 +382,12 @@ export default function ShotForm() {
           <Link href="/shots"><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold font-serif">{isEditing ? "Edit Shot" : "Log New Shot"}</h1>
-          <p className="text-sm text-muted-foreground">{isEditing ? "Update saved shot details" : "BigShotEspresso"}</p>
+          <h1 className="text-2xl font-bold font-serif">{isEditing ? "Edit Shot" : "Detailed Log"}</h1>
+          <p className="text-sm text-muted-foreground">
+            {isEditing
+              ? "Update the full saved shot record."
+              : "Complete shot record — best for review, tasting notes, and advanced details."}
+          </p>
         </div>
       </div>
 
