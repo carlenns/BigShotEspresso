@@ -254,6 +254,8 @@ Healthy theoretical margins do not prove a viable subscriber business. BSE must 
 
 Future community features could strengthen BSE if the personal logging product proves retention. Examples include equipment leaderboards, workflow achievements, user profiles, bag/grinder discussion threads, opt-in research cohorts, and photo-supported records or posts.
 
+Daily Driver should be treated as a particularly useful future leaderboard dimension because it measures everyday desirability rather than only peak technical achievement. A Daily Driver leaderboard should be opt-in and preference-aware: it should help users discover coffees, recipes, equipment setups, and workflows that repeatedly produce “I would drink this every day” results for people with similar preferences. It must not imply universal superiority, because Daily Driver is intentionally tied to individual taste.
+
 These features should not be assumed free inside the original US$10/month planning model. The cost impact depends heavily on scope:
 
 - Text-only leaderboards and achievements are likely modest if they use existing structured records and cached aggregate queries.

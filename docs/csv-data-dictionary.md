@@ -52,9 +52,9 @@ UI codes: text, long text, number, currency, date/time, checkbox, dropdown, chip
 | Boundary Shot | Checkbox | E | checkbox | Manual edge/boundary case; MSI and model calibration. |
 | Drink Type | Single Select | E | dropdown | Beverage preparation classification. |
 | Shot Status | Single Select | E | dropdown | Operational record state; analysis eligibility context. |
-| Shot Classification | Multi Select | E | chips | Mechanical/taste outcome descriptors; GSP/MSI. |
-| Fault Status | Multi Select | E | chips | Fault/event validity states; analysis eligibility and fault intelligence. |
-| Bean Achievement | Multi Select | E | chips | What the shot/bean accomplished; BLI and highlights. |
+| Shot Classification | Multi Select historically; curated as single-choice workflow type in app | E | dropdown | Record/workflow type such as Good Shot, Dial-In Shot, grinder event, new bag entry, hopper refill, maintenance, experiment, or sink shot. Not the authority for reference/signature/daily-driver status. |
+| Fault Status | Multi Select historically; curated as single-choice analysis condition in app | E | dropdown | Analytical cleanliness/fault reason. `Good` is required with Shot Status `Good` or `Dialed In` for Include in Analysis. Other values explain why a record is excluded or exceptional. |
+| Bean Achievement | Multi Select historically; curated as single-choice achievement in app | E | dropdown | Personal/bean achievement such as Daily Driver, Best of Bag, Guest Worthy, Personal Best, or Sweet Spot Found; BLI and highlights. `Daily Driver` means the user would want this coffee/expression as an everyday drink, not merely that it was technically good. |
 | Expression Style | Multi Select | E | chips | Overall sensory experience; first value is primary highlight. |
 | Daily Driver Count | Formula | R | read-only | Derived marker/count for Daily Driver achievement; BLI. |
 | Include in Analysis | Formula/Checkbox | R | read-only | Authoritative gate for every analytical query. |

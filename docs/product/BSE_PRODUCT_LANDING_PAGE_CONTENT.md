@@ -81,6 +81,8 @@ Record the important facts of each extraction:
 
 The product should explain that tasting and rating shots is part of the learning process. Repeated tasting helps users build their palate and connect mechanical changes to flavor.
 
+BigShotEspresso should also explain the meaning of a `Daily Driver`. A Daily Driver is not merely a high score; it is a personal achievement marker for a coffee or recipe the user would happily drink every day. It captures comfort, repeatability, and individual taste preference. This makes Daily Driver useful for bag summaries, bean history, rebuy decisions, and future opt-in leaderboards focused on everyday drinkability rather than only peak technical scores.
+
 The product should also teach that some numbers carry more practical signal than others. First pour delay and yield should be highlighted as high-value observations because they are easy to record, easy to compare, and often strongly connected to shot quality. The app and onboarding should avoid implying one universal first-pour target across all coffees: lighter roasts may often behave better with shorter first-pour delays, while darker roasts may sometimes prefer a longer first-pour window. BSE should learn this through the user's records rather than inventing a fixed threshold.
 
 ### 2. Bean and bag lifecycle tracking

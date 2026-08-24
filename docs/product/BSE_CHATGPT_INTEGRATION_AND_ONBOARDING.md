@@ -248,6 +248,14 @@ BSE onboarding must teach the difference between technical quality and personal 
 - Preference scores above 10 must not be treated as universal technical superiority in DCI, OSI, HMI, MSI, BLI, or GSP.
 - Coffee AI responses must preserve this distinction and avoid normalizing an 11-point preference score back into a 10-point technical rating.
 
+### 4.1 Teach Daily Driver semantics
+
+`Daily Driver` is a personal bean achievement, not a generic synonym for “good.” It marks a shot or coffee expression that the user would genuinely want to drink every day: repeatable, enjoyable, comfortable, and aligned with that user’s own taste preferences.
+
+Onboarding and Coffee AI should explain that Daily Driver is intentionally subjective. A technically excellent reference shot may or may not be a Daily Driver. A Daily Driver may be less dramatic than a Signature Shot, but it is highly valuable because it identifies the coffees and recipes that fit the user’s normal life.
+
+Daily Driver must be recorded through `Bean Achievement`, not `Shot Classification`. It should support bag and bean rollups, personal achievements, and future opt-in leaderboards that compare repeatable user-preferred results rather than only highest technical ratings.
+
 ### 5. Teach the minimum viable logging protocol
 
 Use a short guided example to distinguish initial output, actual basket dose, corrections, yield, timing, faults, and sensory notes. Explain why timestamps, hopper state, and cooling observations matter.
