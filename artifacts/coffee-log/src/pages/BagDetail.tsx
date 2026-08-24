@@ -33,6 +33,7 @@ interface BagDetailResponse {
   };
   analysis: {
     totalShots: number; referenceShots: number; ratedShots: number; avgRating: number | null;
+    dailyDriverShots: number; dailyDriverRate: number | null;
     avgDose: number | null; avgYield: number | null; avgPourTime: number | null;
     grindRange: { min: number; max: number } | null;
     statusBreakdown: Record<string, number>;
@@ -135,6 +136,11 @@ export default function BagDetail() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Total Shots" value={analysis.totalShots} />
         <StatCard label="Reference Shots" value={analysis.referenceShots} />
+        <StatCard
+          label="Daily Drivers"
+          value={analysis.dailyDriverRate != null ? `${analysis.dailyDriverShots} (${analysis.dailyDriverRate}%)` : analysis.dailyDriverShots}
+          highlight={analysis.dailyDriverShots > 0}
+        />
         <StatCard label="Avg Rating" value={analysis.avgRating != null ? Number(analysis.avgRating).toFixed(1) : "—"} highlight={analysis.avgRating != null && analysis.avgRating >= 7} />
         <StatCard label="Rated Shots" value={analysis.ratedShots} />
         <StatCard label="Avg Dose" value={analysis.avgDose != null ? `${analysis.avgDose}g` : "—"} />

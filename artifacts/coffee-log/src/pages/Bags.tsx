@@ -27,7 +27,7 @@ interface Bag {
   startGrindTime: number | null; currentGrindTime: number | null;
   defaultDose: number | null; defaultYield: number | null; defaultTemp: number | null;
   dialInNotes: string | null; notes: string | null;
-  shotCount: number; referenceCount: number; avgRating: number | null;
+  shotCount: number; referenceCount: number; dailyDriverCount: number; avgRating: number | null;
   grindRange: { min: number | null; max: number | null } | null;
   closedOutDate: string | null; daysSinceClosedOut: number | null;
 }
@@ -326,7 +326,9 @@ function BagRow({ bag, onEdit, onCloseout }: { bag: Bag; onEdit: (b: Bag) => voi
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <div className="text-right text-sm">
-              <p className="text-muted-foreground">{bag.shotCount} shots · {bag.referenceCount} refs</p>
+              <p className="text-muted-foreground">
+                {bag.shotCount} shots · {bag.referenceCount} refs · {bag.dailyDriverCount} daily drivers
+              </p>
               {bag.avgRating != null && (
                 <p className="flex items-center gap-1 text-amber-600 font-medium justify-end">
                   <Star className="h-3.5 w-3.5 fill-current" />{Number(bag.avgRating).toFixed(1)}

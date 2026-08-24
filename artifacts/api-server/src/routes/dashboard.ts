@@ -137,6 +137,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   const bestRating = ratedShots.length ? Math.max(...ratedShots.map((s) => Number(s.rating))) : null;
 
   const refCount = activeBagShots.filter((s) => s.isReference).length;
+  const dailyDriverCount = activeBagShots.filter((s) => s.beanAchievement?.includes("Daily Driver")).length;
   const last3 = ratedShots.slice(0, 3);
   const last3Avg = last3.length
     ? Math.round((last3.reduce((a, s) => a + Number(s.rating), 0) / last3.length) * 100) / 100
@@ -471,6 +472,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     bagIntelligence: {
       totalShots: activeBagShots.length,
       referenceShots: refCount,
+      dailyDriverCount,
       avgRating,
       avgPrefRating,
       bestRating,

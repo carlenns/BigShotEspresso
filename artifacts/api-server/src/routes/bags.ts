@@ -48,6 +48,7 @@ router.get("/bags", async (_req, res): Promise<void> => {
       bagId: shotsTable.bagId,
       shotCount: sql<number>`count(*)::int`,
       referenceCount: sql<number>`count(*) filter (where ${shotsTable.isReference} = true)::int`,
+      dailyDriverCount: sql<number>`count(*) filter (where ${shotsTable.beanAchievement} @> array['Daily Driver']::text[])::int`,
       avgRating: sql<number | null>`round(avg(${shotsTable.rating})::numeric, 2)`,
       minGrind: sql<number | null>`min(${shotsTable.grindSetting})`,
       maxGrind: sql<number | null>`max(${shotsTable.grindSetting})`,
@@ -72,6 +73,7 @@ router.get("/bags", async (_req, res): Promise<void> => {
       currentGrindSetting: bagStats?.latestGrind ?? b.currentGrindSetting,
       shotCount: bagStats?.shotCount ?? 0,
       referenceCount: bagStats?.referenceCount ?? 0,
+      dailyDriverCount: bagStats?.dailyDriverCount ?? 0,
       avgRating: bagStats?.avgRating ?? null,
       grindRange: bagStats ? { min: bagStats.minGrind, max: bagStats.maxGrind } : null,
       closedOutDate,
@@ -118,6 +120,7 @@ router.get("/bags/:id", async (req, res): Promise<void> => {
     .orderBy(desc(sql`${shotsTable.shotDate}`));
 
   const ratedShots = shots.filter((s) => s.rating != null);
+  const dailyDriverShots = shots.filter((s) => s.beanAchievement?.includes("Daily Driver"));
   const avgRating = ratedShots.length ? ratedShots.reduce((a, s) => a + Number(s.rating), 0) / ratedShots.length : null;
   const grindSettings = shots.map((s) => s.grindSetting).filter((v): v is number => v != null);
   const statusBreakdown = shots.reduce<Record<string, number>>((acc, s) => { const k = s.status ?? "Unknown"; acc[k] = (acc[k] ?? 0) + 1; return acc; }, {});
@@ -125,6 +128,8 @@ router.get("/bags/:id", async (req, res): Promise<void> => {
   const analysis = {
     totalShots: shots.length,
     referenceShots: shots.filter((s) => s.isReference).length,
+    dailyDriverShots: dailyDriverShots.length,
+    dailyDriverRate: shots.length ? Math.round((dailyDriverShots.length / shots.length) * 1000) / 10 : null,
     ratedShots: ratedShots.length,
     avgRating: avgRating != null ? Math.round(avgRating * 100) / 100 : null,
     avgDose: ratedShots.length ? Math.round((ratedShots.reduce((a, s) => a + Number(s.dose ?? 0), 0) / ratedShots.length) * 10) / 10 : null,

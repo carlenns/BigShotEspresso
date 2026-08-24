@@ -62,7 +62,7 @@ interface Intelligence {
     basket: string | null; usePuckScreen: boolean; puckScreen: string | null;
   } | null;
   bagIntelligence: {
-    totalShots: number; referenceShots: number;
+    totalShots: number; referenceShots: number; dailyDriverCount: number;
     avgRating: number | null; avgPrefRating: number | null;
     bestRating: number | null; last3Avg: number | null;
     referenceRate: number | null;
@@ -363,6 +363,7 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <IntelStat label="Shots" value={String(bi.totalShots)} />
                   <IntelStat label="Reference shots" value={String(bi.referenceShots)} accent={bi.referenceShots > 0} />
+                  <IntelStat label="Daily drivers" value={String(bi.dailyDriverCount)} accent={bi.dailyDriverCount > 0} />
                   <IntelStat
                     label="Avg rating"
                     value={bi.avgRating != null ? bi.avgRating.toFixed(2) : "—"}
