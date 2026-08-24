@@ -22,6 +22,7 @@ interface Grinder {
   id: number;
   name: string;
   shortLabel: string | null;
+  sourceUrl: string | null;
   brand: string | null;
   model: string | null;
   type: string | null;
@@ -33,7 +34,7 @@ interface Grinder {
   isDefault: boolean;
   notes: string | null;
 }
-interface Machine { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; brewMethod: string | null; stockBasket: string | null; isDefault: boolean; notes: string | null; }
+interface Machine { id: number; name: string; shortLabel: string | null; sourceUrl: string | null; brand: string | null; model: string | null; brewMethod: string | null; stockBasket: string | null; isDefault: boolean; notes: string | null; }
 
 const GRINDER_TYPES = ["Espresso", "Decaf", "Pour-over", "Hand", "Multi-use"];
 const BURR_TYPES = ["Flat", "Conical", "Hybrid"];
@@ -56,11 +57,11 @@ export default function Equipment() {
   const [gForm, setGForm] = useState<Record<string, string>>({});
   const [mForm, setMForm] = useState<Record<string, string>>({});
 
-  const openNewG = () => { setEditingG(null); setGForm({ name: "", shortLabel: "", brand: "", model: "", type: "", burrSize: "", burrType: "", adjustmentType: "", grindSettingPrecision: "2", grindStepIncrement: "", isDefault: "false", notes: "" }); setGOpen(true); };
-  const openEditG = (g: Grinder) => { setEditingG(g); setGForm({ name: g.name, shortLabel: g.shortLabel ?? "", brand: g.brand ?? "", model: g.model ?? "", type: g.type ?? "", burrSize: g.burrSize ?? "", burrType: g.burrType ?? "", adjustmentType: g.adjustmentType ?? "", grindSettingPrecision: g.grindSettingPrecision != null ? String(g.grindSettingPrecision) : "", grindStepIncrement: g.grindStepIncrement != null ? String(g.grindStepIncrement) : "", isDefault: String(g.isDefault), notes: g.notes ?? "" }); setGOpen(true); };
+  const openNewG = () => { setEditingG(null); setGForm({ name: "", shortLabel: "", sourceUrl: "", brand: "", model: "", type: "", burrSize: "", burrType: "", adjustmentType: "", grindSettingPrecision: "2", grindStepIncrement: "", isDefault: "false", notes: "" }); setGOpen(true); };
+  const openEditG = (g: Grinder) => { setEditingG(g); setGForm({ name: g.name, shortLabel: g.shortLabel ?? "", sourceUrl: g.sourceUrl ?? "", brand: g.brand ?? "", model: g.model ?? "", type: g.type ?? "", burrSize: g.burrSize ?? "", burrType: g.burrType ?? "", adjustmentType: g.adjustmentType ?? "", grindSettingPrecision: g.grindSettingPrecision != null ? String(g.grindSettingPrecision) : "", grindStepIncrement: g.grindStepIncrement != null ? String(g.grindStepIncrement) : "", isDefault: String(g.isDefault), notes: g.notes ?? "" }); setGOpen(true); };
 
-  const openNewM = () => { setEditingM(null); setMForm({ name: "", shortLabel: "", brand: "", model: "", brewMethod: "", stockBasket: "", isDefault: "false", notes: "" }); setMOpen(true); };
-  const openEditM = (m: Machine) => { setEditingM(m); setMForm({ name: m.name, shortLabel: m.shortLabel ?? "", brand: m.brand ?? "", model: m.model ?? "", brewMethod: m.brewMethod ?? "", stockBasket: m.stockBasket ?? "", isDefault: String(m.isDefault), notes: m.notes ?? "" }); setMOpen(true); };
+  const openNewM = () => { setEditingM(null); setMForm({ name: "", shortLabel: "", sourceUrl: "", brand: "", model: "", brewMethod: "", stockBasket: "", isDefault: "false", notes: "" }); setMOpen(true); };
+  const openEditM = (m: Machine) => { setEditingM(m); setMForm({ name: m.name, shortLabel: m.shortLabel ?? "", sourceUrl: m.sourceUrl ?? "", brand: m.brand ?? "", model: m.model ?? "", brewMethod: m.brewMethod ?? "", stockBasket: m.stockBasket ?? "", isDefault: String(m.isDefault), notes: m.notes ?? "" }); setMOpen(true); };
 
   const saveG = useMutation({
     mutationFn: async () => {
@@ -98,8 +99,8 @@ export default function Equipment() {
 
   const setG = (k: string, v: string) => setGForm((f) => ({ ...f, [k]: v }));
   const setM = (k: string, v: string) => setMForm((f) => ({ ...f, [k]: v }));
-  const grinderSuggestions = matchingSuggestions(GRINDER_SUGGESTIONS, `${gForm.name ?? ""} ${gForm.brand ?? ""} ${gForm.model ?? ""}`);
-  const machineSuggestions = matchingSuggestions(MACHINE_SUGGESTIONS, `${mForm.name ?? ""} ${mForm.brand ?? ""} ${mForm.model ?? ""}`);
+  const grinderSuggestions = matchingSuggestions(GRINDER_SUGGESTIONS, `${gForm.name ?? ""} ${gForm.sourceUrl ?? ""} ${gForm.brand ?? ""} ${gForm.model ?? ""} ${gForm.notes ?? ""}`);
+  const machineSuggestions = matchingSuggestions(MACHINE_SUGGESTIONS, `${mForm.name ?? ""} ${mForm.sourceUrl ?? ""} ${mForm.brand ?? ""} ${mForm.model ?? ""} ${mForm.notes ?? ""}`);
 
   return (
     <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -211,10 +212,15 @@ export default function Equipment() {
               <Input value={gForm.shortLabel} onChange={(e) => setG("shortLabel", e.target.value)} placeholder="e.g. EMM or Magnifico" />
               <p className="text-xs text-muted-foreground">Personal compact label for dashboards. Full name remains the system/library identity.</p>
             </div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>Product Link Or ASIN</Label>
+              <Input value={gForm.sourceUrl} onChange={(e) => setG("sourceUrl", e.target.value)} placeholder="Paste product link or ASIN to look for suggestions…" />
+              <p className="text-xs text-muted-foreground">Used as setup evidence and suggestion matching. Future shared-library updates will require AI/admin review before becoming verified defaults.</p>
+            </div>
             {grinderSuggestions.length > 0 && (
               <div className="col-span-2 rounded-lg border bg-primary/5 p-3 space-y-2">
                 <p className="text-xs font-medium text-primary">Suggested Equipment Details</p>
-                <p className="text-xs text-muted-foreground">Review before saving — models and revisions can differ.</p>
+                <p className="text-xs text-muted-foreground">Review before saving — models and revisions can differ. Suggested values are personal setup help until admin-verified.</p>
                 {grinderSuggestions.map((suggestion) => (
                   <div key={suggestion.label} className="flex items-center justify-between gap-3 rounded-md bg-background/80 border p-2">
                     <div>
@@ -228,7 +234,11 @@ export default function Equipment() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      onClick={() => setGForm((current) => ({ ...current, ...suggestion.values }))}
+                      onClick={() => setGForm((current) => ({
+                        ...current,
+                        ...suggestion.values,
+                        sourceUrl: suggestion.values.sourceUrl || current.sourceUrl,
+                      }))}
                     >
                       Apply
                     </Button>
@@ -304,10 +314,15 @@ export default function Equipment() {
               <Input value={mForm.shortLabel} onChange={(e) => setM("shortLabel", e.target.value)} placeholder="e.g. PG" />
               <p className="text-xs text-muted-foreground">Personal compact label for dashboards. Full name remains the system/library identity.</p>
             </div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>Product Link Or Model Evidence</Label>
+              <Input value={mForm.sourceUrl} onChange={(e) => setM("sourceUrl", e.target.value)} placeholder="Paste product page, manual link, or model evidence…" />
+              <p className="text-xs text-muted-foreground">Used as setup evidence and suggestion matching. Future shared-library updates will require AI/admin review before becoming verified defaults.</p>
+            </div>
             {machineSuggestions.length > 0 && (
               <div className="col-span-2 rounded-lg border bg-primary/5 p-3 space-y-2">
                 <p className="text-xs font-medium text-primary">Suggested Equipment Details</p>
-                <p className="text-xs text-muted-foreground">Review before saving — machine revisions and modifications can differ.</p>
+                <p className="text-xs text-muted-foreground">Review before saving — machine revisions and modifications can differ. Suggested values are personal setup help until admin-verified.</p>
                 {machineSuggestions.map((suggestion) => (
                   <div key={suggestion.label} className="flex items-center justify-between gap-3 rounded-md bg-background/80 border p-2">
                     <div>
@@ -319,7 +334,11 @@ export default function Equipment() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      onClick={() => setMForm((current) => ({ ...current, ...suggestion.values }))}
+                      onClick={() => setMForm((current) => ({
+                        ...current,
+                        ...suggestion.values,
+                        sourceUrl: suggestion.values.sourceUrl || current.sourceUrl,
+                      }))}
                     >
                       Apply
                     </Button>

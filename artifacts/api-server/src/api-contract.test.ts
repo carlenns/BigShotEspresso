@@ -141,6 +141,14 @@ test("equipment entry offers reviewable suggested setup details", async () => {
   assert.match(librarySource, /BSE suggested — review before saving/);
   assert.match(librarySource, /User-confirmed/);
   assert.match(librarySource, /Eureka Mignon Magnifico/);
+  assert.match(librarySource, /shortLabel/);
+  assert.match(librarySource, /sourceUrl/);
+  assert.match(librarySource, /B0C6HNPYBQ/);
+  assert.match(librarySource, /B0B46VFT8P/);
+  assert.match(librarySource, /B0CQY78HV6/);
+  assert.match(librarySource, /B0DP9ZCHCD/);
+  assert.match(librarySource, /B0CM5XDGFR/);
+  assert.match(librarySource, /B09S3PWHBY/);
   assert.match(librarySource, /Profitec Go/);
   assert.match(librarySource, /Normcore Spring-Loaded Tamper/);
   assert.match(librarySource, /Normcore 58\.5mm Puck Screen Set/);
@@ -150,8 +158,13 @@ test("equipment entry offers reviewable suggested setup details", async () => {
   assert.match(librarySource, /Dosing Cup/);
   assert.match(librarySource, /68\.7g/);
   assert.match(equipmentSource, /Suggested Equipment Details/);
+  assert.match(equipmentSource, /Product Link Or ASIN/);
+  assert.match(equipmentSource, /Product Link Or Model Evidence/);
   assert.match(equipmentSource, /Review before saving/);
+  assert.match(equipmentSource, /admin-verified/);
   assert.match(accessoriesSource, /Suggested Accessory Details/);
+  assert.match(accessoriesSource, /Product Link Or ASIN/);
+  assert.match(accessoriesSource, /admin-verified/);
   assert.match(accessoriesSource, /15 lb/);
   assert.match(accessoriesSource, /25 lb/);
   assert.match(accessoriesSource, /30 lb/);
@@ -256,8 +269,8 @@ test("Machine records can provide stock basket defaults", async () => {
   assert.match(settingsSource, /stockBasketOptions/);
 });
 
-test("Equipment and accessories preserve personal short labels separately from full names", async () => {
-  const [equipmentSchema, accessorySchema, equipmentRoute, accessoryRoute, equipmentPage, accessoriesPage, dashboardRoute, migrationSource] = await Promise.all([
+test("Equipment and accessories preserve personal short labels and source evidence separately from full names", async () => {
+  const [equipmentSchema, accessorySchema, equipmentRoute, accessoryRoute, equipmentPage, accessoriesPage, dashboardRoute, shortLabelMigrationSource, sourceUrlMigrationSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../../lib/db/src/schema/equipment.ts", import.meta.url)), "utf8"),
     readFile(fileURLToPath(new URL("../../../lib/db/src/schema/accessories.ts", import.meta.url)), "utf8"),
     readFile(fileURLToPath(new URL("./routes/equipment.ts", import.meta.url)), "utf8"),
@@ -266,15 +279,20 @@ test("Equipment and accessories preserve personal short labels separately from f
     readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Accessories.tsx", import.meta.url)), "utf8"),
     readFile(fileURLToPath(new URL("./routes/dashboard.ts", import.meta.url)), "utf8"),
     readFile(fileURLToPath(new URL("../../../lib/db/migrations/0007_equipment_short_labels.sql", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/migrations/0008_equipment_source_urls.sql", import.meta.url)), "utf8"),
   ]);
 
   for (const source of [equipmentSchema, accessorySchema, equipmentRoute, accessoryRoute, equipmentPage, accessoriesPage]) {
     assert.match(source, /shortLabel/);
+    assert.match(source, /sourceUrl/);
   }
 
   assert.match(equipmentSchema, /short_label/);
+  assert.match(equipmentSchema, /source_url/);
   assert.match(accessorySchema, /short_label/);
-  assert.match(migrationSource, /short_label/);
+  assert.match(accessorySchema, /source_url/);
+  assert.match(shortLabelMigrationSource, /short_label/);
+  assert.match(sourceUrlMigrationSource, /source_url/);
   assert.match(equipmentPage, /Short Label/);
   assert.match(accessoriesPage, /Short Label/);
   assert.match(dashboardRoute, /function compactLabel/);
@@ -304,6 +322,7 @@ test("Runtime startup applies additive equipment schema guards", async () => {
 
   for (const requiredText of [
     "ADD COLUMN IF NOT EXISTS short_label",
+    "ADD COLUMN IF NOT EXISTS source_url",
     "ADD COLUMN IF NOT EXISTS adjustment_type",
     "ADD COLUMN IF NOT EXISTS grind_setting_precision",
     "ADD COLUMN IF NOT EXISTS grind_step_increment",

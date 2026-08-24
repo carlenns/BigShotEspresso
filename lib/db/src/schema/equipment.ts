@@ -6,6 +6,7 @@ export const grindersTable = pgTable("grinders", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   shortLabel: text("short_label"),
+  sourceUrl: text("source_url"),
   brand: text("brand"),
   model: text("model"),
   type: text("type"), // espresso | decaf | pour-over | hand
@@ -23,6 +24,7 @@ export const machinesTable = pgTable("machines", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   shortLabel: text("short_label"),
+  sourceUrl: text("source_url"),
   brand: text("brand"),
   model: text("model"),
   brewMethod: text("brew_method"), // espresso | pour-over | aeropress | french-press | moka | lever

@@ -22,6 +22,7 @@ export const accessoriesTable = pgTable("accessories", {
   id: serial("id").primaryKey(),
   type: text("type").notNull(),
   shortLabel: text("short_label"),
+  sourceUrl: text("source_url"),
   brand: text("brand"),
   model: text("model"),
   size: text("size"),

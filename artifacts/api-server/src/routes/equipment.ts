@@ -19,6 +19,7 @@ router.post("/equipment/grinders", async (req, res): Promise<void> => {
   const row = await db.insert(grindersTable).values({
     name: body.name as string,
     shortLabel: body.shortLabel as string | undefined,
+    sourceUrl: body.sourceUrl as string | undefined,
     brand: body.brand as string | undefined,
     model: body.model as string | undefined,
     type: body.type as string | undefined,
@@ -41,6 +42,7 @@ router.patch("/equipment/grinders/:id", async (req, res): Promise<void> => {
   const row = await db.update(grindersTable).set({
     name: body.name as string | undefined,
     shortLabel: body.shortLabel as string | undefined,
+    sourceUrl: body.sourceUrl as string | undefined,
     brand: body.brand as string | undefined,
     model: body.model as string | undefined,
     type: body.type as string | undefined,
@@ -76,6 +78,7 @@ router.post("/equipment/machines", async (req, res): Promise<void> => {
   const row = await db.insert(machinesTable).values({
     name: body.name as string,
     shortLabel: body.shortLabel as string | undefined,
+    sourceUrl: body.sourceUrl as string | undefined,
     brand: body.brand as string | undefined,
     model: body.model as string | undefined,
     brewMethod: body.brewMethod as string | undefined,
@@ -94,6 +97,7 @@ router.patch("/equipment/machines/:id", async (req, res): Promise<void> => {
   const row = await db.update(machinesTable).set({
     name: body.name as string | undefined,
     shortLabel: body.shortLabel as string | undefined,
+    sourceUrl: body.sourceUrl as string | undefined,
     brand: body.brand as string | undefined,
     model: body.model as string | undefined,
     brewMethod: body.brewMethod as string | undefined,

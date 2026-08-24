@@ -32,14 +32,14 @@ const TYPES = [
 const TYPE_LABEL: Record<string, string> = Object.fromEntries(TYPES.map((t) => [t.value, t.label]));
 
 interface Accessory {
-  id: number; type: string; shortLabel: string | null; brand: string | null; model: string | null;
+  id: number; type: string; shortLabel: string | null; sourceUrl: string | null; brand: string | null; model: string | null;
   size: string | null; notes: string | null; isActive: boolean; isDefault: boolean;
   specs: Record<string, string> | null;
 }
 
 function fetchAccessories(): Promise<Accessory[]> { return fetch("/api/accessories").then((r) => r.json()); }
 
-const BLANK = { type: "", shortLabel: "", brand: "", model: "", size: "", notes: "", isActive: "true", isDefault: "false", diameter: "", thickness: "", ratedDose: "", ridgeless: "false", springLoaded: "false", springPressure: "", needleCount: "", needleThickness: "" };
+const BLANK = { type: "", shortLabel: "", sourceUrl: "", brand: "", model: "", size: "", notes: "", isActive: "true", isDefault: "false", diameter: "", thickness: "", ratedDose: "", ridgeless: "false", springLoaded: "false", springPressure: "", needleCount: "", needleThickness: "" };
 
 export default function Accessories() {
   const qc = useQueryClient();
@@ -67,7 +67,7 @@ export default function Accessories() {
     setEditing(a);
     const specs = a.specs ?? {};
     setForm({
-      type: a.type, shortLabel: a.shortLabel ?? "", brand: a.brand ?? "", model: a.model ?? "", size: a.size ?? "",
+      type: a.type, shortLabel: a.shortLabel ?? "", sourceUrl: a.sourceUrl ?? "", brand: a.brand ?? "", model: a.model ?? "", size: a.size ?? "",
       notes: a.notes ?? "", isActive: String(a.isActive), isDefault: String(a.isDefault),
       diameter: String(specs.diameter ?? ""), thickness: String(specs.thickness ?? ""),
       ratedDose: String(specs.ratedDose ?? ""), ridgeless: String(specs.ridgeless ?? "false"),
@@ -86,7 +86,7 @@ export default function Accessories() {
       if (form.type === "tamper") { if (form.diameter) specs.diameter = form.diameter; specs.springLoaded = form.springLoaded === "true"; if (form.springPressure) specs.springPressure = form.springPressure; }
       if (form.type === "puck_screen") { if (form.diameter) specs.diameter = form.diameter; if (form.thickness) specs.thickness = form.thickness; }
       if (form.type === "wdt_tool") { if (form.needleCount) specs.needleCount = form.needleCount; if (form.needleThickness) specs.needleThickness = form.needleThickness; }
-      const body = { type: form.type, shortLabel: form.shortLabel || undefined, brand: form.brand || undefined, model: form.model || undefined, size: form.size || undefined, notes: form.notes || undefined, isActive: form.isActive === "true", isDefault: form.isDefault === "true", specs: Object.keys(specs).length ? specs : undefined };
+      const body = { type: form.type, shortLabel: form.shortLabel || undefined, sourceUrl: form.sourceUrl || undefined, brand: form.brand || undefined, model: form.model || undefined, size: form.size || undefined, notes: form.notes || undefined, isActive: form.isActive === "true", isDefault: form.isDefault === "true", specs: Object.keys(specs).length ? specs : undefined };
       const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error(await r.text());
       return r.json();
@@ -103,7 +103,7 @@ export default function Accessories() {
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
   const accessorySuggestions = matchingSuggestions(
     ACCESSORY_SUGGESTIONS,
-    `${TYPE_LABEL[form.type] ?? form.type ?? ""} ${form.brand ?? ""} ${form.model ?? ""} ${form.notes ?? ""}`,
+    `${TYPE_LABEL[form.type] ?? form.type ?? ""} ${form.sourceUrl ?? ""} ${form.brand ?? ""} ${form.model ?? ""} ${form.notes ?? ""}`,
   );
 
   const typeSpecificFields = () => {
@@ -238,10 +238,15 @@ export default function Accessories() {
               <Input value={form.shortLabel} onChange={(e) => set("shortLabel", e.target.value)} placeholder="e.g. NC, VST Comp, MH Scale" />
               <p className="text-xs text-muted-foreground">Personal compact label for dashboards. Full name remains the system/library identity.</p>
             </div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>Product Link Or ASIN</Label>
+              <Input value={form.sourceUrl} onChange={(e) => set("sourceUrl", e.target.value)} placeholder="Paste product link or ASIN to look for suggestions…" />
+              <p className="text-xs text-muted-foreground">Used as setup evidence and suggestion matching. Future shared-library updates will require AI/admin review before becoming verified defaults.</p>
+            </div>
             {accessorySuggestions.length > 0 && (
               <div className="col-span-2 rounded-lg border bg-primary/5 p-3 space-y-2">
                 <p className="text-xs font-medium text-primary">Suggested Accessory Details</p>
-                <p className="text-xs text-muted-foreground">Review before saving — accessories can vary by size and version.</p>
+                <p className="text-xs text-muted-foreground">Review before saving — accessories can vary by size and version. Suggested values are personal setup help until admin-verified.</p>
                 {accessorySuggestions.map((suggestion) => (
                   <div key={suggestion.label} className="flex items-center justify-between gap-3 rounded-md bg-background/80 border p-2">
                     <div>

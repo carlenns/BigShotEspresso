@@ -7,6 +7,8 @@ export type GrinderSuggestion = {
   confidence: SuggestionConfidence;
   values: {
     name: string;
+    shortLabel: string;
+    sourceUrl: string;
     brand: string;
     model: string;
     type: string;
@@ -26,6 +28,8 @@ export type MachineSuggestion = {
   confidence: SuggestionConfidence;
   values: {
     name: string;
+    shortLabel: string;
+    sourceUrl: string;
     brand: string;
     model: string;
     brewMethod: string;
@@ -50,6 +54,8 @@ export const GRINDER_SUGGESTIONS: GrinderSuggestion[] = [
     confidence: "BSE suggested — review before saving",
     values: {
       name: "Eureka Mignon Magnifico",
+      shortLabel: "EMM",
+      sourceUrl: "",
       brand: "Eureka",
       model: "Mignon Magnifico",
       type: "Espresso",
@@ -58,7 +64,7 @@ export const GRINDER_SUGGESTIONS: GrinderSuggestion[] = [
       adjustmentType: "Stepless",
       grindSettingPrecision: "2",
       grindStepIncrement: "0.33",
-      notes: "Suggested profile. Review before saving; burr/version details may vary by model year or region.",
+      notes: "Suggested profile. Review before saving; burr/version details may vary by model year or region. Stepless grinder settings are approximate visual records, not laboratory repeatability claims.",
     },
   },
 ];
@@ -71,10 +77,12 @@ export const MACHINE_SUGGESTIONS: MachineSuggestion[] = [
     confidence: "BSE suggested — review before saving",
     values: {
       name: "Profitec Go",
+      shortLabel: "PG",
+      sourceUrl: "",
       brand: "Profitec",
       model: "Go",
       brewMethod: "Espresso",
-      stockBasket: "Profitec Go Stock Basket",
+      stockBasket: "Stock Double Basket",
       notes: [
         "Suggested profile. Review before saving.",
         "Known workflow note from user setup: PID displays brew temperature, then switches to shot timer when the pump starts.",
@@ -87,11 +95,13 @@ export const MACHINE_SUGGESTIONS: MachineSuggestion[] = [
 export const ACCESSORY_SUGGESTIONS: AccessorySuggestion[] = [
   {
     kind: "accessory",
-    match: ["normcore", "spring tamper", "spring-loaded tamper", "v4 tamper", "b0c6hnpybq"],
+    match: ["normcore", "spring tamper", "spring-loaded tamper", "v4 tamper", "b0c6hnpybq", "https://www.amazon.ca/dp/b0c6hnpybq"],
     label: "Normcore Spring-Loaded Tamper",
     confidence: "User-confirmed",
     values: {
       type: "tamper",
+      shortLabel: "NC Tamper",
+      sourceUrl: "https://www.amazon.ca/dp/B0C6HNPYBQ",
       brand: "Normcore",
       model: "V4 Spring-Loaded Tamper",
       size: "58mm",
@@ -102,11 +112,13 @@ export const ACCESSORY_SUGGESTIONS: AccessorySuggestion[] = [
   },
   {
     kind: "accessory",
-    match: ["normcore", "puck screen", "puck screens", "b0b46vft8p"],
+    match: ["normcore", "puck screen", "puck screens", "b0b46vft8p", "https://www.amazon.ca/dp/b0b46vft8p"],
     label: "Normcore 58.5mm Puck Screen Set",
     confidence: "BSE suggested — review before saving",
     values: {
       type: "puck_screen",
+      shortLabel: "NC Screen",
+      sourceUrl: "https://www.amazon.ca/dp/B0B46VFT8P",
       brand: "Normcore",
       model: "2-Pack Puck Screen with Stand",
       size: "58.5mm",
@@ -116,11 +128,13 @@ export const ACCESSORY_SUGGESTIONS: AccessorySuggestion[] = [
   },
   {
     kind: "accessory",
-    match: ["maestri", "maestri house", "scale", "coffee scale", "espresso scale", "b0cqy78hv6"],
+    match: ["maestri", "maestri house", "scale", "coffee scale", "espresso scale", "b0cqy78hv6", "https://www.amazon.ca/dp/b0cqy78hv6"],
     label: "Maestri House Mini Espresso Scale",
     confidence: "BSE suggested — review before saving",
     values: {
       type: "scale",
+      shortLabel: "MH Scale",
+      sourceUrl: "https://www.amazon.ca/dp/B0CQY78HV6",
       brand: "Maestri House",
       model: "Mini Coffee Scale with Timer",
       size: "2kg / 0.1g",
@@ -129,11 +143,13 @@ export const ACCESSORY_SUGGESTIONS: AccessorySuggestion[] = [
   },
   {
     kind: "accessory",
-    match: ["bamynoir", "wdt", "distribution", "espresso stirrer", "b0dp9zchcd"],
+    match: ["bamynoir", "wdt", "distribution", "espresso stirrer", "b0dp9zchcd", "https://www.amazon.ca/dp/b0dp9zchcd"],
     label: "Bamynoir WDT Distribution Tool",
     confidence: "BSE suggested — review before saving",
     values: {
       type: "wdt_tool",
+      shortLabel: "WDT",
+      sourceUrl: "https://www.amazon.ca/dp/B0DP9ZCHCD",
       brand: "Bamynoir",
       model: "WDT Distribution Tool",
       size: "58mm",
@@ -142,11 +158,13 @@ export const ACCESSORY_SUGGESTIONS: AccessorySuggestion[] = [
   },
   {
     kind: "accessory",
-    match: ["matow", "dosing funnel", "dosing ring", "magnetic funnel", "b0cm5xdgfr"],
+    match: ["matow", "dosing funnel", "dosing ring", "magnetic funnel", "b0cm5xdgfr", "https://www.amazon.ca/dp/b0cm5xdgfr"],
     label: "MATOW Magnetic Dosing Funnel",
     confidence: "BSE suggested — review before saving",
     values: {
       type: "dosing_funnel",
+      shortLabel: "MATOW",
+      sourceUrl: "https://www.amazon.ca/dp/B0CM5XDGFR",
       brand: "MATOW",
       model: "V2 Magnetic Dosing Funnel",
       size: "58mm",
@@ -155,11 +173,13 @@ export const ACCESSORY_SUGGESTIONS: AccessorySuggestion[] = [
   },
   {
     kind: "accessory",
-    match: ["dosing cup", "dose cup", "b09s3pwhby"],
+    match: ["dosing cup", "dose cup", "b09s3pwhby", "https://www.amazon.ca/dp/b09s3pwhby"],
     label: "Dosing Cup",
     confidence: "User-confirmed",
     values: {
       type: "dosing_cup",
+      shortLabel: "Dose Cup",
+      sourceUrl: "https://www.amazon.ca/dp/B09S3PWHBY",
       brand: "",
       model: "Dosing Cup",
       size: "",

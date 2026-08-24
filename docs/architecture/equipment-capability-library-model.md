@@ -123,6 +123,16 @@ Recommended verification states:
 - Disputed — conflicting reports exist.
 - Deprecated / Superseded — model variant or earlier entry has been replaced.
 
+Recommended evidence priority:
+
+1. Manufacturer specifications and official product pages.
+2. Official owner manuals, service manuals, or manufacturer support documentation.
+3. Trusted expert documentation with clear model/version evidence.
+4. Retailer product pages and purchase links.
+5. User-submitted notes, photos, and community reports.
+
+Retailer pages and user submissions can help identify likely matches, but they should not outrank manufacturer documentation or manuals when BSE verifies shared equipment facts.
+
 ## AI-assisted verification workflow
 
 AI can help prepare equipment verification, but it must not be the final authority.
@@ -130,7 +140,7 @@ AI can help prepare equipment verification, but it must not be the final authori
 Recommended workflow:
 
 1. A user submits a machine, grinder, scale, basket, or accessory fact.
-2. AI searches available evidence such as owner manuals, manufacturer pages, credible documentation, and clearly labeled community reports.
+2. AI searches available evidence in priority order: manufacturer specifications, official manuals/support documents, trusted expert sources, retailer pages, and clearly labeled community reports.
 3. AI prepares an admin report with:
    - submitted claim,
    - evidence found,
