@@ -256,6 +256,18 @@ test("Machine records can provide stock basket defaults", async () => {
   assert.match(settingsSource, /stockBasketOptions/);
 });
 
+test("Dashboard summarizes puck screen display by useful thickness only", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/Dashboard.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  assert.match(source, /function formatPuckScreenSummary/);
+  assert.match(source, /thickness:/);
+  assert.match(source, /Puck Screen/);
+  assert.doesNotMatch(source, /Puck screen\{bag\.puckScreen/);
+});
+
 test("Runtime startup applies additive equipment schema guards", async () => {
   const [indexSource, runtimeSchemaSource] = await Promise.all([
     readFile(fileURLToPath(new URL("./index.ts", import.meta.url)), "utf8"),

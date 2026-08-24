@@ -17,6 +17,13 @@ import { cn } from "@/lib/utils";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+function formatPuckScreenSummary(value: string | null): string | null {
+  if (!value) return null;
+  const thickness = value.match(/thickness:\s*([0-9]+(?:\.[0-9]+)?)\s*(?:mm)?/i)?.[1]
+    ?? value.match(/\b([0-9]+(?:\.[0-9]+)?)\s*mm\b/i)?.[1];
+  return thickness ? `${thickness}mm` : null;
+}
+
 interface RangeVal {
   min: number;
   max: number;
@@ -248,7 +255,7 @@ export default function Dashboard() {
                   {bag.basket && <span className="flex items-center gap-1"><Wrench className="h-3 w-3" />{bag.basket}</span>}
                   {bag.usePuckScreen && (
                     <span className="flex items-center gap-1 text-primary/70">
-                      <Scale className="h-3 w-3" />Puck screen{bag.puckScreen ? ` (${bag.puckScreen})` : ""}
+                      <Scale className="h-3 w-3" />Puck Screen{formatPuckScreenSummary(bag.puckScreen) ? ` ${formatPuckScreenSummary(bag.puckScreen)}` : ""}
                     </span>
                   )}
                 </div>
