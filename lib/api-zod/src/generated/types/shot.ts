@@ -68,9 +68,17 @@ export interface Shot {
   pourTime?: number | null;
   /** @nullable */
   flowTime?: number | null;
-  /** @nullable */
+  /**
+     * Technical/extraction rating. Capped at 10.
+     * @maximum 10
+     * @nullable
+     */
   rating?: number | null;
-  /** @nullable */
+  /**
+     * Personal enjoyment score. Capped at 11 for rare benchmark shots.
+     * @maximum 11
+     * @nullable
+     */
   preferenceRating?: number | null;
   /** @nullable */
   readonly ratingDifference?: number | null;

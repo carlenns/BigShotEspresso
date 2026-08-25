@@ -72,9 +72,17 @@ export interface Shot {
   pourTime?: number | null;
   /** @nullable */
   flowTime?: number | null;
-  /** @nullable */
+  /**
+     * Technical/extraction rating. Capped at 10.
+     * @maximum 10
+     * @nullable
+     */
   rating?: number | null;
-  /** @nullable */
+  /**
+     * Personal enjoyment score. Capped at 11 for rare benchmark shots.
+     * @maximum 11
+     * @nullable
+     */
   preferenceRating?: number | null;
   /** @nullable */
   readonly ratingDifference?: number | null;
@@ -247,8 +255,11 @@ export interface ShotWriteFields {
   doseCorrection?: number | null;
   /** @nullable */
   yield?: number | null;
-  /** @nullable */
-  ratio?: string | null;
+  /**
+     * Calculated as yield divided by dose when dose and yield are present.
+     * @nullable
+     */
+  readonly ratio?: string | null;
   /** @nullable */
   temperature?: number | null;
   /** @nullable */
@@ -267,27 +278,36 @@ export interface ShotWriteFields {
   rating?: number | null;
   /** @nullable */
   preferenceRating?: number | null;
-  rated?: boolean;
-  isForOthers?: boolean;
+  /** @nullable */
+  rated?: boolean | null;
+  /** @nullable */
+  isForOthers?: boolean | null;
   isReference?: boolean;
-  signatureShot?: boolean;
-  sourShot?: boolean;
+  /** @nullable */
+  signatureShot?: boolean | null;
+  /** @nullable */
+  sourShot?: boolean | null;
   boundaryShot?: boolean;
-  drinkType?: string;
+  /** @nullable */
+  drinkType?: string | null;
   status?: string;
   faultStatus?: StringArray;
-  shotClassification?: StringArray;
-  beanAchievement?: StringArray;
-  expressionStyle?: StringArray;
+  shotClassification?: StringArray | null;
+  beanAchievement?: StringArray | null;
+  expressionStyle?: StringArray | null;
   importantToIntelligence?: boolean;
   intelligenceLessonType?: StringArray;
   includeInAnalysis?: boolean;
-  tasteZone?: string;
-  notes?: string;
-  sensoryNotes?: string;
+  /** @nullable */
+  tasteZone?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  sensoryNotes?: string | null;
   faultNotes?: string;
   grindAdjusted?: string;
-  finishedShot?: boolean;
+  /** @nullable */
+  finishedShot?: boolean | null;
   /** @nullable */
   shotsLeftEst?: number | null;
 }
@@ -329,8 +349,11 @@ export interface ShotInput {
   doseCorrection?: number | null;
   /** @nullable */
   yield?: number | null;
-  /** @nullable */
-  ratio?: string | null;
+  /**
+     * Calculated as yield divided by dose when dose and yield are present.
+     * @nullable
+     */
+  readonly ratio?: string | null;
   /** @nullable */
   temperature?: number | null;
   /** @nullable */
@@ -349,27 +372,36 @@ export interface ShotInput {
   rating?: number | null;
   /** @nullable */
   preferenceRating?: number | null;
-  rated?: boolean;
-  isForOthers?: boolean;
+  /** @nullable */
+  rated?: boolean | null;
+  /** @nullable */
+  isForOthers?: boolean | null;
   isReference?: boolean;
-  signatureShot?: boolean;
-  sourShot?: boolean;
+  /** @nullable */
+  signatureShot?: boolean | null;
+  /** @nullable */
+  sourShot?: boolean | null;
   boundaryShot?: boolean;
-  drinkType?: string;
+  /** @nullable */
+  drinkType?: string | null;
   status?: string;
   faultStatus?: StringArray;
-  shotClassification?: StringArray;
-  beanAchievement?: StringArray;
-  expressionStyle?: StringArray;
+  shotClassification?: StringArray | null;
+  beanAchievement?: StringArray | null;
+  expressionStyle?: StringArray | null;
   importantToIntelligence?: boolean;
   intelligenceLessonType?: StringArray;
   includeInAnalysis?: boolean;
-  tasteZone?: string;
-  notes?: string;
-  sensoryNotes?: string;
+  /** @nullable */
+  tasteZone?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  sensoryNotes?: string | null;
   faultNotes?: string;
   grindAdjusted?: string;
-  finishedShot?: boolean;
+  /** @nullable */
+  finishedShot?: boolean | null;
   /** @nullable */
   shotsLeftEst?: number | null;
 }
@@ -411,6 +443,11 @@ export interface ShotUpdate {
   doseCorrection?: number | null;
   /** @nullable */
   yield?: number | null;
+  /**
+     * Calculated as yield divided by dose when dose and yield are present.
+     * @nullable
+     */
+  readonly ratio?: string | null;
   /** @nullable */
   temperature?: number | null;
   /** @nullable */
@@ -429,27 +466,36 @@ export interface ShotUpdate {
   rating?: number | null;
   /** @nullable */
   preferenceRating?: number | null;
-  rated?: boolean;
-  isForOthers?: boolean;
+  /** @nullable */
+  rated?: boolean | null;
+  /** @nullable */
+  isForOthers?: boolean | null;
   isReference?: boolean;
-  signatureShot?: boolean;
-  sourShot?: boolean;
+  /** @nullable */
+  signatureShot?: boolean | null;
+  /** @nullable */
+  sourShot?: boolean | null;
   boundaryShot?: boolean;
-  drinkType?: string;
+  /** @nullable */
+  drinkType?: string | null;
   status?: string;
   faultStatus?: StringArray;
-  shotClassification?: StringArray;
-  beanAchievement?: StringArray;
-  expressionStyle?: StringArray;
+  shotClassification?: StringArray | null;
+  beanAchievement?: StringArray | null;
+  expressionStyle?: StringArray | null;
   importantToIntelligence?: boolean;
   intelligenceLessonType?: StringArray;
   includeInAnalysis?: boolean;
-  tasteZone?: string;
-  notes?: string;
-  sensoryNotes?: string;
+  /** @nullable */
+  tasteZone?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  sensoryNotes?: string | null;
   faultNotes?: string;
   grindAdjusted?: string;
-  finishedShot?: boolean;
+  /** @nullable */
+  finishedShot?: boolean | null;
   /** @nullable */
   shotsLeftEst?: number | null;
 }
@@ -615,3 +661,4 @@ export type GetInsightsParams = {
 bean?: string;
 bag?: string;
 };
+

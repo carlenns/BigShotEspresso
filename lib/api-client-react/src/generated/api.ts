@@ -44,6 +44,33 @@ import type {
 import { customFetch } from '../custom-fetch';
 import type { ErrorType , BodyType } from '../custom-fetch';
 
+// https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
+type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
+T,
+>() => T extends Y ? 1 : 2
+? A
+: B;
+
+type WritableKeys<T> = {
+[P in keyof T]-?: IfEquals<
+  { [Q in P]: T[P] },
+  { -readonly [Q in P]: T[P] },
+  P
+>;
+}[keyof T];
+
+type UnionToIntersection<U> =
+  (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never;
+type DistributeReadOnlyOverUnions<T> = T extends any ? NonReadonly<T> : never;
+
+type Writable<T> = Pick<T, WritableKeys<T>>;
+type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
+  [P in keyof Writable<T>]: T[P] extends object
+    ? NonReadonly<NonNullable<T[P]>>
+    : T[P];
+} : DistributeReadOnlyOverUnions<T>;
+
+
 type AwaitedInput<T> = PromiseLike<T> | T;
 
       type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
@@ -226,7 +253,7 @@ export const getCreateShotUrl = () => {
 /**
  * @summary Create a new shot
  */
-export const createShot = async (shotInput: ShotInput, options?: RequestInit): Promise<Shot> => {
+export const createShot = async (shotInput: NonReadonly<ShotInput>, options?: RequestInit): Promise<Shot> => {
 
   return customFetch<Shot>(getCreateShotUrl(),
   {
@@ -242,8 +269,8 @@ export const createShot = async (shotInput: ShotInput, options?: RequestInit): P
 
 
 export const getCreateShotMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createShot>>, TError,{data: BodyType<ShotInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createShot>>, TError,{data: BodyType<ShotInput>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createShot>>, TError,{data: BodyType<NonReadonly<ShotInput>>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createShot>>, TError,{data: BodyType<NonReadonly<ShotInput>>}, TContext> => {
 
 const mutationKey = ['createShot'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -255,7 +282,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createShot>>, {data: BodyType<ShotInput>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createShot>>, {data: BodyType<NonReadonly<ShotInput>>}> = (props) => {
           const {data} = props ?? {};
 
           return  createShot(data,requestOptions)
@@ -269,18 +296,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateShotMutationResult = NonNullable<Awaited<ReturnType<typeof createShot>>>
-    export type CreateShotMutationBody = BodyType<ShotInput>
+    export type CreateShotMutationBody = BodyType<NonReadonly<ShotInput>>
     export type CreateShotMutationError = ErrorType<unknown>
 
     /**
  * @summary Create a new shot
  */
 export const useCreateShot = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createShot>>, TError,{data: BodyType<ShotInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createShot>>, TError,{data: BodyType<NonReadonly<ShotInput>>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createShot>>,
         TError,
-        {data: BodyType<ShotInput>},
+        {data: BodyType<NonReadonly<ShotInput>>},
         TContext
       > => {
       return useMutation(getCreateShotMutationOptions(options));
@@ -446,7 +473,7 @@ export const getUpdateShotUrl = (id: number,) => {
  * @summary Update a shot
  */
 export const updateShot = async (id: number,
-    shotUpdate: ShotUpdate, options?: RequestInit): Promise<Shot> => {
+    shotUpdate: NonReadonly<ShotUpdate>, options?: RequestInit): Promise<Shot> => {
 
   return customFetch<Shot>(getUpdateShotUrl(id),
   {
@@ -462,8 +489,8 @@ export const updateShot = async (id: number,
 
 
 export const getUpdateShotMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateShot>>, TError,{id: number;data: BodyType<ShotUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateShot>>, TError,{id: number;data: BodyType<ShotUpdate>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateShot>>, TError,{id: number;data: BodyType<NonReadonly<ShotUpdate>>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateShot>>, TError,{id: number;data: BodyType<NonReadonly<ShotUpdate>>}, TContext> => {
 
 const mutationKey = ['updateShot'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -475,7 +502,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateShot>>, {id: number;data: BodyType<ShotUpdate>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateShot>>, {id: number;data: BodyType<NonReadonly<ShotUpdate>>}> = (props) => {
           const {id,data} = props ?? {};
 
           return  updateShot(id,data,requestOptions)
@@ -489,18 +516,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateShotMutationResult = NonNullable<Awaited<ReturnType<typeof updateShot>>>
-    export type UpdateShotMutationBody = BodyType<ShotUpdate>
+    export type UpdateShotMutationBody = BodyType<NonReadonly<ShotUpdate>>
     export type UpdateShotMutationError = ErrorType<void>
 
     /**
  * @summary Update a shot
  */
 export const useUpdateShot = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateShot>>, TError,{id: number;data: BodyType<ShotUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateShot>>, TError,{id: number;data: BodyType<NonReadonly<ShotUpdate>>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof updateShot>>,
         TError,
-        {id: number;data: BodyType<ShotUpdate>},
+        {id: number;data: BodyType<NonReadonly<ShotUpdate>>},
         TContext
       > => {
       return useMutation(getUpdateShotMutationOptions(options));

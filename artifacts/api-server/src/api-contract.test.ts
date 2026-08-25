@@ -37,6 +37,53 @@ test("generated request validators match required runtime fields", () => {
   );
 });
 
+test("Editing a shot can clear optional fields back to null", () => {
+  // Regression guard: editing must be able to send an explicit `null` for a
+  // previously-set optional field so the server actually clears it, instead
+  // of the field being silently dropped by JSON.stringify(undefined) and
+  // leaving a stale Postgres value behind.
+  const clearable = {
+    machineId: null,
+    grinderId: null,
+    grindWaste: null,
+    topUpGrind: null,
+    timeAdj: null,
+    overGrindRemoved: null,
+    tasteZone: null,
+    shotClassification: null,
+    beanAchievement: null,
+    expressionStyle: null,
+    sensoryNotes: null,
+    notes: null,
+    drinkType: null,
+    finishedShot: null,
+    isForOthers: null,
+    rated: null,
+    sourShot: null,
+    signatureShot: null,
+  };
+  const result = UpdateShotBody.safeParse(clearable);
+  assert.equal(result.success, true, result.success ? undefined : JSON.stringify(result.error.issues));
+
+  // `isReference` is NOT NULL in the `shots` table (with a default), so the
+  // contract must keep rejecting an explicit null for it even though every
+  // other flag field above now accepts one.
+  assert.equal(UpdateShotBody.safeParse({ isReference: null }).success, false);
+  assert.equal(UpdateShotBody.safeParse({ isReference: false }).success, true);
+});
+
+test("Log Shot converts cleared optional fields to null only when editing, never on create", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  assert.match(source, /NULLABLE_ON_EDIT_FIELDS/);
+  assert.match(source, /if \(isEditing\) \{[\s\S]{0,300}NULLABLE_ON_EDIT_FIELDS/);
+  // isReference is NOT NULL in the DB and must stay out of the nullable list.
+  assert.doesNotMatch(source, /NULLABLE_ON_EDIT_FIELDS[\s\S]{0,20}=[\s\S]{0,600}"isReference"/);
+});
+
 test("Shot route enforces rating, ratio, and signature/reference invariants", async () => {
   const source = await readFile(
     fileURLToPath(new URL("./routes/shots.ts", import.meta.url)),

@@ -695,3 +695,60 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 - Equipment-aware Grind Setting precision remains future work now that a Grinder selector exists.
 - Machine/profile-level Drink Type defaults remain deferred until they are scoped separately.
 - Clearing already-set optional shot fields to null may still need a PATCH/serialization fix; this was reported by the implementation agent and was not changed here.
+
+# Shot Detail Machine/Grinder Display — 2026-08-25
+
+## Completed
+
+- Added Machine and Grinder to the Extraction Details grid on `ShotDetail.tsx`, next to Grind Setting / Grind Time / Initial Grinder Output, using the same `DetailItem` component and conditional-render style already used for other optional fields in that grid.
+- Each is shown only when the shot has a `machineId`/`grinderId` and a matching equipment record is found; absent values render nothing (no placeholder noise), matching the requirement.
+- Labels use the existing fallback order already established in `ShotForm.tsx`/`Settings.tsx`: `shortLabel` → `name` → `brand`/`model` join → `"Unnamed"`.
+- The shot detail API response (`GET /shots/:id`) only returns the raw `machineId`/`grinderId` FKs, no joined equipment name — confirmed via `artifacts/api-server/src/lib/api-shapes.ts` and the `select()` in `artifacts/api-server/src/routes/shots.ts`. Rather than changing that API/schema (out of scope), `ShotDetail.tsx` now also queries the existing `/api/equipment/grinders` and `/api/equipment/machines` endpoints (already used by `ShotForm.tsx`/`Settings.tsx`, no new endpoints) and resolves the label client-side.
+- No schema, migration, API, OpenAPI, Quick Log, intelligence, auth, payments, Airtable sync, or predictive-logic changes.
+- No machine/profile-level Drink Type defaults or equipment-aware grind precision added — display only.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (all 4 workspace projects).
+- `CI=true pnpm --filter @workspace/api-server test` — 42 passed, 0 failed (no test changes needed).
+- `CI=true pnpm run build:render` — passed.
+- Manual smoke test against the live dev DB (read-only, no data mutated): viewed an existing shot with both `machineId`/`grinderId` set (id 241) and confirmed "Profitec Go" / "Eureka Mignon Magnifico" render correctly in the grid; viewed an existing shot with neither set (id 243) and confirmed no Machine/Grinder rows appear at all.
+
+## Assumptions
+
+- Reusing the already-existing `/api/equipment/grinders` and `/api/equipment/machines` endpoints client-side (rather than adding a join to `GET /shots/:id`) is the correct "no API/schema change" interpretation of the brief, since those endpoints already exist and are already used elsewhere in the frontend for the same purpose.
+- If an equipment record referenced by `machineId`/`grinderId` no longer exists in the fetched list (e.g. deleted equipment), the row is simply omitted rather than showing a raw ID or an error — treated as equivalent to "absent" for display purposes.
+
+## Unresolved
+
+- None new. Same outstanding items as the previous session (equipment-aware Grind Setting precision, machine/profile-level Drink Type defaults still deferred). The optional-field PATCH-clear-to-null gap noted previously appears to be under active, concurrent fix elsewhere in the working tree as of this session (`ShotForm.tsx` and OpenAPI/generated-client files were mid-edit for it while this task ran) — not verified or touched here.
+
+# Shot Edit Reliability: Cleared Optional Fields Now Persist As Null — 2026-08-25
+
+## Completed
+
+- Root-caused the reported bug precisely: `ShotForm.tsx`'s `onSubmit` built the PATCH payload as `{...values, ...}`, and any optional field the user cleared held `undefined` in `values`. `JSON.stringify` drops keys with `undefined` values entirely, so the PATCH body omitted them, and the server's `db.update(shotsTable).set(data)` (`artifacts/api-server/src/routes/shots.ts`) only touches keys actually present in `data` — the stale Postgres value silently survived the edit.
+- Found the API contract itself blocked the correct fix for several fields: `rated`, `isForOthers`, `signatureShot`, `sourShot`, `drinkType`, `tasteZone`, `notes`, `sensoryNotes`, `finishedShot`, `shotClassification`, `beanAchievement`, `expressionStyle` were typed optional-but-not-nullable in `lib/api-spec/openapi.yaml`'s shared `shotWriteProperties` (used by both `ShotInput`/create and `ShotUpdate`), even though the underlying `shots` table columns are all genuinely nullable. Sending an explicit `null` for these would have been rejected with a 400. Widened only these fields to `["<type>", "null"]` (or `oneOf [$ref, {type: "null"}]` for the `StringArray`-typed ones) and regenerated `lib/api-zod`/`lib/api-client-react` via `pnpm --filter @workspace/api-spec run codegen`. `machineId`, `grinderId`, `grindWaste`, `topUpGrind`, `timeAdj`, `overGrindRemoved` were already nullable in the contract — no spec change needed for those. `isReference` was deliberately left non-nullable, matching its `NOT NULL DEFAULT false` column — the client fix excludes it.
+- Added `NULLABLE_ON_EDIT_FIELDS` and an `if (isEditing) { ... }` normalization block in `ShotForm.tsx`'s `onSubmit`, converting any still-`undefined` field in that list to an explicit `null` right before the mutate call. This only runs on the edit path — create requests are unaffected (an `undefined` field is still simply omitted on create, unchanged behavior).
+- This is safe as a blanket per-submit conversion (not a partial diff) because the edit form already loads and resubmits the *entire* saved shot on every edit (`existingShot` → `form.reset` effect) — there is no "untouched vs. cleared" distinction in this architecture to preserve; `undefined` at submit time always means "this field is empty right now."
+- Also fixed the same bug pattern for `grindWaste`/`grindAdjusted`: when the user unchecks "Record grind change / purge waste" on an edit, the existing code `delete`s both keys from the payload rather than sending null — the null-normalization step (edit-only) now converts the resulting missing `grindWaste` key to `null` so an unchecked/cleared grind-waste event actually clears in Postgres. `grindAdjusted` itself was left as-is (still deleted, not nulled) — it wasn't in the task's field list and touching it would have expanded scope; flagged below as a related, still-open gap.
+- Added two focused tests to `artifacts/api-server/src/api-contract.test.ts`: one confirms `UpdateShotBody` now accepts `null` for every field in scope while still rejecting `null` for `isReference`; the other confirms `ShotForm.tsx` contains the edit-only null-normalization and that `isReference` is excluded from it.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (workspace-wide, including `lib/api-zod` and `lib/api-client-react` after regeneration).
+- `CI=true pnpm --filter @workspace/api-server test` — 44/44 passed, 0 failed (42 pre-existing + 2 new).
+- `CI=true pnpm run build:render` — build succeeded.
+- Did not run a live manual edit-a-shot-in-the-browser smoke test — no running Postgres-backed app instance was available in this environment. Verified end-to-end via code + contract inspection instead: traced the exact `undefined` → `JSON.stringify` drop → `.set(data)` partial-update chain, confirmed the OpenAPI/zod/DB nullability now line up for every field in scope, and added regression tests asserting both the contract and the client-side normalization exist.
+
+## Assumptions
+
+- Widening `shotWriteProperties` (the shared YAML anchor between `ShotInput` and `ShotUpdate`) rather than duplicating a separate nullable-only block for `ShotUpdate` is safe for "preserve create behavior": allowing an *additional* valid input (`null`) alongside the existing valid one (omitted) doesn't change what a create request currently sends or means, and the client's null-normalization is explicitly gated to `isEditing` so create payloads are byte-for-byte unchanged.
+- `overGrindRemoved` needed the same treatment even though it isn't a raw form field — it's produced only by `calculateDoseCorrection`'s return value, which omits it entirely (not `null`) when no correction applies (e.g. the user clears `Initial Grinder Output`). Handled it as a one-off `if (payload.overGrindRemoved === undefined) payload.overGrindRemoved = null;` alongside the main loop rather than folding it into `NULLABLE_ON_EDIT_FIELDS` (it isn't a `FormValues` key).
+- `rating`/`preferenceRating` were intentionally left out of `NULLABLE_ON_EDIT_FIELDS` — not in the task's field list, and the existing `if (values.rated === false) { payload.rating = null; payload.preferenceRating = null; }` logic already covers their one real clearing path.
+
+## Unresolved
+
+- `grindAdjusted` has the identical delete-instead-of-null bug as `grindWaste` (same `else { delete payload.grindWaste; delete payload.grindAdjusted; }` block) but was left untouched since it wasn't in the task's explicit field list — worth a follow-up if grind-event history editing turns out to matter.
+- No live browser smoke test of an actual edit-and-clear round trip against a running Postgres instance — recommend one before this ships, since this session could only verify via static contract/code inspection.
+- The OpenAPI/codegen diff touches several generated files (`lib/api-zod/src/generated/**`, `lib/api-client-react/src/generated/**`) beyond `ShotForm.tsx` itself — worth a quick reviewer skim to confirm the regenerated output only changed nullability for the intended fields (it does, per this session's inspection, but a second look is cheap).

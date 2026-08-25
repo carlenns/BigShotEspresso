@@ -43,6 +43,12 @@ export const ListShotsQueryParams = zod.object({
   "offset": zod.coerce.string().optional()
 })
 
+export const listShotsResponseShotsItemRatingMax = 10;
+
+export const listShotsResponseShotsItemPreferenceRatingMax = 11;
+
+
+
 export const ListShotsResponse = zod.object({
   "shots": zod.array(zod.object({
   "id": zod.number(),
@@ -76,8 +82,8 @@ export const ListShotsResponse = zod.object({
   "pourDelay": zod.number().nullish(),
   "pourTime": zod.number().nullish(),
   "flowTime": zod.number().nullish(),
-  "rating": zod.number().nullish(),
-  "preferenceRating": zod.number().nullish(),
+  "rating": zod.number().max(listShotsResponseShotsItemRatingMax).nullish().describe('Technical\/extraction rating. Capped at 10.'),
+  "preferenceRating": zod.number().max(listShotsResponseShotsItemPreferenceRatingMax).nullish().describe('Personal enjoyment score. Capped at 11 for rare benchmark shots.'),
   "ratingDifference": zod.number().nullish(),
   "avgWeightedRating": zod.number().nullish(),
   "rated": zod.boolean().nullish(),
@@ -176,7 +182,6 @@ export const CreateShotBody = zod.object({
   "doseCorrectionType": zod.string().optional(),
   "doseCorrection": zod.number().nullish(),
   "yield": zod.number().nullish(),
-  "ratio": zod.string().nullish(),
   "temperature": zod.number().nullish(),
   "pourDelay": zod.number().nullish(),
   "pourTime": zod.number().nullish(),
@@ -184,27 +189,27 @@ export const CreateShotBody = zod.object({
   "scaleTime": zod.number().nullish().describe('Temporary compatibility alias for flowTime.'),
   "rating": zod.number().nullish(),
   "preferenceRating": zod.number().nullish(),
-  "rated": zod.boolean().optional(),
-  "isForOthers": zod.boolean().optional(),
+  "rated": zod.boolean().nullish(),
+  "isForOthers": zod.boolean().nullish(),
   "isReference": zod.boolean().optional(),
-  "signatureShot": zod.boolean().optional(),
-  "sourShot": zod.boolean().optional(),
+  "signatureShot": zod.boolean().nullish(),
+  "sourShot": zod.boolean().nullish(),
   "boundaryShot": zod.boolean().optional(),
-  "drinkType": zod.string().optional(),
+  "drinkType": zod.string().nullish(),
   "status": zod.string().optional(),
   "faultStatus": zod.array(zod.string()).optional(),
-  "shotClassification": zod.array(zod.string()).optional(),
-  "beanAchievement": zod.array(zod.string()).optional(),
-  "expressionStyle": zod.array(zod.string()).optional(),
+  "shotClassification": zod.union([zod.array(zod.string()),zod.null()]).optional(),
+  "beanAchievement": zod.union([zod.array(zod.string()),zod.null()]).optional(),
+  "expressionStyle": zod.union([zod.array(zod.string()),zod.null()]).optional(),
   "importantToIntelligence": zod.boolean().optional(),
   "intelligenceLessonType": zod.array(zod.string()).optional(),
   "includeInAnalysis": zod.boolean().default(createShotBodyIncludeInAnalysisDefault),
-  "tasteZone": zod.string().optional(),
-  "notes": zod.string().optional(),
-  "sensoryNotes": zod.string().optional(),
+  "tasteZone": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "sensoryNotes": zod.string().nullish(),
   "faultNotes": zod.string().optional(),
   "grindAdjusted": zod.string().optional(),
-  "finishedShot": zod.boolean().optional(),
+  "finishedShot": zod.boolean().nullish(),
   "shotsLeftEst": zod.number().nullish()
 })
 
@@ -229,6 +234,12 @@ export const ImportShotsCsvResponse = zod.object({
 export const GetShotParams = zod.object({
   "id": zod.coerce.number()
 })
+
+export const getShotResponseRatingMax = 10;
+
+export const getShotResponsePreferenceRatingMax = 11;
+
+
 
 export const GetShotResponse = zod.object({
   "id": zod.number(),
@@ -262,8 +273,8 @@ export const GetShotResponse = zod.object({
   "pourDelay": zod.number().nullish(),
   "pourTime": zod.number().nullish(),
   "flowTime": zod.number().nullish(),
-  "rating": zod.number().nullish(),
-  "preferenceRating": zod.number().nullish(),
+  "rating": zod.number().max(getShotResponseRatingMax).nullish().describe('Technical\/extraction rating. Capped at 10.'),
+  "preferenceRating": zod.number().max(getShotResponsePreferenceRatingMax).nullish().describe('Personal enjoyment score. Capped at 11 for rare benchmark shots.'),
   "ratingDifference": zod.number().nullish(),
   "avgWeightedRating": zod.number().nullish(),
   "rated": zod.boolean().nullish(),
@@ -364,7 +375,6 @@ export const UpdateShotBody = zod.object({
   "doseCorrectionType": zod.string().optional(),
   "doseCorrection": zod.number().nullish(),
   "yield": zod.number().nullish(),
-  "ratio": zod.string().nullish(),
   "temperature": zod.number().nullish(),
   "pourDelay": zod.number().nullish(),
   "pourTime": zod.number().nullish(),
@@ -372,29 +382,35 @@ export const UpdateShotBody = zod.object({
   "scaleTime": zod.number().nullish().describe('Temporary compatibility alias for flowTime.'),
   "rating": zod.number().nullish(),
   "preferenceRating": zod.number().nullish(),
-  "rated": zod.boolean().optional(),
-  "isForOthers": zod.boolean().optional(),
+  "rated": zod.boolean().nullish(),
+  "isForOthers": zod.boolean().nullish(),
   "isReference": zod.boolean().optional(),
-  "signatureShot": zod.boolean().optional(),
-  "sourShot": zod.boolean().optional(),
+  "signatureShot": zod.boolean().nullish(),
+  "sourShot": zod.boolean().nullish(),
   "boundaryShot": zod.boolean().optional(),
-  "drinkType": zod.string().optional(),
+  "drinkType": zod.string().nullish(),
   "status": zod.string().optional(),
   "faultStatus": zod.array(zod.string()).optional(),
-  "shotClassification": zod.array(zod.string()).optional(),
-  "beanAchievement": zod.array(zod.string()).optional(),
-  "expressionStyle": zod.array(zod.string()).optional(),
+  "shotClassification": zod.union([zod.array(zod.string()),zod.null()]).optional(),
+  "beanAchievement": zod.union([zod.array(zod.string()),zod.null()]).optional(),
+  "expressionStyle": zod.union([zod.array(zod.string()),zod.null()]).optional(),
   "importantToIntelligence": zod.boolean().optional(),
   "intelligenceLessonType": zod.array(zod.string()).optional(),
   "includeInAnalysis": zod.boolean().default(updateShotBodyIncludeInAnalysisDefault),
-  "tasteZone": zod.string().optional(),
-  "notes": zod.string().optional(),
-  "sensoryNotes": zod.string().optional(),
+  "tasteZone": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "sensoryNotes": zod.string().nullish(),
   "faultNotes": zod.string().optional(),
   "grindAdjusted": zod.string().optional(),
-  "finishedShot": zod.boolean().optional(),
+  "finishedShot": zod.boolean().nullish(),
   "shotsLeftEst": zod.number().nullish()
 })
+
+export const updateShotResponseRatingMax = 10;
+
+export const updateShotResponsePreferenceRatingMax = 11;
+
+
 
 export const UpdateShotResponse = zod.object({
   "id": zod.number(),
@@ -428,8 +444,8 @@ export const UpdateShotResponse = zod.object({
   "pourDelay": zod.number().nullish(),
   "pourTime": zod.number().nullish(),
   "flowTime": zod.number().nullish(),
-  "rating": zod.number().nullish(),
-  "preferenceRating": zod.number().nullish(),
+  "rating": zod.number().max(updateShotResponseRatingMax).nullish().describe('Technical\/extraction rating. Capped at 10.'),
+  "preferenceRating": zod.number().max(updateShotResponsePreferenceRatingMax).nullish().describe('Personal enjoyment score. Capped at 11 for rare benchmark shots.'),
   "ratingDifference": zod.number().nullish(),
   "avgWeightedRating": zod.number().nullish(),
   "rated": zod.boolean().nullish(),
@@ -515,6 +531,12 @@ export const GetSimilarShotsParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const getSimilarShotsResponseRatingMax = 10;
+
+export const getSimilarShotsResponsePreferenceRatingMax = 11;
+
+
+
 export const GetSimilarShotsResponseItem = zod.object({
   "id": zod.number(),
   "shotDate": zod.string(),
@@ -547,8 +569,8 @@ export const GetSimilarShotsResponseItem = zod.object({
   "pourDelay": zod.number().nullish(),
   "pourTime": zod.number().nullish(),
   "flowTime": zod.number().nullish(),
-  "rating": zod.number().nullish(),
-  "preferenceRating": zod.number().nullish(),
+  "rating": zod.number().max(getSimilarShotsResponseRatingMax).nullish().describe('Technical\/extraction rating. Capped at 10.'),
+  "preferenceRating": zod.number().max(getSimilarShotsResponsePreferenceRatingMax).nullish().describe('Personal enjoyment score. Capped at 11 for rare benchmark shots.'),
   "ratingDifference": zod.number().nullish(),
   "avgWeightedRating": zod.number().nullish(),
   "rated": zod.boolean().nullish(),
@@ -635,6 +657,12 @@ export const ListReferenceShotsQueryParams = zod.object({
   "pourDelayMax": zod.coerce.string().optional()
 })
 
+export const listReferenceShotsResponseRatingMax = 10;
+
+export const listReferenceShotsResponsePreferenceRatingMax = 11;
+
+
+
 export const ListReferenceShotsResponseItem = zod.object({
   "id": zod.number(),
   "shotDate": zod.string(),
@@ -667,8 +695,8 @@ export const ListReferenceShotsResponseItem = zod.object({
   "pourDelay": zod.number().nullish(),
   "pourTime": zod.number().nullish(),
   "flowTime": zod.number().nullish(),
-  "rating": zod.number().nullish(),
-  "preferenceRating": zod.number().nullish(),
+  "rating": zod.number().max(listReferenceShotsResponseRatingMax).nullish().describe('Technical\/extraction rating. Capped at 10.'),
+  "preferenceRating": zod.number().max(listReferenceShotsResponsePreferenceRatingMax).nullish().describe('Personal enjoyment score. Capped at 11 for rare benchmark shots.'),
   "ratingDifference": zod.number().nullish(),
   "avgWeightedRating": zod.number().nullish(),
   "rated": zod.boolean().nullish(),
@@ -768,6 +796,12 @@ export const GetRecentShotsQueryParams = zod.object({
   "limit": zod.coerce.string().optional()
 })
 
+export const getRecentShotsResponseRatingMax = 10;
+
+export const getRecentShotsResponsePreferenceRatingMax = 11;
+
+
+
 export const GetRecentShotsResponseItem = zod.object({
   "id": zod.number(),
   "shotDate": zod.string(),
@@ -800,8 +834,8 @@ export const GetRecentShotsResponseItem = zod.object({
   "pourDelay": zod.number().nullish(),
   "pourTime": zod.number().nullish(),
   "flowTime": zod.number().nullish(),
-  "rating": zod.number().nullish(),
-  "preferenceRating": zod.number().nullish(),
+  "rating": zod.number().max(getRecentShotsResponseRatingMax).nullish().describe('Technical\/extraction rating. Capped at 10.'),
+  "preferenceRating": zod.number().max(getRecentShotsResponsePreferenceRatingMax).nullish().describe('Personal enjoyment score. Capped at 11 for rare benchmark shots.'),
   "ratingDifference": zod.number().nullish(),
   "avgWeightedRating": zod.number().nullish(),
   "rated": zod.boolean().nullish(),
@@ -880,6 +914,12 @@ export const GetBestRatedShotsQueryParams = zod.object({
   "limit": zod.coerce.string().optional()
 })
 
+export const getBestRatedShotsResponseRatingMax = 10;
+
+export const getBestRatedShotsResponsePreferenceRatingMax = 11;
+
+
+
 export const GetBestRatedShotsResponseItem = zod.object({
   "id": zod.number(),
   "shotDate": zod.string(),
@@ -912,8 +952,8 @@ export const GetBestRatedShotsResponseItem = zod.object({
   "pourDelay": zod.number().nullish(),
   "pourTime": zod.number().nullish(),
   "flowTime": zod.number().nullish(),
-  "rating": zod.number().nullish(),
-  "preferenceRating": zod.number().nullish(),
+  "rating": zod.number().max(getBestRatedShotsResponseRatingMax).nullish().describe('Technical\/extraction rating. Capped at 10.'),
+  "preferenceRating": zod.number().max(getBestRatedShotsResponsePreferenceRatingMax).nullish().describe('Personal enjoyment score. Capped at 11 for rare benchmark shots.'),
   "ratingDifference": zod.number().nullish(),
   "avgWeightedRating": zod.number().nullish(),
   "rated": zod.boolean().nullish(),
@@ -1097,4 +1137,5 @@ export const ImportHopperRangeBaselinesCsvResponse = zod.object({
   "skipped": zod.number(),
   "errors": zod.array(zod.string())
 })
+
 

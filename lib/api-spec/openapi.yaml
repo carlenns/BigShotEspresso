@@ -614,27 +614,36 @@ components:
         scaleTime: { type: ["integer", "null"], deprecated: true, description: "Temporary compatibility alias for flowTime." }
         rating: { type: ["number", "null"] }
         preferenceRating: { type: ["number", "null"] }
-        rated: { type: boolean }
-        isForOthers: { type: boolean }
+        rated: { type: ["boolean", "null"] }
+        isForOthers: { type: ["boolean", "null"] }
         isReference: { type: boolean }
-        signatureShot: { type: boolean }
-        sourShot: { type: boolean }
+        signatureShot: { type: ["boolean", "null"] }
+        sourShot: { type: ["boolean", "null"] }
         boundaryShot: { type: boolean }
-        drinkType: { type: string }
+        drinkType: { type: ["string", "null"] }
         status: { type: string }
         faultStatus: { $ref: "#/components/schemas/StringArray" }
-        shotClassification: { $ref: "#/components/schemas/StringArray" }
-        beanAchievement: { $ref: "#/components/schemas/StringArray" }
-        expressionStyle: { $ref: "#/components/schemas/StringArray" }
+        shotClassification:
+          oneOf:
+            - $ref: "#/components/schemas/StringArray"
+            - type: "null"
+        beanAchievement:
+          oneOf:
+            - $ref: "#/components/schemas/StringArray"
+            - type: "null"
+        expressionStyle:
+          oneOf:
+            - $ref: "#/components/schemas/StringArray"
+            - type: "null"
         importantToIntelligence: { type: boolean }
         intelligenceLessonType: { $ref: "#/components/schemas/StringArray" }
         includeInAnalysis: { type: boolean, default: true }
-        tasteZone: { type: string }
-        notes: { type: string }
-        sensoryNotes: { type: string }
+        tasteZone: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        sensoryNotes: { type: ["string", "null"] }
         faultNotes: { type: string }
         grindAdjusted: { type: string }
-        finishedShot: { type: boolean }
+        finishedShot: { type: ["boolean", "null"] }
         shotsLeftEst: { type: ["number", "null"] }
 
     ShotInput:

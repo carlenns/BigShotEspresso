@@ -1,7 +1,7 @@
 import React from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { useGetShot, useGetSimilarShots, useDeleteShot, getListShotsQueryKey, getGetDashboardSummaryQueryKey, getGetShotQueryKey, getGetSimilarShotsQueryKey } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
@@ -10,6 +10,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { displaySelectorValue } from "@/lib/selector-options";
+
+interface Grinder { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; }
+interface Machine { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; }
+
+function fetchGrinders(): Promise<Grinder[]> { return fetch("/api/equipment/grinders").then((r) => r.json()); }
+function fetchMachines(): Promise<Machine[]> { return fetch("/api/equipment/machines").then((r) => r.json()); }
+
+function equipmentLabel(item: { name: string; shortLabel?: string | null; brand: string | null; model: string | null }): string {
+  return item.shortLabel || item.name || [item.brand, item.model].filter(Boolean).join(" ") || "Unnamed";
+}
 
 export default function ShotDetail() {
   const [, params] = useRoute("/shots/:id");
@@ -20,6 +30,8 @@ export default function ShotDetail() {
 
   const { data: shot, isLoading, isError } = useGetShot(id, { query: { enabled: !!id, queryKey: getGetShotQueryKey(id) }});
   const { data: similarShots } = useGetSimilarShots(id, { query: { enabled: !!id, queryKey: getGetSimilarShotsQueryKey(id) }});
+  const { data: grinders = [] } = useQuery({ queryKey: ["equipment", "grinders"], queryFn: fetchGrinders });
+  const { data: machines = [] } = useQuery({ queryKey: ["equipment", "machines"], queryFn: fetchMachines });
   const deleteShot = useDeleteShot();
 
   if (isLoading) {
@@ -38,6 +50,9 @@ export default function ShotDetail() {
 
   const hasGrinderWorkflowEvent =
     Boolean(shot.grindAdjusted) || shot.grindWaste != null;
+
+  const machine = shot.machineId != null ? machines.find((m) => m.id === shot.machineId) : undefined;
+  const grinder = shot.grinderId != null ? grinders.find((g) => g.id === shot.grinderId) : undefined;
 
   const hasServingContext =
     Boolean(shot.drinkType) ||
@@ -109,6 +124,8 @@ export default function ShotDetail() {
               {shot.grindSetting != null && <DetailItem label="Grind Setting" value={shot.grindSetting} />}
               {shot.grindTime != null && <DetailItem label="Grind Time" value={`${shot.grindTime}s`} />}
               {shot.initialGrindWeight != null && <DetailItem label="Initial Grinder Output" value={`${shot.initialGrindWeight}g`} />}
+              {machine && <DetailItem label="Machine" value={equipmentLabel(machine)} />}
+              {grinder && <DetailItem label="Grinder" value={equipmentLabel(grinder)} />}
               <DetailItem label="Status" value={displaySelectorValue(shot.status) || "-"} />
               <DetailItem label="Include in Analysis" value={shot.includeInAnalysis ? "Yes" : "No"} />
               <DetailItem label="Fault Status" value={<ChipList values={shot.faultStatus} />} />

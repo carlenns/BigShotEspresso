@@ -139,6 +139,24 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 type ShotMutationResult = { id?: number };
 
+// Optional shot fields that must persist as an explicit `null` when a user
+// clears them during an edit. The edit form always loads and resubmits the
+// full saved shot (see the `existingShot` -> `form.reset` effect below), so
+// there is no partial-diff concept here: an `undefined` value on submit
+// means "the user left/made this field empty," not "untouched." Without
+// this, `JSON.stringify` drops `undefined` keys entirely, the PATCH body
+// omits them, and the server's `db.update(...).set(data)` leaves the stale
+// Postgres value in place instead of clearing it.
+// `isReference` is intentionally excluded: the `shots` table declares it
+// NOT NULL (with a default), so it can never legitimately be cleared to
+// null — the form always submits a concrete boolean for it.
+const NULLABLE_ON_EDIT_FIELDS: (keyof FormValues)[] = [
+  "machineId", "grinderId", "grindWaste", "topUpGrind", "timeAdj",
+  "tasteZone", "shotClassification", "beanAchievement", "expressionStyle",
+  "sensoryNotes", "notes", "drinkType", "finishedShot",
+  "isForOthers", "rated", "sourShot", "signatureShot",
+];
+
 function ScalarSelect({
   options,
   value,
@@ -532,6 +550,16 @@ export default function ShotForm() {
     else {
       delete payload.grindWaste;
       delete payload.grindAdjusted;
+    }
+
+    // Edits must be able to clear a previously-set optional value. Create
+    // requests are left untouched (undefined fields stay omitted, matching
+    // existing create behavior) since a new shot has nothing to clear.
+    if (isEditing) {
+      for (const key of NULLABLE_ON_EDIT_FIELDS) {
+        if (payload[key] === undefined) payload[key] = null;
+      }
+      if (payload.overGrindRemoved === undefined) payload.overGrindRemoved = null;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
