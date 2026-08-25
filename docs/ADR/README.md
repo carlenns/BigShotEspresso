@@ -56,5 +56,6 @@ Example: `ADR-0001-airtable-and-postgresql-authority.md`
 | [ADR-0006](ADR-0006-neon-postgres-rehearsal-and-release-database.md) | Neon Postgres Rehearsal and Release Database | Proposed |
 | [ADR-0007](ADR-0007-render-first-hosting-and-domain.md) | Render-First Hosting and Domain | Proposed |
 | [ADR-0008](ADR-0008-owner-only-first-release-access.md) | Owner-Only First Release Access | Proposed |
+| [ADR-0009](ADR-0009-user-accounts-authentication-and-data-ownership.md) | User Accounts, Authentication, and Data Ownership | Proposed |
 
 These ADRs are drafts until reviewed and accepted. They document decisions already made or explicitly requested during Phase 1/1.5 stabilization and repository certification.
