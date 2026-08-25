@@ -123,6 +123,58 @@ test("Shot entry separates serving context from automated analysis eligibility",
   }
 });
 
+test("Drink Type is user-extensible: Affogato is curated and custom values merge without dropping saved shots", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/lib/selector-options.ts", import.meta.url)),
+    "utf8",
+  );
+
+  assert.match(source, /"Affogato"/);
+  assert.match(source, /CUSTOM_DRINK_TYPES_SETTINGS_KEY = "customDrinkTypes"/);
+
+  // parseCustomDrinkTypes: tolerant of missing/malformed settings values, and
+  // only accepts real, non-empty strings out of the parsed JSON array.
+  assert.match(source, /function parseCustomDrinkTypes/);
+  assert.match(source, /JSON\.parse\(raw\)/);
+  assert.match(source, /Array\.isArray\(parsed\)/);
+  assert.match(source, /typeof value === "string" && value\.trim\(\)\.length > 0/);
+
+  // mergeDrinkTypeOptions: custom values are deduped against curated options,
+  // and a selected value that predates both lists (an existing saved shot's
+  // drinkType) is preserved by appending it if it's still missing.
+  assert.match(source, /function mergeDrinkTypeOptions/);
+  assert.match(source, /customDrinkTypes\.filter\(\(value\) => value && !curated\.includes\(value\)\)/);
+  assert.match(source, /selectedValue && !merged\.includes\(selectedValue\) \? \[\.\.\.merged, selectedValue\] : merged/);
+
+  assert.match(source, /function drinkTypeOptionsFromSettings/);
+});
+
+test("Settings lets users add custom Drink Types and pick a Default Drink Type; Quick Log stays shelved", async () => {
+  const [settingsSource, shotFormSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Settings.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  for (const required of [
+    "Default Drink Type",
+    "Add Drink Type",
+    "DrinkTypeDefaultField",
+    "CUSTOM_DRINK_TYPES_SETTINGS_KEY",
+    "parseCustomDrinkTypes",
+    "mergeDrinkTypeOptions",
+    "addCustomDrinkType",
+  ]) {
+    assert.match(settingsSource, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+
+  assert.match(shotFormSource, /drinkTypeOptionsFromSettings/);
+
+  // Settings must not reintroduce the shelved Quick Log preferences UI while
+  // wiring up drink type controls.
+  assert.doesNotMatch(settingsSource, /LoggingPreferencesSection/);
+  assert.doesNotMatch(settingsSource, /Choose which fields appear in Quick Log/);
+});
+
 test("Today's Coffee Brief uses active-bag performance windows only", async () => {
   const source = await readFile(
     fileURLToPath(new URL("./routes/dashboard.ts", import.meta.url)),

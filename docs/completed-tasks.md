@@ -477,3 +477,29 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 ## Unresolved
 
 - If Quick Log returns later, it needs a fresh design pass rather than continuing to accumulate fields.
+
+# User-Extensible Drink Types (Affogato) — 2026-08-25
+
+## Completed
+
+- Added `Affogato` to the curated Drink Type list.
+- Added user-extensible custom Drink Types: users can add their own from Defaults & Settings via a lightweight inline "Add Drink Type" control on the Default Drink Type field.
+- Custom drink types are stored as a JSON array under a `customDrinkTypes` key in the existing generic `/api/settings` key/value store — no new storage mechanism or schema change was needed.
+- The Default Drink Type selector and the shot-entry Drink Type dropdown both show curated options plus any user-added custom types.
+- Existing/historical `drinkType` values already saved on a shot remain selectable even if they are not in the curated or custom lists (same "preserve saved value" pattern already used for Status, Fault Status, etc.).
+- Quick Log was left untouched — it stays shelved and out of primary navigation/Settings, per its 2026-08-25 shelving decision above.
+
+## Verified
+
+- Workspace typecheck passed.
+- API/Phase 1.5 test suite passed: 39 passed, 0 failed.
+- Render production build passed.
+
+## Assumptions
+
+- A generic settings key/value pair is sufficient for per-user custom drink types at this stage; no dedicated table was needed.
+- Users typing a new drink type want it added to their personal option pool immediately, without a separate confirmation step beyond the existing Settings "Save Changes" action.
+
+## Unresolved
+
+- Drink type defaults are not yet machine/equipment-profile aware. The `machines` table has no drink-type field, and adding one was intentionally deferred to avoid an unnecessary schema change for this scoped task. Recommended next step: once equipment profiles need multiple simultaneous defaults (e.g. regular espresso vs. decaf vs. pour-over), add an optional `default_drink_type` text column to `machines` (or a small join table if a machine needs more than one) and surface it in the Equipment Defaults section of Settings.

@@ -12,7 +12,12 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Save, Settings as SettingsIcon, Coffee, Zap, Wrench, ClipboardList, Star,
 } from "lucide-react";
-import { CURATED_SELECTOR_OPTIONS } from "@/lib/selector-options";
+import {
+  CURATED_SELECTOR_OPTIONS,
+  CUSTOM_DRINK_TYPES_SETTINGS_KEY,
+  parseCustomDrinkTypes,
+  mergeDrinkTypeOptions,
+} from "@/lib/selector-options";
 
 // ── Settings form helpers ─────────────────────────────────────────────────────
 
@@ -172,6 +177,11 @@ export default function Settings() {
 
   const handleSave = () => mutation.mutate(values);
 
+  const customDrinkTypes = parseCustomDrinkTypes(values[CUSTOM_DRINK_TYPES_SETTINGS_KEY]);
+  const addCustomDrinkType = (value: string) => {
+    set(CUSTOM_DRINK_TYPES_SETTINGS_KEY, JSON.stringify([...customDrinkTypes, value]));
+  };
+
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -235,12 +245,22 @@ export default function Settings() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {section.fields.map((field) => (
-                  <FieldControl
-                    key={field.key}
-                    field={field}
-                    value={values[field.key] ?? ""}
-                    onChange={(v) => set(field.key, v)}
-                  />
+                  field.key === "defaultDrinkType" ? (
+                    <DrinkTypeDefaultField
+                      key={field.key}
+                      value={values.defaultDrinkType ?? ""}
+                      customDrinkTypes={customDrinkTypes}
+                      onChangeValue={(v) => set("defaultDrinkType", v)}
+                      onAddCustomType={addCustomDrinkType}
+                    />
+                  ) : (
+                    <FieldControl
+                      key={field.key}
+                      field={field}
+                      value={values[field.key] ?? ""}
+                      onChange={(v) => set(field.key, v)}
+                    />
+                  )
                 ))}
               </div>
             </CardContent>
@@ -328,6 +348,77 @@ function GrinderDefaultsSection({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function DrinkTypeDefaultField({
+  value,
+  customDrinkTypes,
+  onChangeValue,
+  onAddCustomType,
+}: {
+  value: string;
+  customDrinkTypes: string[];
+  onChangeValue: (value: string) => void;
+  onAddCustomType: (value: string) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [newType, setNewType] = useState("");
+  const options = mergeDrinkTypeOptions(customDrinkTypes, value);
+
+  const handleAdd = () => {
+    const trimmed = newType.trim();
+    if (!trimmed) return;
+    const existing = options.find((option) => option.toLowerCase() === trimmed.toLowerCase());
+    if (!existing) onAddCustomType(trimmed);
+    onChangeValue(existing ?? trimmed);
+    setNewType("");
+    setAdding(false);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <Label className="text-sm">Default Drink Type</Label>
+        <Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-xs"
+          onClick={() => setAdding((a) => !a)}
+        >
+          {adding ? "Cancel" : "Add Drink Type"}
+        </Button>
+      </div>
+      <Select value={value || "__none__"} onValueChange={(v) => onChangeValue(v === "__none__" ? "" : v)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Choose…" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none__">— not set —</SelectItem>
+          {options.map((option) => (
+            <SelectItem key={option} value={option}>{option}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {adding && (
+        <div className="flex gap-2 pt-1">
+          <Input
+            autoFocus
+            value={newType}
+            placeholder="e.g. Cortado"
+            onChange={(e) => setNewType(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAdd();
+              }
+            }}
+          />
+          <Button type="button" size="sm" onClick={handleAdd}>Add</Button>
+        </div>
+      )}
+    </div>
   );
 }
 
