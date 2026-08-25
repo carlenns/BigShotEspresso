@@ -206,7 +206,7 @@ export default function ShotDetail() {
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center py-6">
             <div className="text-6xl font-bold font-serif text-primary mb-2">
-              {shot.rating || "-"}
+              {shot.rating != null ? shot.rating : "-"}
             </div>
             <p className="text-sm text-muted-foreground flex items-center">
               <Star className="h-4 w-4 mr-1 text-yellow-500 fill-current" /> Technical rating out of 10

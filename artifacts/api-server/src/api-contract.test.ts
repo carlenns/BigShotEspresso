@@ -988,6 +988,17 @@ test("Shot form supports editing, active-bag-first entry, and Taste Zone selecti
   assert.match(formSource, /data\.id && \(isEditing \|\| selectedTastes\.length > 0\)/);
 });
 
+test("Shot Detail displays zero ratings instead of treating them as blank", async () => {
+  const detailSource = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  assert.match(detailSource, /shot\.rating != null \? shot\.rating : "-"/);
+  assert.doesNotMatch(detailSource, /shot\.rating \|\| "-"/);
+  assert.match(detailSource, /shot\.preferenceRating != null \? shot\.preferenceRating : "—"/);
+});
+
 test("API response shaping excludes internal evidence fields", () => {
   const response = toShotApi({
     id: 1,

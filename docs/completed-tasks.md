@@ -1165,3 +1165,26 @@ The `NumberStepper` restoration flagged above as unresolved is intentional and c
 
 - The fully interactive "type Custom with no label, submit, watch the list update live" click-through was not completed due to the Chrome extension fault described above. Recommend a follow-up live click-through once that tooling issue is resolved, though risk is low given the mechanical nature of the fix and the two independent forms of evidence already gathered.
 - Other concurrent, unrelated work continues to land in this working tree from elsewhere this session (`docs/implementation/README.md`, `docs/implementation/bag-hopper-lifecycle-plan.md`, new `docs/implementation/launch-readiness-audit.md`) — not reviewed or touched as part of this task.
+
+# Shot Detail Zero Rating Display Fix — 2026-08-25
+
+## Completed
+
+- Fixed `ShotDetail.tsx` so a valid technical rating of `0` displays as `0` instead of being treated as blank. The previous `shot.rating || "-"` check collapsed zero because JavaScript treats `0` as falsy.
+- Confirmed Preference Rating already used the correct nullish check and did not need a behavior change.
+- Added a regression test in `api-contract.test.ts` to guard against reintroducing the truthiness check.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed.
+- `CI=true pnpm --filter @workspace/api-server test` — 56/56 passed, 0 failed.
+- `CI=true pnpm run build:render` — build succeeded.
+
+## Assumptions
+
+- A rating of `0` is valid display data when stored, even if unusual in normal espresso use.
+- Blank rating remains represented only by `null`/`undefined`, not by numeric zero.
+
+## Unresolved
+
+- None.
