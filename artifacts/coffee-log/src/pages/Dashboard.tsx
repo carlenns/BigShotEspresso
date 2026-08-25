@@ -354,19 +354,25 @@ export default function Dashboard() {
                     {hopper.startingBeans != null && (
                       <IntelStat label="Starting beans" value={`${hopper.startingBeans}g`} icon={Package} />
                     )}
-                    {hopper.hopperMass != null && (
+                    {hopper.hopperMass != null ? (
                       <IntelStat label="Hopper mass" value={`${hopper.hopperMass}g`} />
-                    )}
-                    {hopper.hopperPercent != null && (
+                    ) : hopper.startingBeans != null ? (
+                      <IntelStat label="Hopper mass" value="Not tracked yet" note="Imported value — not set for phases started in the app" />
+                    ) : null}
+                    {hopper.hopperPercent != null ? (
                       <IntelStat label="Hopper %" value={`${hopper.hopperPercent.toFixed(1)}%`} accent />
-                    )}
-                    {hopper.shotsLeftEstimate != null && (
+                    ) : hopper.startingBeans != null ? (
+                      <IntelStat label="Hopper %" value="Not tracked yet" note="Imported value — not set for phases started in the app" />
+                    ) : null}
+                    {hopper.shotsLeftEstimate != null ? (
                       <IntelStat
                         label="Shots left (est.)"
                         value={String(hopper.shotsLeftEstimate)}
                         dim={hopper.shotsLeftEstimate <= 5}
                       />
-                    )}
+                    ) : hopper.startingBeans != null ? (
+                      <IntelStat label="Shots left (est.)" value="Not tracked yet" note="Imported value — not set for phases started in the app" />
+                    ) : null}
                   </div>
                 </CardContent>
               </Card>

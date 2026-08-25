@@ -954,6 +954,32 @@ test("Dashboard summarizes puck screen display by useful thickness only", async 
   assert.doesNotMatch(source, /Puck screen\{bag\.puckScreen/);
 });
 
+test("Dashboard explains blank hopper mass/percent/shots-left instead of hiding them silently", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/Dashboard.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // Regression guard for launch-readiness-audit.md High-Priority Fix #7: a
+  // hopper phase started through the app's own dialogs has startingBeans but
+  // never hopperMass/hopperPercent/shotsLeftEstimate (those are imported/
+  // computed-elsewhere values, never written by POST /api/hoppers). Blindly
+  // hiding the fields when null reads as broken, not as "not yet tracked."
+  for (const label of ["Hopper mass", "Hopper %", "Shots left (est.)"]) {
+    const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    assert.match(
+      source,
+      new RegExp(`label="${escapedLabel}" value="Not tracked yet"`),
+      `expected a "Not tracked yet" fallback for ${label}`,
+    );
+  }
+  assert.match(source, /Imported value — not set for phases started in the app/);
+
+  // Must not invent a hopper mass/percentage formula to fill the gap.
+  assert.doesNotMatch(source, /hopperMass\s*=.*hopperPercent\s*\*/);
+  assert.doesNotMatch(source, /hopperPercent\s*=.*startingBeans/);
+});
+
 test("Runtime startup applies additive equipment schema guards", async () => {
   const [indexSource, runtimeSchemaSource] = await Promise.all([
     readFile(fileURLToPath(new URL("./index.ts", import.meta.url)), "utf8"),
