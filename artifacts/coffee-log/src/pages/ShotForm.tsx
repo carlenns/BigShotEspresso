@@ -397,13 +397,6 @@ export default function ShotForm() {
   const defaultTopUpTime = settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2;
   const saving = createShot.isPending || updateShot.isPending;
 
-  const setDrinkType = (drinkType: string | undefined) => {
-    form.setValue("drinkType", drinkType);
-    if (!isEditing && settings?.defaultDrinkType && drinkType && drinkType !== settings.defaultDrinkType) {
-      form.setValue("rated", false);
-    }
-  };
-
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6 animate-in fade-in duration-300">
       <div className="flex items-center gap-4">
@@ -833,7 +826,7 @@ export default function ShotForm() {
                       <ScalarSelect
                         options={drinkTypeOptions}
                         value={field.value}
-                        onChange={setDrinkType}
+                        onChange={field.onChange}
                       />
                     </FormControl>
                     <FormMessage />
