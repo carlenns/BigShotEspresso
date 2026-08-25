@@ -1,6 +1,10 @@
 # Bag and Hopper Lifecycle Plan
 
-Last updated: 2026-08-24
+Last updated: 2026-08-25
+
+## Scope of this revision
+
+This revision adds three sections requested for launch-scope planning that were missing from the 2026-08-24 version: a per-workflow field/data requirements breakdown, UI flow recommendations by user type, and a dedicated analytics-protection walkthrough. It also adds a Future Development Notes section. Nothing in the prior workflow definitions, phase-label recommendations, data model direction, implementation order, known risks, decisions needed, launch success criteria, or non-goals is changed by this revision.
 
 ## Purpose
 
@@ -297,13 +301,15 @@ Approved phase labels to preserve:
 - Phase 2,
 - Phase 3,
 - End of Bag,
-- Single Bag Phase.
+- Single Bag Phase,
+- Custom.
 
-Unresolved phase-label decision:
+Resolved phase-label decision:
 
 - Earlier docs include `Grinder Cleanout`.
 - Later product direction also mentioned `Custom`.
-- Before shipping a final selector, decide whether `Custom` replaces `Grinder Cleanout`, or whether `Grinder Cleanout` belongs in lifecycle event type instead of Hopper phase.
+- `Custom` is approved as the flexible user-facing Hopper phase fallback.
+- `Grinder Cleanout` belongs in lifecycle event type instead of Hopper phase.
 
 Recommended direction:
 
@@ -387,6 +393,92 @@ Rules:
 - Reference and Signature remain blank unless explicitly selected,
 - Signature implies Reference,
 - Reference does not imply Signature.
+
+## Field and Data Requirements by Workflow
+
+This section maps each required launch workflow to the fields/tables already available, what is missing, what should stay deferred, and what remains unresolved. Field names are taken verbatim from `docs/csv-data-dictionary.md` and `docs/field-type-map.md` where possible; anything not confirmed there is marked unresolved rather than invented.
+
+### Open New Bean / Open New Bag / Start New Bag (workflow 3)
+
+- Existing fields/tables likely used: `beans` (name, roaster, origin, process, roast level); `bags` (`Beans` link, `Bag Purchased Date`, `Actual Roast Date`, `Estimated Roast Date`, `Freshness Dating Method`, `Roast Date Confidence`, `Roast Date Notes`, `Opened Date`, `Bag Size (g)`, `Bag Cost`, `Target Dose (g)`, `Active`).
+- Missing fields: none required for the basic create flow — the existing Beans/Bags API and schema already cover the listed user inputs from workflow 3 above.
+- Future/deferred: `workflow_method` (hopper dosing / dose cup / single dosing / frozen single dose / decaf split / mixed) is not yet a stored field anywhere; per the "New model recommended" section below it belongs on a future lifecycle-event or bag-level record, not invented here.
+- Unresolved: whether one active Bag should be DB-enforced globally is listed as open decision 4 in "Decisions needed before implementation"; until enforced, the UI/API must avoid silently leaving multiple active bags (see "Known risks").
+
+### New Bag Dial-In (workflow 4)
+
+- Existing fields/tables likely used: `shots` (`Initial Grinder Output`, `Dose`/Target-Basket Dose, `Top-Up Grind`, `Over Grind Removed`, `Grind Waste`, `Pour Delay`, `Pour Time`, `Flow Time`, yield, `Shot Status`, `Fault Status`, tasting notes); `bags` (current grind setting/time defaults that carry forward after a logged change).
+- Missing fields: no explicit Bag-level lifecycle state (e.g. `Opening / Dial-In`, `Dialed In`, `Stable`, `Declining`, `Closed`) exists yet — this is already named as future work in workflow 4's "Future implementation" note.
+- Future/deferred: dial-in speed/quality analysis belongs to BLI, not this phase.
+- Unresolved: none beyond what workflow 4 already states.
+
+### Log Normal Shot (workflow 8, First Drink Shot)
+
+- Existing fields/tables likely used: same Shots fields as dial-in, plus `Reference Shot`, `Signature Shot`, `Rating`, `Preference Rating`, `Include in Analysis`.
+- Missing fields: none — this is the already-supported `Log Shot` full-form path (Quick Log is shelved per Gate 0.5 of `release-candidate-checklist.md`).
+- Future/deferred: none new.
+- Unresolved: none.
+
+### Log Grind Change / Purge Waste (workflow 7, Dial-In / Setup Waste)
+
+- Existing fields/tables likely used: shot-attached `Grind Waste` when a drink shot also includes a grind event.
+- Missing fields: no standalone lifecycle-event table/API exists yet for setup waste with no accompanying drink shot — this is the same gap flagged in workflow 7 and in "New model recommended before full lifecycle launch."
+- Future/deferred: standalone purge/setup waste as a first-class lifecycle event (`Grinder Purge`, `Chute Cleanout`, `Grind Change Waste` event types from the proposed model).
+- Unresolved: whether standalone purge/setup waste must ship before launch — this is open decision 5 in "Decisions needed before implementation," already answered "yes, if launch includes real bag/hopper inventory tracking," but not yet implemented.
+
+### Hopper Refill / Phase Transition (workflows 5–6, Fill Hopper / Start Phase and Hopper Top-Up)
+
+- Existing fields/tables likely used: `hoppers` (`bag_id`, `starting_beans`, `is_active`, `phase`, `hopper_mass`, `hopper_percent`, `shots_left_estimate`, notes), `hopper_range_baselines`.
+- Missing fields: no lifecycle-event record to distinguish "same-phase top-up" from "new phase start" — same-phase hopper top-ups are now documented as lifecycle events, not new Hopper rows, but that event model is not yet built.
+- Future/deferred: local calculation of `Hopper %`/hopper percentage formula stays imported/read-only until approved (per workflow 5's launch-safe implementation note); `Preferred Hopper Phase Fill Amount` / grinder-level `Hopper Capacity` fields proposed in `docs/table-relationships.md` and `docs/architecture/equipment-capability-library-model.md` remain future equipment-model work.
+- Unresolved: **documentation-consistency flag** — this plan's "Current finding" section states `hoppers` "already exists as a first-class state table with `bag_id`," but `docs/table-relationships.md`'s Phase 1 relationship note states "No Bag relationship is inferred from Hopper names when the source export does not provide one," and its confirmed-relationship table shows `Hopper → Shots` and `Hopper Range Baselines → Shots` but no `Bag → Hopper` row. These two docs disagree on whether a direct Hopper→Bag link is already established. This should be verified against the live schema before any UI work assumes `hoppers.bag_id` is authoritative — not resolved in this planning pass. The final documented Hopper phase label list is Phase 1, Phase 2, Phase 3, End of Bag, Single Bag Phase, and Custom; `Grinder Cleanout` is a lifecycle/workflow event.
+
+### Close Out Bag (workflow 1, Close Current Bag)
+
+- Existing fields/tables likely used: `bags` (`End Date`/closeout date, `Active`, `Notes`/`Bag Notes`); existing `PATCH /api/bags/:id`; existing Close Bag dialog.
+- Missing fields: no dedicated Bags CSV/schema fields for leftover-beans mass or chute/grinder cleanout beyond free-text `Notes`/`Bag Notes` — confirmed absent from the full Bags field list in `docs/csv-data-dictionary.md`. The plan's own "System effects" list names `closedOutDate` and `remainingEstimate` as the intended effect fields, but these are plan-proposed app-level names, not yet confirmed present in the CSV dictionary as first-class Bag fields.
+- Future/deferred: a dedicated lifecycle event for closeout (per workflow 1's "Future improved implementation"), and optional automatic deactivation of the active Hopper state on bag close.
+- Unresolved: whether closeout reason/waste must be structured data or can remain notes for launch (workflow 1 already answers this as notes-for-now).
+
+### Maintenance Between Bags (workflow 2, Between-Bag Cleanout and Maintenance)
+
+- Existing fields/tables likely used: none dedicated — currently approximated via Bag/closeout `Notes`. `Shot Classification` historically includes "maintenance" and "hopper refill" as example values, but this plan already treats that as a stopgap, not the target design.
+- Missing fields: no maintenance/cleanout checklist fields (hopper emptied, grinder cleaned, backflushed, Cafiza used, accessories cleaned/changed) exist as structured data anywhere.
+- Future/deferred: guided checklist options and a dedicated `Between-Bag Cleanout` / `System Maintenance` lifecycle event type, per the proposed model's candidate event types. Do not invent a maintenance schema now, per project boundaries.
+- Unresolved: exact structured field list for maintenance checklist items — intentionally left undecided pending the lifecycle-event model (Phase E in "Implementation order").
+
+## UI Flow Recommendations
+
+Keep all paths launch-safe: no new schema is implied by the UI recommendations below, and any workflow lacking a backing field/table (see previous section) should present as guided copy/notes rather than a fake structured control.
+
+- **Beginner path**: Start New Bag with only the required minimum (bean name, bag size, opened date, target dose) and clear inline copy that dial-in is expected; default to the guided Bags-page flow already shipped ("Bag Lifecycle Flow UI — 2026-08-24") for close → maintenance → new bag → hopper fill sequencing; avoid surfacing hopper phase-label or workflow-method choices until the user needs them.
+- **Power-user path**: expose full bean/roast/roast-date-confidence fields, explicit hopper phase selection (Phase 1/2/3/End of Bag/Single Bag Phase/Custom), and workflow-method notes up front; allow direct entry into any of the 8 launch workflows without being routed through the beginner sequence.
+- **Hopper dosing path**: Fill Hopper / Start Phase (workflow 5) → Hopper Top-Up (workflow 6) as the primary loop between shots; hopper phase and starting-beans baseline stay visible as the active context while logging shots, consistent with the "measured operating window, not total physical inventory" rule.
+- **Single-dosing path**: per this plan's existing "Launch rule," this is explicitly not the first-class launch flow — the app should support hopper and dose-cup workflows cleanly first. For launch, single-dosing users can log shots without engaging hopper-phase UI at all (skip workflows 5–6 entirely) and record workflow method as a note; a first-class single-dose, single-dose freezing, and vacuum-packed-dose UI is future work.
+- **Pour-over / decaf / guest workflow path**: these should be supported initially as drink type, serving context, equipment context, and notes rather than first-class lifecycle branches. Dedicated grinder/profile defaults and special workflow screens remain deferred until account/user scoping and equipment selectors exist.
+- **Mobile-first considerations**: reuse the existing guided-copy pattern already on the Bags page rather than introducing new mobile-specific controls; keep each workflow's required-field count minimal on small screens; defer optional/power-user fields behind expandable sections rather than always-visible forms. This recommendation is UI-flow guidance only — it does not touch `ShotForm.tsx` or the separate mobile number-control stepper work.
+
+## Analytics Protection
+
+Each workflow must avoid polluting `Include in Analysis`, `Rating`/`Preference Rating`, `Reference Shot`/`Signature Shot`, bag averages (`Avg Rating`, `Average Preference Rating`), and hopper/bag remaining calculations. The rules below are drawn from already-established project rules (`docs/START_HERE.md`, `docs/intelligence-engine-map.md` shared rules, `docs/csv-data-dictionary.md`), not invented here.
+
+- **Dial-in / setup waste and standalone purge/cleanout** (workflows 2, 4, 7): must never be recorded as an analytical Shot. `Include in Analysis` is the authoritative gate for every analytical query; non-drinkable setup rows should not receive it. The proposed lifecycle-event model defaults `include_in_analysis` to `false`.
+- **Bag closeout and maintenance** (workflows 1–2): closeout/maintenance notes and any future lifecycle events are evidence records, not shots — they must not appear in `Shot Count`, `Reference Shots`, `Analysis Shot Count`, or rating rollups on the Bags table.
+- **Hopper refill / phase transition** (workflows 5–6): a fill/top-up/phase-change event changes hopper state (`hopper_mass`, `hopper_percent`, phase baseline) but is not itself a shot and must not be scored, rated, or counted toward bag/hopper shot totals.
+- **Normal shots and dial-in attempts** (workflows 4, 8): `Reference Shot` and `Signature Shot` remain manual-only flags, never inferred from `Rating`/`Preference Rating` (`Signature Shot` implies `Reference Shot`; the reverse is not automatic, per `docs/START_HERE.md`). `Rated`/`Include in Analysis` stay independent selectors — a dial-in attempt can be logged and kept in history without being `Rated` or counted `Include in Analysis` if it isn't a fair evaluation of the bag.
+- **Bag/hopper remaining calculations**: per this plan's "Explicit non-goals," no new remaining-inventory formula is implemented here. Any future dashboard inventory correction (Phase F) must account for basket dose, over-grind removed, top-up grind, grind waste, standalone lifecycle waste, beans added, and measured reconciliation together — but that formula remains unapproved and unresolved, consistent with `docs/table-relationships.md`'s note that "exact Hopper percentage, retention, purge, reconciliation, and automatic phase-transition formulas remain source-owned and unresolved."
+
+## Future Development Notes
+
+These are documented for context only and are explicitly out of scope for this lifecycle-planning phase:
+
+- **System Phases**: see the "System Phase / Experiment Phase model" section above for the full proposal (structured phase relationship from Shots/lifecycle events to a System Phase record); not implemented.
+- **Brew curves**: named in `docs/ROADMAP.md` as a future research-and-development feature not required for first release; would eventually attach to Shots or a System Phase, not to Bag/Hopper state directly.
+- **Bluetooth scale**: same ROADMAP note as brew curves — future R&D, not launch-blocking; would primarily affect shot-entry data capture, not bag/hopper lifecycle modeling.
+- **Equipment-aware advice**: depends on a machine/grinder selector existing in `Log Shot` (currently absent — `machineId`/`grinderId` exist on `shots` in the DB but are not exposed in the form, per `docs/completed-tasks.md`) and on the shared equipment library described in `docs/architecture/equipment-capability-library-model.md`; not implemented.
+- **AI-guided onboarding interview**: no design exists yet; would likely feed the beginner-path Start New Bag flow described above, but is not scoped for launch.
+- **User-specific workflow methods**: `workflow_method` (hopper / dose cup / single dose / frozen single dose / vacuum-packed doses / decaf split / pour-over / guest drinks / mixed) is recorded as a concept in this plan's domain boundaries but has no storage field yet; future work, not launch-blocking.
+- **Community/equipment library implications**: per `docs/architecture/equipment-capability-library-model.md`, shared verified equipment library work is explicit future scope "after account/auth, ownership, moderation, admin review, and privacy controls exist." For launch, equipment stays personal/user-owned only.
 
 ## Recommended data model direction
 
@@ -595,21 +687,21 @@ Do not implement until lifecycle events and hopper assignment rules are approved
 - The app has no dedicated Hopper frontend yet.
 - Current imported Hopper formula snapshots may be stale compared with live Postgres shot records.
 
-## Decisions needed before implementation
+## Decisions recorded before implementation
 
-1. Should `Custom` be an approved Hopper phase label?
-2. Should `Grinder Cleanout` move from phase label to lifecycle event type?
-3. Should same-phase hopper top-ups create lifecycle events, not new Hopper rows?
-4. Should one active Bag be enforced globally in the database?
-5. Should standalone grinder purge/setup waste require the new lifecycle-event table before launch?
+1. `Custom` is an approved Hopper phase label.
+2. `Grinder Cleanout` should move from Hopper phase label to lifecycle/workflow event type.
+3. Same-phase hopper top-ups should create lifecycle events, not new Hopper rows.
+4. One active Bag should eventually be enforced in the database, after the safest migration path is scoped. Later multi-user support will need owner/user scoping.
+5. Standalone grinder purge/setup waste should require the lifecycle-event table if launch includes real bag/hopper inventory tracking.
 
-Recommended answers:
+Recorded rationale:
 
-1. Yes, allow `Custom`, but treat it as lower-confidence workflow evidence.
-2. Yes, `Grinder Cleanout` should be a lifecycle event type.
-3. Yes, same-phase top-ups should be lifecycle events.
-4. Yes, eventually enforce one active Bag globally for single-user launch; later multi-user support will need owner/user scoping.
-5. Yes, if launch includes real bag/hopper inventory tracking.
+1. `Custom` allows unusual user workflows but should be treated as lower-confidence workflow evidence.
+2. Hopper phase labels should describe measured bean operating windows; cleanout describes an action/event.
+3. A top-up within the same phase modifies/reconciles the measured operating window; it should not create a new phase row.
+4. Active-bag enforcement protects dashboard correctness, but migration must avoid corrupting existing imported/history data.
+5. Standalone purge/setup waste affects inventory but is not a drink shot, so it needs a lifecycle event rather than a fake shot record.
 
 ## Launch success criteria
 

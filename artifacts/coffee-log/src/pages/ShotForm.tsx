@@ -251,10 +251,13 @@ function NumberStepper({
     seedSuggestedNumber(field, suggestedValue, event.currentTarget);
   };
 
+  const stepperButtonClass =
+    "text-muted-foreground/60 opacity-70 transition-opacity hover:opacity-100 hover:text-foreground focus-visible:opacity-100 group-focus-within:opacity-100";
+
   return (
-    <InputGroup className={className}>
+    <InputGroup className={cn("group", className)}>
       <InputGroupAddon align="inline-start">
-        <InputGroupButton type="button" aria-label="Decrease" onClick={() => adjust(-1)}>
+        <InputGroupButton type="button" aria-label="Decrease" onClick={() => adjust(-1)} className={stepperButtonClass}>
           <Minus />
         </InputGroupButton>
       </InputGroupAddon>
@@ -272,7 +275,7 @@ function NumberStepper({
         className="text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
       <InputGroupAddon align="inline-end">
-        <InputGroupButton type="button" aria-label="Increase" onClick={() => adjust(1)}>
+        <InputGroupButton type="button" aria-label="Increase" onClick={() => adjust(1)} className={stepperButtonClass}>
           <Plus />
         </InputGroupButton>
       </InputGroupAddon>
@@ -623,14 +626,14 @@ export default function ShotForm() {
               <FormField control={form.control} name="temperature" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Temp (°C)</FormLabel>
-                  <FormControl><NumberStepper field={field} step={1} placeholder={defaultTemp.toString()} suggestedValue={defaultTemp} /></FormControl>
+                  <FormControl><Input type="number" step="1" placeholder={defaultTemp.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultTemp, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultTemp, event.currentTarget)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="dose" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Target / Basket Dose (g)</FormLabel>
-                  <FormControl><NumberStepper field={field} step={0.1} placeholder={defaultDose.toString()} suggestedValue={defaultDose} /></FormControl>
+                  <FormControl><Input type="number" step="0.1" placeholder={defaultDose.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} /></FormControl>
                   <p className="text-xs text-muted-foreground">The final dose that ends up in the basket, after any top-up or trim.</p>
                   <FormMessage />
                 </FormItem>

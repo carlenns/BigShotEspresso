@@ -2,6 +2,31 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Bag/Hopper Lifecycle Plan Reconciliation — 2026-08-25
+
+### Completed
+
+- Reconciled the existing bag/hopper lifecycle plan with current product decisions.
+- Documented `Custom` as an approved Hopper phase label.
+- Moved `Grinder Cleanout` out of Hopper phase labeling and into lifecycle/workflow event semantics.
+- Recorded that same-phase Hopper top-ups should become lifecycle events, not new Hopper rows.
+- Added future workflow-method notes for vacuum-packed doses, pour-over, decaf, and guest-drink workflows without implementing them.
+
+### Verified
+
+- Documentation-only change.
+- Confirmed the existing lifecycle plan remained the source document rather than creating a duplicate plan.
+
+### Assumptions
+
+- These are documentation decisions only; no schema, API, UI, or hopper formula behavior is implemented by this entry.
+
+### Unresolved
+
+- Lifecycle-event table/API/UI remains future work.
+- Direct Hopper-to-Bag relationship consistency still needs schema verification before Hopper UI implementation.
+- One-active-Bag database enforcement still requires a safe migration plan.
+
 ## 1. Database Migration Validation
 
 **Status:** Complete in the embedded PostgreSQL integration environment; production deployment remains intentionally unexecuted.
@@ -590,3 +615,56 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 ## Unresolved
 
 - None new. The existing `Grind Setting` equipment-precision limitation and the missing `Log Shot` machine/grinder selector (both logged above) are unchanged by this session.
+
+# Bag Lifecycle + Hopper Workflow Planning — 2026-08-25
+
+## Completed
+
+- Extended `docs/implementation/bag-hopper-lifecycle-plan.md` (previously last updated 2026-08-24) with the launch-scope planning structure requested for bag lifecycle, hopper refill/phase switching, bag closeout, and maintenance workflow, without re-deciding or contradicting anything already recorded there.
+- Added `## Field and Data Requirements by Workflow`: for each launch workflow (open new bean/bag, dial-in, log normal shot, log grind change/purge waste, hopper refill/phase transition, close out bag, maintenance between bags), listed existing fields/tables likely used (verbatim from `docs/csv-data-dictionary.md`/`docs/field-type-map.md`), missing fields, fields that should stay future/deferred, and unresolved dependencies.
+- Added `## UI Flow Recommendations` covering a beginner path, power-user path, hopper dosing path, single-dosing path, and mobile-first considerations, all launch-safe (no new schema implied).
+- Added `## Analytics Protection` explaining how each workflow avoids polluting `Include in Analysis`, ratings, `Reference Shot`/`Signature Shot`, bag averages, and hopper/bag remaining calculations.
+- Added `## Future Development Notes` documenting (without implementing) System Phases, brew curves, Bluetooth scale, equipment-aware advice, AI-guided onboarding interview, user-specific workflow methods, and community/equipment library implications.
+- Surfaced one new documentation-consistency issue during this pass (recorded as unresolved below) rather than resolving it by inventing an answer.
+- Did not touch any application code, schema, API, migration, or test files. Did not touch `ShotForm.tsx` or the separate mobile number-control task (confirmed already complete and unrelated, per the "Mobile-Friendly Number Controls For Log Shot — 2026-08-25" entry above). Did not implement DCI, OSI, HMI, BLI, MSI, or GSP. `docs/implementation/README.md` already links `bag-hopper-lifecycle-plan.md`, so no change was needed there.
+
+## Verified
+
+- Docs-only change; no build, typecheck, or test run applies.
+- Confirmed `docs/implementation/bag-hopper-lifecycle-plan.md` contains the new sections and an updated `Last updated: 2026-08-25` date.
+- Confirmed `docs/implementation/README.md`'s existing "Bag and Hopper Lifecycle Plan" link (pointing at the same file) already covers this update; no edit needed there.
+
+## Assumptions
+
+- Extending the existing plan file in place is correct rather than creating a second competing document, since the existing file already covers domain boundaries, the 8 launch workflows, hopper phase-label recommendations, the System Phase model, the proposed lifecycle-event data model, implementation order, and non-goals.
+- Field names and unresolved-status claims in the new sections were taken only from the previously reviewed source docs (`docs/table-relationships.md`, `docs/field-type-map.md`, `docs/csv-data-dictionary.md`, `docs/intelligence-engine-map.md`, `docs/architecture/equipment-capability-library-model.md`, `docs/implementation/release-candidate-checklist.md`) and the existing plan file itself — no formulas, schema, or field behavior were invented.
+
+## Unresolved
+
+- New: `docs/implementation/bag-hopper-lifecycle-plan.md`'s "Current finding" section states `hoppers` already has a `bag_id` column, but `docs/table-relationships.md` states "No Bag relationship is inferred from Hopper names when the source export does not provide one" and its confirmed-relationship table has no `Bag → Hopper` row. This should be verified against the live schema before any UI work assumes a direct Hopper→Bag link is authoritative.
+- Carried forward from the existing plan (not resolved by this pass): whether `Custom` replaces `Grinder Cleanout` as a Hopper phase label (plan already recommends yes, not yet implemented); whether same-phase hopper top-ups should create lifecycle events instead of new Hopper rows (recommended yes, not yet implemented); the lifecycle-event table itself does not exist yet (Phase E of the plan's implementation order); the Hopper percentage formula remains source-owned and unapproved for local calculation; whether one active Bag should be enforced globally in the database (recommended yes, not yet implemented).
+
+# Mobile Stepper UI Refinement For Log Shot — 2026-08-25
+
+## Completed
+
+- Toned down the `NumberStepper` control added in the previous session: the −/+ buttons are now `text-muted-foreground/60 opacity-70` by default and reach full opacity/color on `hover`, `focus-visible`, and `group-focus-within` (tapping/typing into the input itself now also reveals full-strength controls, not just hovering a button directly). Touch target size (button padding/height) was left unchanged — only color/opacity changed — so tap targets did not shrink.
+- Per explicit user decision (asked directly rather than assumed, since the brief left it as an optional judgment call): reverted `Temp` and `Target / Basket Dose` from the stepper back to plain `<Input type="number">` fields (placeholder + seed-on-focus/pointerdown, same pattern used before steppers existed). The other 11 fields (Grind Setting, Grind Time, Initial Grinder Output, Top-Up Grind Added, Top-Up Time Adj, Pour Delay, Pour Time, Flow Time, Yield, Rating, Preference Rating) keep the stepper with all increment/min/max values unchanged from the previous session.
+- No behavior change to the stepper's value logic (`adjust()`, `asNumber()`, seeding) — this was purely a visual/CSS + field-selection change.
+- Did not touch Quick Log, schemas, APIs, migrations, dose-correction formulas, or Reference/Signature/Sour flag behavior.
+
+## Verified
+
+- Workspace typecheck passed.
+- API/Phase 1.5 test suite passed: 42 passed, 0 failed (no test changes needed — visual-only change plus a revert to a previously-existing input pattern).
+- Render production build passed.
+- Visually confirmed both states (default vs. simulated focus-within) using the actual production CSS in a real Chrome tab: default state renders as a visibly muted `−  18  +`, focus state renders at full opacity with the existing focus ring, and the reverted Temp/Dose fields render as ordinary plain inputs.
+
+## Assumptions
+
+- Whether to keep or drop the stepper on Temp/Dose was asked directly to the user rather than guessed, since the brief explicitly framed it as an "only if it noticeably improves clarity" judgment call — user chose to revert both to plain inputs.
+- `opacity-70`/`hover:opacity-100`/`group-focus-within:opacity-100` is a reasonable middle ground between "close to a regular clean input" and "still obvious enough for touch users" — no numeric contrast/accessibility audit was run.
+
+## Unresolved
+
+- None new. Same outstanding items as the previous session (equipment-aware `Grind Setting` precision, missing `Log Shot` machine/grinder selector).

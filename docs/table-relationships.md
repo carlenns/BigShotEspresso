@@ -67,7 +67,8 @@ The Hopper table is a state-tracking ledger supporting HMI, DCI, and OSI—not a
    - Maintenance, purge, refill, and reconciliation events remain in the state history even when excluded from extraction analytics.
 
 4. **Phase transition**
-   - `Hopper Phase` values observed or approved: Phase 1, Phase 2, Phase 3, End of Bag, Single Bag Phase, Grinder Cleanout.
+   - `Hopper Phase` values observed or approved: Phase 1, Phase 2, Phase 3, End of Bag, Single Bag Phase, Custom.
+   - `Grinder Cleanout` is a lifecycle/workflow event, not a Hopper Phase label.
    - A phase is a measured operating window, not necessarily the total physical beans present in the hopper.
    - When the user resets to a new phase, the newly added measurable quantity becomes the phase baseline. Unmeasured leftover beans may be intentionally ignored when the user cannot accurately count them.
    - For large bags, users commonly may use Phase 1, Phase 2, Phase 3, and End of Bag. For small bags, `Single Bag Phase` means the entire bag is treated as one tracked phase.
