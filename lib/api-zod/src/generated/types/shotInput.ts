@@ -94,7 +94,8 @@ export interface ShotInput {
   /** @nullable */
   sensoryNotes?: string | null;
   faultNotes?: string;
-  grindAdjusted?: string;
+  /** @nullable */
+  grindAdjusted?: string | null;
   /** @nullable */
   finishedShot?: boolean | null;
   /** @nullable */

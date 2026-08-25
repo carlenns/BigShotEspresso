@@ -49,6 +49,7 @@ test("Editing a shot can clear optional fields back to null", () => {
     topUpGrind: null,
     timeAdj: null,
     overGrindRemoved: null,
+    grindAdjusted: null,
     tasteZone: null,
     shotClassification: null,
     beanAchievement: null,
@@ -82,6 +83,16 @@ test("Log Shot converts cleared optional fields to null only when editing, never
   assert.match(source, /if \(isEditing\) \{[\s\S]{0,300}NULLABLE_ON_EDIT_FIELDS/);
   // isReference is NOT NULL in the DB and must stay out of the nullable list.
   assert.doesNotMatch(source, /NULLABLE_ON_EDIT_FIELDS[\s\S]{0,20}=[\s\S]{0,600}"isReference"/);
+
+  // grindAdjusted isn't a FormValues key (it's set programmatically from the
+  // "Record grind change / purge waste" checkbox), so it can't live in
+  // NULLABLE_ON_EDIT_FIELDS — it needs its own edit-only null fallback,
+  // mirroring the existing overGrindRemoved one-off.
+  assert.match(source, /if \(payload\.grindAdjusted === undefined\) payload\.grindAdjusted = null;/);
+  // Unchecking the grind-waste event must still delete both keys first
+  // (preserving prior grindWaste-clearing behavior) before the edit-only
+  // fallback turns the resulting missing grindAdjusted into an explicit null.
+  assert.match(source, /delete payload\.grindWaste;\s*\n\s*delete payload\.grindAdjusted;/);
 });
 
 test("Shot route enforces rating, ratio, and signature/reference invariants", async () => {

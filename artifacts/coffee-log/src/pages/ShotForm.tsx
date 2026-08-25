@@ -560,6 +560,11 @@ export default function ShotForm() {
         if (payload[key] === undefined) payload[key] = null;
       }
       if (payload.overGrindRemoved === undefined) payload.overGrindRemoved = null;
+      // grindAdjusted is deleted above (not a FormValues key, so it can't
+      // live in NULLABLE_ON_EDIT_FIELDS) when the grind-waste event is
+      // unchecked; without this it would stay stale in Postgres just like
+      // grindWaste did before the previous fix.
+      if (payload.grindAdjusted === undefined) payload.grindAdjusted = null;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

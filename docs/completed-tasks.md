@@ -752,3 +752,30 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 - `grindAdjusted` has the identical delete-instead-of-null bug as `grindWaste` (same `else { delete payload.grindWaste; delete payload.grindAdjusted; }` block) but was left untouched since it wasn't in the task's explicit field list — worth a follow-up if grind-event history editing turns out to matter.
 - No live browser smoke test of an actual edit-and-clear round trip against a running Postgres instance — recommend one before this ships, since this session could only verify via static contract/code inspection.
 - The OpenAPI/codegen diff touches several generated files (`lib/api-zod/src/generated/**`, `lib/api-client-react/src/generated/**`) beyond `ShotForm.tsx` itself — worth a quick reviewer skim to confirm the regenerated output only changed nullability for the intended fields (it does, per this session's inspection, but a second look is cheap).
+
+# Shot Edit Reliability: grindAdjusted Now Clears On Edit — 2026-08-25
+
+## Completed
+
+- Closed the one gap deliberately left open by the previous fix: `grindAdjusted` (the "Grind change / purge waste" event-type text field) had the identical bug as `grindWaste` did before — `ShotForm.tsx` explicitly `delete`s `payload.grindAdjusted` when the user unchecks "Record grind change / purge waste" on an edit, which meant a previously-recorded event type stayed stale in Postgres instead of clearing.
+- Same two-layer fix as before: (1) `lib/api-spec/openapi.yaml`'s shared `shotWriteProperties.grindAdjusted` was still `{ type: string }` (optional-but-not-nullable) even though the `shots.grind_adjusted` DB column is nullable — widened to `{ type: ["string", "null"] }` and regenerated `lib/api-zod`/`lib/api-client-react` via `pnpm --filter @workspace/api-spec run codegen`. (2) Added `if (payload.grindAdjusted === undefined) payload.grindAdjusted = null;` to `ShotForm.tsx`'s existing edit-only normalization block, right after the `overGrindRemoved` one-off it already mirrors. `grindAdjusted` isn't a `FormValues` key (it's set programmatically from the `recordGrindWaste` checkbox state, not part of the zod form schema), so it couldn't be added to `NULLABLE_ON_EDIT_FIELDS` and needed its own one-off check exactly like `overGrindRemoved`.
+- Did not touch the existing `delete payload.grindWaste; delete payload.grindAdjusted;` block itself — both deletes still run first (preserving `grindWaste`'s prior fix and not changing when/why the delete happens), and the edit-only fallback below it now turns the resulting missing `grindAdjusted` key into an explicit `null`, same as it already did for `grindWaste` (which is in `NULLABLE_ON_EDIT_FIELDS`).
+- No changes to dose-correction logic, `calculateDoseCorrection`, schema, migrations, or create behavior.
+- Extended (not duplicated) the two existing regression tests in `artifacts/api-server/src/api-contract.test.ts`: the contract test now also asserts `UpdateShotBody` accepts `grindAdjusted: null`; the source-inspection test now also asserts the new `payload.grindAdjusted` fallback exists and that the delete-both-keys line is still present (i.e. `grindWaste`'s clearing behavior wasn't disturbed).
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (workspace-wide, including regenerated `lib/api-zod`/`lib/api-client-react`).
+- `CI=true pnpm --filter @workspace/api-server test` — 44/44 passed, 0 failed (both regression tests extended in place, no new test count change).
+- `CI=true pnpm run build:render` — build succeeded.
+- Not run: live browser edit-and-clear smoke test — same environment limitation as the previous session (no running Postgres-backed instance available). Verified via the same code/contract-trace method as before plus the extended regression tests.
+
+## Assumptions
+
+- `grindAdjusted`'s only legitimate values today are `null` (no event) or the literal string `"Grind change / purge waste"` (set by the checkbox) — no other value is ever written by the client, so widening its nullability doesn't open up any new selector/value surface.
+- Leaving the delete-both-keys line untouched (rather than removing the `delete payload.grindAdjusted;` and relying solely on the new fallback) was the smaller, safer diff — the fallback already produces the identical end result (`null`) whether the key was deleted or never set, so there was no behavioral reason to also change that line.
+
+## Unresolved
+
+- Same as before: no live Postgres-backed browser smoke test performed in this session; recommended before shipping.
+- No other known instances of this bug pattern remain in `ShotForm.tsx`'s submit path as of this session's inspection.

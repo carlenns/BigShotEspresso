@@ -642,7 +642,7 @@ components:
         notes: { type: ["string", "null"] }
         sensoryNotes: { type: ["string", "null"] }
         faultNotes: { type: string }
-        grindAdjusted: { type: string }
+        grindAdjusted: { type: ["string", "null"] }
         finishedShot: { type: ["boolean", "null"] }
         shotsLeftEst: { type: ["number", "null"] }
 

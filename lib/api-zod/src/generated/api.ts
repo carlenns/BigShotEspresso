@@ -208,7 +208,7 @@ export const CreateShotBody = zod.object({
   "notes": zod.string().nullish(),
   "sensoryNotes": zod.string().nullish(),
   "faultNotes": zod.string().optional(),
-  "grindAdjusted": zod.string().optional(),
+  "grindAdjusted": zod.string().nullish(),
   "finishedShot": zod.boolean().nullish(),
   "shotsLeftEst": zod.number().nullish()
 })
@@ -401,7 +401,7 @@ export const UpdateShotBody = zod.object({
   "notes": zod.string().nullish(),
   "sensoryNotes": zod.string().nullish(),
   "faultNotes": zod.string().optional(),
-  "grindAdjusted": zod.string().optional(),
+  "grindAdjusted": zod.string().nullish(),
   "finishedShot": zod.boolean().nullish(),
   "shotsLeftEst": zod.number().nullish()
 })
