@@ -774,6 +774,7 @@ export default function ShotForm() {
                           onCheckedChange={(checked) => {
                             const ref = checked === true;
                             field.onChange(ref);
+                            if (ref) form.setValue("sourShot", false);
                             if (!ref) form.setValue("signatureShot", false);
                           }}
                         />
@@ -793,7 +794,10 @@ export default function ShotForm() {
                             onCheckedChange={(checked) => {
                               const sig = checked === true;
                               field.onChange(sig);
-                              if (sig) form.setValue("isReference", true);
+                              if (sig) {
+                                form.setValue("isReference", true);
+                                form.setValue("sourShot", false);
+                              }
                             }}
                           />
                         </FormControl>
@@ -807,7 +811,17 @@ export default function ShotForm() {
                   <FormField control={form.control} name="sourShot" render={({ field }) => (
                     <FormItem className="flex items-center gap-2.5 space-y-0">
                       <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(checked) => {
+                            const sour = checked === true;
+                            field.onChange(sour);
+                            if (sour) {
+                              form.setValue("isReference", false);
+                              form.setValue("signatureShot", false);
+                            }
+                          }}
+                        />
                       </FormControl>
                       <FormLabel className="font-normal cursor-pointer">Sour Shot</FormLabel>
                     </FormItem>
