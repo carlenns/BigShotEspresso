@@ -411,9 +411,16 @@ export default function ShotForm() {
 
   const selectedBagId = form.watch("bagId");
 
-  const setAnalyzedShotDefaults = (status: "Good" | "Dialed In") => {
+  // Flag selection can suggest a Shot Status / Fault Status, but must never
+  // clobber a value the user already entered — only fill in when blank.
+  const setStatusIfBlank = (status: "Good" | "Dialed In") => {
+    if (form.getValues("status")) return;
     form.setValue("status", status, { shouldDirty: true, shouldValidate: true });
-    form.setValue("faultStatus", ["Good"], { shouldDirty: true, shouldValidate: true });
+  };
+
+  const setFaultStatusIfBlank = (fault: "Good") => {
+    if ((form.getValues("faultStatus") ?? []).length > 0) return;
+    form.setValue("faultStatus", [fault], { shouldDirty: true, shouldValidate: true });
   };
 
   useEffect(() => {
@@ -1038,7 +1045,13 @@ export default function ShotForm() {
 
               {/* Checkboxes */}
               <div className="space-y-3">
-                <Label>Flags</Label>
+                <div>
+                  <Label>Flags</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Reference = repeatable benchmark shot. Signature = rare, extraordinary shot — also counts as Reference.
+                    Sour = marked sour, but can still be analytically valid if Status and Fault Status are good.
+                  </p>
+                </div>
                 <div className="flex flex-wrap gap-x-6 gap-y-3">
                   {/* Reference Shot */}
                   <FormField control={form.control} name="isReference" render={({ field }) => (
@@ -1050,7 +1063,7 @@ export default function ShotForm() {
                             const ref = checked === true;
                             field.onChange(ref);
                             if (ref) {
-                              setAnalyzedShotDefaults("Dialed In");
+                              setStatusIfBlank("Dialed In");
                               form.setValue("sourShot", false);
                             }
                             if (!ref) form.setValue("signatureShot", false);
@@ -1071,7 +1084,7 @@ export default function ShotForm() {
                               const sig = checked === true;
                               field.onChange(sig);
                               if (sig) {
-                                setAnalyzedShotDefaults("Dialed In");
+                                setStatusIfBlank("Dialed In");
                                 form.setValue("isReference", true);
                                 form.setValue("sourShot", false);
                               }
@@ -1092,7 +1105,8 @@ export default function ShotForm() {
                             const sour = checked === true;
                             field.onChange(sour);
                             if (sour) {
-                              setAnalyzedShotDefaults("Good");
+                              setStatusIfBlank("Good");
+                              setFaultStatusIfBlank("Good");
                               form.setValue("isReference", false);
                               form.setValue("signatureShot", false);
                             }

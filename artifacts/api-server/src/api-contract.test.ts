@@ -109,6 +109,64 @@ test("Shot route enforces rating, ratio, and signature/reference invariants", as
   assert.match(source, /Preference rating cannot exceed 11/);
 });
 
+test("Log Shot flag selection suggests Status/Fault Status only when blank, never overwrites", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // Flags must only fill in a blank Status/Fault Status — never force-overwrite
+  // a value the user already entered.
+  assert.match(source, /const setStatusIfBlank = \(status: "Good" \| "Dialed In"\) => \{/);
+  assert.equal(source.includes('if (form.getValues("status")) return;'), true);
+  assert.match(source, /const setFaultStatusIfBlank = \(fault: "Good"\) => \{/);
+  assert.equal(source.includes('if ((form.getValues("faultStatus") ?? []).length > 0) return;'), true);
+
+  // Reference/Signature suggest Dialed In status; Sour suggests Good status
+  // AND Good fault status — an intentionally asymmetric rule (Reference and
+  // Signature do not touch Fault Status).
+  assert.equal(source.includes('setStatusIfBlank("Dialed In");'), true);
+  assert.equal(source.includes('setStatusIfBlank("Good");'), true);
+  assert.equal(source.includes('setFaultStatusIfBlank("Good");'), true);
+
+  // Signature Shot implies Reference Shot.
+  assert.equal(source.includes('form.setValue("isReference", true);'), true);
+
+  // Selecting Reference or Signature clears Sour; selecting Sour clears both
+  // Reference and Signature; deselecting Reference also clears Signature.
+  assert.equal(source.includes('form.setValue("sourShot", false);'), true);
+  assert.equal(source.includes('form.setValue("isReference", false);'), true);
+  assert.equal(source.includes('form.setValue("signatureShot", false);'), true);
+  assert.equal(source.includes('if (!ref) form.setValue("signatureShot", false);'), true);
+
+  // Short, mobile-friendly Flags helper text explaining Reference/Signature/Sour.
+  assert.match(source, /Reference = repeatable benchmark shot/);
+  assert.match(source, /Signature = rare, extraordinary shot/);
+  assert.match(source, /Sour = marked sour, but can still be analytically valid/);
+});
+
+test("Shot Classification excludes flag-duplicate values; Daily Driver lives under Bean Achievement", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/lib/selector-options.ts", import.meta.url)),
+    "utf8",
+  );
+
+  // Reference Shot, Signature Shot, and Sour Shot are flags, not workflow-type
+  // choices; Daily Driver is a Bean Achievement, not a Shot Classification.
+  // Scope the check to the shotClassification array body specifically so a
+  // match elsewhere in the file can't produce a false pass.
+  const shotClassificationMatch = source.match(/shotClassification:\s*\[([\s\S]*?)\]/);
+  assert.ok(shotClassificationMatch, "shotClassification list not found in selector-options.ts");
+  const shotClassificationBody = shotClassificationMatch![1];
+  for (const excluded of ["Sour", "Reference Shot", "Signature Shot", "Daily Driver"]) {
+    assert.doesNotMatch(shotClassificationBody, new RegExp(excluded));
+  }
+
+  const beanAchievementMatch = source.match(/beanAchievement:\s*\[([\s\S]*?)\]/);
+  assert.ok(beanAchievementMatch, "beanAchievement list not found in selector-options.ts");
+  assert.match(beanAchievementMatch![1], /Daily Driver/);
+});
+
 test("Shot detail exposes evaluation fields that affect interpretation", async () => {
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)),
@@ -269,6 +327,28 @@ test("Shot Detail groups serving-context fields and shows them only when meaning
   assert.match(source, /label="Not Rated" value="Yes"/);
   assert.match(source, /label="Did Not Finish" value="Yes"/);
   assert.match(source, /label="For Others" value="Yes"/);
+});
+
+test("Shot Detail shows Sour Shot and hides blank Shot Classification/Bean Achievement/Expression Style/Taste Zone", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // Sour Shot must display as clearly as Reference/Signature, which it did not before.
+  assert.equal(source.includes("{shot.sourShot && ("), true);
+  assert.match(source, /Sour Shot/);
+
+  // These four fields must not render blank/dash noise when unset.
+  assert.equal(source.includes('{(shot.shotClassification?.length ?? 0) > 0 && <DetailItem label="Shot Classification"'), true);
+  assert.equal(source.includes('{(shot.beanAchievement?.length ?? 0) > 0 && <DetailItem label="Bean Achievement"'), true);
+  assert.equal(source.includes('{(shot.expressionStyle?.length ?? 0) > 0 && <DetailItem label="Expression Style"'), true);
+  assert.equal(source.includes('{(shot.tasteZone || shot.zone) && <DetailItem label="Taste Zone"'), true);
+
+  // Grind/waste workflow evidence stays visually separate from extraction data.
+  assert.match(source, /const hasGrinderWorkflowEvent =/);
+  assert.match(source, /\{hasGrinderWorkflowEvent && \(/);
+  assert.match(source, /Grinder \/ Workflow Event/);
 });
 
 test("Machine/profile-level drink defaults are documented as deferred, not implemented", async () => {
@@ -464,6 +544,42 @@ test("Start Hopper Phase prefill, status cues, and closeout copy are launch-safe
   // BagRow's action area must wrap instead of forcing a single cramped row on mobile.
   assert.match(source, /flex flex-col sm:flex-row sm:items-start justify-between gap-4/);
   assert.match(source, /flex flex-wrap items-center gap-3 shrink-0/);
+});
+
+test("Bag closeout makes measured-vs-unmeasured leftover explicit and guides toward the next bag", async () => {
+  const [bagsPageSource, bagsRouteSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/bags.ts", import.meta.url)), "utf8"),
+  ]);
+
+  // The user must be able to explicitly say leftover mass was measured vs
+  // intentionally skipped, not just leave a number blank (ambiguous).
+  assert.match(bagsPageSource, /leftoverMeasured/);
+  assert.match(bagsPageSource, /I measured it/);
+  assert.match(bagsPageSource, /Not measured — intentionally skipped/);
+  assert.match(bagsPageSource, /intentionally not measured at closeout/);
+
+  // An explicit "unmeasured" choice must clear any stale prior estimate
+  // (send null), not just omit the field.
+  assert.match(bagsPageSource, /if \(!measured\) body\.remainingEstimate = null;/);
+
+  // Regression guard: PATCH /api/bags must distinguish an explicit null
+  // (clear) from an omitted field (leave untouched) for remainingEstimate,
+  // the same class of bug fixed for shots in an earlier session — otherwise
+  // the client's explicit-clear-on-unmeasured behavior above would silently
+  // no-op against a stale database value.
+  assert.match(bagsRouteSource, /remainingEstimate: body\.remainingEstimate === null \? null : body\.remainingEstimate != null \? Number\(body\.remainingEstimate\) : undefined/);
+
+  // Closeout/cleanout notes field must explicitly invite purge/cleanout evidence.
+  assert.match(bagsPageSource, /Closeout \/ Cleanout Notes/);
+  assert.match(bagsPageSource, /grinder purge, hopper emptying, or machine cleaning/);
+
+  // Must guide the user toward the next bag/hopper phase after closing.
+  assert.match(bagsPageSource, /Next: create or select your new bag, then use Start Hopper Phase/);
+
+  // Previous (inactive) bags must show a reconciled-remaining figure when
+  // present, without cluttering active bags.
+  assert.match(bagsPageSource, /!bag\.isActive && bag\.remainingEstimate != null && <span>Reconciled remaining: \{bag\.remainingEstimate\}g<\/span>/);
 });
 
 test("Bags page exposes launch-safe bag lifecycle workflow", async () => {

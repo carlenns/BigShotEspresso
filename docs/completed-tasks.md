@@ -886,3 +886,80 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 - Whether Grind Time should also revert to plain input (only Grind Setting definitely keeps it) is still an open judgment call needing Carl's direct input, not resolved here.
 - The hidden default-rating issue flagged during review has been corrected in this commit: new shots start with blank `rating`/`rated` values unless the user explicitly records taste data.
 - No changes were made to `release-candidate-checklist.md` or the onboarding doc; if a reviewer finds a specific sentence that now reads as inaccurate, it was not caught by this review.
+
+# Bag Lifecycle Work Package: Closeout Flow Polish and Closed-Out Summary — 2026-08-25
+
+## Completed
+
+- **Measured vs. unmeasured leftover, made explicit** (per `docs/implementation/bag-hopper-lifecycle-plan.md` §1's "whether leftover mass was measured or intentionally ignored" input, and Phase B's "make measured vs unmeasured leftover explicit"): added a `leftoverMeasured` select ("I measured it" / "Not measured — intentionally skipped") to the Close Out Bag dialog. Selecting "Not measured" hides the numeric field and composes closeout notes saying so explicitly, instead of the previous ambiguous "not recorded" inferred from a blank field.
+- Choosing "Not measured" now sends `remainingEstimate: null` to `PATCH /api/bags/:id` — an explicit clear, not just an omitted field — so a stale prior estimate can't linger and look like a fresh measurement.
+- **Backend fix required to make the above actually work**: found that `artifacts/api-server/src/routes/bags.ts`'s `parseBagBody` treated `null` and `undefined` identically for `remainingEstimate` (`body.remainingEstimate != null ? Number(...) : undefined`), which silently drops an explicit clear the same way the shots-edit bug did in an earlier session. Fixed narrowly for this one field: `body.remainingEstimate === null ? null : body.remainingEstimate != null ? Number(...) : undefined`. This is a data-handling bug fix in an existing route, not a schema or API-contract change — `/api/bags` is not OpenAPI-governed (hand-written body parsing, unlike `/shots` and `/hoppers`), and `bags.remaining_estimate` was already a nullable column.
+- Relabeled "Closeout Notes" to "Closeout / Cleanout Notes" with updated placeholder/helper text explicitly inviting grinder purge, hopper emptying, and machine cleaning evidence — per §2's "for now, closeout notes can preserve the evidence" guidance for between-bag maintenance, without adding a new field.
+- Added forward-guidance copy: a closing line in the dialog's amber note ("Next: create or select your new bag, then use Start Hopper Phase once you're ready to begin tracking it.") and an updated success toast description, guiding the user toward the next bag/hopper phase after closing — satisfies "guide user toward starting a new bag/hopper phase afterward" without auto-navigating or inventing a new flow.
+- The existing hopper-phase-not-auto-closed reminder (added last session) was preserved unchanged.
+- **Closed-out summary**: previous (inactive) bags already showed closed-out date (inline text) and days-since-closed (badge) from an earlier session. Added the one missing piece — `Reconciled remaining: {g}` — to the same details row, only for `!bag.isActive`, completing the three-part "closed out summary" (date, days since, remaining/reconciliation estimate) the task asked for. Did not restructure or duplicate the existing date/badge displays, to avoid disturbing already-tested behavior. Active bags are unaffected (all three pieces are gated on `!bag.isActive`).
+
+## Field/schema check (per task requirement 3)
+
+No schema or API changes were needed for the frontend feature itself — `closedOutDate`, `remainingEstimate`, `reconciliationNotes`→`notes`, and `daysSinceClosedOut` (server-computed in `GET /bags`) all already existed and were already wired into `Bag`/`BagRow`. The only backend change was the `parseBagBody` null-handling bug fix described above, required for the new "explicit clear" behavior to actually persist — not a new field.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (workspace-wide).
+- `CI=true pnpm --filter @workspace/api-server test` — 47/47 passed, 0 failed (46 pre-existing + 1 new).
+- `CI=true pnpm run build:render` — build succeeded.
+- Not run: a live Postgres-backed browser smoke test (closing a bag with "unmeasured" selected, confirming `remainingEstimate` actually reads back as `null`, and confirming the reconciled-remaining text appears in Previous Bags) — no running app instance was available in this environment, same limitation as every prior session in this thread.
+
+## Assumptions
+
+- "Make measured vs unmeasured leftover explicit" was implemented as a client-only UI distinction (a `Select`, not a new DB column) that controls which composed sentence goes into the existing `notes` text and whether `remainingEstimate` is sent as a number or explicit `null` — consistent with the plan's "No schema change required unless closeout reason or closeout waste must be structured."
+- Fixing `parseBagBody`'s null-handling for `remainingEstimate` was judged in-scope as a required bug fix (not a schema/API change) since the new "unmeasured → explicit clear" feature would otherwise silently no-op — same reasoning as the two `ShotForm.tsx`/OpenAPI fixes from earlier sessions, scoped narrowly to only the one field actually used here.
+- Completing the closed-out summary by adding only the missing `remainingEstimate` piece (rather than consolidating all three into a new visual block) was chosen to avoid touching already-tested display code unnecessarily.
+
+## Unresolved
+
+- No live smoke test performed (see above).
+- `artifacts/coffee-log/src/pages/ShotForm.tsx` shows as modified in git status during this session — unrelated, concurrent work from elsewhere, not touched or reviewed as part of this package.
+- Everything else previously unresolved (no lifecycle-event table, no hard one-active-bag rule, hopper top-up out of scope, same-day duplicate hopper-name collisions) remains unchanged.
+
+## Recommended next step
+
+Live smoke test of the closeout flow (both measured and unmeasured paths, confirming the Postgres value actually clears), then Phase C ("Start New Bag guided flow") per the lifecycle plan's implementation order, if Carl/Codex wants to continue down that path next.
+
+# Shot Flags, Selector Cleanup, and Detail Display Polish — 2026-08-25
+
+## Completed
+
+- **Flag behavior (`ShotForm.tsx`)**: replaced `setAnalyzedShotDefaults`, which unconditionally overwrote Shot Status and Fault Status on every Reference/Signature/Sour selection, with two blank-only helpers — `setStatusIfBlank` and `setFaultStatusIfBlank` — that check `form.getValues(...)` first and do nothing if the user already entered a value. Selecting Reference or Signature now suggests Status "Dialed In" only when blank (Fault Status is left untouched, per the task's explicit and intentionally asymmetric rule); selecting Sour suggests Status "Good" and Fault Status "Good," each only when blank. Signature-implies-Reference, Sour-clears-Reference/Signature, and Reference/Signature-clears-Sour were already implemented from an earlier session and are unchanged — only the force-overwrite behavior was fixed.
+- Added a short Flags helper line ("Reference = repeatable benchmark shot. Signature = rare, extraordinary shot — also counts as Reference. Sour = marked sour, but can still be analytically valid if Status and Fault Status are good.") directly above the three flag checkboxes.
+- **Selector cleanup (`selector-options.ts`)**: audited the curated `shotClassification` and `beanAchievement` lists against `docs/csv-data-dictionary.md` ("Shot Classification... Not the authority for reference/signature/daily-driver status") and the onboarding doc ("Daily Driver must be recorded through Bean Achievement, not Shot Classification"). Found the curated lists were already compliant — `shotClassification` contains none of Sour/Reference Shot/Signature Shot/Daily Driver, and `beanAchievement` already includes Daily Driver — so no edit was needed there. Verified this with a new contract test rather than leaving it unverified.
+- **Shot Detail (`ShotDetail.tsx`)**: added a missing Sour Shot badge next to the existing Signature Shot / Reference Shot badges (Sour previously had no display anywhere in Shot Detail). Made Shot Classification, Bean Achievement, Expression Style, and Taste Zone conditionally render — matching the conditional-hide pattern already used elsewhere in the same Extraction Details grid (Grind Setting, Grind Time, Initial Grinder Output, Machine, Grinder) — instead of always showing a "-" placeholder row when unset. Expression Style was extended to the same treatment even though not explicitly named in the task's field list, for internal consistency with its two ChipList siblings (Shot Classification, Bean Achievement) that share the identical rendering mechanism — a deliberate small scope extension, not silently done. Confirmed the Grinder/Workflow Event box (grind waste + grind-adjusted event) was already visually separated from the main Extraction Details grid in its own amber-bordered block from prior work — no change needed there.
+- Added three new source-scan tests to `api-contract.test.ts`: one verifying the blank-only Status/Fault Status guards and the Flags helper text exist in `ShotForm.tsx`; one verifying `shotClassification` excludes the four flag-duplicate values and `beanAchievement` includes Daily Driver in `selector-options.ts`; one verifying the Sour Shot badge and the four conditional-hide fields exist in `ShotDetail.tsx`, plus re-confirming the grind/workflow-event separation.
+- Did not implement DCI/OSI/HMI/BLI/MSI/GSP. Did not touch Quick Log. No schema/API/OpenAPI/migration changes. No historical data deleted — `curatedOptions`/`curatedScalarOptions` already merge in any saved value not present in the curated list, so an old record with a legacy Sour/Reference/Daily-Driver-style Shot Classification value (if one ever existed) still displays and remains editable; nothing was deleted from storage.
+- No update was made to `docs/field-type-map.md` or `docs/csv-data-dictionary.md` — both already correctly document these rules (confirmed by reading them before implementing), so nothing needed clarifying.
+
+## Verified
+
+- Confirmed clean working tree fully in sync with `origin/main` (0 ahead/behind) before starting.
+- Workspace typecheck passed (all 4 projects).
+- API/Phase 1.5 test suite passed: 50 passed, 0 failed, including the 3 new tests added this session.
+- `CI=true pnpm run build:render` passed.
+- Live smoke test against the real dev DB using Chrome automation (not assumed): (1) set Shot Status to "Needs Work," checked Reference Shot, confirmed Status stayed "Needs Work" — not overwritten; (2) with Status still "Needs Work" and Fault Status blank, checked Sour Shot, confirmed Reference cleared, Status stayed "Needs Work" (correctly not forced to "Good" since it was non-blank), and Fault Status filled to "Good" (correctly forced since it was blank); (3) on a fresh blank shot, checked Sour Shot alone and confirmed both Status and Fault Status auto-filled to "Good," proving a Sour shot can become analytically valid; (4) on a fresh blank shot, checked Signature Shot and confirmed Reference auto-checked, Status filled to "Dialed In," and Fault Status stayed unset (confirms the asymmetric rule); (5) saved a Signature+Reference shot and confirmed both badges render on Shot Detail, and confirmed the four now-conditional fields (all blank on this shot) render no rows at all. Test shot deleted afterward, server stopped.
+
+## Assumptions
+
+- The Reference/Signature-vs-Sour asymmetry (Reference/Signature suggest Status only; Sour suggests both Status and Fault Status) was implemented literally as specified in the task's itemized rules, not assumed to be symmetric — flagging this explicitly since it's easy to read as an oversight rather than a deliberate distinction.
+- Extending the conditional-hide treatment to Expression Style (not explicitly named in the task's list) was a judgment call for internal consistency within the same grid, not a silent scope expansion — noted above and here.
+- The existing Reference-implies-Signature-clearing, Sour-clears-Reference/Signature, and Reference/Signature-clears-Sour logic from a prior session was verified correct against the task's spec and left unchanged rather than rewritten.
+
+## Unresolved
+
+- None new. The flag/selector/display behavior specified in this task is now implemented and verified; broader items (lifecycle-event model, lack of a dedicated Hopper frontend beyond Start Hopper Phase, hard one-active-bag enforcement) remain out of scope and unchanged, as recorded in earlier sessions above.
+
+## Recommended next step
+
+None required by this task specifically. If continuing shot-evaluation polish, the next natural candidate would be auditing whether `Boundary Shot` (present in `beanAchievement` and referenced in the DB schema/OpenAPI as a separate `boundaryShot` field) has the same kind of flag-vs-selector duplication this task just resolved for Reference/Signature/Sour — not investigated here, flagged only as a possible parallel worth checking, not a confirmed issue.
+
+## Commit recommendation
+
+Not recommended to commit automatically. Verification is clean and the changes are additive/behavioral-fix-only (no schema/API/history changes), but per the task boundaries, commit only on explicit instruction from Carl/Codex.

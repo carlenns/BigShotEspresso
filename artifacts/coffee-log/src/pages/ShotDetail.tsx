@@ -129,10 +129,10 @@ export default function ShotDetail() {
               <DetailItem label="Status" value={displaySelectorValue(shot.status) || "-"} />
               <DetailItem label="Include in Analysis" value={shot.includeInAnalysis ? "Yes" : "No"} />
               <DetailItem label="Fault Status" value={<ChipList values={shot.faultStatus} />} />
-              <DetailItem label="Shot Classification" value={<ChipList values={shot.shotClassification} />} />
-              <DetailItem label="Bean Achievement" value={<ChipList values={shot.beanAchievement} />} />
-              <DetailItem label="Expression Style" value={<ChipList values={shot.expressionStyle} />} />
-              <DetailItem label="Taste Zone" value={shot.tasteZone || shot.zone || "-"} />
+              {(shot.shotClassification?.length ?? 0) > 0 && <DetailItem label="Shot Classification" value={<ChipList values={shot.shotClassification} />} />}
+              {(shot.beanAchievement?.length ?? 0) > 0 && <DetailItem label="Bean Achievement" value={<ChipList values={shot.beanAchievement} />} />}
+              {(shot.expressionStyle?.length ?? 0) > 0 && <DetailItem label="Expression Style" value={<ChipList values={shot.expressionStyle} />} />}
+              {(shot.tasteZone || shot.zone) && <DetailItem label="Taste Zone" value={shot.tasteZone || shot.zone} />}
               </div>
             </div>
 
@@ -231,6 +231,11 @@ export default function ShotDetail() {
             {shot.isReference && (
               <div className="mt-3 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
                 Reference Shot
+              </div>
+            )}
+            {shot.sourShot && (
+              <div className="mt-3 bg-red-100 text-red-800 px-4 py-2 rounded-full text-sm font-medium dark:bg-red-950/30 dark:text-red-300">
+                Sour Shot
               </div>
             )}
           </CardContent>

@@ -203,7 +203,11 @@ const parseBagBody = (body: Record<string, unknown>) => ({
   openedDate: body.openedDate as string | undefined,
   closedOutDate: body.closedOutDate as string | undefined,
   bagWeight: body.bagWeight != null ? Number(body.bagWeight) : undefined,
-  remainingEstimate: body.remainingEstimate != null ? Number(body.remainingEstimate) : undefined,
+  // Distinguish an explicit null (user marked leftover mass as intentionally
+  // unmeasured, clearing any stale prior estimate) from an omitted field
+  // (undefined, left untouched) — treating both the same would make PATCH
+  // silently keep a stale remainingEstimate instead of clearing it.
+  remainingEstimate: body.remainingEstimate === null ? null : body.remainingEstimate != null ? Number(body.remainingEstimate) : undefined,
   cost: body.cost != null ? Number(body.cost) : undefined,
   isActive: body.isActive != null ? Boolean(body.isActive) : undefined,
   startGrindSetting: body.startGrindSetting != null ? Number(body.startGrindSetting) : undefined,

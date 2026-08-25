@@ -61,7 +61,7 @@ export default function Bags() {
   const [editing, setEditing] = useState<Bag | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [closeoutBag, setCloseoutBag] = useState<Bag | null>(null);
-  const [closeoutForm, setCloseoutForm] = useState({ closedOutDate: todayDate(), remainingEstimate: "", reconciliationNotes: "" });
+  const [closeoutForm, setCloseoutForm] = useState({ closedOutDate: todayDate(), leftoverMeasured: "measured", remainingEstimate: "", reconciliationNotes: "" });
   const [startPhaseBag, setStartPhaseBag] = useState<Bag | null>(null);
   const [startPhaseForm, setStartPhaseForm] = useState({ phase: "Phase 1", customLabel: "", startingBeans: "", notes: "" });
   const [startingBeansPrefilled, setStartingBeansPrefilled] = useState(false);
@@ -98,12 +98,15 @@ export default function Bags() {
   const closeBagMutation = useMutation({
     mutationFn: async () => {
       if (!closeoutBag) throw new Error("No bag selected");
+      const measured = closeoutForm.leftoverMeasured === "measured";
       const existingNotes = closeoutBag.notes?.trim();
       const closeoutNotes = [
         existingNotes,
         [
           `Closeout ${closeoutForm.closedOutDate || todayDate()}.`,
-          closeoutForm.remainingEstimate ? `Remaining beans/chute mass: ${closeoutForm.remainingEstimate}g.` : "Remaining beans/chute mass not recorded.",
+          measured
+            ? (closeoutForm.remainingEstimate ? `Remaining beans/chute mass: ${closeoutForm.remainingEstimate}g (measured).` : "Remaining beans/chute mass not recorded.")
+            : "Remaining beans/chute mass intentionally not measured at closeout.",
           closeoutForm.reconciliationNotes.trim() || null,
         ].filter(Boolean).join(" "),
       ].filter(Boolean).join("\n\n");
@@ -113,7 +116,11 @@ export default function Bags() {
         closedOutDate: closeoutForm.closedOutDate || todayDate(),
         notes: closeoutNotes,
       };
-      if (closeoutForm.remainingEstimate !== "") body.remainingEstimate = Number(closeoutForm.remainingEstimate);
+      // Explicit measured-vs-unmeasured distinction: an intentional skip
+      // clears any stale prior estimate instead of leaving old data behind
+      // that would misleadingly look like a fresh measurement.
+      if (!measured) body.remainingEstimate = null;
+      else if (closeoutForm.remainingEstimate !== "") body.remainingEstimate = Number(closeoutForm.remainingEstimate);
 
       const r = await fetch(`/api/bags/${closeoutBag.id}`, {
         method: "PATCH",
@@ -128,7 +135,7 @@ export default function Bags() {
       qc.invalidateQueries({ queryKey: ["intelligence"] });
       qc.invalidateQueries({ queryKey: ["dashboard-intelligence"] });
       setCloseoutBag(null);
-      toast({ title: "Bag closed out", description: "The bag is inactive and closeout evidence was saved." });
+      toast({ title: "Bag closed out", description: "Closeout evidence was saved. Next: start a new bag and hopper phase when ready." });
     },
     onError: (e) => toast({ title: "Closeout failed", description: String(e), variant: "destructive" }),
   });
@@ -193,6 +200,7 @@ export default function Bags() {
     setCloseoutBag(bag);
     setCloseoutForm({
       closedOutDate: bag.closedOutDate?.slice(0, 10) ?? todayDate(),
+      leftoverMeasured: "measured",
       remainingEstimate: bag.remainingEstimate != null ? String(bag.remainingEstimate) : "",
       reconciliationNotes: "",
     });
@@ -363,30 +371,49 @@ export default function Bags() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Remaining Beans / Chute Mass (g)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                min="0"
-                value={closeoutForm.remainingEstimate}
-                onChange={(e) => setCloseoutForm((current) => ({ ...current, remainingEstimate: e.target.value }))}
-                placeholder="e.g. 121"
-              />
-              <p className="text-xs text-muted-foreground">This is reconciliation evidence. It does not rewrite past shot consumption.</p>
+              <Label>Leftover Beans / Chute Mass</Label>
+              <Select
+                value={closeoutForm.leftoverMeasured}
+                onValueChange={(v) => setCloseoutForm((current) => ({ ...current, leftoverMeasured: v, remainingEstimate: v === "unmeasured" ? "" : current.remainingEstimate }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="measured">I measured it</SelectItem>
+                  <SelectItem value="unmeasured">Not measured — intentionally skipped</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            {closeoutForm.leftoverMeasured === "measured" && (
+              <div className="space-y-1.5">
+                <Label>Remaining Beans / Chute Mass (g)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={closeoutForm.remainingEstimate}
+                  onChange={(e) => setCloseoutForm((current) => ({ ...current, remainingEstimate: e.target.value }))}
+                  placeholder="e.g. 121"
+                />
+                <p className="text-xs text-muted-foreground">This is reconciliation evidence. It does not rewrite past shot consumption.</p>
+              </div>
+            )}
             <div className="space-y-1.5">
-              <Label>Closeout Notes</Label>
+              <Label>Closeout / Cleanout Notes</Label>
               <Input
                 value={closeoutForm.reconciliationNotes}
                 onChange={(e) => setCloseoutForm((current) => ({ ...current, reconciliationNotes: e.target.value }))}
-                placeholder="e.g. weighed old beans and chute grind-out"
+                placeholder="e.g. weighed old beans, purged grinder, backflushed"
               />
+              <p className="text-xs text-muted-foreground">
+                Also a good place for grinder purge, hopper emptying, or machine cleaning you did between bags.
+              </p>
             </div>
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200 space-y-1">
               <p>Closing this bag marks it inactive as of the closed-out date above.</p>
               <p>Your remaining-beans estimate is saved as reconciliation evidence only — it does not rewrite or recalculate past shot consumption.</p>
               <p>Closeout notes are saved to this bag's record for later reference.</p>
               <p>Maintenance, purge waste, and hopper cleanout are not yet tracked as their own lifecycle events — for now, note them here or in the bag's Notes field. The bag's active hopper phase (if any) is not automatically closed by this action.</p>
+              <p className="font-medium">Next: create or select your new bag, then use Start Hopper Phase once you're ready to begin tracking it.</p>
             </div>
           </div>
           <DialogFooter>
@@ -521,6 +548,7 @@ function BagRow({ bag, onEdit, onCloseout, onStartPhase, hopperPhase }: { bag: B
               {bag.estimatedRoastWindow && <span>Estimated roast: {bag.estimatedRoastWindow}</span>}
               {bag.openedDate && <span>Opened: {bag.openedDate}</span>}
               {!bag.isActive && bag.closedOutDate && <span>Closed: {bag.closedOutDate.slice(0, 10)}</span>}
+              {!bag.isActive && bag.remainingEstimate != null && <span>Reconciled remaining: {bag.remainingEstimate}g</span>}
               {bag.currentGrindSetting != null && <span>Grind: <strong className="text-foreground">{bag.currentGrindSetting}</strong></span>}
               {bag.defaultDose != null && <span>Dose: <strong className="text-foreground">{bag.defaultDose}g</strong></span>}
               {bag.defaultYield != null && <span>Yield: <strong className="text-foreground">{bag.defaultYield}g</strong></span>}
