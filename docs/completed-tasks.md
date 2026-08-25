@@ -1267,3 +1267,33 @@ Everything in this session's scope (my two Bags.tsx copy/UI fixes + their test) 
     git commit -m "fix(bags): clarify Change Bag vs per-row actions, warn before a second active bag"
 
 Not run automatically, per task boundaries (no commit, no push) — provided as the exact command if/when authorized. Note the working tree also contains unrelated, concurrent, in-progress changes (`shots.ts`, `shot-eligibility.ts`, the new `shot-analysis-eligibility.ts`, `launch-readiness-audit.md`) that are not part of this command and should be reviewed/committed separately by whoever owns that work.
+
+# Quick Log Hard-Block / Shelving Cleanup — 2026-08-25
+
+## Completed
+
+- **Confirmed exactly what `docs/implementation/launch-readiness-audit.md`'s High-Priority Fix #6 already documented**: `/shots/quick` was still a fully live route in `App.tsx` (`<Route path="/shots/quick" component={QuickLog} />`), even though nothing in `Shell.tsx`'s navigation (desktop sidebar, mobile bottom nav, or the mobile "Setup & System" dropdown) linked to it — confirmed by reading all six nav arrays in `Shell.tsx`. Being unlinked is not the same as being blocked: a stray bookmark, old shared link, or guessed URL still landed a user on the shelved Quick Log form.
+- Replaced the route's rendered component with a redirect: `<Route path="/shots/quick"><Redirect to="/shots/new" /></Route>`, using wouter's built-in `Redirect` component (already a dependency, no new package). Chose the pure-redirect option over an interstitial "this mode has been retired" message — the task's own instructions explicitly prefer redirect when it's the smallest and least confusing fix, and since nothing in the UI ever links here, the only visitors are stale bookmarks/links, for whom landing directly on the primary Log Shot form is the least surprising outcome.
+- Removed the now-unused `import QuickLog from "@/pages/QuickLog";` from `App.tsx` (dead import once nothing renders it) — this is import hygiene, not deletion of `QuickLog.tsx` itself, which remains on disk, untouched, exactly as the "prefer routing/copy cleanup over destructive removal" project rule and the task's own boundary require. As a side effect, the unimported page is now tree-shaken out of the production bundle (2177 vs 2178 modules, ~23KB smaller gzipped JS) without deleting any source file.
+- No nav entries needed removal or relabeling — confirmed none existed pointing at Quick Log before this change (already true from an earlier session's work), so task #5 was a no-op check, not a change.
+- Did not touch `ShotForm.tsx`, `QuickLog.tsx`'s internal contents, schemas, migrations, OpenAPI, or any API route — this was routing-only.
+
+## Tests added/updated
+
+Added a new test to `artifacts/api-server/src/api-contract.test.ts`: `"/shots/quick is hard-blocked (redirects), not just unlinked from navigation"` — confirms `App.tsx` contains the `/shots/quick` → `Redirect to="/shots/new"` route, confirms `QuickLog` is neither rendered (`component={QuickLog}`) nor imported anywhere in `App.tsx` (so nothing could silently re-wire it back onto a live route without this test catching the import/render reappearing), and confirms `QuickLog.tsx` still exists on disk (not deleted). Left the existing `"Primary logging UI uses the full shot form and keeps Quick Log shelved"` test's nav-level check (`doesNotMatch(shellSource, /href="\/shots\/quick"/)`) unchanged — it's still correct and complementary, just insufficient on its own, which is exactly the gap the new test closes.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (workspace-wide).
+- `CI=true pnpm --filter @workspace/api-server test` — 60/60 passed (59 pre-existing as of this session + 1 new).
+- `CI=true pnpm run build:render` — build succeeded; production JS bundle for `artifacts/coffee-log` shrank slightly (778.69kB → 755.61kB pre-gzip) since `QuickLog.tsx` is no longer reachable from any import graph root.
+
+## Assumptions
+
+- A silent redirect (no toast/banner) is sufficient since the route has no UI entry point — anyone who reaches it is following a stale link, not making an in-app navigation choice that needs explaining in the moment.
+- Removing the unused `import QuickLog from "@/pages/QuickLog"` line counts as "routing cleanup," not "deleting meaningful code" — the file, its logic, and its history are untouched; only the one now-dead import statement in a different file was removed.
+
+## Unresolved
+
+- None specific to this task.
+- `docs/implementation/launch-readiness-audit.md` also lists a related, separate item ("Dashboard hopper blank-stat labeling," High-Priority Fix #7) bundled alongside the Quick Log fix in its own draft task prompt for a different agent — intentionally not started here, since this task's scope was Quick Log only.

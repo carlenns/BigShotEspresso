@@ -1039,6 +1039,32 @@ test("Primary logging UI uses the full shot form and keeps Quick Log shelved", a
   assert.match(formSource, /review, tasting notes, and advanced details/);
 });
 
+test("/shots/quick is hard-blocked (redirects), not just unlinked from navigation", async () => {
+  const appSource = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // Regression guard: being absent from nav (already covered by the test
+  // above) is not the same as the route itself being blocked. A stray
+  // bookmark, old shared link, or guessed URL must not still land a user on
+  // the shelved Quick Log form — it must redirect to the primary Log Shot
+  // workflow instead.
+  assert.match(appSource, /<Route path="\/shots\/quick">/);
+  assert.match(appSource, /<Redirect to="\/shots\/new" \/>/);
+
+  // The old route must not render QuickLog anymore, and QuickLog must not
+  // even be imported into App.tsx — if it were still imported, that alone
+  // would be a strong signal something re-wired it back onto a live route.
+  assert.doesNotMatch(appSource, /component=\{QuickLog\}/);
+  assert.doesNotMatch(appSource, /from "@\/pages\/QuickLog"/);
+
+  // QuickLog.tsx itself must still exist on disk (not deleted) — the
+  // project rule is routing/copy cleanup over destructive removal, and nothing
+  // else in the repo should assume the file is gone.
+  await readFile(fileURLToPath(new URL("../../coffee-log/src/pages/QuickLog.tsx", import.meta.url)), "utf8");
+});
+
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {
   const [appSource, formSource, detailSource, selectorSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)), "utf8"),

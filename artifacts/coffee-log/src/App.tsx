@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Redirect, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,7 +17,6 @@ import BagDetail from "@/pages/BagDetail";
 import Equipment from "@/pages/Equipment";
 import Accessories from "@/pages/Accessories";
 import TasteSelectors from "@/pages/TasteSelectors";
-import QuickLog from "@/pages/QuickLog";
 
 const queryClient = new QueryClient();
 
@@ -27,7 +26,15 @@ function Router() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/shots" component={ShotList} />
-        <Route path="/shots/quick" component={QuickLog} />
+        {/* Quick Log is shelved for launch (docs/implementation/release-candidate-checklist.md
+            Gate 0.5). Redirect the old route to the primary Log Shot workflow
+            instead of rendering it, so a stale bookmark/link can't land a
+            user on an unsupported alternate logging path. QuickLog.tsx is
+            intentionally left in place, unimported here, per the "prefer
+            routing/copy cleanup over destructive removal" project rule. */}
+        <Route path="/shots/quick">
+          <Redirect to="/shots/new" />
+        </Route>
         <Route path="/shots/new" component={ShotForm} />
         <Route path="/shots/:id/edit" component={ShotForm} />
         <Route path="/shots/:id" component={ShotDetail} />
