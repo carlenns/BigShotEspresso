@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useToast } from "@/hooks/use-toast";
 import { Archive, Plus, Star, Package, Pencil, ChevronRight, ClipboardCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useListHoppers } from "@workspace/api-client-react";
 
 interface Bean { id: number; name: string; }
 interface Bag {
@@ -50,6 +51,10 @@ export default function Bags() {
   const { toast } = useToast();
   const { data: bags = [], isLoading } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: beans = [] } = useQuery({ queryKey: ["beans"], queryFn: fetchBeans });
+  const { data: hoppers = [] } = useListHoppers();
+  const activeHopperPhaseByBagId = new Map(
+    hoppers.filter((h) => h.isActive && h.bagId != null).map((h) => [h.bagId as number, h.phase ?? null]),
+  );
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Bag | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
@@ -197,7 +202,7 @@ export default function Bags() {
           {activeBags.length > 0 && (
             <section>
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Active</h2>
-              <div className="space-y-2">{activeBags.map((b) => <BagRow key={b.id} bag={b} onEdit={openEdit} onCloseout={openCloseout} />)}</div>
+              <div className="space-y-2">{activeBags.map((b) => <BagRow key={b.id} bag={b} onEdit={openEdit} onCloseout={openCloseout} hopperPhase={activeHopperPhaseByBagId.get(b.id) ?? null} />)}</div>
             </section>
           )}
           {inactiveBags.length > 0 && (
@@ -333,7 +338,7 @@ export default function Bags() {
   );
 }
 
-function BagRow({ bag, onEdit, onCloseout }: { bag: Bag; onEdit: (b: Bag) => void; onCloseout: (b: Bag) => void }) {
+function BagRow({ bag, onEdit, onCloseout, hopperPhase }: { bag: Bag; onEdit: (b: Bag) => void; onCloseout: (b: Bag) => void; hopperPhase?: string | null }) {
   return (
     <Card className={cn("transition-colors hover:border-primary/40", bag.isActive && "border-primary/50 bg-primary/5")}>
       <CardContent className="p-4">
@@ -344,6 +349,7 @@ function BagRow({ bag, onEdit, onCloseout }: { bag: Bag; onEdit: (b: Bag) => voi
               {bag.bagName && <span className="text-muted-foreground text-sm">{bag.bagName}</span>}
               <Badge variant="outline" className="text-xs">#{bag.bagNumber ?? bag.id}</Badge>
               {bag.isActive && <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Active</Badge>}
+              {bag.isActive && hopperPhase && <Badge variant="secondary" className="text-xs">Hopper: {hopperPhase}</Badge>}
               {!bag.isActive && bag.daysSinceClosedOut != null && (
                 <Badge variant="outline" className="text-xs">Closed {bag.daysSinceClosedOut}d ago</Badge>
               )}

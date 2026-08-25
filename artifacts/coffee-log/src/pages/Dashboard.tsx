@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useListHoppers } from "@workspace/api-client-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -145,6 +146,8 @@ export default function Dashboard() {
     refetchOnWindowFocus: true,
   });
 
+  const { data: hoppers = [], isLoading: isLoadingHoppers } = useListHoppers();
+
   const bag = intel?.activeBag;
   const bi = intel?.bagIntelligence;
   const gd = intel?.grindDrift;
@@ -152,6 +155,7 @@ export default function Dashboard() {
   const tw = intel?.timingWindows;
 
   const hasBagProgress = bp && (bp.startingWeight || bp.consumed > 0);
+  const activeHoppers = bag ? hoppers.filter((h) => h.isActive && h.bagId === bag.id) : [];
   const hasBagComparison = intel?.bagComparison && intel.bagComparison.length > 1;
   const hasTimingWindows = tw && (tw.yieldRange || tw.pourTimeRange || tw.flowTimeRange || tw.pourDelayRange);
   const hasPerfWindow = bi && (bi.bestYieldRange || bi.bestPourDelayRange);
@@ -314,6 +318,62 @@ export default function Dashboard() {
           </Card>
         </section>
       )}
+
+      {/* Active Hopper Status (read-only; no fill/top-up/phase-transition UI here) ── */}
+      <section>
+        <SectionLabel>Active Hopper Status</SectionLabel>
+        {isLoading || isLoadingHoppers ? (
+          <Skeleton className="h-24 w-full" />
+        ) : !bag ? (
+          <Card className="border-dashed">
+            <CardContent className="py-6 text-center text-muted-foreground text-sm">
+              <Package className="h-6 w-6 mx-auto mb-2 opacity-30" />
+              No active bag set — hopper status is shown per active bag.
+            </CardContent>
+          </Card>
+        ) : activeHoppers.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="py-6 text-center text-muted-foreground text-sm">
+              <Package className="h-6 w-6 mx-auto mb-2 opacity-30" />
+              <p className="font-medium">No active hopper linked to this bag.</p>
+              <p className="text-xs mt-1">Hopper tracking hasn't been set up for this bag yet.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {activeHoppers.map((hopper) => (
+              <Card key={hopper.id}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="font-semibold">{hopper.name}</span>
+                    {hopper.phase && (
+                      <Badge variant="secondary" className="text-xs">{hopper.phase}</Badge>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {hopper.startingBeans != null && (
+                      <IntelStat label="Starting beans" value={`${hopper.startingBeans}g`} icon={Package} />
+                    )}
+                    {hopper.hopperMass != null && (
+                      <IntelStat label="Hopper mass" value={`${hopper.hopperMass}g`} />
+                    )}
+                    {hopper.hopperPercent != null && (
+                      <IntelStat label="Hopper %" value={`${hopper.hopperPercent.toFixed(1)}%`} accent />
+                    )}
+                    {hopper.shotsLeftEstimate != null && (
+                      <IntelStat
+                        label="Shots left (est.)"
+                        value={String(hopper.shotsLeftEstimate)}
+                        dim={hopper.shotsLeftEstimate <= 5}
+                      />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* 3. Today's Coffee Brief (with bag phase inline) ────────────────────── */}
       {intel?.todaysBrief && (

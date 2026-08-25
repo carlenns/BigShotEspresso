@@ -224,11 +224,15 @@ test("Machine/profile-level drink defaults are documented as deferred, not imple
   assert.match(checklistSource, /Machine-level and grinder\/profile-level drink type defaults[\s\S]{0,200}are shelved for now/);
   assert.match(dictionarySource, /Machine\/profile-level drink type defaults[\s\S]{0,200}are deferred/);
 
-  // The schema must not have grown a machine-level default drink type field,
-  // and the shot entry form must not have a machine/grinder selector, which
-  // is the documented blocker for ever wiring one up.
+  // The schema must not have grown a machine-level default drink type field.
   assert.doesNotMatch(equipmentSchemaSource, /default_drink_type|defaultDrinkType/);
-  assert.doesNotMatch(shotFormSource, /machineId|grinderId/);
+
+  // Log Shot has a machine/grinder selector (wired to shots.machineId/grinderId),
+  // which unblocks this feature, but selecting equipment must not itself apply
+  // a drink-type default — that remains deferred.
+  assert.match(shotFormSource, /machineId/);
+  assert.match(shotFormSource, /grinderId/);
+  assert.doesNotMatch(shotFormSource, /machine(Id)?[\s\S]{0,120}defaultDrinkType|grinder(Id)?[\s\S]{0,120}defaultDrinkType/i);
 });
 
 test("Today's Coffee Brief uses active-bag performance windows only", async () => {

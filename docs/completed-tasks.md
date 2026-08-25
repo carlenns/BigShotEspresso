@@ -668,3 +668,30 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 ## Unresolved
 
 - None new. Same outstanding items as the previous session (equipment-aware `Grind Setting` precision, missing `Log Shot` machine/grinder selector).
+
+# Log Shot Equipment Selectors + Active Hopper Status — 2026-08-25
+
+## Completed
+
+- Added optional Machine and Grinder selectors to the Log Shot setup card, wired to the existing `shots.machineId` and `shots.grinderId` fields.
+- New shots now default to saved default equipment when available, while existing shots retain their previously saved equipment selection on edit.
+- Kept machine/profile-level Drink Type defaults deferred. The new equipment selectors expose already-existing shot relationships only; they do not add machine-level drink-default behavior.
+- Added a read-only Active Hopper Status panel to the dashboard using existing Hopper records linked to the active bag.
+- Added a compact active Hopper phase badge to active rows on the Bags page.
+
+## Verified
+
+- Workspace typecheck passed.
+- API test suite passed: 42 passed, 0 failed.
+- Render production build passed.
+
+## Assumptions
+
+- Exposing existing Machine and Grinder relationships in Log Shot is launch-safe and does not contradict the previous deferral of machine/profile-level Drink Type defaults.
+- The dashboard hopper status is display-only and uses existing Hopper fields; no hopper formulas, phase-transition behavior, or HMI logic were introduced.
+
+## Unresolved
+
+- Equipment-aware Grind Setting precision remains future work now that a Grinder selector exists.
+- Machine/profile-level Drink Type defaults remain deferred until they are scoped separately.
+- Clearing already-set optional shot fields to null may still need a PATCH/serialization fix; this was reported by the implementation agent and was not changed here.

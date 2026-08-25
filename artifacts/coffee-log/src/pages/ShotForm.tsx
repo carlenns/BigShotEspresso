@@ -38,6 +38,9 @@ interface Bag {
 
 interface TasteSelector { id: number; name: string; category: string; }
 
+interface Grinder { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; isDefault: boolean }
+interface Machine { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; isDefault: boolean }
+
 const NO_TASTE_SELECTORS: TasteSelector[] = [];
 
 function fetchBags(): Promise<Bag[]> { return fetch("/api/bags").then((r) => r.json()); }
@@ -48,6 +51,12 @@ function fetchShotTasteSelectors(id: number): Promise<TasteSelector[]> {
 function fetchSettings(): Promise<Record<string, string>> { return fetch("/api/settings").then((r) => r.json()); }
 function fetchActiveBagIntelligence(): Promise<ActiveBagIntelligence> {
   return fetch("/api/dashboard/intelligence").then((r) => r.json());
+}
+function fetchGrinders(): Promise<Grinder[]> { return fetch("/api/equipment/grinders").then((r) => r.json()); }
+function fetchMachines(): Promise<Machine[]> { return fetch("/api/equipment/machines").then((r) => r.json()); }
+
+function equipmentLabel(item: { name: string; shortLabel?: string | null; brand: string | null; model: string | null }): string {
+  return item.shortLabel || item.name || [item.brand, item.model].filter(Boolean).join(" ") || "Unnamed";
 }
 
 interface LatestShotDefaults {
@@ -90,6 +99,8 @@ const optionalRating = (max: number) => z.preprocess(
 const formSchema = z.object({
   shotDate: z.string(),
   bagId: optionalNumber,
+  machineId: optionalNumber,
+  grinderId: optionalNumber,
   bean: z.string().optional(),
   bag: z.string().optional(),
   grindSetting: optionalNumber,
@@ -160,6 +171,35 @@ function ScalarSelect({
           </option>
         );
       })}
+    </select>
+  );
+}
+
+function EquipmentSelect({
+  options,
+  value,
+  onChange,
+  placeholder = "— not set —",
+}: {
+  options: { id: number; label: string }[];
+  value?: number | null;
+  onChange: (value: number | undefined) => void;
+  placeholder?: string;
+}) {
+  return (
+    <select
+      value={value ?? ""}
+      onChange={(event) => onChange(event.target.value === "" ? undefined : Number(event.target.value))}
+      className={cn(
+        "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "disabled:cursor-not-allowed disabled:opacity-50"
+      )}
+    >
+      <option value="">{placeholder}</option>
+      {options.map((option) => (
+        <option key={option.id} value={option.id}>{option.label}</option>
+      ))}
     </select>
   );
 }
@@ -299,6 +339,8 @@ export default function ShotForm() {
 
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
+  const { data: grinders = [] } = useQuery({ queryKey: ["equipment", "grinders"], queryFn: fetchGrinders });
+  const { data: machines = [] } = useQuery({ queryKey: ["equipment", "machines"], queryFn: fetchMachines });
   const { data: activeBagIntelligence } = useQuery({ queryKey: ["intelligence"], queryFn: fetchActiveBagIntelligence });
   const { data: tasteSelectors = [] } = useQuery({ queryKey: ["taste-selectors"], queryFn: fetchTasteSelectors });
   const { data: existingTasteSelectors = NO_TASTE_SELECTORS } = useQuery({
@@ -366,6 +408,8 @@ export default function ShotForm() {
     form.reset({
       shotDate: existingShot.shotDate ? toDateTimeLocal(existingShot.shotDate) : nowDateTimeLocal(),
       bagId: existingShot.bagId ?? undefined,
+      machineId: existingShot.machineId ?? undefined,
+      grinderId: existingShot.grinderId ?? undefined,
       bean: existingShot.bean ?? undefined,
       bag: existingShot.bag ?? undefined,
       grindSetting: existingShot.grindSetting ?? undefined,
@@ -413,6 +457,20 @@ export default function ShotForm() {
     if (isEditing || !settings?.defaultDrinkType) return;
     if (!form.getValues("drinkType")) form.setValue("drinkType", settings.defaultDrinkType);
   }, [settings?.defaultDrinkType, isEditing, form]);
+
+  useEffect(() => {
+    if (isEditing) return;
+    if (form.getValues("machineId")) return;
+    const defaultMachine = machines.find((m) => m.isDefault);
+    if (defaultMachine) form.setValue("machineId", defaultMachine.id);
+  }, [machines, isEditing, form]);
+
+  useEffect(() => {
+    if (isEditing) return;
+    if (form.getValues("grinderId")) return;
+    const defaultGrinder = grinders.find((g) => g.isDefault);
+    if (defaultGrinder) form.setValue("grinderId", defaultGrinder.id);
+  }, [grinders, isEditing, form]);
 
   useEffect(() => {
     if (!isEditing) return;
@@ -578,6 +636,36 @@ export default function ShotForm() {
                   const b = bags.find((b) => b.id === activeBagId);
                   return b?.dialInNotes ? <p className="text-xs text-muted-foreground italic">Dial-in note: {b.dialInNotes}</p> : null;
                 })()}
+              </div>
+
+              {/* Machine / Grinder selectors */}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="machineId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Machine <span className="text-muted-foreground text-xs font-normal">optional</span></FormLabel>
+                    <FormControl>
+                      <EquipmentSelect
+                        options={machines.map((m) => ({ id: m.id, label: equipmentLabel(m) }))}
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="grinderId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Grinder <span className="text-muted-foreground text-xs font-normal">optional</span></FormLabel>
+                    <FormControl>
+                      <EquipmentSelect
+                        options={grinders.map((g) => ({ id: g.id, label: equipmentLabel(g) }))}
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
               </div>
             </CardContent>
           </Card>
