@@ -100,6 +100,10 @@ export default function ShotDetail() {
               {shot.grindTime != null && <DetailItem label="Grind Time" value={`${shot.grindTime}s`} />}
               {shot.initialGrindWeight != null && <DetailItem label="Initial Grinder Output" value={`${shot.initialGrindWeight}g`} />}
               <DetailItem label="Status" value={displaySelectorValue(shot.status) || "-"} />
+              {shot.drinkType && <DetailItem label="Drink Type" value={shot.drinkType} />}
+              {shot.isForOthers && <DetailItem label="For Others" value="Yes" />}
+              {shot.rated === false && <DetailItem label="Rated" value="No" />}
+              {shot.finishedShot === false && <DetailItem label="Finished Drink" value="No" />}
               <DetailItem label="Include in Analysis" value={shot.includeInAnalysis ? "Yes" : "No"} />
               <DetailItem label="Fault Status" value={<ChipList values={shot.faultStatus} />} />
               <DetailItem label="Shot Classification" value={<ChipList values={shot.shotClassification} />} />

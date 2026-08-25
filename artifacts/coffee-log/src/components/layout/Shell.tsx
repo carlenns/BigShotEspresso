@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import {
   BookOpen, Coffee, LayoutDashboard,
-  Menu, Package, Settings, Sprout, Wrench, Tag, Layers, Zap
+  Menu, Package, Settings, Sprout, Wrench, Tag, Layers
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,15 +26,14 @@ interface NavItem {
 
 const primaryNav: NavItem[] = [
   { title: "Dashboard",       href: "/",            icon: LayoutDashboard, exact: true },
-  { title: "Quick Log",       href: "/shots/quick", icon: Zap,             exact: true },
-  { title: "Detailed Log",    href: "/shots/new",   icon: Coffee,          exact: true },
+  { title: "Log Shot",        href: "/shots/new",   icon: Coffee,          exact: true },
   { title: "Shot Log",        href: "/shots",       icon: BookOpen },
   { title: "Reference Shots", href: "/reference",   icon: Coffee },
 ];
 
 const mobileBottomNav: NavItem[] = [
   { title: "Dashboard",       href: "/",            icon: LayoutDashboard, exact: true },
-  { title: "Quick Log",       href: "/shots/quick", icon: Zap,             exact: true },
+  { title: "Log Shot",        href: "/shots/new",   icon: Coffee,          exact: true },
   { title: "Shot Log",        href: "/shots",       icon: BookOpen },
   { title: "Reference Shots", href: "/reference",   icon: Coffee },
   { title: "Beans", href: "/beans", icon: Sprout },
@@ -117,8 +116,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="default" size="sm" asChild className="rounded-full px-3 h-8 text-xs gap-1">
-            <Link href="/shots/quick">
-              <Zap className="h-3.5 w-3.5" /> Quick Log
+            <Link href="/shots/new">
+              <Coffee className="h-3.5 w-3.5" /> Log Shot
             </Link>
           </Button>
           <DropdownMenu>

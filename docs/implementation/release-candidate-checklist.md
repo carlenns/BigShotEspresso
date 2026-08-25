@@ -65,6 +65,12 @@ Current access assumption:
 | Replit deployment prep | Deferred | No, unless Replit is selected later |
 | Backup/recovery plan | Documented; disposable Neon rehearsal passed | Yes |
 
+## Gate 0.5 — Launch Logging Scope
+
+Quick Log is shelved for the first owner-only release candidate. The app should use one primary `Log Shot` workflow based on the full shot form because that workflow is now mobile-friendly, editable, and better aligned with the scientific record.
+
+The existing Quick Log code may remain in the repository as a parked prototype, but it should not be promoted in primary navigation or Settings during launch hardening. Quick Log can be revisited after real user demand proves that a separate reduced-entry mode is worth the extra workflow complexity.
+
 ## Gate 1 — Repository and CI
 
 Required:

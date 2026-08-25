@@ -200,6 +200,12 @@ The launch product should focus on:
 - Secure PostgreSQL-backed storage
 - AI-assisted onboarding guidance, where available
 
+## Launch UI Decision — One Primary Logging Flow
+
+For first release, BSE should present one clear `Log Shot` path using the full shot form. This keeps the product simpler, reduces user confusion, and ensures the shot record can capture dose, grinder output, correction evidence, tasting, rating, serving context, and editability in one reliable workflow.
+
+Quick Log is deferred. It may return later if users specifically want an even faster reduced-entry mode, but it should not be described as a launch feature until there is demand and a clear design that does not fragment the logging workflow.
+
 ## Not launch scope
 
 The landing page should avoid presenting these as current product features:

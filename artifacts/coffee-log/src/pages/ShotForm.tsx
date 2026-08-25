@@ -105,6 +105,10 @@ const formSchema = z.object({
   temperature: optionalNumber,
   rating: optionalRating(10),
   preferenceRating: optionalRating(11),
+  rated: z.boolean().optional(),
+  isForOthers: z.boolean().default(false),
+  drinkType: z.string().optional(),
+  finishedShot: z.boolean().optional(),
   // Shot Evaluation
   status: z.string().optional(),
   faultStatus: z.array(z.string()).optional(),
@@ -217,6 +221,10 @@ export default function ShotForm() {
       yield: 36,
       temperature: 94,
       rating: 7,
+      rated: true,
+      isForOthers: false,
+      drinkType: undefined,
+      finishedShot: undefined,
       isReference: false,
       signatureShot: false,
       sourShot: false,
@@ -234,6 +242,7 @@ export default function ShotForm() {
   const expressionStyleOptions = curatedOptions("expressionStyle", form.watch("expressionStyle")?.slice(0, 1) ?? []);
   const beanAchievementOptions = curatedOptions("beanAchievement", form.watch("beanAchievement")?.slice(0, 1) ?? []);
   const shotClassificationOptions = curatedOptions("shotClassification", form.watch("shotClassification")?.slice(0, 1) ?? []);
+  const drinkTypeOptions = curatedScalarOptions("drinkType", form.watch("drinkType"));
   const tasteZoneOptions = form.watch("tasteZone") && !TASTE_ZONE_OPTIONS.includes(form.watch("tasteZone")!)
     ? [...TASTE_ZONE_OPTIONS, form.watch("tasteZone")!]
     : TASTE_ZONE_OPTIONS;
@@ -268,6 +277,10 @@ export default function ShotForm() {
       temperature: existingShot.temperature ?? undefined,
       rating: existingShot.rating ?? undefined,
       preferenceRating: existingShot.preferenceRating ?? undefined,
+      rated: existingShot.rated ?? true,
+      isForOthers: existingShot.isForOthers ?? false,
+      drinkType: existingShot.drinkType ?? undefined,
+      finishedShot: existingShot.finishedShot ?? undefined,
       status: savedStatus,
       faultStatus: existingShot.faultStatus ?? [],
       isReference: existingShot.isReference ?? false,
@@ -290,6 +303,11 @@ export default function ShotForm() {
     );
     setShowAdvancedEvaluation(hasAdvancedEvaluation);
   }, [existingShot, isEditing, form]);
+
+  useEffect(() => {
+    if (isEditing || !settings?.defaultDrinkType) return;
+    if (!form.getValues("drinkType")) form.setValue("drinkType", settings.defaultDrinkType);
+  }, [settings?.defaultDrinkType, isEditing, form]);
 
   useEffect(() => {
     if (!isEditing) return;
@@ -343,6 +361,10 @@ export default function ShotForm() {
       ),
       includeInAnalysis: describeAnalysisEligibility(values.status, values.faultStatus ?? []).included,
     };
+    if (values.rated === false) {
+      payload.rating = null;
+      payload.preferenceRating = null;
+    }
     if (recordGrindWaste) payload.grindAdjusted = "Grind change / purge waste";
     else {
       delete payload.grindWaste;
@@ -374,6 +396,13 @@ export default function ShotForm() {
   const defaultTemp = selectedBag?.defaultTemp ?? (settings?.defaultBrewTemp ? Number(settings.defaultBrewTemp) : 94);
   const defaultTopUpTime = settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2;
   const saving = createShot.isPending || updateShot.isPending;
+
+  const setDrinkType = (drinkType: string | undefined) => {
+    form.setValue("drinkType", drinkType);
+    if (!isEditing && settings?.defaultDrinkType && drinkType && drinkType !== settings.defaultDrinkType) {
+      form.setValue("rated", false);
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6 animate-in fade-in duration-300">
@@ -787,6 +816,77 @@ export default function ShotForm() {
                     </FormItem>
                   )} />
                 </div>
+              </div>
+
+              <div className="rounded-lg border p-3 space-y-4">
+                <div>
+                  <Label>Serving Context</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use this to separate your espresso science from guest drinks, milk drinks, or coffees you did not rate.
+                  </p>
+                </div>
+
+                <FormField control={form.control} name="drinkType" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Drink Type</FormLabel>
+                    <FormControl>
+                      <ScalarSelect
+                        options={drinkTypeOptions}
+                        value={field.value}
+                        onChange={setDrinkType}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <FormField control={form.control} name="isForOthers" render={({ field }) => (
+                    <FormItem className="flex items-center gap-2.5 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(checked) => {
+                            const forOthers = checked === true;
+                            field.onChange(forOthers);
+                            if (forOthers) form.setValue("rated", false);
+                          }}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal cursor-pointer">For Others</FormLabel>
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name="rated" render={({ field }) => (
+                    <FormItem className="flex items-center gap-2.5 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value === false}
+                          onCheckedChange={(checked) => field.onChange(checked === true ? false : true)}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal cursor-pointer">Not Rated</FormLabel>
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name="finishedShot" render={({ field }) => (
+                    <FormItem className="flex items-center gap-2.5 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value === false}
+                          onCheckedChange={(checked) => field.onChange(checked === true ? false : undefined)}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal cursor-pointer">Did Not Finish</FormLabel>
+                    </FormItem>
+                  )} />
+                </div>
+
+                {form.watch("rated") === false && (
+                  <p className="rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
+                    Not Rated clears technical and preference ratings when saved. The shot remains in the log as workflow evidence.
+                  </p>
+                )}
               </div>
 
               <div className={cn(

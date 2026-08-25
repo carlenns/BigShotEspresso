@@ -137,6 +137,10 @@ interface EvalValues {
   isReference: boolean;
   signatureShot: boolean;
   sourShot: boolean;
+  rated: boolean;
+  isForOthers: boolean;
+  drinkType: string;
+  finishedShot?: boolean;
   expressionStyle: string[];
   beanAchievement: string[];
   shotClassification: string[];
@@ -178,6 +182,7 @@ export default function QuickLog() {
   const [values, setValues] = useState<FieldValues>({});
   const [savedId, setSavedId] = useState<number | null>(null);
   const [showEvaluation, setShowEvaluation] = useState(false);
+  const [showServingContext, setShowServingContext] = useState(false);
   const [showAdvancedEvaluation, setShowAdvancedEvaluation] = useState(false);
   const [recordGrindWaste, setRecordGrindWaste] = useState(false);
   const [shotDate, setShotDate] = useState(nowDateTimeLocal);
@@ -187,6 +192,10 @@ export default function QuickLog() {
     isReference: false,
     signatureShot: false,
     sourShot: false,
+    rated: true,
+    isForOthers: false,
+    drinkType: "",
+    finishedShot: undefined,
     expressionStyle: [],
     beanAchievement: [],
     shotClassification: [],
@@ -198,6 +207,7 @@ export default function QuickLog() {
   const expressionStyleOptions = curatedScalarOptions("expressionStyle", evalValues.expressionStyle[0]);
   const beanAchievementOptions = curatedScalarOptions("beanAchievement", evalValues.beanAchievement[0]);
   const shotClassificationOptions = curatedScalarOptions("shotClassification", evalValues.shotClassification[0]);
+  const drinkTypeOptions = curatedScalarOptions("drinkType", evalValues.drinkType);
   const analysisEligibility = describeAnalysisEligibility(evalValues.status, evalValues.faultStatus);
 
   // Pre-fill from active bag + settings
@@ -220,6 +230,9 @@ export default function QuickLog() {
       flowTime:     prev.flowTime     !== undefined ? prev.flowTime     : (latestShotDefaults?.flowTime ?? ""),
       rating:       prev.rating       !== undefined ? prev.rating       : (isEasyRating ? 7 : 7.00),
     }));
+    if (settings?.defaultDrinkType && !evalValues.drinkType) {
+      setEvalValues((prev) => ({ ...prev, drinkType: prev.drinkType || settings.defaultDrinkType }));
+    }
   }, [activeBag?.id, latestShotDefaults?.id, !!settings]);
 
   const setVal = (dbKey: string, val: string | number | boolean) =>
@@ -227,6 +240,14 @@ export default function QuickLog() {
 
   const setEval = <K extends keyof EvalValues>(key: K, val: EvalValues[K]) =>
     setEvalValues((prev) => ({ ...prev, [key]: val }));
+
+  const setDrinkType = (drinkType: string) => {
+    setEvalValues((prev) => ({
+      ...prev,
+      drinkType,
+      rated: settings?.defaultDrinkType && drinkType && drinkType !== settings.defaultDrinkType ? false : prev.rated,
+    }));
+  };
 
   const handleSave = () => {
     const body: Record<string, unknown> = {
@@ -280,6 +301,14 @@ export default function QuickLog() {
     body.isReference = evalValues.isReference;
     body.signatureShot = evalValues.signatureShot;
     body.sourShot = evalValues.sourShot;
+    body.rated = evalValues.rated;
+    body.isForOthers = evalValues.isForOthers;
+    if (evalValues.drinkType) body.drinkType = evalValues.drinkType;
+    if (evalValues.finishedShot !== undefined) body.finishedShot = evalValues.finishedShot;
+    if (!evalValues.rated) {
+      body.rating = null;
+      body.preferenceRating = null;
+    }
     if (evalValues.expressionStyle.length) body.expressionStyle = evalValues.expressionStyle;
     if (evalValues.beanAchievement.length) body.beanAchievement = evalValues.beanAchievement;
     if (evalValues.shotClassification.length) body.shotClassification = evalValues.shotClassification;
@@ -304,7 +333,22 @@ export default function QuickLog() {
   const handleLogAnother = () => {
     setSavedId(null);
     setShotDate(nowDateTimeLocal());
-    setEvalValues({ status: "", faultStatus: [], isReference: false, signatureShot: false, sourShot: false, expressionStyle: [], beanAchievement: [], shotClassification: [], includeInAnalysis: true, notes: "" });
+    setEvalValues({
+      status: "",
+      faultStatus: [],
+      isReference: false,
+      signatureShot: false,
+      sourShot: false,
+      rated: true,
+      isForOthers: false,
+      drinkType: settings?.defaultDrinkType ?? "",
+      finishedShot: undefined,
+      expressionStyle: [],
+      beanAchievement: [],
+      shotClassification: [],
+      includeInAnalysis: true,
+      notes: "",
+    });
     setRecordGrindWaste(false);
     setValues({
       dose:         activeBag?.defaultDose         ?? 18,
@@ -631,6 +675,86 @@ export default function QuickLog() {
                 />
               </div>
 
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Serving Context — optional */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowServingContext((v) => !v)}
+          className="flex items-center justify-between w-full px-1 py-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <span>Serving Context</span>
+          {showServingContext ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+
+        {showServingContext && (
+          <Card className="mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+            <CardContent className="p-5 space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Use this for drinks made for others, milk drinks, or anything you do not want included in personal rating averages.
+              </p>
+
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Drink Type</Label>
+                <Select
+                  value={evalValues.drinkType || "__none__"}
+                  onValueChange={(v) => setDrinkType(v === "__none__" ? "" : v)}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— not set —</SelectItem>
+                    {drinkTypeOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="serving-isForOthers"
+                    checked={evalValues.isForOthers}
+                    onCheckedChange={(checked) => {
+                      const forOthers = checked === true;
+                      setEvalValues((v) => ({ ...v, isForOthers: forOthers, rated: forOthers ? false : v.rated }));
+                    }}
+                  />
+                  <label htmlFor="serving-isForOthers" className="text-sm leading-none cursor-pointer select-none">
+                    For Others
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="serving-notRated"
+                    checked={!evalValues.rated}
+                    onCheckedChange={(checked) => setEval("rated", checked === true ? false : true)}
+                  />
+                  <label htmlFor="serving-notRated" className="text-sm leading-none cursor-pointer select-none">
+                    Not Rated
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="serving-didNotFinish"
+                    checked={evalValues.finishedShot === false}
+                    onCheckedChange={(checked) => setEval("finishedShot", checked === true ? false : undefined)}
+                  />
+                  <label htmlFor="serving-didNotFinish" className="text-sm leading-none cursor-pointer select-none">
+                    Did Not Finish
+                  </label>
+                </div>
+              </div>
+
+              {!evalValues.rated && (
+                <p className="rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
+                  Not Rated clears technical and preference ratings when saved. The shot stays in your log as workflow evidence.
+                </p>
+              )}
             </CardContent>
           </Card>
         )}

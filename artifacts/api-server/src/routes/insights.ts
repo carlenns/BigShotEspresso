@@ -19,6 +19,7 @@ router.get("/insights", async (req, res): Promise<void> => {
   if (bean) baseConditions.push(ilike(shotsTable.bean, `%${bean}%`));
   if (bag) baseConditions.push(ilike(shotsTable.bag, `%${bag}%`));
   const baseWhere = and(...baseConditions);
+  const ratedWhere = and(baseWhere, sql`${shotsTable.rated} is distinct from false`);
 
   const insights: { id: string; text: string; category: string; confidence: string | null }[] = [];
 
@@ -30,7 +31,7 @@ router.get("/insights", async (req, res): Promise<void> => {
     count: sql<number>`count(*)::int`,
   })
     .from(shotsTable)
-    .where(and(baseWhere, gte(shotsTable.rating, 8.5), isNotNull(shotsTable.pourDelay)));
+    .where(and(ratedWhere, gte(shotsTable.rating, 8.5), isNotNull(shotsTable.pourDelay)));
 
   if (highRated[0]?.count > 3 && highRated[0]?.minPourDelay != null && highRated[0]?.maxPourDelay != null) {
     insights.push({
@@ -49,7 +50,7 @@ router.get("/insights", async (req, res): Promise<void> => {
     count: sql<number>`count(*)::int`,
   })
     .from(shotsTable)
-    .where(and(baseWhere, gte(shotsTable.rating, 8.5), isNotNull(shotsTable.yield)));
+    .where(and(ratedWhere, gte(shotsTable.rating, 8.5), isNotNull(shotsTable.yield)));
 
   if (highRatedYield[0]?.count > 3 && highRatedYield[0]?.minYield != null) {
     insights.push({
@@ -66,14 +67,14 @@ router.get("/insights", async (req, res): Promise<void> => {
     count: sql<number>`count(*)::int`,
   })
     .from(shotsTable)
-    .where(and(baseWhere, sql`${shotsTable.pourTime} < 30`, isNotNull(shotsTable.rating)));
+    .where(and(ratedWhere, sql`${shotsTable.pourTime} < 30`, isNotNull(shotsTable.rating)));
 
   const longPourAvg = await db.select({
     avgRating: sql<number | null>`round(avg(${shotsTable.rating})::numeric, 2)`,
     count: sql<number>`count(*)::int`,
   })
     .from(shotsTable)
-    .where(and(baseWhere, sql`${shotsTable.pourTime} >= 33`, isNotNull(shotsTable.rating)));
+    .where(and(ratedWhere, sql`${shotsTable.pourTime} >= 33`, isNotNull(shotsTable.rating)));
 
   if (shortPourAvg[0]?.count > 2 && longPourAvg[0]?.count > 2 && shortPourAvg[0]?.avgRating != null && longPourAvg[0]?.avgRating != null) {
     const diff = longPourAvg[0].avgRating - shortPourAvg[0].avgRating;
@@ -94,7 +95,7 @@ router.get("/insights", async (req, res): Promise<void> => {
     count: sql<number>`count(*)::int`,
   })
     .from(shotsTable)
-    .where(and(baseWhere, isNotNull(shotsTable.grindSetting), isNotNull(shotsTable.rating)))
+    .where(and(ratedWhere, isNotNull(shotsTable.grindSetting), isNotNull(shotsTable.rating)))
     .groupBy(shotsTable.grindSetting)
     .orderBy(sql`avg(${shotsTable.rating}) desc`)
     .limit(3);
@@ -114,7 +115,7 @@ router.get("/insights", async (req, res): Promise<void> => {
     avgRating: sql<number | null>`round(avg(${shotsTable.rating})::numeric, 2)`,
   })
     .from(shotsTable)
-    .where(and(baseWhere, eq(shotsTable.isReference, true), isNotNull(shotsTable.rating)));
+    .where(and(ratedWhere, eq(shotsTable.isReference, true), isNotNull(shotsTable.rating)));
 
   if (refCount[0]?.count > 0) {
     insights.push({

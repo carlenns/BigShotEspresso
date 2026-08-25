@@ -12,8 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Save, Settings as SettingsIcon, Coffee, Zap, Wrench, ClipboardList, Star,
 } from "lucide-react";
-import { FIELD_GROUPS } from "@/pages/QuickLog";
-import { cn } from "@/lib/utils";
+import { CURATED_SELECTOR_OPTIONS } from "@/lib/selector-options";
 
 // ── Settings form helpers ─────────────────────────────────────────────────────
 
@@ -61,6 +60,7 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
     description: "General preferences for units, time format, and display.",
     fields: [
       { key: "brewMethod", label: "Default Brew Method", type: "select", options: ["Espresso", "Pour-over", "AeroPress", "French Press", "Moka Pot"] },
+      { key: "defaultDrinkType", label: "Default Drink Type", type: "select", options: CURATED_SELECTOR_OPTIONS.drinkType },
       { key: "ratingSystem", label: "Rating System", type: "select", options: ["0–10", "0–5", "0–100"] },
       { key: "ratingInputMode", label: "Rating Input Mode", type: "select", options: ["Easy Rating (1–10 stars)", "Precision Rating (0.00–10.00)"] },
       { key: "unitSystem", label: "Unit System", type: "select", options: ["Metric (g, ml)", "Imperial (oz)"] },
@@ -260,9 +260,6 @@ export default function Settings() {
           accessories={accessories}
         />
       )}
-
-      {/* ── Logging Preferences ───────────────────────────────────────────── */}
-      <LoggingPreferencesSection values={values} set={set} />
 
       <div className="flex justify-end pb-8">
         <Button onClick={handleSave} disabled={!dirty || mutation.isPending} className="gap-2">
@@ -486,79 +483,6 @@ function EquipmentDefaultsSection({
         <p className="text-xs text-muted-foreground">
           Typed legacy values remain selectable until you replace them with saved equipment records.
           User-specific active equipment will become stricter after accounts/OAuth are added.
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ── Logging Preferences Section ───────────────────────────────────────────────
-
-function LoggingPreferencesSection({
-  values,
-  set,
-}: {
-  values: Record<string, string>;
-  set: (key: string, value: string) => void;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Zap className="h-5 w-5 text-primary" />
-          <CardTitle>Logging Preferences</CardTitle>
-        </div>
-        <CardDescription>
-          Choose which fields appear in Quick Log. Quick Log is fast shot entry while brewing; Detailed Log remains available for the full editable record.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {FIELD_GROUPS.map((group) => (
-          <div key={group.id}>
-            <div className="flex items-center gap-2 mb-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {group.label}
-              </p>
-              <div className="flex-1 h-px bg-border" />
-              <p className="text-[10px] text-muted-foreground">{group.description}</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {group.fields.map((field) => {
-                const key = `quickLog_${field.id}`;
-                const val = values[key];
-                const isOn = val === undefined ? field.defaultOn : val === "true";
-                return (
-                  <div
-                    key={field.id}
-                    className={cn(
-                      "flex items-center justify-between rounded-lg border p-3 gap-4 transition-colors",
-                      isOn ? "bg-primary/5 border-primary/20" : "bg-muted/20"
-                    )}
-                  >
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <Label className="text-sm font-normal cursor-pointer truncate">
-                        {field.label}
-                      </Label>
-                      {field.unit && (
-                        <span className="text-[10px] text-muted-foreground shrink-0">({field.unit})</span>
-                      )}
-                    </div>
-                    <Switch
-                      checked={isOn}
-                      onCheckedChange={(checked) => set(key, checked ? "true" : "false")}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-        <p className="text-xs text-muted-foreground pt-1">
-          Quick Log always records the date and links to your active bag automatically.
-          <br />
-          Detailed Log is available on mobile and desktop whenever you want every field.
-          <br />
-          <span className="text-[11px]">Grind Changed This Shot also appears automatically whenever Grind Setting is enabled.</span>
         </p>
       </CardContent>
     </Card>

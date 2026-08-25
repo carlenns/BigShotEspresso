@@ -67,8 +67,59 @@ test("Shot detail exposes evaluation fields that affect interpretation", async (
     "Expression Style",
     "Taste Zone",
     "Include in Analysis",
+    "Drink Type",
+    "For Others",
+    "Rated",
+    "Finished Drink",
   ]) {
     assert.match(source, new RegExp(requiredText));
+  }
+});
+
+test("Shot entry separates serving context from automated analysis eligibility", async () => {
+  const [quickLogSource, shotFormSource, settingsSource, selectorSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/QuickLog.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Settings.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/lib/selector-options.ts", import.meta.url)), "utf8"),
+  ]);
+
+  for (const required of [
+    "Default Drink Type",
+    "defaultDrinkType",
+    "Americano",
+    "Milk Drink",
+    "Guest Drink",
+  ]) {
+    assert.match(`${settingsSource}\n${selectorSource}`, new RegExp(required));
+  }
+
+  for (const required of [
+    "Serving Context",
+    "Drink Type",
+    "For Others",
+    "Not Rated",
+    "Did Not Finish",
+    "body.rated = evalValues.rated",
+    "body.isForOthers = evalValues.isForOthers",
+    "body.rating = null",
+    "body.preferenceRating = null",
+    "includeInAnalysis = analysisEligibility.included",
+  ]) {
+    assert.match(quickLogSource, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+
+  for (const required of [
+    "Serving Context",
+    "Drink Type",
+    "For Others",
+    "Not Rated",
+    "Did Not Finish",
+    "payload.rating = null",
+    "payload.preferenceRating = null",
+    "includeInAnalysis: describeAnalysisEligibility",
+  ]) {
+    assert.match(shotFormSource, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
 });
 
@@ -369,7 +420,7 @@ test("Mobile shell exposes setup and system navigation", async () => {
   }
 });
 
-test("Logging UI distinguishes Quick Log from the full Detailed Log", async () => {
+test("Primary logging UI uses the full shot form and keeps Quick Log shelved", async () => {
   const [shellSource, quickSource, formSource, settingsSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/components/layout/Shell.tsx", import.meta.url)), "utf8"),
     readFile(fileURLToPath(new URL("../../coffee-log/src/pages/QuickLog.tsx", import.meta.url)), "utf8"),
@@ -377,7 +428,10 @@ test("Logging UI distinguishes Quick Log from the full Detailed Log", async () =
     readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Settings.tsx", import.meta.url)), "utf8"),
   ]);
 
-  assert.match(shellSource, /Detailed Log/);
+  assert.match(shellSource, /Log Shot/);
+  assert.doesNotMatch(shellSource, /href="\/shots\/quick"/);
+  assert.doesNotMatch(settingsSource, /LoggingPreferencesSection/);
+  assert.doesNotMatch(settingsSource, /Choose which fields appear in Quick Log/);
   assert.doesNotMatch(shellSource, /Full Log Form/);
   assert.match(quickSource, /Fast shot entry/);
   assert.match(quickSource, /best while brewing/);
@@ -385,8 +439,6 @@ test("Logging UI distinguishes Quick Log from the full Detailed Log", async () =
   assert.match(formSource, /Detailed Log/);
   assert.match(formSource, /Complete shot record/);
   assert.match(formSource, /review, tasting notes, and advanced details/);
-  assert.match(settingsSource, /Detailed Log remains available for the full editable record/);
-  assert.match(settingsSource, /available on mobile and desktop/);
 });
 
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {

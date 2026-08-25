@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { and, eq, sql } from "drizzle-orm";
 import { db, beansTable, bagsTable, shotsTable, settingsTable } from "@workspace/db";
-import { eligibleShotConditions } from "../lib/shot-eligibility";
+import { eligibleShotConditions, ratingEligibleShotConditions } from "../lib/shot-eligibility";
 import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weighting";
 
 const router: IRouter = Router();
@@ -17,8 +17,8 @@ router.get("/beans", async (_req, res): Promise<void> => {
       beanId: bagsTable.beanId,
       bagCount: sql<number>`count(distinct ${bagsTable.id})::int`,
       shotCount: sql<number>`count(${shotsTable.id})::int`,
-      avgRating: sql<number | null>`round(avg(${shotsTable.rating})::numeric, 2)`,
-      avgPrefRating: sql<number | null>`round(avg(${shotsTable.preferenceRating})::numeric, 2)`,
+      avgRating: sql<number | null>`round(avg(${shotsTable.rating}) filter (where ${shotsTable.rated} is distinct from false)::numeric, 2)`,
+      avgPrefRating: sql<number | null>`round(avg(${shotsTable.preferenceRating}) filter (where ${shotsTable.rated} is distinct from false)::numeric, 2)`,
       referenceCount: sql<number>`count(${shotsTable.id}) filter (where ${shotsTable.isReference} = true)::int`,
     })
     .from(bagsTable)
@@ -33,7 +33,7 @@ router.get("/beans", async (_req, res): Promise<void> => {
     })
     .from(bagsTable)
     .leftJoin(shotsTable, and(eq(shotsTable.bagId, bagsTable.id), ...eligibleShotConditions))
-    .where(sql`${shotsTable.rating} is not null`);
+    .where(and(...ratingEligibleShotConditions));
 
   const statsMap = new Map(stats.map((s) => [s.beanId, s]));
   const weightedMap = new Map<number, number | null>();

@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { and, eq, sql, desc, isNotNull } from "drizzle-orm";
 import { db, bagsTable, beansTable, shotsTable, settingsTable } from "@workspace/db";
-import { eligibleShotConditions } from "../lib/shot-eligibility";
+import { eligibleShotConditions, ratingEligibleShotConditions } from "../lib/shot-eligibility";
 import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weighting";
 
 const router: IRouter = Router();
@@ -54,8 +54,8 @@ router.get("/bags", async (_req, res): Promise<void> => {
       shotCount: sql<number>`count(*)::int`,
       referenceCount: sql<number>`count(*) filter (where ${shotsTable.isReference} = true)::int`,
       dailyDriverCount: sql<number>`count(*) filter (where ${shotsTable.beanAchievement} @> array['Daily Driver']::text[])::int`,
-      avgRating: sql<number | null>`round(avg(${shotsTable.rating})::numeric, 2)`,
-      avgPrefRating: sql<number | null>`round(avg(${shotsTable.preferenceRating})::numeric, 2)`,
+      avgRating: sql<number | null>`round(avg(${shotsTable.rating}) filter (where ${shotsTable.rated} is distinct from false)::numeric, 2)`,
+      avgPrefRating: sql<number | null>`round(avg(${shotsTable.preferenceRating}) filter (where ${shotsTable.rated} is distinct from false)::numeric, 2)`,
       minGrind: sql<number | null>`min(${shotsTable.grindSetting})`,
       maxGrind: sql<number | null>`max(${shotsTable.grindSetting})`,
       latestGrind: sql<number | null>`(array_agg(${shotsTable.grindSetting} ORDER BY ${shotsTable.shotDate} DESC NULLS LAST))[1]`,
@@ -72,7 +72,7 @@ router.get("/bags", async (_req, res): Promise<void> => {
       preferenceRating: shotsTable.preferenceRating,
     })
     .from(shotsTable)
-    .where(and(isNotNull(shotsTable.bagId), isNotNull(shotsTable.rating), ...eligibleShotConditions));
+    .where(and(isNotNull(shotsTable.bagId), ...ratingEligibleShotConditions));
 
   const statsMap = new Map(stats.map((s) => [s.bagId, s]));
   const weightedMap = new Map<number, number | null>();
@@ -143,7 +143,7 @@ router.get("/bags/:id", async (req, res): Promise<void> => {
     .where(and(eq(shotsTable.bagId, id), ...eligibleShotConditions))
     .orderBy(desc(sql`${shotsTable.shotDate}`));
 
-  const ratedShots = shots.filter((s) => s.rating != null);
+  const ratedShots = shots.filter((s) => s.rating != null && s.rated !== false);
   const settingRows = await db.select().from(settingsTable);
   const settings = Object.fromEntries(settingRows.map((row) => [row.key, row.value]));
   const ratingWeights = getRatingWeights(settings);
@@ -182,7 +182,7 @@ router.get("/bags/:id", async (req, res): Promise<void> => {
     },
     analysis,
     referenceShots: shots.filter((s) => s.isReference).slice(0, 20),
-    bestRated: [...shots].filter((s) => s.rating != null).sort((a, b) => Number(b.rating) - Number(a.rating)).slice(0, 10),
+    bestRated: [...shots].filter((s) => s.rating != null && s.rated !== false).sort((a, b) => Number(b.rating) - Number(a.rating)).slice(0, 10),
     shots: shots.slice(0, 50),
   });
 });

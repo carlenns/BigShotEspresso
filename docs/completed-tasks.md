@@ -452,3 +452,28 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 ## Unresolved
 
 - A formal production migration runner remains the better long-term solution before public release.
+
+# Quick Log Shelving Decision — 2026-08-25
+
+## Completed
+
+- Removed Quick Log from everyday desktop and mobile navigation.
+- Changed the mobile header action to open the primary full `Log Shot` workflow.
+- Hid Quick Log field-preference settings from the Settings page.
+- Preserved the existing Quick Log route and code as a parked prototype for possible future reinstatement.
+- Documented Quick Log as deferred launch scope in the release checklist and product landing-page content.
+
+## Verified
+
+- Workspace typecheck passed.
+- API/Phase 1.5 test suite passed: 37 passed, 0 failed.
+- Render production build passed.
+
+## Assumptions
+
+- The full shot form is now the preferred mobile and desktop logging workflow.
+- A second reduced-entry flow should not be promoted unless users ask for it after launch testing.
+
+## Unresolved
+
+- If Quick Log returns later, it needs a fresh design pass rather than continuing to accumulate fields.

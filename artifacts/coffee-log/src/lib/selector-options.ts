@@ -81,7 +81,18 @@ export const CURATED_SELECTOR_OPTIONS: SelectorOptions = {
     "Heavy Body",
     "Boundary Shot",
   ],
-  drinkType: [],
+  drinkType: [
+    "Americano",
+    "Espresso",
+    "Milk Drink",
+    "Latte",
+    "Cappuccino",
+    "Flat White",
+    "Decaf Espresso",
+    "Pour-over",
+    "Guest Drink",
+    "Other",
+  ],
 };
 
 export function curatedOptions<K extends keyof SelectorOptions>(

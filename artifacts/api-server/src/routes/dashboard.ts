@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { sql, desc, isNotNull, eq, ne, and, lt } from "drizzle-orm";
 import { db, shotsTable, bagsTable, beansTable, settingsTable, grindersTable, machinesTable, accessoriesTable } from "@workspace/db";
 import { GetRecentShotsQueryParams, GetBestRatedShotsQueryParams } from "@workspace/api-zod";
-import { eligibleShotConditions } from "../lib/shot-eligibility";
+import { eligibleShotConditions, ratingEligibleShotConditions } from "../lib/shot-eligibility";
 import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weighting";
 
 const router: IRouter = Router();
@@ -165,7 +165,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   const activeBagInventoryRecords = await db.select().from(shotsTable)
     .where(eq(shotsTable.bagId, activeBagRow.id));
 
-  const ratedShots = activeBagShots.filter((s) => s.rating != null);
+  const ratedShots = activeBagShots.filter((s) => s.rating != null && s.rated !== false);
   const topRated = ratedShots.filter((s) => Number(s.rating) >= 8.0);
 
   const avgRating = ratedShots.length
@@ -272,7 +272,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
       const sameBeanShots = await db.select().from(shotsTable)
         .where(and(isNotNull(shotsTable.bagId), ...eligibleShotConditions, sql`${shotsTable.bagId} = ANY(${sameBeanIds})`))
         .orderBy(desc(sql`${shotsTable.shotDate}`));
-      timingPool = sameBeanShots.filter((s) => s.rating != null && Number(s.rating) >= 8);
+      timingPool = sameBeanShots.filter((s) => s.rating != null && s.rated !== false && Number(s.rating) >= 8);
       timingSource = "same_bean";
     }
   }
@@ -611,7 +611,7 @@ router.get("/dashboard/best-rated", async (req, res): Promise<void> => {
   const params = GetBestRatedShotsQueryParams.safeParse(req.query);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const limit = params.data.limit ? Number(params.data.limit) : 10;
-  const shots = await db.select().from(shotsTable).where(and(isNotNull(shotsTable.rating), ...eligibleShotConditions)).orderBy(desc(shotsTable.rating)).limit(limit);
+  const shots = await db.select().from(shotsTable).where(and(...ratingEligibleShotConditions)).orderBy(desc(shotsTable.rating)).limit(limit);
   res.json(shots);
 });
 

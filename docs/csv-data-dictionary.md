@@ -44,13 +44,13 @@ UI codes: text, long text, number, currency, date/time, checkbox, dropdown, chip
 | Preference Rating | Number | E | rating | Personal enjoyment score; GSP/BLI/MSI. |
 | Rating Difference | Formula | R | read-only | Difference between rating dimensions; MSI. |
 | Average Rating and Preference Rating weighted to Preference | Formula | R | read-only | Preference-weighted composite; BLI/GSP, formula unresolved. |
-| Rated | Checkbox | E | checkbox | Confirms rating validity/completeness. |
+| Rated | Checkbox | E | checkbox | Personal rating participation flag. `Not Rated` shots remain preserved as records but are excluded from rating/preference statistics and rating-driven insights. |
 | Sour | Checkbox | E | checkbox | Manual sensory marker; MSI/GSP. |
-| For Others | Checkbox | E | checkbox | Guest/non-owner consumption context. |
+| For Others | Checkbox | E | checkbox | Guest/non-owner consumption context. In app entry, selecting this defaults the shot to `Not Rated` unless the user explicitly chooses to rate it. |
 | Reference Shot | Checkbox | E | checkbox | Manual benchmark; GSP/BLI/reference comparison. Never infer from rating. |
 | Signature Shot | Checkbox | E | checkbox | Manual exceptional-shot flag; implies Reference Shot. |
 | Boundary Shot | Checkbox | E | checkbox | Manual edge/boundary case; MSI and model calibration. |
-| Drink Type | Single Select | E | dropdown | Beverage preparation classification. |
+| Drink Type | Single Select | E | dropdown | Beverage preparation classification. The user can set a default drink type; non-default drinks can be marked `Not Rated` to protect the user's core espresso baseline. |
 | Shot Status | Single Select | E | dropdown | Operational record state; analysis eligibility context. |
 | Shot Classification | Multi Select historically; curated as single-choice workflow type in app | E | dropdown | Record/workflow type such as Good Shot, Dial-In Shot, grinder event, new bag entry, hopper refill, maintenance, experiment, or sink shot. Not the authority for reference/signature/daily-driver status. |
 | Fault Status | Multi Select historically; curated as single-choice analysis condition in app | E | dropdown | Analytical cleanliness/fault reason. `Good` is required with Shot Status `Good` or `Dialed In` for Include in Analysis. Other values explain why a record is excluded or exceptional. |
