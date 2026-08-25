@@ -1063,6 +1063,7 @@ export default function ShotForm() {
                             field.onChange(ref);
                             if (ref) {
                               setStatusIfBlank("Dialed In");
+                              setFaultStatusIfBlank("Good");
                               form.setValue("sourShot", false);
                             }
                             if (!ref) form.setValue("signatureShot", false);
