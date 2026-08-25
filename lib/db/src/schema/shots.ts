@@ -101,7 +101,6 @@ export const shotsTable = pgTable("shots", {
   hopperSeverity: text("hopper_severity"),
   topUpGap: real("top_up_gap"),
   topUpRecommendation: text("top_up_recommendation"),
-  grinderInitialOutputForCharts: real("grinder_initial_output_for_charts"),
   importFingerprint: text("import_fingerprint").unique(),
   grindAdjusted: text("grind_adjusted"),
   shotsLeftEst: real("shots_left_est"),

@@ -140,9 +140,9 @@ test("Log Shot flag selection suggests Status/Fault Status only when blank, neve
   assert.equal(source.includes('if (!ref) form.setValue("signatureShot", false);'), true);
 
   // Short, mobile-friendly Flags helper text explaining Reference/Signature/Sour.
-  assert.match(source, /Reference = repeatable benchmark shot/);
-  assert.match(source, /Signature = rare, extraordinary shot/);
-  assert.match(source, /Sour = marked sour, but can still be analytically valid/);
+  assert.match(source, /Reference = benchmark shot/);
+  assert.match(source, /Signature = rare, extraordinary/);
+  assert.match(source, /Sour = valid if Status\/Fault are Good/);
 });
 
 test("Shot Classification excludes flag-duplicate values; Daily Driver lives under Bean Achievement", async () => {
@@ -582,6 +582,56 @@ test("Bag closeout makes measured-vs-unmeasured leftover explicit and guides tow
   assert.match(bagsPageSource, /!bag\.isActive && bag\.remainingEstimate != null && <span>Reconciled remaining: \{bag\.remainingEstimate\}g<\/span>/);
 });
 
+test("Change Bag guided flow reuses existing endpoints and never forces hopper phase creation", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // Trigger action must exist near the active bag section, and its label
+  // adapts to whether a bag is currently active.
+  assert.match(source, /\{activeBags\.length > 0 \? "Change Bag" : "Start New Bag"\}/);
+
+  // Must reuse only existing endpoints — no new backend routes invented.
+  assert.match(source, /fetch\("\/api\/beans", \{/);
+  assert.match(source, /fetch\("\/api\/bags", \{/);
+  assert.match(source, /fetch\(`\/api\/bags\/\$\{form\.bagToCloseId\}`, \{/);
+  assert.match(source, /fetch\("\/api\/hoppers", \{/);
+
+  // Only the approved phase labels may be offered, same as the standalone
+  // Start Hopper Phase dialog (shared HOPPER_PHASE_OPTIONS constant).
+  assert.match(source, /HOPPER_PHASE_OPTIONS\.map\(\(p\) => <SelectItem key=\{p\} value=\{p\}>\{p\}<\/SelectItem>\)/g);
+  assert.doesNotMatch(source, /Grinder Cleanout/);
+
+  // Starting a hopper phase must be optional (a Switch the user can turn
+  // off), not a forced/required step of the flow.
+  assert.match(source, /Start the first hopper phase now/);
+  assert.match(source, /checked=\{form\.startPhase\} onCheckedChange=\{\(v\) => set\("startPhase", v\)\}/);
+  assert.match(source, /never required to finish changing bags/);
+
+  // No local hopper-percentage/formula calculation — starting beans is
+  // passed straight through as the raw entered/blank value, nothing derived.
+  assert.doesNotMatch(source, /hopperPercent\s*=/);
+  assert.doesNotMatch(source, /hopperMass\s*=/);
+
+  // Measured-vs-unmeasured leftover choice and cleanout-notes-are-evidence
+  // copy must both be present in the guided flow, not only the standalone
+  // closeout dialog.
+  assert.match(source, /rounded-lg border p-3">\s*\n\s*<div className="flex items-center justify-between">\s*\n\s*<Label className="font-normal">Close out the old bag now<\/Label>/);
+  assert.match(source, /Purge, cleanout, and maintenance notes are text evidence only for now/);
+  assert.match(source, /not expected to know the exact leftover amount/);
+
+  // Mobile-friendly, scrollable dialog per the existing pattern.
+  assert.match(source, /<DialogContent className="max-w-lg max-h-\[90vh\] overflow-y-auto">/);
+
+  // Submission order must create the new bag before closing the old one, so
+  // a failure never leaves the user with zero active bags.
+  const beanStepIndex = source.indexOf('fetch("/api/beans", {');
+  const bagStepIndex = source.indexOf('fetch("/api/bags", {');
+  const closeStepIndex = source.indexOf("fetch(`/api/bags/${form.bagToCloseId}`, {");
+  assert.ok(beanStepIndex > 0 && bagStepIndex > beanStepIndex && closeStepIndex > bagStepIndex, "expected bean -> new bag -> close-old order in ChangeBagDialog's mutationFn");
+});
+
 test("Bags page exposes launch-safe bag lifecycle workflow", async () => {
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
@@ -767,6 +817,23 @@ test("Mobile shell exposes setup and system navigation", async () => {
   }
 });
 
+test("Mobile bottom nav signals it scrolls and marks the active tab without relying on color alone", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/components/layout/Shell.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // A right-edge fade mask on the scrollable nav — the nav already included
+  // Settings and already scrolled correctly, but nothing signaled that it
+  // scrolled, which is what actually made Settings undiscoverable on phone.
+  assert.match(source, /mask-image:linear-gradient\(to_right,black_85%,transparent_100%\)/);
+
+  // Active tab must be distinguishable without relying on color alone:
+  // a shape cue (underline bar) and a label-weight cue (bold vs medium).
+  assert.match(source, /isActive && <span aria-hidden="true"[\s\S]{0,80}bg-primary/);
+  assert.match(source, /isActive \? "text-primary font-semibold" : "text-muted-foreground font-medium/);
+});
+
 test("Primary logging UI uses the full shot form and keeps Quick Log shelved", async () => {
   const [shellSource, quickSource, formSource, settingsSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/components/layout/Shell.tsx", import.meta.url)), "utf8"),
@@ -782,8 +849,12 @@ test("Primary logging UI uses the full shot form and keeps Quick Log shelved", a
   assert.doesNotMatch(shellSource, /Full Log Form/);
   assert.match(quickSource, /Fast shot entry/);
   assert.match(quickSource, /best while brewing/);
-  assert.match(quickSource, /Use Detailed Log for the full editable record/);
-  assert.match(formSource, /Detailed Log/);
+  // Naming consistency: the primary logging page's own H1 must say "Log Shot"
+  // — the same name every nav entry point (Shell, Dashboard) already uses —
+  // not "Detailed Log", which only ever existed as this page's internal H1
+  // and never matched what any button/nav item said to get there.
+  assert.match(formSource, /\{isEditing \? "Edit Shot" : "Log Shot"\}/);
+  assert.doesNotMatch(formSource, /Detailed Log/);
   assert.match(formSource, /Complete shot record/);
   assert.match(formSource, /review, tasting notes, and advanced details/);
 });

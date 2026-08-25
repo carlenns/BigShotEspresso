@@ -208,8 +208,6 @@ export interface Shot {
   readonly topUpGap?: number | null;
   /** @nullable */
   readonly topUpRecommendation?: string | null;
-  /** @nullable */
-  readonly grinderInitialOutputForCharts?: number | null;
   createdAt: string;
 }
 

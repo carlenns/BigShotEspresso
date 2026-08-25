@@ -106,7 +106,6 @@ test("Airtable Shot mapping covers source fields without calculated fallbacks", 
   assert.equal(mapped.referenceType, "Historical reference label");
   assert.equal(mapped.includeInAnalysis, true);
   assert.equal(mapped.topUpRecommendation, "Imported recommendation");
-  assert.equal(mapped.grinderInitialOutputForCharts, 17.8);
   assert.equal(mapped.rawRow && Object.keys(mapped.rawRow).length > 70, true);
 });
 

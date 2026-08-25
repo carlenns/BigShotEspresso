@@ -180,7 +180,6 @@ export function mapAirtableShotFields(
     hopperSeverity: airtableString(field(fields, "Hopper Severity")),
     topUpGap: airtableNumber(field(fields, "Top-Up Gap (g)")),
     topUpRecommendation: airtableString(field(fields, "Top-Up Recommendation")),
-    grinderInitialOutputForCharts: airtableNumber(field(fields, "Grinder Initial Output for Charts (16-19g)")),
     grindAdjusted: airtableString(field(fields, "Grind Adjusted")),
     shotsLeftEst: airtableNumber(field(fields, "Shots Left (est)")),
     finishedShot: airtableBoolean(field(fields, "Finished Shot")),

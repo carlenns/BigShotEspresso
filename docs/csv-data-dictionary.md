@@ -105,7 +105,7 @@ UI codes: text, long text, number, currency, date/time, checkbox, dropdown, chip
 | Hopper Severity | Formula/Single Select | R | read-only | Stable/Moderate/Severe; HMI. |
 | Top-Up Gap (g) | Formula | R | read-only | Expected grounds needed to reach target dose; HMI/DCI/OSI. |
 | Top-Up Recommendation | Formula/Text | R | read-only | Recommended timed top-up; HMI/OSI. |
-| Grinder Initial Output for Charts (16-19g) | Formula | R | hidden/chart | Chart-normalized Initial Output helper; DCI/HMI. |
+| Grinder Initial Output for Charts (16-19g) | Formula | R | removed | **Removed 2026-08-25** (migration `0009_remove_grinder_initial_output_for_charts`). Was a personal Airtable chart-range helper only (narrowed the y-axis for grinder output's typical ~2g spread) — a pure display formula of `Initial Output (g)`, never an independent input. Dropped from the Postgres schema; `Initial Output (g)` (`initialGrindWeight`) remains the canonical field and is unaffected. |
 
 ## Bags
 

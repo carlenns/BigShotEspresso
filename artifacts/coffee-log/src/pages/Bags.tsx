@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Archive, Plus, Star, Package, Pencil, ChevronRight, ClipboardCheck, RefreshCw, AlertTriangle } from "lucide-react";
+import { Archive, Plus, Star, Package, Pencil, ChevronRight, ClipboardCheck, RefreshCw, AlertTriangle, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useListHoppers, getListHoppersQueryKey } from "@workspace/api-client-react";
 
@@ -65,6 +65,7 @@ export default function Bags() {
   const [startPhaseBag, setStartPhaseBag] = useState<Bag | null>(null);
   const [startPhaseForm, setStartPhaseForm] = useState({ phase: "Phase 1", customLabel: "", startingBeans: "", notes: "" });
   const [startingBeansPrefilled, setStartingBeansPrefilled] = useState(false);
+  const [changeBagOpen, setChangeBagOpen] = useState(false);
 
   const blankForm = () => ({ beanId: "", bagNumber: "", bagName: "", purchaseDate: "", roastDate: "", roastDateUsed: "", estimatedRoastWindow: "", actualRoastDate: "", estimatedRoastDate: "", freshnessDatingMethod: "", roastDateConfidence: "", roastDateNotes: "", openedDate: "", closedOutDate: "", bagWeight: "", remainingEstimate: "", cost: "", isActive: "false", startGrindSetting: "", currentGrindSetting: "", startGrindTime: "", currentGrindTime: "", defaultDose: "", defaultYield: "", defaultTemp: "", dialInNotes: "", notes: "" });
 
@@ -218,7 +219,12 @@ export default function Bags() {
           </h1>
           <p className="text-muted-foreground mt-1">Each bag linked to a bean with its own grind defaults and shot history.</p>
         </div>
-        <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Bag</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setChangeBagOpen(true)} className="gap-2">
+            <ArrowRightLeft className="h-4 w-4" /> {activeBags.length > 0 ? "Change Bag" : "Start New Bag"}
+          </Button>
+          <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Bag</Button>
+        </div>
       </div>
 
       <Card className="border-primary/20 bg-primary/5">
@@ -513,6 +519,15 @@ export default function Bags() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ChangeBagDialog
+        open={changeBagOpen}
+        onOpenChange={setChangeBagOpen}
+        activeBags={activeBags}
+        beans={beans}
+        qc={qc}
+        toast={toast}
+      />
     </div>
   );
 }
@@ -595,5 +610,346 @@ function BagRow({ bag, onEdit, onCloseout, onStartPhase, hopperPhase }: { bag: B
         {bag.dialInNotes && <p className="mt-2 text-sm text-muted-foreground border-t pt-2 truncate">{bag.dialInNotes}</p>}
       </CardContent>
     </Card>
+  );
+}
+
+// ── Change Bag guided flow ──────────────────────────────────────────────────
+// Walks through: (1) optionally close the current active bag, (2) create or
+// select the new bean, (3) create the new active bag, (4) optionally start
+// its first hopper phase. Reuses only the existing PATCH /api/bags/:id,
+// POST /api/beans, POST /api/bags, and POST /api/hoppers endpoints — no
+// schema or API changes. Submission order is deliberately NOT the same as
+// the on-screen reading order: the new bag is created before the old one is
+// closed, so a failure partway through never leaves the user with zero
+// active bags — worst case is two active bags temporarily, which the
+// existing "Close" action already recovers from safely.
+function ChangeBagDialog({
+  open,
+  onOpenChange,
+  activeBags,
+  beans,
+  qc,
+  toast,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  activeBags: Bag[];
+  beans: Bean[];
+  qc: QueryClient;
+  toast: (opts: { title: string; description?: string; variant?: "destructive" }) => void;
+}) {
+  const blank = () => ({
+    closeOld: activeBags.length > 0,
+    bagToCloseId: activeBags[0] ? String(activeBags[0].id) : "",
+    leftoverMeasured: "measured",
+    remainingEstimate: "",
+    closeoutNotes: "",
+    beanMode: beans.length > 0 ? "existing" : "new",
+    existingBeanId: beans[0] ? String(beans[0].id) : "",
+    newBeanName: "",
+    newBeanRoaster: "",
+    newBeanOrigin: "",
+    bagNumber: "",
+    bagName: "",
+    bagWeight: "",
+    purchaseDate: "",
+    roastDate: "",
+    startPhase: true,
+    phase: "Phase 1",
+    customLabel: "",
+    startingBeans: "",
+    phaseNotes: "",
+  });
+  const [form, setForm] = useState(blank());
+
+  // Re-seed defaults each time the dialog opens, since activeBags/beans may
+  // have changed since the last time it was open.
+  const wasOpen = React.useRef(false);
+  if (open && !wasOpen.current) setForm(blank());
+  wasOpen.current = open;
+
+  const set = <K extends keyof ReturnType<typeof blank>>(key: K, value: ReturnType<typeof blank>[K]) =>
+    setForm((current) => ({ ...current, [key]: value }));
+
+  const changeBagMutation = useMutation({
+    mutationFn: async () => {
+      // 1. Resolve the bean (existing or newly created).
+      let beanId: number;
+      if (form.beanMode === "existing") {
+        if (!form.existingBeanId) throw new Error("Select a bean for the new bag.");
+        beanId = Number(form.existingBeanId);
+      } else {
+        if (!form.newBeanName.trim()) throw new Error("Enter a name for the new bean.");
+        const beanRes = await fetch("/api/beans", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: form.newBeanName.trim(),
+            roaster: form.newBeanRoaster.trim() || undefined,
+            origin: form.newBeanOrigin.trim() || undefined,
+          }),
+        });
+        if (!beanRes.ok) throw new Error(`Could not create the new bean: ${await beanRes.text()}`);
+        beanId = (await beanRes.json()).id;
+      }
+
+      // 2. Create the new bag, active, before touching the old one — if this
+      // fails, nothing else has changed yet.
+      const bagBody: Record<string, unknown> = { beanId, isActive: true };
+      if (form.bagNumber.trim()) bagBody.bagNumber = form.bagNumber.trim();
+      if (form.bagName.trim()) bagBody.bagName = form.bagName.trim();
+      if (form.bagWeight !== "") bagBody.bagWeight = Number(form.bagWeight);
+      if (form.purchaseDate) bagBody.purchaseDate = form.purchaseDate;
+      if (form.roastDate) bagBody.roastDate = form.roastDate;
+      bagBody.openedDate = todayDate();
+      const bagRes = await fetch("/api/bags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bagBody),
+      });
+      if (!bagRes.ok) throw new Error(`Could not create the new bag: ${await bagRes.text()}`);
+      const newBag = await bagRes.json();
+
+      // 3. Optionally close the old bag now that the new one exists.
+      if (form.closeOld && form.bagToCloseId) {
+        const measured = form.leftoverMeasured === "measured";
+        const oldBag = activeBags.find((b) => b.id === Number(form.bagToCloseId));
+        const existingNotes = oldBag?.notes?.trim();
+        const closeoutNotes = [
+          existingNotes,
+          [
+            `Closeout ${todayDate()} (via Change Bag).`,
+            measured
+              ? (form.remainingEstimate ? `Remaining beans/chute mass: ${form.remainingEstimate}g (measured).` : "Remaining beans/chute mass not recorded.")
+              : "Remaining beans/chute mass intentionally not measured at closeout.",
+            form.closeoutNotes.trim() || null,
+          ].filter(Boolean).join(" "),
+        ].filter(Boolean).join("\n\n");
+        const closeBody: Record<string, unknown> = {
+          isActive: false,
+          closedOutDate: todayDate(),
+          notes: closeoutNotes,
+        };
+        if (!measured) closeBody.remainingEstimate = null;
+        else if (form.remainingEstimate !== "") closeBody.remainingEstimate = Number(form.remainingEstimate);
+        const closeRes = await fetch(`/api/bags/${form.bagToCloseId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(closeBody),
+        });
+        if (!closeRes.ok) {
+          throw new Error(`New bag "${newBag.bagName ?? newBag.bagNumber ?? newBag.id}" was created and is active, but the old bag could not be closed: ${await closeRes.text()}. Close it manually from the Bags list.`);
+        }
+      }
+
+      // 4. Optionally start the first hopper phase for the new bag.
+      if (form.startPhase) {
+        const phase = form.phase;
+        const customLabel = form.customLabel.trim();
+        const phaseNotes = form.phaseNotes.trim();
+        if (phase === "Custom" && !customLabel && !phaseNotes) {
+          throw new Error(`New bag "${newBag.bagName ?? newBag.bagNumber ?? newBag.id}" was created and is active, but Custom phase needs a custom label or notes. Start the hopper phase separately from the Bags list.`);
+        }
+        const combinedNotes = [customLabel ? `Custom: ${customLabel}.` : null, phaseNotes || null].filter(Boolean).join(" ");
+        const hopperName = `Bag #${newBag.bagNumber ?? newBag.id} — ${phase} — ${todayDate()}`;
+        const hopperBody: Record<string, unknown> = { name: hopperName, bagId: newBag.id, isActive: true, phase };
+        if (form.startingBeans !== "") hopperBody.startingBeans = Number(form.startingBeans);
+        if (combinedNotes) hopperBody.notes = combinedNotes;
+        const hopperRes = await fetch("/api/hoppers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(hopperBody),
+        });
+        if (!hopperRes.ok) {
+          throw new Error(`New bag "${newBag.bagName ?? newBag.bagNumber ?? newBag.id}" was created and is active, but the hopper phase could not be started: ${await hopperRes.text()}. Start it separately from the Bags list.`);
+        }
+      }
+
+      return newBag;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["bags"] });
+      qc.invalidateQueries({ queryKey: ["beans"] });
+      qc.invalidateQueries({ queryKey: getListHoppersQueryKey() });
+      qc.invalidateQueries({ queryKey: ["intelligence"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-intelligence"] });
+      onOpenChange(false);
+      toast({ title: "New bag is active", description: "The change is complete. You're ready to log shots on the new bag." });
+    },
+    onError: (e) => toast({ title: "Change Bag did not fully complete", description: String(e), variant: "destructive" }),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{activeBags.length > 0 ? "Change Bag" : "Start New Bag"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-5 py-2">
+          <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+            {activeBags.length === 0 ? (
+              <p className="text-muted-foreground">No bag is currently active. This creates your first one.</p>
+            ) : (
+              <>
+                <p className="font-medium">Current active bag{activeBags.length > 1 ? "s" : ""}</p>
+                <ul className="text-muted-foreground mt-1 space-y-0.5">
+                  {activeBags.map((b) => (
+                    <li key={b.id}>{b.beanName ?? "Unknown Bean"} — Bag #{b.bagNumber ?? b.id}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+
+          {activeBags.length > 0 && (
+            <div className="space-y-3 rounded-lg border p-3">
+              <div className="flex items-center justify-between">
+                <Label className="font-normal">Close out the old bag now</Label>
+                <Switch checked={form.closeOld} onCheckedChange={(v) => set("closeOld", v)} />
+              </div>
+              {form.closeOld && (
+                <div className="space-y-3">
+                  {activeBags.length > 1 && (
+                    <div className="space-y-1.5">
+                      <Label>Bag to close</Label>
+                      <Select value={form.bagToCloseId} onValueChange={(v) => set("bagToCloseId", v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {activeBags.map((b) => (
+                            <SelectItem key={b.id} value={String(b.id)}>{b.beanName ?? "Unknown Bean"} — Bag #{b.bagNumber ?? b.id}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div className="space-y-1.5">
+                    <Label>Leftover Beans / Chute Mass</Label>
+                    <Select
+                      value={form.leftoverMeasured}
+                      onValueChange={(v) => set("leftoverMeasured", v)}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="measured">I measured it</SelectItem>
+                        <SelectItem value="unmeasured">Not measured — intentionally skipped</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      You are not expected to know the exact leftover amount. Skipping it is fine.
+                    </p>
+                  </div>
+                  {form.leftoverMeasured === "measured" && (
+                    <div className="space-y-1.5">
+                      <Label>Remaining Beans / Chute Mass (g)</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={form.remainingEstimate}
+                        onChange={(e) => set("remainingEstimate", e.target.value)}
+                        placeholder="e.g. 121"
+                      />
+                      <p className="text-xs text-muted-foreground">Reconciliation evidence only — this does not rewrite past shot consumption.</p>
+                    </div>
+                  )}
+                  <div className="space-y-1.5">
+                    <Label>Closeout / Cleanout Notes</Label>
+                    <Input
+                      value={form.closeoutNotes}
+                      onChange={(e) => set("closeoutNotes", e.target.value)}
+                      placeholder="e.g. purged grinder, backflushed — evidence only"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Purge, cleanout, and maintenance notes are text evidence only for now — not yet a separate lifecycle event.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-3 rounded-lg border p-3">
+            <Label>New Bag's Bean</Label>
+            <Select value={form.beanMode} onValueChange={(v) => set("beanMode", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="existing" disabled={beans.length === 0}>Use an existing bean</SelectItem>
+                <SelectItem value="new">Create a new bean</SelectItem>
+              </SelectContent>
+            </Select>
+            {form.beanMode === "existing" ? (
+              <Select value={form.existingBeanId} onValueChange={(v) => set("existingBeanId", v)}>
+                <SelectTrigger><SelectValue placeholder="Select bean…" /></SelectTrigger>
+                <SelectContent>
+                  {beans.map((b) => <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="space-y-2">
+                <Input value={form.newBeanName} onChange={(e) => set("newBeanName", e.target.value)} placeholder="Bean name *" />
+                <div className="grid grid-cols-2 gap-2">
+                  <Input value={form.newBeanRoaster} onChange={(e) => set("newBeanRoaster", e.target.value)} placeholder="Roaster (optional)" />
+                  <Input value={form.newBeanOrigin} onChange={(e) => set("newBeanOrigin", e.target.value)} placeholder="Origin (optional)" />
+                </div>
+                <p className="text-xs text-muted-foreground">More bean detail can be added later from the Beans page.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3 rounded-lg border p-3">
+            <Label>New Bag Details</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input value={form.bagNumber} onChange={(e) => set("bagNumber", e.target.value)} placeholder="Bag number" />
+              <Input value={form.bagName} onChange={(e) => set("bagName", e.target.value)} placeholder="Bag name/label" />
+              <Input type="number" step="0.1" min="0" value={form.bagWeight} onChange={(e) => set("bagWeight", e.target.value)} placeholder="Bag weight (g)" />
+              <Input type="date" value={form.roastDate} onChange={(e) => set("roastDate", e.target.value)} placeholder="Roast date" />
+            </div>
+            <p className="text-xs text-muted-foreground">This bag will be created and set active immediately. Add more detail anytime from Edit.</p>
+          </div>
+
+          <div className="space-y-3 rounded-lg border p-3">
+            <div className="flex items-center justify-between">
+              <Label className="font-normal">Start the first hopper phase now</Label>
+              <Switch checked={form.startPhase} onCheckedChange={(v) => set("startPhase", v)} />
+            </div>
+            {form.startPhase ? (
+              <div className="space-y-3">
+                <Select value={form.phase} onValueChange={(v) => set("phase", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {HOPPER_PHASE_OPTIONS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {form.phase === "Custom" && (
+                  <Input value={form.customLabel} onChange={(e) => set("customLabel", e.target.value)} placeholder="Custom phase label" />
+                )}
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={form.startingBeans}
+                  onChange={(e) => set("startingBeans", e.target.value)}
+                  placeholder={form.bagWeight ? `Starting beans (g) — e.g. ${form.bagWeight}` : "Starting beans (g)"}
+                />
+                <Input value={form.phaseNotes} onChange={(e) => set("phaseNotes", e.target.value)} placeholder="Notes (optional)" />
+                <p className="text-xs text-muted-foreground">
+                  A hopper phase is a measured operating window, not a count of every bean physically left in the bag.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                You can start a hopper phase later from the Bags list — it is never required to finish changing bags.
+              </p>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={() => changeBagMutation.mutate()} disabled={changeBagMutation.isPending}>
+            {changeBagMutation.isPending ? "Changing…" : activeBags.length > 0 ? "Change Bag" : "Start New Bag"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

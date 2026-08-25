@@ -571,7 +571,6 @@ components:
         hopperSeverity: { type: ["string", "null"], readOnly: true }
         topUpGap: { type: ["number", "null"], readOnly: true }
         topUpRecommendation: { type: ["string", "null"], readOnly: true }
-        grinderInitialOutputForCharts: { type: ["number", "null"], readOnly: true }
         createdAt: { type: string }
 
     ShotList:

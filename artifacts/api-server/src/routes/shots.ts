@@ -635,7 +635,6 @@ export function parseCsvAndImport(
       hopperSeverity: str(value("Hopper Severity")),
       topUpGap: num(value("Top-Up Gap (g)")),
       topUpRecommendation: str(value("Top-Up Recommendation")),
-      grinderInitialOutputForCharts: num(value("Grinder Initial Output for Charts (16-19g)")),
       importFingerprint: csvRowFingerprint(rawHeaders, r),
       grindAdjusted: str(r[idxGrindAdjusted]),
       shotsLeftEst: num(r[idxShotsLeft]),

@@ -174,7 +174,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Bottom Nav */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 h-16 overflow-x-auto border-t bg-background px-1 pb-safe md:hidden"
+        className={cn(
+          "fixed bottom-0 left-0 right-0 z-50 h-16 overflow-x-auto border-t bg-background px-1 pb-safe md:hidden",
+          // Right-edge fade signals there's more to scroll to — the bar has
+          // no other visual cue that it scrolls, which is what actually made
+          // Settings undiscoverable on phone (the row hard-clipped at the
+          // viewport edge with no hint anything else existed off-screen).
+          "[mask-image:linear-gradient(to_right,black_85%,transparent_100%)]",
+          "[-webkit-mask-image:linear-gradient(to_right,black_85%,transparent_100%)]"
+        )}
         aria-label="Swipeable mobile navigation"
       >
         <div className="flex h-full min-w-max snap-x snap-mandatory">
@@ -185,10 +193,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex w-20 shrink-0 snap-start flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors",
-                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                "relative flex w-20 shrink-0 snap-start flex-col items-center justify-center gap-0.5 text-[10px] transition-colors",
+                isActive ? "text-primary font-semibold" : "text-muted-foreground font-medium hover:text-foreground"
               )}
             >
+              {/* Non-color active cue: a top underline bar + bolder label
+                  weight, so the active tab reads correctly for color-blind
+                  users, not just via the primary-color text. */}
+              {isActive && <span aria-hidden="true" className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />}
               <item.icon className={cn("h-5 w-5", isActive && "fill-primary/10")} />
               <span>{item.title.split(" ")[0]}</span>
             </Link>

@@ -963,3 +963,143 @@ None required by this task specifically. If continuing shot-evaluation polish, t
 ## Commit recommendation
 
 Not recommended to commit automatically. Verification is clean and the changes are additive/behavioral-fix-only (no schema/API/history changes), but per the task boundaries, commit only on explicit instruction from Carl/Codex.
+
+# Bag Lifecycle: Guided "Change Bag" Workflow — 2026-08-25
+
+## Completed
+
+- Added a `ChangeBagDialog` guided flow to `artifacts/coffee-log/src/pages/Bags.tsx`, triggered by a new "Change Bag" (or "Start New Bag" when no bag is currently active) button in the page header, next to "Add Bag" — visible regardless of whether a bag is currently active, and its label adapts to context.
+- The dialog walks through, in this on-screen order: (1) identify the current active bag(s), read-only summary; (2) optionally close the old bag, with the same measured/unmeasured leftover choice and closeout/cleanout notes copy already built for the standalone Close Out dialog; (3) create or select the bean for the new bag; (4) enter minimal new-bag details (number, name, weight, roast date); (5) optionally start the first hopper phase, with the same approved-phase-only selector, Custom-requires-label-or-notes rule, and "measured operating window" copy already built for the standalone Start Hopper Phase dialog.
+- **Submission order deliberately differs from the on-screen reading order for safety**: the mutation resolves/creates the bean, then creates the new bag (active), then — only if that succeeded — optionally closes the old bag, then — only if that succeeded — optionally starts the hopper phase. This means a failure at any step never leaves the user with zero active bags; worst case if the "close old bag" step fails after the new bag was already created is two active bags temporarily, which the existing "Close" action on the Bags list already recovers from. This ordering rationale is documented in a code comment directly above the mutation.
+- Reused only existing endpoints: `POST /api/beans`, `POST /api/bags`, `PATCH /api/bags/:id`, `POST /api/hoppers`. No new backend routes, no schema changes, no OpenAPI/generated-client changes. `beans.ts`/`bags.ts`/`hopper.ts` were read but not modified.
+- Starting the hopper phase is a `Switch` the user can turn off (default on) — never a forced step; explicit copy states "You can start a hopper phase later from the Bags list — it is never required to finish changing bags."
+- No hopper-percentage or other formula is calculated locally anywhere in the new flow — `startingBeans` is passed straight through as the entered value (or omitted), with only a text placeholder hint (not a computed default) referencing the just-entered bag weight.
+- Dialog is `max-w-lg max-h-[90vh] overflow-y-auto`, matching every other dialog in this file — scrollable on short/mobile viewports.
+- Copy explicitly states the user is "not expected to know the exact leftover amount" and that "skipping it is fine," and that purge/cleanout/maintenance notes are "text evidence only for now."
+- Added one new source-scan regression test to `artifacts/api-server/src/api-contract.test.ts` covering: the trigger button's adaptive label, reuse of exactly the four existing endpoints (string-matched), approved-phase-only enforcement (no `Grinder Cleanout`), the hopper-phase-optional Switch and its "never required" copy, absence of any local `hopperPercent`/`hopperMass` calculation, presence of the measured/unmeasured and evidence-only copy, the scrollable dialog class, and — via `String.indexOf` ordering checks — that the mutation's fetch calls appear in bean → new-bag → close-old order in source.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (workspace-wide).
+- `CI=true pnpm --filter @workspace/api-server test` — 51/51 passed, 0 failed (50 pre-existing + 1 new).
+- `CI=true pnpm run build:render` — build succeeded.
+- Not run: a live Postgres-backed browser smoke test of the full guided flow end-to-end (bean creation, bag creation, old-bag closeout, hopper phase start, and the partial-failure recovery path) — no running app instance was available in this environment, same limitation as every prior session in this thread. This is the single largest, most multi-step piece of UI built in this thread so far, so a live smoke test is the highest-value next step before shipping.
+
+## Assumptions
+
+- The new-bag fields collected in the guided flow (bag number, bag name, weight, roast date) are intentionally a minimal subset of the full ~25-field Add Bag dialog — the guided flow is meant to get a new active bag started quickly with correct linkage (bean → bag → hopper), not to replace the full Edit Bag form for filling in every historical/roast-dating field. The user can open Edit afterward for the rest.
+- The bean-creation sub-step in this flow (name, roaster, origin only) is intentionally a trimmed subset of `BeanForm.tsx`'s full field set, for the same reason.
+- Reordering the actual submission sequence (bean → new bag → close old → hopper) away from the required behavior list's stated reading order (identify → close → bean → new bag → hopper) was judged acceptable and necessary for safety, since the task only specified the workflow the *user walks through conceptually*, not a literal required execution order, and the boundary against inventing a new atomic backend endpoint (task explicitly prefers reusing existing endpoints) means the four calls cannot be a single transaction — so the ordering of the four independent calls is the only available lever for minimizing partial-failure damage.
+- No update to `docs/implementation/bag-hopper-lifecycle-plan.md` was made — this flow is a UI orchestration of already-documented steps/endpoints and doesn't introduce new lifecycle semantics beyond what's already written there.
+
+## Unresolved
+
+- No live smoke test performed (see above) — this is the top-priority follow-up given the flow's size and multi-endpoint sequencing.
+- Partial-failure recovery is manual: if the "close old bag" or "start hopper phase" step fails after the new bag was created, the error message tells the user exactly what to do next (close/start it manually from the Bags list), but nothing automatically retries or rolls back. Judged acceptable for a launch-safe first version given the boundary against adding new backend orchestration.
+- `artifacts/coffee-log/src/pages/ShotForm.tsx` shows as modified in git status during this session — unrelated, concurrent work from elsewhere (shot-evaluation flag-selection polish, per its own completed-tasks.md entry above), not touched or reviewed as part of this package.
+- Everything previously unresolved (no lifecycle-event table, no hard one-active-bag rule, hopper top-up out of scope, same-day duplicate hopper-name collisions) remains unchanged.
+
+## Recommended next step
+
+Live smoke test of the full guided flow (both the happy path and at least one induced failure, e.g. a duplicate hopper name, to confirm the partial-failure messaging reads correctly), then decide whether to continue with Phase C ("Start New Bag guided flow" — largely now covered by this task) or move to a different area of the lifecycle plan.
+
+## Commit recommendation
+
+Not recommended to commit automatically. Verification is clean and every change reuses existing, already-tested endpoints with no schema/API changes, but this is also the largest single UI addition in this thread — a live smoke test before commit is strongly recommended given the multi-step, multi-endpoint nature of the flow. Commit only on explicit instruction from Carl/Codex.
+
+# Log Shot Stepper Density: Restored Steppers On All Extraction Fields — 2026-08-25
+
+## Completed
+
+- Closed the stepper-split gap outstanding since commit `3db2398`. That commit reduced `NumberStepper` usage on `ShotForm.tsx`'s Extraction card to Grind Setting and Grind Time only, reverting Initial Grinder Output, Top-Up Grind Added, Top-Up Time Adj, Pour Delay, Pour Time, Flow Time, and Yield to plain `<Input type="number">`. Carl confirmed directly, repeatedly, across multiple reconciliation rounds, that the opposite was wanted: the mobile +/- stepper control should remain on all Extraction fields, not just Grind Setting/Grind Time.
+- Restored `NumberStepper` on all 7 of those fields, using each field's existing placeholder/suggested-value expression unchanged (e.g. `defaultDose`, `latestShotDefaults?.pourDelay`, `defaultYield`) — this is a pure control-type swap, not a change to any default/seed logic.
+- Left Target/Basket Dose and Temp as plain inputs, unchanged — those were correctly reverted in an earlier, separate session and were never part of this dispute.
+- Left the Rating/Preference Rating steppers, the card/section restructuring (Setup / Extraction sub-groups / collapsible "Taste Later"), and the flag-behavior fix (`setStatusIfBlank`/`setFaultStatusIfBlank`) untouched — all approved and unrelated to this fix.
+- No existing test asserted the old 2-field-only split, so no test needed updating.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (workspace-wide).
+- `CI=true pnpm --filter @workspace/api-server test` — 51/51 passed, 0 failed.
+- `CI=true pnpm run build:render` — build succeeded.
+- Not run: live browser smoke test — no running Postgres-backed instance available in this environment, same limitation as every prior session in this thread.
+
+## Assumptions
+
+- None beyond the direct instruction this fix implements.
+
+## Unresolved
+
+- No live-browser smoke test performed for this specific change.
+- This working tree also contains concurrent, unrelated changes (`Bags.tsx` and its test additions) from the separately-assigned Guided New Bag / Close Old Bag workflow task, which were present during this session's verification runs but were not reviewed or touched here — that work is for its own handoff/reconciliation pass.
+
+# Mobile Navigation Discoverability, Log Shot Naming, and Density Fix — 2026-08-25
+
+## Completed
+
+- **Bottom mobile nav (`Shell.tsx`)**: the nav already scrolled correctly and already included Settings (from an earlier session) — verified this directly rather than assuming it. The actual bug was discoverability: the row hard-clips at the viewport edge with zero visual signal that more items exist off-screen, so a user who doesn't intuitively try swiping never discovers Bags/Equipment/Accessories/Taste/Settings past "Beans." Fixed with a right-edge `mask-image`/`-webkit-mask-image` fade (no JS, no scroll-position tracking) so the last visible icon visibly fades toward the edge instead of clipping cleanly.
+- Fixed the mobile nav's active-tab indicator relying on color alone (`text-primary` vs `text-muted-foreground` was the only signal). Added a non-color cue pair: a small underline bar above the active icon (shape) and `font-semibold` vs `font-medium` on the label (weight) — both explicitly listed as acceptable cues in the task brief. Left the desktop sidebar's active state untouched since its filled-background treatment is already a shape/region cue, not text-color-only.
+- **Log Shot naming (`ShotForm.tsx`)**: found and fixed the one real inconsistency — every nav entry point (Shell primary nav, mobile bottom nav, mobile top-bar button, Dashboard's "+ Log Shot" button) says "Log Shot," but the page's own H1 said "Detailed Log" for the create flow. Changed the H1 to "Log Shot" (edit flow still says "Edit Shot," unambiguous). Confirmed via grep this was the *only* stray "Detailed Log"/"Quick Log" reference outside the already-shelved, already-unlinked `QuickLog.tsx` page itself — left `QuickLog.tsx`'s internal copy untouched since it's parked/unreachable and the task boundary is "do not implement Quick Log," not "edit its dead copy."
+- **Mobile form density (`ShotForm.tsx`)**: reviewed for remaining density beyond the two prior stepper/section sessions. Did not find a case for further structural changes — Shot Status/Fault Status/Flags/Serving Context are all legitimately "record now" content per the existing Record-now/Taste-later split and collapsing them further would contradict that established reasoning, not extend it. Found and fixed one concrete, measured issue instead: the Flags helper paragraph (added last session) wrapped to 4 lines at a real 350px mobile content width (measured directly via `getBoundingClientRect` at that width, not guessed). Tightened the wording to preserve all three meanings (Reference/Signature/Sour) in 2 lines, verified by the same measurement technique before committing the change.
+- **Shot Detail (`ShotDetail.tsx`)**: reviewed for overflow risk (no fixed widths or `whitespace-nowrap` found anywhere in the file) and color-only flag display. No changes made — the header already stacks `flex-col sm:flex-row` so it can't be squeezed by the title/buttons on phone, grids are fluid `minmax(0,1fr)` so they can't cause page-level horizontal overflow, and the Reference/Signature/Sour badges already carry their meaning in visible text labels ("Signature Shot," "Reference Shot," "Sour Shot"), not color alone — confirmed this was already true from last session's work, not newly fixed.
+- Added/updated three contract tests in `api-contract.test.ts`: a new test for the nav's fade mask and non-color active cue; updated the existing "Primary logging UI..." test, which had `assert.match(formSource, /Detailed Log/)` as a literal requirement — the exact inconsistency this task fixes — to instead require "Log Shot" and explicitly forbid "Detailed Log" in `ShotForm.tsx`; updated the three Flags-helper-text assertions from last session to match the tightened wording.
+- Added one line to `docs/implementation/release-candidate-checklist.md`'s Gate 2.5 verification list, dated, describing exactly what was reviewed and fixed for the mobile nav specifically (not claiming the whole gate/broader dashboard color review is done).
+- Did not implement Quick Log, any intelligence engine, or any schema/API/OpenAPI change.
+
+## Verified
+
+- Confirmed clean working tree fully in sync with `origin/main` before starting (0 ahead/behind, prior commit `0c3fcc5`).
+- Workspace typecheck passed (all 4 projects).
+- API/Phase 1.5 test suite passed: 52 passed, 0 failed.
+- `CI=true pnpm run build:render` passed.
+- `resize_window` did not actually change the tab's viewport in this environment (`window.innerWidth` stayed at desktop width after every call, despite the tool reporting success) — documented here rather than silently assumed to work. An embedded same-origin iframe was also tried as a workaround and failed to load. Worked around this by directly constraining the actual nav element's own width via inline style (390px) and forcing its `md:hidden` sibling elements' `display` via an injected stylesheet — this exercises the real CSS overflow/mask/scroll mechanics (verified `scrollWidth: 808` vs `clientWidth: 390`, confirmed `nav.scrollTo` reaches Settings, screenshotted the visible fade on "Beans" and the underline+bold cue on the active tab) without needing a true viewport resize. This does not test `sm:`/`md:`-prefixed layout classes elsewhere in the app (e.g. `ShotDetail.tsx`'s `sm:grid-cols-4`), which is why that page's mobile-safety conclusion above rests on code-level review (no fixed widths/nowrap) rather than a pixel-verified screenshot at true mobile width.
+
+## Assumptions
+
+- Extending the desktop sidebar to also carry a non-color active cue was considered and skipped — its background-fill treatment already reads as a shape/region cue, not a color-only one, so it wasn't broken and adding one would be unrequested scope beyond the task's explicit "Bottom mobile navigation" framing.
+- The Flags helper text rewrite trades a small amount of specificity for line count, verified acceptable (all three flag meanings still present) rather than assumed acceptable.
+
+## Unresolved
+
+- **Found, not caused, not fixed here**: the working tree's `ShotForm.tsx` currently has `NumberStepper` restored on Initial Grinder Output, Top-Up Grind Added, Top-Up Time Adj, Pour Delay, Pour Time, Flow Time, and Yield — reverting the plain-input density fix that was deliberately implemented, measured, and committed in `3db2398 feat(shots): streamline mobile log shot flow`. This reversion is not something this session made; it was already present in the file before this task's own edits (H1 rename, Flags text) were applied on top of it. Flagging this clearly rather than silently reverting it myself, since I don't know why it happened or whether it was an intentional decision made elsewhere in this multi-agent session — Codex/Carl should confirm which state is actually wanted before this ships.
+- `resize_window`'s non-functionality in this environment should probably be reported/investigated separately — it silently claims success while doing nothing, which could mislead a future session that trusts it without verifying `window.innerWidth` afterward the way this session did.
+
+## Recommended next step
+
+Resolve the `NumberStepper` reversion finding above with Carl/Codex before shipping — confirm whether the 7 fields should go back to plain input (restoring the `3db2398` state) or whether keeping steppers there was an intentional, informed decision this session doesn't have context for.
+
+## Commit recommendation
+
+Not recommended to commit automatically, and specifically not recommended to commit `ShotForm.tsx` as-is without resolving the stepper-reversion question above first — committing now would either re-ship the density fix's reversal unreviewed, or (if intentional) commit it without anyone having recorded why. The other three files in this session's scope (`Shell.tsx`, `api-contract.test.ts`, `release-candidate-checklist.md`) have no such open question. Per task boundaries, commit only on explicit instruction from Carl/Codex regardless.
+
+## Resolution (Carl, 2026-08-25, same day)
+
+The `NumberStepper` restoration flagged above as unresolved is intentional and confirmed directly by Carl, not an accident. It's the fix documented in this same file under "Log Shot Stepper Density: Restored Steppers On All Extraction Fields — 2026-08-25" (immediately above this entry): `3db2398`'s reduction to Grind Setting/Grind Time only was the wrong direction — Carl explicitly wants steppers on all Extraction fields, confirmed across multiple reconciliation rounds before this fix was applied. Good catch and correct handling by not silently reverting it — this is the state that should ship.
+
+# Removed grinderInitialOutputForCharts (Deprecated Airtable Chart Field) — 2026-08-25
+
+## Completed
+
+- Removed `grinder_initial_output_for_charts` from the `shots` table entirely, at Carl's direct request. Carl created this field originally in Airtable purely to narrow a chart's y-axis (grinder output typically falls in a ~2g range, so a full-scale chart had large blank areas) — it was a personal display-formula helper derived from `Initial Output (g)` / `initialGrindWeight`, never an independent input, and Carl confirmed it served "only crappy Airtable charts and limited integrations" with no ongoing purpose in the Postgres-backed app.
+- Added migration `0009_remove_grinder_initial_output_for_charts` (up: `DROP COLUMN IF EXISTS`; down: `ADD COLUMN IF NOT EXISTS`, matching this project's established migration/rollback pattern). Rollback restores the column shape only — original values are not recoverable once dropped, since none exist yet in the live Postgres data (this field was never wired to the live app's write paths) and any historical Airtable/CSV evidence for it remains recoverable from source exports if ever needed again.
+- Removed all live references: `lib/db/src/schema/shots.ts` (column definition), `artifacts/api-server/src/lib/airtable-mapping.ts` (Airtable API sync mapping), `artifacts/api-server/src/routes/shots.ts` (CSV import row mapping), `lib/api-spec/openapi.yaml` (Shot response schema), and the matching assertion in `artifacts/api-server/src/airtable-mapping.test.ts`. Regenerated `lib/api-zod`/`lib/api-client-react` via `pnpm --filter @workspace/api-spec run codegen` rather than hand-editing generated files.
+- Left `docs/architecture/offline-airtable-export-audit.md` untouched — it's a historical snapshot of a past Airtable export's field inventory, not a live schema reference, and should keep recording what was actually exported at the time.
+- Updated the field's row in `docs/csv-data-dictionary.md` to note it was removed (with date and migration name) and explain why, rather than deleting the row outright — preserves the historical record per the project's "never silently discard historical evidence" rule while making clear it's gone from the live schema.
+- `Initial Output (g)` / `initialGrindWeight` ("Initial Grinder Output") is unaffected and remains the canonical, live, editable field — confirmed via `airtable-mapping.ts` that it's mapped from Airtable's `"Initial Output (g)"` column, separate from the removed chart-formula field.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (all workspace projects, including regenerated `lib/api-zod`/`lib/api-client-react`).
+- `CI=true pnpm --filter @workspace/api-server test` — 52/52 passed, 0 failed (updated one existing assertion, added no new tests — this is a pure removal).
+- `CI=true pnpm run build:render` — build succeeded.
+- Confirmed via `grep` across the whole repo that no live `.ts`/`.tsx`/`.yaml`/`.sql` file references the field except the new migration (0009, the removal itself) and the historical migrations that originally added it (`0000`, `0001`), which are correctly left untouched.
+- Not run: an actual migration-apply rehearsal against a real/embedded Postgres instance specifically exercising `0009` end-to-end (the existing test suite's Phase-1-migration tests cover `0000`/`0001` specifically, not a generic all-migrations runner). The migration's SQL is a direct pattern match of the already-proven `0008_equipment_source_urls` shape (`ALTER TABLE ... DROP/ADD COLUMN IF [NOT] EXISTS`), just against `shots` instead of the equipment tables.
+
+## Assumptions
+
+- No production data exists in this column yet to worry about losing, since it was never populated by any live write path (only ever set during CSV/Airtable import) and the app has not yet had a real deployment cycle with Airtable sync enabled per `docs/implementation/release-candidate-checklist.md`.
+- Leaving the CSV data dictionary row in place (marked removed) rather than deleting it is the correct interpretation of "never silently discard historical evidence" for a doc that inventories source-of-truth fields, distinct from the offline-export-audit doc which is left fully untouched as a point-in-time snapshot.
+
+## Unresolved
+
+- The migration has not been rehearsed against a real Neon/Postgres instance specifically for this change — recommend including it in the next full deployment/migration rehearsal pass, consistent with every other migration in this project's standing "production rehearsal remains pending" status.

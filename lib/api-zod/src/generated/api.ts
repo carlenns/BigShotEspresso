@@ -149,7 +149,6 @@ export const ListShotsResponse = zod.object({
   "hopperSeverity": zod.string().nullish(),
   "topUpGap": zod.number().nullish(),
   "topUpRecommendation": zod.string().nullish(),
-  "grinderInitialOutputForCharts": zod.number().nullish(),
   "createdAt": zod.string()
 })),
   "total": zod.number()
@@ -340,7 +339,6 @@ export const GetShotResponse = zod.object({
   "hopperSeverity": zod.string().nullish(),
   "topUpGap": zod.number().nullish(),
   "topUpRecommendation": zod.string().nullish(),
-  "grinderInitialOutputForCharts": zod.number().nullish(),
   "createdAt": zod.string()
 })
 
@@ -511,7 +509,6 @@ export const UpdateShotResponse = zod.object({
   "hopperSeverity": zod.string().nullish(),
   "topUpGap": zod.number().nullish(),
   "topUpRecommendation": zod.string().nullish(),
-  "grinderInitialOutputForCharts": zod.number().nullish(),
   "createdAt": zod.string()
 })
 
@@ -636,7 +633,6 @@ export const GetSimilarShotsResponseItem = zod.object({
   "hopperSeverity": zod.string().nullish(),
   "topUpGap": zod.number().nullish(),
   "topUpRecommendation": zod.string().nullish(),
-  "grinderInitialOutputForCharts": zod.number().nullish(),
   "createdAt": zod.string()
 })
 export const GetSimilarShotsResponse = zod.array(GetSimilarShotsResponseItem)
@@ -762,7 +758,6 @@ export const ListReferenceShotsResponseItem = zod.object({
   "hopperSeverity": zod.string().nullish(),
   "topUpGap": zod.number().nullish(),
   "topUpRecommendation": zod.string().nullish(),
-  "grinderInitialOutputForCharts": zod.number().nullish(),
   "createdAt": zod.string()
 })
 export const ListReferenceShotsResponse = zod.array(ListReferenceShotsResponseItem)
@@ -901,7 +896,6 @@ export const GetRecentShotsResponseItem = zod.object({
   "hopperSeverity": zod.string().nullish(),
   "topUpGap": zod.number().nullish(),
   "topUpRecommendation": zod.string().nullish(),
-  "grinderInitialOutputForCharts": zod.number().nullish(),
   "createdAt": zod.string()
 })
 export const GetRecentShotsResponse = zod.array(GetRecentShotsResponseItem)
@@ -1019,7 +1013,6 @@ export const GetBestRatedShotsResponseItem = zod.object({
   "hopperSeverity": zod.string().nullish(),
   "topUpGap": zod.number().nullish(),
   "topUpRecommendation": zod.string().nullish(),
-  "grinderInitialOutputForCharts": zod.number().nullish(),
   "createdAt": zod.string()
 })
 export const GetBestRatedShotsResponse = zod.array(GetBestRatedShotsResponseItem)

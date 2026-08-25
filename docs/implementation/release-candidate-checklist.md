@@ -123,6 +123,7 @@ Verification:
 
 - Manual review of shot logging, shot detail, dashboard comparison, current bag intelligence, reference windows, and warning/success states.
 - Confirm that critical states such as included/excluded analysis, reference confidence, within/outside comparison, and warning/success messages have text or pattern support.
+- Confirm the mobile bottom navigation's active tab is distinguishable without color (underline + label weight, not text-color alone), and that its horizontal scrollability is visually signaled (edge fade), not just present in the markup — reviewed and fixed 2026-08-25; the scroll mechanism itself was already correct, but had no visual cue that it scrolled, which is what made Settings unreachable-in-practice on phone even though it was already in the nav.
 
 ## Gate 3 — Neon Postgres Rehearsal
 

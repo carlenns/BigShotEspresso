@@ -624,7 +624,7 @@ export default function ShotForm() {
           <Link href="/shots"><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold font-serif">{isEditing ? "Edit Shot" : "Detailed Log"}</h1>
+          <h1 className="text-2xl font-bold font-serif">{isEditing ? "Edit Shot" : "Log Shot"}</h1>
           <p className="text-sm text-muted-foreground">
             {isEditing
               ? "Update the full saved shot record."
@@ -756,7 +756,7 @@ export default function ShotForm() {
                   <FormField control={form.control} name="initialGrindWeight" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Initial Grinder Output (g)</FormLabel>
-                      <FormControl><Input type="number" step="0.1" placeholder={defaultDose.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} /></FormControl>
+                      <FormControl><NumberStepper field={field} step={0.1} placeholder={defaultDose.toString()} suggestedValue={defaultDose} /></FormControl>
                       <p className="text-xs text-muted-foreground">Before basket correction — not the final basket dose.</p>
                       <FormMessage />
                     </FormItem>
@@ -764,7 +764,7 @@ export default function ShotForm() {
                   <FormField control={form.control} name="topUpGrind" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Top-Up Grind Added (g)</FormLabel>
-                      <FormControl><Input type="number" step="0.1" placeholder="0.1" {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, 0.1, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, 0.1, event.currentTarget)} /></FormControl>
+                      <FormControl><NumberStepper field={field} step={0.1} placeholder="0.1" suggestedValue={0.1} /></FormControl>
                       <p className="text-xs text-muted-foreground">Extra grams added, e.g. 0.5 — not the final basket dose.</p>
                       <FormMessage />
                     </FormItem>
@@ -772,7 +772,7 @@ export default function ShotForm() {
                   <FormField control={form.control} name="timeAdj" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Top-Up Time Adj (s)</FormLabel>
-                      <FormControl><Input type="number" step="0.1" placeholder={String(defaultTopUpTime)} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultTopUpTime, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultTopUpTime, event.currentTarget)} /></FormControl>
+                      <FormControl><NumberStepper field={field} step={0.1} placeholder={String(defaultTopUpTime)} suggestedValue={defaultTopUpTime} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -824,21 +824,21 @@ export default function ShotForm() {
                   <FormField control={form.control} name="pourDelay" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Pour Delay (s)</FormLabel>
-                      <FormControl><Input type="number" step="1" placeholder={latestShotDefaults?.pourDelay?.toString() ?? ""} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourDelay, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourDelay, event.currentTarget)} /></FormControl>
+                      <FormControl><NumberStepper field={field} step={1} placeholder={latestShotDefaults?.pourDelay?.toString() ?? ""} suggestedValue={latestShotDefaults?.pourDelay} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="pourTime" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Pour Time (s)</FormLabel>
-                      <FormControl><Input type="number" step="1" placeholder={latestShotDefaults?.pourTime?.toString() ?? ""} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourTime, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourTime, event.currentTarget)} /></FormControl>
+                      <FormControl><NumberStepper field={field} step={1} placeholder={latestShotDefaults?.pourTime?.toString() ?? ""} suggestedValue={latestShotDefaults?.pourTime} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="flowTime" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Flow Time (s)</FormLabel>
-                      <FormControl><Input type="number" step="1" placeholder={latestShotDefaults?.flowTime?.toString() ?? ""} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, latestShotDefaults?.flowTime, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, latestShotDefaults?.flowTime, event.currentTarget)} /></FormControl>
+                      <FormControl><NumberStepper field={field} step={1} placeholder={latestShotDefaults?.flowTime?.toString() ?? ""} suggestedValue={latestShotDefaults?.flowTime} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -852,7 +852,7 @@ export default function ShotForm() {
                   <FormField control={form.control} name="yield" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Yield (g)</FormLabel>
-                      <FormControl><Input type="number" step="0.1" placeholder={defaultYield.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultYield, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultYield, event.currentTarget)} /></FormControl>
+                      <FormControl><NumberStepper field={field} step={0.1} placeholder={defaultYield.toString()} suggestedValue={defaultYield} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -1048,8 +1048,7 @@ export default function ShotForm() {
                 <div>
                   <Label>Flags</Label>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Reference = repeatable benchmark shot. Signature = rare, extraordinary shot — also counts as Reference.
-                    Sour = marked sour, but can still be analytically valid if Status and Fault Status are good.
+                    Reference = benchmark shot. Signature = rare, extraordinary (implies Reference). Sour = valid if Status/Fault are Good.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-x-6 gap-y-3">
