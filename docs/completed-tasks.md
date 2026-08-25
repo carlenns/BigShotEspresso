@@ -1297,3 +1297,56 @@ Added a new test to `artifacts/api-server/src/api-contract.test.ts`: `"/shots/qu
 
 - None specific to this task.
 - `docs/implementation/launch-readiness-audit.md` also lists a related, separate item ("Dashboard hopper blank-stat labeling," High-Priority Fix #7) bundled alongside the Quick Log fix in its own draft task prompt for a different agent — intentionally not started here, since this task's scope was Quick Log only.
+
+# Dashboard Hopper Blank-State Clarity — 2026-08-25
+
+## Completed
+
+- Fixed `docs/implementation/launch-readiness-audit.md` High-Priority Fix #7: the Dashboard's Active Hopper Status panel silently hid `hopperMass`/`hopperPercent`/`shotsLeftEstimate` whenever they were `null`, with zero explanation. Since those three fields are imported/computed-elsewhere values that `POST /api/hoppers` and `PATCH /api/hoppers/:id` never write (confirmed by re-reading `artifacts/api-server/src/routes/hopper.ts` fresh — the create/update bodies only ever set `name`/`bagId`/`startingBeans`/`isActive`/`phase`/`notes`), every hopper phase started through the app's own "Start Hopper Phase"/"Change Bag" dialogs showed a populated "Starting beans" box next to what looked like missing data, not "not yet tracked" data.
+- Confirmed the API never exposes a distinguishing "imported vs. app-created" signal to the frontend at all: `toHopperApi()` in `artifacts/api-server/src/lib/api-shapes.ts` explicitly strips `airtableRecordId` (and `rawRow`) before the hopper JSON reaches the client. So rather than inventing a signal that isn't there, used the same data-driven condition the audit doc itself recommended: show the explanatory box specifically when `hopper.startingBeans != null` and the given imported field is `null`, per field.
+- Edited `artifacts/coffee-log/src/pages/Dashboard.tsx`'s Active Hopper Status panel (~line 322-376): for each of `hopperMass`, `hopperPercent`, and `shotsLeftEstimate`, when the value is present it renders exactly as before (`g`/`%`/count, with existing `accent`/`dim` styling untouched); when it's `null` but `hopper.startingBeans != null`, it now renders an `IntelStat` with `value="Not tracked yet"` and `note="Imported value — not set for phases started in the app"` (reusing the existing `IntelStat` component's already-present but previously-unused `note` prop — no new sub-component). When `startingBeans` is also `null` (a hopper with essentially no data at all), the box is omitted entirely, same as before — that case isn't the "looks broken" scenario this task targets.
+- Did not touch `hopperMass`/`hopperPercent` for genuinely imported hoppers (e.g. hopper #15, #17 in the live dev DB) — those still show their real numeric values unchanged, confirmed live.
+- Did not invent, calculate, or backfill any hopper mass/percentage/shots-left formula anywhere — this is a pure display/copy fix; the underlying `null` values are untouched in the database and API response.
+- Did not touch `Bags.tsx`, hopper schema, hopper API routes/contracts, Quick Log, or any Bag lifecycle logic.
+
+## Files inspected
+
+`docs/implementation/launch-readiness-audit.md` (High-Priority Fix #7, and its own "Part 2: Dashboard hopper blank-stat labeling" draft task prompt near the end of the file — confirms this task's brief was written directly from that doc), `docs/implementation/bag-hopper-lifecycle-plan.md`, `docs/completed-tasks.md` (this file, tail), `artifacts/coffee-log/src/pages/Dashboard.tsx` (full, fresh read), `artifacts/api-server/src/routes/hopper.ts` (fresh — confirmed POST/PATCH bodies never accept `hopperMass`/`hopperPercent`/`shotsLeftEstimate`), `lib/db/src/schema/hopper.ts` (fresh — confirmed `airtableRecordId` is the only import-vs-app-created signal in the schema), `artifacts/api-server/src/lib/api-shapes.ts` (`toHopperApi` — confirmed `airtableRecordId` is stripped before the API response, so it's not available to the frontend at all), `artifacts/api-server/src/api-contract.test.ts` (fresh, for test-insertion context and existing Dashboard-testing pattern).
+
+## Dashboard behavior before/after
+
+- **Before**: a hopper phase started in-app (e.g. live hopper #18, "MH Bag 7 2026-08-20 — Phase 1", `startingBeans: 300`, `hopperMass`/`hopperPercent`/`shotsLeftEstimate` all `null`) rendered a stat grid with only a single "Starting beans: 300g" box and three empty gaps where the other stats would be — visually indistinguishable from a bug.
+- **After**: the same hopper now renders all four boxes: "Starting beans: 300g", and three "Not tracked yet" boxes (Hopper mass / Hopper % / Shots left (est.)) each with the note "Imported value — not set for phases started in the app". Live-verified via Chrome against the real dev DB with hopper #18 / active bag #7 (screenshot confirmed, no test data created — this was a pure read against existing production data, nothing was created, changed, or cleaned up).
+- Imported hoppers with real values (e.g. #15, #17) are unaffected — their numeric `g`/`%`/count values still render exactly as before.
+
+## Tests added/updated
+
+Added `"Dashboard explains blank hopper mass/percent/shots-left instead of hiding them silently"` to `artifacts/api-server/src/api-contract.test.ts`, immediately after the existing `"Dashboard summarizes puck screen display by useful thickness only"` test, following the same source-scan pattern (reads `Dashboard.tsx` fresh via `readFile`). It asserts each of the three `IntelStat` fallback calls (`label="Hopper mass" value="Not tracked yet"`, etc.) is present, asserts the explanatory note text is present, and asserts no hopper mass/percentage formula was introduced (`doesNotMatch` guards against a computed assignment pattern like `hopperMass = ... hopperPercent *` or `hopperPercent = ... startingBeans`).
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (all 4 workspace projects).
+- `CI=true pnpm --filter @workspace/api-server test` — 60/60 passed.
+- `CI=true pnpm run build:render` — passed.
+- Live smoke test against the real dev DB using Chrome automation: confirmed hopper #18 (active, linked to active bag #7, `startingBeans` set, all three imported fields `null`) now shows the "Not tracked yet" / note copy in all three boxes instead of blank gaps. Pure read-only verification — no data created, modified, or needing cleanup.
+
+## Assumptions
+
+- Used `hopper.startingBeans != null` (rather than the unavailable `airtableRecordId`) as the per-field signal for "this looks like an app-created phase with real data next to a blank," exactly as `launch-readiness-audit.md`'s own "Part 2" draft task prompt specified ("shown specifically when startingBeans is present but hopperMass/hopperPercent are null").
+- Extended the same treatment to `shotsLeftEstimate`, not just `hopperMass`/`hopperPercent` — the task's own Tasks list named `shotsLeftEstimate` explicitly as in-scope, and it's the identical bug class (import-only field, never written by any app write path, silently hidden when null).
+- Reused the existing `IntelStat` component's already-present `note` prop rather than adding new UI, on the assumption that a small win here is a smaller, more reviewable diff than introducing a new banner/paragraph pattern.
+
+## Unresolved hopper issues
+
+- Everything already on record from prior reviews remains unchanged: no lifecycle-event table, hopper refill/top-up still requires it, structured maintenance checklist still deferred, the two pre-existing orphaned Hopper rows (`bag_id=null`, `is_active=true`) still present and still harmless.
+- No hopper mass/percentage formula exists or was implemented — per this project's standing rule, that remains explicitly out of scope until a formula is approved.
+- This closes `launch-readiness-audit.md` High-Priority Fix #7. The audit's own top-5 ranked list still separately tracks a related Quick Log item (Fix #6), already resolved in a separate prior task, and the in-progress `computeIncludeInAnalysis` work, which remains untouched here as instructed.
+
+## Recommended commit command
+
+This task's changes are small, display-only, and fully verified. If Carl/Codex wants to commit just this task's changes on top of the current tree:
+
+    git add artifacts/coffee-log/src/pages/Dashboard.tsx artifacts/api-server/src/api-contract.test.ts docs/completed-tasks.md
+    git commit -m "fix(dashboard): explain blank hopper mass/percent/shots-left for in-app phases"
+
+Not run automatically, per task boundaries (no commit, no push). Note the working tree also contains other unrelated, concurrent, in-progress changes at the time of this task (`ShotForm.tsx`, `docs/ADR/README.md`, `docs/implementation/launch-readiness-audit.md`, a new `docs/ADR/ADR-0009-user-accounts-authentication-and-data-ownership.md`) that are not part of this command and should be reviewed/committed separately by whoever owns that work.
