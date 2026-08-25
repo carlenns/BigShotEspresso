@@ -1085,6 +1085,7 @@ export default function ShotForm() {
                               field.onChange(sig);
                               if (sig) {
                                 setStatusIfBlank("Dialed In");
+                                setFaultStatusIfBlank("Good");
                                 form.setValue("isReference", true);
                                 form.setValue("sourShot", false);
                               }

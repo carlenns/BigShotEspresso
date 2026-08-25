@@ -193,14 +193,39 @@ test("Log Shot flag selection suggests Status/Fault Status only when blank, neve
   assert.match(source, /const setFaultStatusIfBlank = \(fault: "Good"\) => \{/);
   assert.equal(source.includes('if ((form.getValues("faultStatus") ?? []).length > 0) return;'), true);
 
-  // Reference/Signature suggest Dialed In status; Sour suggests Good status
-  // AND Good fault status — an intentionally asymmetric rule (Reference and
-  // Signature do not touch Fault Status).
+  // Reference/Signature suggest Dialed In status AND Good fault status; Sour
+  // suggests Good status AND Good fault status.
   assert.equal(source.includes('setStatusIfBlank("Dialed In");'), true);
   assert.equal(source.includes('setStatusIfBlank("Good");'), true);
   assert.equal(source.includes('setFaultStatusIfBlank("Good");'), true);
 
-  // Signature Shot implies Reference Shot.
+  // Reference Shot's own handler suggests both Status and Fault Status.
+  assert.equal(
+    source.includes(
+      'if (ref) {\n' +
+        '                              setStatusIfBlank("Dialed In");\n' +
+        '                              setFaultStatusIfBlank("Good");\n' +
+        '                              form.setValue("sourShot", false);\n' +
+        '                            }',
+    ),
+    true,
+  );
+
+  // Signature Shot's own handler also suggests both Status and Fault Status,
+  // and implies Reference Shot (programmatic form.setValue does not trigger
+  // Reference Shot's own onCheckedChange, so Signature must apply the same
+  // suggestions itself rather than relying on Reference's handler to fire).
+  assert.equal(
+    source.includes(
+      'if (sig) {\n' +
+        '                                setStatusIfBlank("Dialed In");\n' +
+        '                                setFaultStatusIfBlank("Good");\n' +
+        '                                form.setValue("isReference", true);\n' +
+        '                                form.setValue("sourShot", false);\n' +
+        '                              }',
+    ),
+    true,
+  );
   assert.equal(source.includes('form.setValue("isReference", true);'), true);
 
   // Selecting Reference or Signature clears Sour; selecting Sour clears both

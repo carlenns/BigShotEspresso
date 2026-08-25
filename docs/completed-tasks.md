@@ -1350,3 +1350,50 @@ This task's changes are small, display-only, and fully verified. If Carl/Codex w
     git commit -m "fix(dashboard): explain blank hopper mass/percent/shots-left for in-app phases"
 
 Not run automatically, per task boundaries (no commit, no push). Note the working tree also contains other unrelated, concurrent, in-progress changes at the time of this task (`ShotForm.tsx`, `docs/ADR/README.md`, `docs/implementation/launch-readiness-audit.md`, a new `docs/ADR/ADR-0009-user-accounts-authentication-and-data-ownership.md`) that are not part of this command and should be reviewed/committed separately by whoever owns that work.
+
+# Log Shot Flag/Status Behavior Fix — 2026-08-25
+
+## Completed
+
+- Audited `ShotForm.tsx`'s Reference/Signature/Sour Shot checkbox handlers against the 8 approved Coffee Log flag rules. Found that 7 of 8 were already implemented by prior work (Signature implies Reference; Reference/Signature suggest Status "Dialed In" only if blank; Sour clears Reference/Signature; Sour suggests Status "Good" and Fault Status "Good" only if blank; existing values are never overwritten; sour-shot analysis eligibility and server-side `includeInAnalysis` recompute were already correct/untouched).
+- Fixed the one real gap: Reference Shot's and Signature Shot's `onCheckedChange` handlers did not suggest Fault Status = "Good" — only Sour Shot's handler did. Added `setFaultStatusIfBlank("Good");` to both handlers, immediately after their existing `setStatusIfBlank("Dialed In");` call, using the same pre-existing "only if blank" helper already used elsewhere.
+- Signature Shot's handler sets `isReference` via `form.setValue(...)` rather than by triggering Reference Shot's own checkbox, so React Hook Form's programmatic `setValue` does not invoke Reference's `onCheckedChange` — Signature's handler therefore needed its own `setFaultStatusIfBlank("Good")` call rather than inheriting it from Reference's handler.
+
+## Files inspected
+
+- `artifacts/coffee-log/src/pages/ShotForm.tsx`
+- `artifacts/coffee-log/src/lib/selector-options.ts` (from prior-session context; `describeAnalysisEligibility` unchanged)
+- `artifacts/api-server/src/lib/shot-analysis-eligibility.ts` (from prior-session context; unchanged, already authoritative server-side)
+- `artifacts/api-server/src/api-contract.test.ts`
+- `docs/completed-tasks.md`
+
+## Tests added/updated
+
+Updated the existing `"Log Shot flag selection suggests Status/Fault Status only when blank, never overwrites"` test in `artifacts/api-server/src/api-contract.test.ts`:
+
+- Removed a stale comment claiming Reference/Signature "do not touch Fault Status" (that was the bug this task fixes).
+- Added two block-scoped literal substring assertions (not just generic `.includes()` checks, which would have passed trivially since Sour Shot's handler already contained `setFaultStatusIfBlank("Good")`) confirming the exact `if (ref) { ... }` and `if (sig) { ... }` bodies in `ShotForm.tsx` each call both `setStatusIfBlank("Dialed In")` and `setFaultStatusIfBlank("Good")`.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (4/4 workspace projects).
+- `CI=true pnpm --filter @workspace/api-server test` — 61/61 passed, 0 failed. `static-serving`-style production-fallback test (`"production app serves frontend fallback without swallowing API routes"`) passed cleanly; no 127.0.0.1 bind failure occurred this run.
+- `CI=true pnpm run build:render` — build succeeded (pre-existing sourcemap warnings on `tooltip.tsx`/`label.tsx`/`select.tsx`/`dropdown-menu.tsx` and a >500kB chunk-size warning are unrelated to this change and present on the unmodified build).
+
+## Assumptions
+
+- Requirement 6 ("Sour shots may remain included in analysis if Status/Fault Status qualify") required no code change: the server's `computeIncludeInAnalysis` and the client's `describeAnalysisEligibility` both key only off `status`/`faultStatus`, never `sourShot`, so a sour shot with qualifying Status/Fault Status is already eligible.
+- Requirement 8 ("do not change Include in Analysis directly in the client") was treated as a boundary against adding *new* client-side logic that sets `includeInAnalysis` as part of this task, not as an instruction to remove the pre-existing `includeInAnalysis: describeAnalysisEligibility(...).included` line in `ShotForm.tsx`'s submit payload (line ~565). That line predates this task, is covered by its own separate existing test (`"Shot entry separates serving context from automated analysis eligibility"`), and is harmless/redundant now that the server unconditionally recomputes and overrides `includeInAnalysis` on both create and update. Removing it was out of this task's stated scope ("Likely files to change" did not list it) and was not attempted.
+- Did not change the Flags helper copy text ("Reference = benchmark shot. Signature = rare, extraordinary (implies Reference). Sour = valid if Status/Fault are Good.") since it is not incorrect — it doesn't mention the Fault Status suggestion, but no rule requires the UI copy to enumerate every suggestion side-effect.
+
+## Unresolved issues
+
+- None new. (An earlier draft of this entry flagged the "Mobile-Friendly Number Controls For Log Shot" documentation as possibly missing; re-checked and confirmed it is present in this file, plus several follow-on stepper-refinement entries — no action needed.)
+- `git status --porcelain -b` at the time of this task showed a clean tree relative to this task's own edits (only `ShotForm.tsx`, `api-contract.test.ts`, and this doc modified); the branch is 8 commits ahead of `origin/main` from prior sessions' work, not reviewed here.
+
+## Recommended commit command
+
+    git add artifacts/coffee-log/src/pages/ShotForm.tsx artifacts/api-server/src/api-contract.test.ts docs/completed-tasks.md
+    git commit -m "fix(log-shot): Reference/Signature Shot also suggest Fault Status = Good when blank"
+
+Not run automatically, per task boundaries (no commit, no push).
