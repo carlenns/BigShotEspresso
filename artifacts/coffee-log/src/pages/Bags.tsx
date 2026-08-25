@@ -64,6 +64,7 @@ export default function Bags() {
   const [closeoutForm, setCloseoutForm] = useState({ closedOutDate: todayDate(), remainingEstimate: "", reconciliationNotes: "" });
   const [startPhaseBag, setStartPhaseBag] = useState<Bag | null>(null);
   const [startPhaseForm, setStartPhaseForm] = useState({ phase: "Phase 1", customLabel: "", startingBeans: "", notes: "" });
+  const [startingBeansPrefilled, setStartingBeansPrefilled] = useState(false);
 
   const blankForm = () => ({ beanId: "", bagNumber: "", bagName: "", purchaseDate: "", roastDate: "", roastDateUsed: "", estimatedRoastWindow: "", actualRoastDate: "", estimatedRoastDate: "", freshnessDatingMethod: "", roastDateConfidence: "", roastDateNotes: "", openedDate: "", closedOutDate: "", bagWeight: "", remainingEstimate: "", cost: "", isActive: "false", startGrindSetting: "", currentGrindSetting: "", startGrindTime: "", currentGrindTime: "", defaultDose: "", defaultYield: "", defaultTemp: "", dialInNotes: "", notes: "" });
 
@@ -173,7 +174,19 @@ export default function Bags() {
 
   const openStartPhase = (bag: Bag) => {
     setStartPhaseBag(bag);
-    setStartPhaseForm({ phase: "Phase 1", customLabel: "", startingBeans: "", notes: "" });
+    // Only safe/obvious prefill: this bag has never had a hopper phase before,
+    // so the full recorded bag weight is a reasonable starting point. Once a
+    // bag already has phase history, BSE doesn't track exact depletion
+    // between phases, so guessing a number would be misleading — leave blank.
+    const isFirstPhaseForBag = !hoppers.some((h) => h.bagId === bag.id);
+    const prefill = isFirstPhaseForBag && bag.bagWeight != null;
+    setStartingBeansPrefilled(prefill);
+    setStartPhaseForm({
+      phase: "Phase 1",
+      customLabel: "",
+      startingBeans: prefill ? String(bag.bagWeight) : "",
+      notes: "",
+    });
   };
 
   const openCloseout = (bag: Bag) => {
@@ -369,8 +382,11 @@ export default function Bags() {
                 placeholder="e.g. weighed old beans and chute grind-out"
               />
             </div>
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
-              Closing a bag marks it inactive and saves the date/remaining mass. Hopper phase closeout is still a separate future workflow.
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200 space-y-1">
+              <p>Closing this bag marks it inactive as of the closed-out date above.</p>
+              <p>Your remaining-beans estimate is saved as reconciliation evidence only — it does not rewrite or recalculate past shot consumption.</p>
+              <p>Closeout notes are saved to this bag's record for later reference.</p>
+              <p>Maintenance, purge waste, and hopper cleanout are not yet tracked as their own lifecycle events — for now, note them here or in the bag's Notes field. The bag's active hopper phase (if any) is not automatically closed by this action.</p>
             </div>
           </div>
           <DialogFooter>
@@ -435,9 +451,17 @@ export default function Bags() {
                 step="0.1"
                 min="0"
                 value={startPhaseForm.startingBeans}
-                onChange={(e) => setStartPhaseForm((f) => ({ ...f, startingBeans: e.target.value }))}
+                onChange={(e) => {
+                  setStartingBeansPrefilled(false);
+                  setStartPhaseForm((f) => ({ ...f, startingBeans: e.target.value }));
+                }}
                 placeholder="e.g. 250"
               />
+              <p className="text-xs text-muted-foreground">
+                {startingBeansPrefilled
+                  ? "Pre-filled from this bag's recorded weight, since this is its first hopper phase. Adjust if you're loading less."
+                  : "Enter what you're loading now. BSE doesn't track exact bean depletion between hopper phases, so this isn't auto-filled."}
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -470,7 +494,7 @@ function BagRow({ bag, onEdit, onCloseout, onStartPhase, hopperPhase }: { bag: B
   return (
     <Card className={cn("transition-colors hover:border-primary/40", bag.isActive && "border-primary/50 bg-primary/5")}>
       <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-lg">{bag.beanName ?? "Unknown Bean"}</span>
@@ -478,6 +502,15 @@ function BagRow({ bag, onEdit, onCloseout, onStartPhase, hopperPhase }: { bag: B
               <Badge variant="outline" className="text-xs">#{bag.bagNumber ?? bag.id}</Badge>
               {bag.isActive && <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Active</Badge>}
               {bag.isActive && hopperPhase && <Badge variant="secondary" className="text-xs">Hopper: {hopperPhase}</Badge>}
+              {bag.isActive && !hopperPhase && onStartPhase && (
+                <button
+                  type="button"
+                  onClick={() => onStartPhase(bag)}
+                  className="text-xs text-amber-700 dark:text-amber-400 underline decoration-dotted underline-offset-2 hover:text-amber-800 dark:hover:text-amber-300"
+                >
+                  No active hopper phase — start one
+                </button>
+              )}
               {!bag.isActive && bag.daysSinceClosedOut != null && (
                 <Badge variant="outline" className="text-xs">Closed {bag.daysSinceClosedOut}d ago</Badge>
               )}
@@ -495,7 +528,7 @@ function BagRow({ bag, onEdit, onCloseout, onStartPhase, hopperPhase }: { bag: B
               {bag.cost != null && <span>${Number(bag.cost).toFixed(2)}</span>}
             </div>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
             <div className="text-right text-sm">
               <p className="text-muted-foreground">
                 {bag.shotCount} shots · {bag.referenceCount} refs · {bag.dailyDriverCount} daily drivers
@@ -517,7 +550,7 @@ function BagRow({ bag, onEdit, onCloseout, onStartPhase, hopperPhase }: { bag: B
             </div>
             {bag.isActive && onStartPhase && (
               <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => onStartPhase(bag)}>
-                <RefreshCw className="h-3.5 w-3.5" /> Start Hopper Phase
+                <RefreshCw className="h-3.5 w-3.5" /> Start Phase
               </Button>
             )}
             {bag.isActive && (

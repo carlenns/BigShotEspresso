@@ -437,6 +437,35 @@ test("Start Hopper Phase uses only approved phase labels via the existing Hopper
   assert.match(source, /intentionally.*left out/);
 });
 
+test("Start Hopper Phase prefill, status cues, and closeout copy are launch-safe", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // Starting Beans is only prefilled when this bag has never had a hopper
+  // phase before (no way to know true depletion once a phase exists) and
+  // the bag's own recorded weight is known — never a computed/guessed value.
+  assert.match(source, /isFirstPhaseForBag = !hoppers\.some\(\(h\) => h\.bagId === bag\.id\)/);
+  assert.match(source, /const prefill = isFirstPhaseForBag && bag\.bagWeight != null/);
+  assert.match(source, /startingBeans: prefill \? String\(bag\.bagWeight\) : ""/);
+
+  // A gentle, non-blocking cue must exist for an active bag with no active
+  // hopper phase, and it must not be a disabled/blocking control.
+  assert.match(source, /No active hopper phase — start one/);
+  assert.doesNotMatch(source, /No active hopper phase[\s\S]{0,200}disabled/);
+
+  // Closeout copy must cover all four required points without adding fields.
+  assert.match(source, /marks it inactive as of the closed-out date/);
+  assert.match(source, /reconciliation evidence only/);
+  assert.match(source, /Closeout notes are saved/);
+  assert.match(source, /not yet tracked as their own lifecycle events/);
+
+  // BagRow's action area must wrap instead of forcing a single cramped row on mobile.
+  assert.match(source, /flex flex-col sm:flex-row sm:items-start justify-between gap-4/);
+  assert.match(source, /flex flex-wrap items-center gap-3 shrink-0/);
+});
+
 test("Bags page exposes launch-safe bag lifecycle workflow", async () => {
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
