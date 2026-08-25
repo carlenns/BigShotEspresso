@@ -1070,8 +1070,8 @@ export const UpdateHopperBody = zod.object({
   "bagId": zod.number().nullish(),
   "startingBeans": zod.number().nullish(),
   "isActive": zod.boolean().optional(),
-  "phase": zod.string().optional(),
-  "notes": zod.string().optional()
+  "phase": zod.string().nullish(),
+  "notes": zod.string().nullish()
 })
 
 export const UpdateHopperResponse = zod.object({

@@ -695,8 +695,8 @@ components:
         bagId: { type: ["integer", "null"] }
         startingBeans: { type: ["number", "null"] }
         isActive: { type: boolean }
-        phase: { type: string }
-        notes: { type: string }
+        phase: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
 
     HopperRangeBaseline:
       type: object

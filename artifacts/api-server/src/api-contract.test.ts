@@ -632,6 +632,55 @@ test("Change Bag guided flow reuses existing endpoints and never forces hopper p
   assert.ok(beanStepIndex > 0 && bagStepIndex > beanStepIndex && closeStepIndex > bagStepIndex, "expected bean -> new bag -> close-old order in ChangeBagDialog's mutationFn");
 });
 
+test("ChangeBagDialog refreshes cached queries on partial failure, not just on success", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // Regression guard: a partial failure (e.g. bean + bag created, hopper
+  // phase step then fails) leaves real data in the database that must show
+  // up in the UI immediately, not only after a manual reload. Scope the
+  // check to the onError block specifically so a match in onSuccess can't
+  // produce a false pass.
+  const onErrorMatch = source.match(/onError: \(e\) => \{([\s\S]*?)\},\s*\n\s*\}\);\s*\n\s*\n\s*return \(\s*\n\s*<Dialog/);
+  assert.ok(onErrorMatch, "ChangeBagDialog's changeBagMutation onError block not found");
+  const onErrorBody = onErrorMatch![1];
+  for (const key of ['["bags"]', '["beans"]', "getListHoppersQueryKey()", '["intelligence"]', '["dashboard-intelligence"]']) {
+    assert.ok(
+      onErrorBody.includes(`qc.invalidateQueries({ queryKey: ${key} })`),
+      `expected onError to invalidate ${key}, same as onSuccess`,
+    );
+  }
+});
+
+test("Hopper API supports delete and clears bagId/startingBeans/phase/notes on explicit null", async () => {
+  const [routeSource, hopperUpdateSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("./routes/hopper.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/api-zod/src/generated/types/hopperUpdate.ts", import.meta.url)), "utf8"),
+  ]);
+
+  // DELETE /hoppers/:id must exist, mirroring bags.ts's DELETE /bags/:id
+  // pattern, and 404 when the row doesn't exist (bags.ts's own DELETE does
+  // not 404 — this route intentionally does, per its own spec).
+  assert.match(routeSource, /router\.delete\("\/hoppers\/:id", async \(req, res\): Promise<void> => \{/);
+  assert.match(routeSource, /const \[row\] = await db\.delete\(hoppersTable\)\.where\(eq\(hoppersTable\.id, id\)\)\.returning\(\);/);
+
+  // PATCH must distinguish explicit null (clear) from omitted (undefined,
+  // leave untouched) for every nullable hopper field — the same bug class
+  // already fixed for bags.ts's remainingEstimate.
+  assert.match(routeSource, /const bagId = body\.bagId === null \? null : body\.bagId != null \? Number\(body\.bagId\) : undefined;/);
+  assert.match(routeSource, /startingBeans: body\.startingBeans === null \? null : body\.startingBeans != null \? Number\(body\.startingBeans\) : undefined,/);
+  assert.match(routeSource, /phase: body\.phase === null \? null : \(body\.phase as string \| undefined\),/);
+  assert.match(routeSource, /notes: body\.notes === null \? null : \(body\.notes as string \| undefined\),/);
+
+  // The API contract itself must accept null for phase/notes (bagId and
+  // startingBeans already did) — otherwise the route fix above is unreachable,
+  // the same trap found with shots'/bags' contracts in earlier sessions.
+  assert.match(hopperUpdateSource, /phase\?: string \| null;/);
+  assert.match(hopperUpdateSource, /notes\?: string \| null;/);
+});
+
 test("Bags page exposes launch-safe bag lifecycle workflow", async () => {
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
@@ -681,6 +730,46 @@ test("Settings equipment defaults use saved equipment and accessory selectors", 
   ]) {
     assert.match(source, new RegExp(requiredText));
   }
+});
+
+test("Settings no longer offers controls that nothing in the app reads", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/Settings.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // Confirmed via repo-wide search (launch-readiness-audit.md, Critical
+  // Blocker #4) that none of these keys are read anywhere outside this
+  // file. Removed rather than left implying functionality that doesn't
+  // exist. grindStepIncrement/usePuckScreen/temperatureUnit here refer to
+  // the removed *global Settings* keys specifically — the real, wired
+  // per-grinder grindStepIncrement (Equipment.tsx) and per-bag
+  // usePuckScreen (Dashboard.tsx) are unrelated and must remain untouched.
+  for (const removedKey of [
+    '"ratingSystem"',
+    '"ratingInputMode"',
+    '"unitSystem"',
+    '"timeFormat"',
+    '"temperatureUnit"',
+    '"defaultBrewRatio"',
+    '"usePuckScreen"',
+    '"hopperTracking"',
+    '"defaultHopperFullness"',
+    '"grindTimeIncrement"',
+    '"grindScaleMin"',
+    '"grindScaleMax"',
+    '"grindStepIncrement"',
+  ]) {
+    assert.doesNotMatch(source, new RegExp(removedKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+
+  // grindMinTime is real (read by ShotForm.tsx) and must remain.
+  assert.match(source, /"grindMinTime"/);
+
+  // grindTimerMode is kept but must be visibly labeled as not yet wired to
+  // anything, rather than silently implying it does something.
+  assert.match(source, /"grindTimerMode"/);
+  assert.match(source, /Not yet used elsewhere in the app/);
 });
 
 test("Grinder records support adjustment style and precision metadata", async () => {

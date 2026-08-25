@@ -1103,3 +1103,65 @@ The `NumberStepper` restoration flagged above as unresolved is intentional and c
 ## Unresolved
 
 - The migration has not been rehearsed against a real Neon/Postgres instance specifically for this change — recommend including it in the next full deployment/migration rehearsal pass, consistent with every other migration in this project's standing "production rehearsal remains pending" status.
+
+# Launch Readiness Audit Slice 2: Removed Non-Functional Settings Fields — 2026-08-25
+
+## Completed
+
+- Closed Critical Blocker #4 from `docs/implementation/launch-readiness-audit.md`: removed 13 Settings fields confirmed (by repo-wide grep, not assumption) to be saved and displayed but never read anywhere else in the app. Original audit list of 10 (`ratingSystem`, `unitSystem`, `timeFormat`, `ratingInputMode`, `grindTimerMode`, `hopperTracking`, `defaultHopperFullness`, `grindTimeIncrement`, `grindScaleMin`, `grindScaleMax`) was expanded during implementation to 13 after finding three more of the same class via the same verification method: `temperatureUnit`, `defaultBrewRatio`, and a *global* `usePuckScreen` key (the real, wired `usePuckScreen` lives per-bag on `Dashboard.tsx`, a different, unrelated field sharing the name).
+- Kept one field the audit specifically flagged as a candidate for labeling rather than removal: `grindTimerMode` ("Grind Output Measurement" — By Time / By Weight / Manual / Single Dose). It plausibly ties to the already-documented, already-deferred single-dose workflow, so it now carries a visible caption — "Not yet used elsewhere in the app — reserved for future single-dose workflow support" — instead of silently implying it does something. Added an optional `note?: string` to the shared `FieldDef` type and rendered it in `FieldControl` under both the select and text/number branches (toggle branch left alone — nothing currently uses a note there).
+- Found and correctly did **not** touch a naming-collision risk: the global Settings key `grindStepIncrement` (removed, dead) shares its name with the real, wired per-grinder `grindStepIncrement` column surfaced in `Equipment.tsx`/`equipment-suggestions.ts` — these are unrelated concepts (a global fallback vs. a specific grinder's own field). Verified via targeted grep of `ShotForm.tsx`/`Equipment.tsx` before removing anything, not assumed from the name alone.
+- Verified `defaultTargetYield`, `defaultBasketSize`, `defaultDose`, `defaultBrewTemp`, `ratingTechnicalWeight`/`ratingPreferenceWeight` are all genuinely read elsewhere (`ShotForm.tsx` defaults chain, `Settings.tsx`'s own summary card and equipment-defaults fallback logic) before leaving them untouched — did not remove anything without confirming it first.
+- No schema/API/OpenAPI changes — these are all keys in the existing generic key/value settings store, not typed columns.
+- Added one regression test (`api-contract.test.ts`) asserting the 13 removed keys are gone, `grindMinTime` (real) remains, and `grindTimerMode` remains with its note.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (all workspace projects).
+- `CI=true pnpm --filter @workspace/api-server test` — 55/55 passed, 0 failed (54 pre-existing/concurrent + 1 new).
+- `CI=true pnpm run build:render` — build succeeded.
+- Not run: live browser confirmation that the Settings page still renders and saves correctly with the reduced field set — no running Postgres-backed instance available in this environment, same limitation as every prior session in this thread.
+
+## Assumptions
+
+- "Prefer removal unless near-term evidence" (per the audit's own guidance) was applied field-by-field: `grindTimerMode` was the only one with a credible, already-documented near-term tie-in (single dosing); the other 12 had no such evidence and were removed outright rather than labeled.
+- Removing a Settings key entirely (rather than leaving it saved-but-hidden) is safe because the settings store is a generic key/value map — an old saved value for a removed key simply becomes inert and unread, not a dangling reference anywhere in code.
+
+## Unresolved
+
+- No live-browser smoke test performed for this specific change (same standing gap as the rest of this project's history).
+- This closes Critical Blocker #4 exactly as scoped; it does not implement Unit System, Rating System, or Time Format conversion logic — those remain real potential future features, just not misleadingly present as controls today.
+
+# Two Bugs From Live Lifecycle Review: ChangeBagDialog Cache Refresh + Hopper API Delete/Null-Clear — 2026-08-25
+
+## Completed
+
+### Fix 1 — ChangeBagDialog's onError now refreshes the UI, matching onSuccess
+`artifacts/coffee-log/src/pages/Bags.tsx`'s `changeBagMutation` `onError` handler previously only showed a toast. Since the mutation can partially succeed (new bag created, then a later step like the hopper-phase POST fails validation), the real new-bag row existed in Postgres but stayed invisible in the Bags list until a manual reload — the error message correctly told the user what happened, but the UI didn't reflect it. Added the same five `qc.invalidateQueries` calls already present in `onSuccess` (`["bags"]`, `["beans"]`, `getListHoppersQueryKey()`, `["intelligence"]`, `["dashboard-intelligence"]`) to `onError` too. No change to submission ordering or error messages, per the task boundary.
+
+### Fix 2 — Hopper API delete + null-clearing
+- Added `DELETE /hoppers/:id` to `artifacts/api-server/src/routes/hopper.ts`, mirroring `bags.ts`'s `DELETE /bags/:id` shape (parse id, delete, return) but explicitly 404ing when the row doesn't exist (bags.ts's own delete does not 404 — this one does, per this task's own spec).
+- Fixed the PATCH handler's null-vs-undefined collapsing bug for `bagId`, `startingBeans`, `phase`, and `notes` — previously `body.bagId != null ? Number(body.bagId) : undefined` (and the equivalent for the other three) treated an explicit `null` the same as an omitted field, so `PATCH { bagId: null }` silently did nothing. Same fix shape as `bags.ts`'s `parseBagBody` fix from an earlier session: `body.x === null ? null : body.x != null ? Number(body.x) : undefined` (string fields use the equivalent two-way ternary without `Number(...)`).
+- **Checked the API contract before assuming it already allowed this, per the task's explicit instruction**: `bagId` and `startingBeans` were already `.nullish()` in the generated `UpdateHopperBody` zod schema, but `phase` and `notes` were only `.optional()` — the same contract gap found and fixed for shots/bags in earlier sessions. Widened `HopperUpdate`'s `phase`/`notes` in `lib/api-spec/openapi.yaml` to `type: ["string", "null"]` and regenerated `lib/api-zod`/`lib/api-client-react` via `pnpm --filter @workspace/api-spec run codegen`. Unlike shots/bags, `HopperInput` (create) and `HopperUpdate` are two separate, non-shared YAML blocks in this spec — so only `HopperUpdate` was touched; `HopperInput`/create behavior is untouched by construction, not just by care.
+- Did not add `DELETE /hoppers/:id` to the OpenAPI spec — `bags.ts`'s `DELETE /bags/:id`, which this was explicitly asked to mirror, isn't in the spec either (the whole `/bags` route family is hand-written, not OpenAPI-governed), so keeping the hopper delete un-specced matches the pattern being mirrored rather than inventing a new documented endpoint.
+- Added two regression tests to `artifacts/api-server/src/api-contract.test.ts`: one scoping a regex to `changeBagMutation`'s `onError` block specifically (so a match inside `onSuccess` can't produce a false pass) confirming all five invalidations are present; one confirming the DELETE route, the four null-vs-undefined fixes in the PATCH handler, and the two widened contract fields all exist in source.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (workspace-wide, including regenerated `lib/api-zod`/`lib/api-client-react`).
+- `CI=true pnpm --filter @workspace/api-server test` — 55/55 passed (53 pre-existing as of this session start + 2 new; one additional pre-existing test changed concurrently by other in-flight work during this session, unrelated to this task, still passing).
+- `CI=true pnpm run build:render` — build succeeded.
+- **Live-smoke-tested against the real dev DB** (local server, `NODE_ENV=development`/`production` as needed, pointed at the repo's own `DATABASE_URL`, per the task's instruction):
+  - Fix 2: created a throwaway Hopper via `POST /api/hoppers`; `PATCH` with `{"startingBeans":null,"phase":null,"notes":null}` confirmed all three actually cleared to `null` in the response; linked it to a throwaway bag then `PATCH {"bagId":null}` confirmed `bagId` also cleared; `DELETE` returned 204 and the row was gone from `GET /api/hoppers`; a second `DELETE` on the same id correctly returned 404. All test rows cleaned up afterward.
+  - Fix 1: reproduced the exact partial-failure data sequence the dialog performs (create bean → create new active bag) directly via the API and confirmed the new bag is real and active in `GET /api/bags` — exactly the query `onError`'s new `invalidateQueries(["bags"])` call now refreshes. Could not complete the fully interactive click-through (typed "Custom" phase with no label, clicked Change Bag, watched the list update live) — the Chrome extension's `computer`/`javascript_tool` actions failed consistently (4 attempts across 2 tools: `Cannot access a chrome-extension:// URL of different extension`) while read-only tools (`read_page`, `navigate`) kept working, indicating an extension-level fault rather than an app bug. Per the browser-automation guidance not to keep retrying a failing tool, stopped and used the data-layer reproduction above instead, combined with the source-verified `onError` code change (identical five calls to the already-working `onSuccess` path) as the remaining link in the chain.
+  - Also found and cleaned up unrelated pre-existing test debris in the dev DB (a `Bag #SMOKETEST` bag and its linked hopper, left over from an earlier session's smoke testing, not created by this task) — removable for the first time now that Fix 2's DELETE endpoint exists.
+
+## Assumptions
+
+- `onError` should invalidate the exact same five query keys as `onSuccess`, not a subset — since either could be the case depending on how much succeeded before the failure, and invalidating a query that's already correct is a harmless no-op refetch.
+- The interactive browser click-through gap is a tooling failure in this session's environment, not a reason to doubt the fix — the regression test pins the exact code shape, and the live data-layer reproduction confirms the scenario the fix addresses is real.
+
+## Unresolved
+
+- The fully interactive "type Custom with no label, submit, watch the list update live" click-through was not completed due to the Chrome extension fault described above. Recommend a follow-up live click-through once that tooling issue is resolved, though risk is low given the mechanical nature of the fix and the two independent forms of evidence already gathered.
+- Other concurrent, unrelated work continues to land in this working tree from elsewhere this session (`docs/implementation/README.md`, `docs/implementation/bag-hopper-lifecycle-plan.md`, new `docs/implementation/launch-readiness-audit.md`) — not reviewed or touched as part of this task.

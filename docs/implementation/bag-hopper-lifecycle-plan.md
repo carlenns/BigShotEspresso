@@ -431,7 +431,7 @@ This section maps each required launch workflow to the fields/tables already ava
 - Existing fields/tables likely used: `hoppers` (`bag_id`, `starting_beans`, `is_active`, `phase`, `hopper_mass`, `hopper_percent`, `shots_left_estimate`, notes), `hopper_range_baselines`.
 - Missing fields: no lifecycle-event record to distinguish "same-phase top-up" from "new phase start" — same-phase hopper top-ups are now documented as lifecycle events, not new Hopper rows, but that event model is not yet built.
 - Future/deferred: local calculation of `Hopper %`/hopper percentage formula stays imported/read-only until approved (per workflow 5's launch-safe implementation note); `Preferred Hopper Phase Fill Amount` / grinder-level `Hopper Capacity` fields proposed in `docs/table-relationships.md` and `docs/architecture/equipment-capability-library-model.md` remain future equipment-model work.
-- Unresolved: **documentation-consistency flag** — this plan's "Current finding" section states `hoppers` "already exists as a first-class state table with `bag_id`," but `docs/table-relationships.md`'s Phase 1 relationship note states "No Bag relationship is inferred from Hopper names when the source export does not provide one," and its confirmed-relationship table shows `Hopper → Shots` and `Hopper Range Baselines → Shots` but no `Bag → Hopper` row. These two docs disagree on whether a direct Hopper→Bag link is already established. This should be verified against the live schema before any UI work assumes `hoppers.bag_id` is authoritative — not resolved in this planning pass. The final documented Hopper phase label list is Phase 1, Phase 2, Phase 3, End of Bag, Single Bag Phase, and Custom; `Grinder Cleanout` is a lifecycle/workflow event.
+- **Resolved (2026-08-25, verified directly against the live schema):** the two docs are not actually in conflict — they describe different things. `docs/table-relationships.md`'s "No Bag relationship is inferred from Hopper names" note is about *Airtable/CSV import-time inference* for historically-imported Hopper records that predate a Bag link in the source export; it is not a statement about the live Postgres schema. `lib/db/src/schema/hopper.ts` confirms `hoppers.bag_id` is a real, live foreign key (`integer("bag_id").references(() => bagsTable.id)`), enforced by a partial unique index (`one_active_hopper_per_bag`), and it is already the authoritative link used by shipped UI: `Bags.tsx`'s "Hopper: {phase}" badge, the Start Hopper Phase and Change Bag flows, and `Dashboard.tsx`'s Active Hopper Status panel all filter live hoppers by `bagId` today. One caveat found during this same verification pass: a small number of historically-imported Hopper rows have `bag_id = null` and `is_active = true` (orphaned from import, not created by any current write path) — these are invisible to all current UI (which only looks up hoppers by a specific `bagId`) and harmless, but are a minor data-hygiene item, not a schema-authority question. The final documented Hopper phase label list is Phase 1, Phase 2, Phase 3, End of Bag, Single Bag Phase, and Custom; `Grinder Cleanout` is a lifecycle/workflow event.
 
 ### Close Out Bag (workflow 1, Close Current Bag)
 
@@ -604,6 +604,8 @@ Scope:
 
 ## Phase B — Close Bag polish
 
+Status: **Shipped** ("Bag Lifecycle Work Package: Closeout Flow Polish and Closed-Out Summary", `docs/completed-tasks.md`). The Close Out Bag dialog now has an explicit "I measured it" / "Not measured — intentionally skipped" choice (not just an optional field), closeout/cleanout notes, and copy clarifying this is reconciliation evidence, not a correction to prior shots.
+
 Scope:
 
 - keep existing Close Bag dialog,
@@ -615,6 +617,8 @@ Scope:
 No schema change required unless closeout reason or closeout waste must be structured.
 
 ## Phase C — Start New Bag guided flow
+
+Status: **Shipped** ("Bag Lifecycle: Guided 'Change Bag' Workflow", `docs/completed-tasks.md`). A guided `ChangeBagDialog` in `Bags.tsx` walks through: identify current active bag(s) → optionally close the old one (same measured/unmeasured choice as Phase B) → create/select the bean → minimal new-bag details → optionally start the first hopper phase. Reuses only existing `POST /api/beans`, `POST /api/bags`, `PATCH /api/bags/:id`, `POST /api/hoppers` — no schema/API changes. Live-verified 2026-08-25 (see this same review's findings below) including the partial-failure path.
 
 Scope:
 
@@ -629,10 +633,12 @@ This can mostly use existing Beans/Bags APIs.
 
 Risk:
 
-- active bag is not DB-enforced globally.
-- The UI/API should avoid accidentally leaving multiple active bags.
+- active bag is not DB-enforced globally — **as shipped, this is a soft warning, not a hard block**: the flow allows multiple active bags (with an explicit amber warning shown), matching the "active-bag enforcement... after the safest migration path is scoped" decision below, not the DB-level enforcement the decision defers.
+- The UI/API should avoid accidentally leaving multiple active bags — **the guided flow's submission order (bean → new bag → close old → hopper) is deliberately chosen so the worst case of a partial failure is two temporarily-active bags, never zero**; live-verified 2026-08-25.
 
 ## Phase D — Active Hopper Phase setup
+
+Status: **Shipped** ("Bag Lifecycle Slice: Start Hopper Phase" and "Bag/Hopper Lifecycle Work Package: Start Hopper Phase UX, Status Cues, Closeout Copy", `docs/completed-tasks.md`). A "Start Hopper Phase" dialog (standalone, and embedded in the Change Bag flow) creates a new Hopper row via the existing `POST /api/hoppers`, which already deactivates the prior active hopper for that bag transactionally. The phase selector is restricted to exactly the six approved labels below — live-verified 2026-08-25, `Grinder Cleanout` confirmed absent.
 
 Scope:
 
@@ -646,7 +652,7 @@ Uses existing Hopper API.
 
 Open issue:
 
-- decide final phase selector list.
+- decide final phase selector list — **resolved**: `Phase 1`, `Phase 2`, `Phase 3`, `End of Bag`, `Single Bag Phase`, `Custom`, shipped as the exact (and only) options in both Start Hopper Phase dialogs.
 
 ## Phase E — Lifecycle Event model
 
@@ -684,8 +690,9 @@ Do not implement until lifecycle events and hopper assignment rules are approved
 - Hopper percentage formula is not yet approved for local calculation.
 - Top-up versus phase-transition semantics are not fully resolved.
 - Active Bag is workflow-critical but not globally constrained in the database.
-- The app has no dedicated Hopper frontend yet.
+- ~~The app has no dedicated Hopper frontend yet.~~ **Resolved 2026-08-25**: Start Hopper Phase (Phase D) shipped and is live-verified. Remaining, still-open: no way to *edit or remove* a Hopper record once created — `routes/hopper.ts` has `GET`/`POST`/`PATCH` but no `DELETE`, and `PATCH` cannot clear `bagId`, `startingBeans`, `phase`, or `notes` back to null (an `undefined`-vs-`null` gap, the same class of bug already fixed for `bags.remainingEstimate` and several `shots` fields, but not yet applied here) — found during this review's live testing, not yet fixed.
 - Current imported Hopper formula snapshots may be stale compared with live Postgres shot records.
+- **New, found 2026-08-25**: `Bags.tsx`'s `ChangeBagDialog` mutation's `onError` handler does not invalidate any queries (only `onSuccess` does). On a partial failure (e.g. the new bag and bean are created successfully but the Custom-phase hopper step fails validation), the error message correctly tells the user what happened and what to do next, but the newly-created bag does not appear in the Bags list until the page is manually reloaded — confirmed by live-reproducing the exact scenario. Low severity (no data is lost or corrupted, and the error text is accurate), but confusing: the UI looks like nothing happened when something did.
 
 ## Decisions recorded before implementation
 

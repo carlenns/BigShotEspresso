@@ -544,8 +544,10 @@ export interface HopperUpdate {
   /** @nullable */
   startingBeans?: number | null;
   isActive?: boolean;
-  phase?: string;
-  notes?: string;
+  /** @nullable */
+  phase?: string | null;
+  /** @nullable */
+  notes?: string | null;
 }
 
 export interface HopperRangeBaseline {

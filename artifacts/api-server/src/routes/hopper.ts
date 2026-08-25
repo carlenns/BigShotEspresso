@@ -84,7 +84,12 @@ router.patch("/hoppers/:id", async (req, res): Promise<void> => {
   }
   const id = params.data.id;
   const body = parsed.data;
-  const bagId = body.bagId != null ? Number(body.bagId) : undefined;
+  // Distinguish an explicit null (clear the field) from an omitted field
+  // (undefined, leave untouched) for every nullable column here — the same
+  // class of fix already applied to bags.ts's parseBagBody for
+  // remainingEstimate. Collapsing both to `undefined` (the previous
+  // behavior) meant a PATCH sending e.g. `bagId: null` silently did nothing.
+  const bagId = body.bagId === null ? null : body.bagId != null ? Number(body.bagId) : undefined;
   const [row] = await db.transaction(async (tx) => {
     if (body.isActive && bagId != null) {
       await tx.update(hoppersTable).set({ isActive: false })
@@ -93,10 +98,10 @@ router.patch("/hoppers/:id", async (req, res): Promise<void> => {
     return tx.update(hoppersTable).set({
       name: body.name as string | undefined,
       bagId,
-      startingBeans: body.startingBeans != null ? Number(body.startingBeans) : undefined,
+      startingBeans: body.startingBeans === null ? null : body.startingBeans != null ? Number(body.startingBeans) : undefined,
       isActive: body.isActive != null ? Boolean(body.isActive) : undefined,
-      phase: body.phase as string | undefined,
-      notes: body.notes as string | undefined,
+      phase: body.phase === null ? null : (body.phase as string | undefined),
+      notes: body.notes === null ? null : (body.notes as string | undefined),
     }).where(eq(hoppersTable.id, id)).returning();
   });
   if (!row) {
@@ -104,6 +109,14 @@ router.patch("/hoppers/:id", async (req, res): Promise<void> => {
     return;
   }
   res.json(toHopperApi(row));
+});
+
+router.delete("/hoppers/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [row] = await db.delete(hoppersTable).where(eq(hoppersTable.id, id)).returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  res.status(204).end();
 });
 
 router.get("/hopper-range-baselines", async (_req, res): Promise<void> => {

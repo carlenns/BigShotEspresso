@@ -776,7 +776,18 @@ function ChangeBagDialog({
       onOpenChange(false);
       toast({ title: "New bag is active", description: "The change is complete. You're ready to log shots on the new bag." });
     },
-    onError: (e) => toast({ title: "Change Bag did not fully complete", description: String(e), variant: "destructive" }),
+    onError: (e) => {
+      // The mutation can partially succeed (e.g. the new bag was created but
+      // a later step failed) — refresh the same queries onSuccess does so
+      // the UI reflects whatever actually happened, matching what the error
+      // message below already tells the user.
+      qc.invalidateQueries({ queryKey: ["bags"] });
+      qc.invalidateQueries({ queryKey: ["beans"] });
+      qc.invalidateQueries({ queryKey: getListHoppersQueryKey() });
+      qc.invalidateQueries({ queryKey: ["intelligence"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-intelligence"] });
+      toast({ title: "Change Bag did not fully complete", description: String(e), variant: "destructive" });
+    },
   });
 
   return (

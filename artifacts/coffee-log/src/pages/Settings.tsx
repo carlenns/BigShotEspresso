@@ -40,6 +40,7 @@ type FieldDef = {
   options?: string[];
   placeholder?: string;
   unit?: string;
+  note?: string;
 };
 
 type Grinder = { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; type: string | null; isDefault: boolean };
@@ -66,11 +67,6 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
     fields: [
       { key: "brewMethod", label: "Default Brew Method", type: "select", options: ["Espresso", "Pour-over", "AeroPress", "French Press", "Moka Pot"] },
       { key: "defaultDrinkType", label: "Default Drink Type", type: "select", options: CURATED_SELECTOR_OPTIONS.drinkType },
-      { key: "ratingSystem", label: "Rating System", type: "select", options: ["0–10", "0–5", "0–100"] },
-      { key: "ratingInputMode", label: "Rating Input Mode", type: "select", options: ["Easy Rating (1–10 stars)", "Precision Rating (0.00–10.00)"] },
-      { key: "unitSystem", label: "Unit System", type: "select", options: ["Metric (g, ml)", "Imperial (oz)"] },
-      { key: "timeFormat", label: "Time Format", type: "select", options: ["12hr", "24hr"] },
-      { key: "temperatureUnit", label: "Temperature Unit", type: "select", options: ["°C", "°F"] },
     ],
   },
   {
@@ -89,10 +85,8 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
     fields: [
       { key: "defaultDose", label: "Default Dose", type: "number", placeholder: "18", unit: "g" },
       { key: "defaultTargetYield", label: "Default Target Yield", type: "number", placeholder: "36", unit: "g" },
-      { key: "defaultBrewRatio", label: "Default Brew Ratio", type: "text", placeholder: "1:2" },
       { key: "defaultBrewTemp", label: "Default Brew Temperature", type: "number", placeholder: "94", unit: "°C" },
       { key: "defaultBasketSize", label: "Default Basket Size", type: "text", placeholder: "18g VST" },
-      { key: "usePuckScreen", label: "Use Puck Screen by Default", type: "toggle" },
     ],
   },
   {
@@ -103,14 +97,12 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
       { key: "defaultGrinder", label: "Default Grinder", type: "text", placeholder: "Eureka Magnifico" },
       { key: "defaultGrindSetting", label: "Default Grind Setting", type: "number", placeholder: "2.33" },
       { key: "defaultGrindTime", label: "Default Grind Time", type: "number", placeholder: "8.1", unit: "sec" },
-      { key: "grindTimerMode", label: "Grind Output Measurement", type: "select", options: ["By Time", "By Weight", "Manual / Single Dose"] },
+      {
+        key: "grindTimerMode", label: "Grind Output Measurement", type: "select",
+        options: ["By Time", "By Weight", "Manual / Single Dose"],
+        note: "Not yet used elsewhere in the app — reserved for future single-dose workflow support.",
+      },
       { key: "grindMinTime", label: "Minimum Grind Time", type: "number", placeholder: "0.2", unit: "s" },
-      { key: "grindTimeIncrement", label: "Grind Time Increment", type: "number", placeholder: "0.1", unit: "s" },
-      { key: "grindScaleMin", label: "Grind Scale Minimum", type: "number", placeholder: "1" },
-      { key: "grindScaleMax", label: "Grind Scale Maximum", type: "number", placeholder: "10" },
-      { key: "grindStepIncrement", label: "Grind Step Increment", type: "text", placeholder: "0.33" },
-      { key: "hopperTracking", label: "Hopper Fullness Tracking", type: "toggle" },
-      { key: "defaultHopperFullness", label: "Default Hopper Fullness", type: "number", placeholder: "100", unit: "%" },
     ],
   },
   {
@@ -610,6 +602,7 @@ function FieldControl({ field, value, onChange }: { field: FieldDef; value: stri
             ))}
           </SelectContent>
         </Select>
+        {field.note && <p className="text-xs text-muted-foreground">{field.note}</p>}
       </div>
     );
   }
@@ -627,6 +620,7 @@ function FieldControl({ field, value, onChange }: { field: FieldDef; value: stri
         onChange={(e) => onChange(e.target.value)}
         step={field.type === "number" ? "any" : undefined}
       />
+      {field.note && <p className="text-xs text-muted-foreground">{field.note}</p>}
     </div>
   );
 }
