@@ -114,11 +114,11 @@ export default function ShotDetail() {
             <div>
               <p className="text-sm font-semibold text-muted-foreground mb-3">Extraction Details</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-                <DetailItem label="Basket Dose" value={`${shot.dose}g`} />
-              <DetailItem label="Yield" value={`${shot.yield}g`} />
-              <DetailItem label="Pour Time" value={`${shot.pourTime}s`} />
-              <DetailItem label="Temp" value={shot.temperature ? `${shot.temperature}°C` : "-"} />
-              <DetailItem label="Ratio" value={shot.ratio || "-"} />
+                <DetailItem label="Basket Dose" value={shot.dose != null ? `${shot.dose}g` : "-"} />
+              <DetailItem label="Yield" value={shot.yield != null ? `${shot.yield}g` : "-"} />
+              <DetailItem label="Pour Time" value={shot.pourTime != null ? `${shot.pourTime}s` : "-"} />
+              <DetailItem label="Temp" value={shot.temperature != null ? `${shot.temperature}°C` : "-"} />
+              <DetailItem label="Ratio" value={shot.ratio != null ? shot.ratio : "-"} />
               <DetailItem label="Flow Time" value={shot.flowTime != null ? `${shot.flowTime}s` : "-"} />
               <DetailItem label="First Pour Delay" value={shot.pourDelay != null ? `${shot.pourDelay}s` : "-"} />
               {shot.grindSetting != null && <DetailItem label="Grind Setting" value={shot.grindSetting} />}

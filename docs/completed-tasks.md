@@ -1397,3 +1397,55 @@ Updated the existing `"Log Shot flag selection suggests Status/Fault Status only
     git commit -m "fix(log-shot): Reference/Signature Shot also suggest Fault Status = Good when blank"
 
 Not run automatically, per task boundaries (no commit, no push).
+
+# Owner-Alpha Usability Review — Shot Detail "null" Text Bug — 2026-08-25
+
+## Completed
+
+- Reviewed `ShotForm.tsx`, `ShotDetail.tsx`, `Dashboard.tsx`, `Shell.tsx`, and `selector-options.ts` against the priority list: Log Shot mobile usability, Shot Detail clarity, Dashboard clarity, colorblind-friendly status indicators, and hidden/unclearly-displayed recorded data.
+- Found and fixed the highest-value issue: `ShotDetail.tsx`'s Extraction Details grid rendered `Basket Dose`, `Yield`, and `Pour Time` with **no null guard at all** (`` `${shot.dose}g` `` etc.), unlike the four sibling fields in the same grid (`Flow Time`, `First Pour Delay` already used `!= null ? ... : "-"`; `Temp`/`Ratio` used a truthy check). Confirmed via a live query against the real dev DB that this is not a hypothetical edge case: 47/247 shots have `dose IS NULL`, 32 have `yield IS NULL`, 39 have `pour_time IS NULL` — these are real "Grinder Setup"/workflow-event-only shots (e.g. shot #240: a grinder cleanout logged via the "Record grind change / purge waste" checkbox, `status: "Grinder Setup"`, `dose`/`yield`/`pourTime`/`rating` all genuinely null). Before this fix, visiting such a shot's detail page literally showed **"nullg" / "nullg" / "nulls"** — live-verified via Chrome on `/shots/240` before the fix, screenshot confirmed.
+- Fixed all five fields in the same grid row for consistency in one pass: `dose`/`yield`/`pourTime` gained the missing `!= null` guard (new bug, now fixed); `temperature`/`ratio` were normalized from a truthy check to `!= null` (defensive/preventive only — a `0` value was not observed in the live data, but is the same falsy-zero bug class already fixed for `rating` in an earlier session).
+- Re-verified live on `/shots/240` after the fix and rebuild: all fields now correctly show `-` instead of "null"/"undefined" text. Pure read-only verification against existing production data — no shot data created, modified, or needing cleanup.
+
+## Files inspected
+
+`artifacts/coffee-log/src/pages/ShotForm.tsx` (including its currently-uncommitted Reference/Signature fault-status diff, left untouched — not part of this task), `artifacts/coffee-log/src/pages/ShotDetail.tsx`, `artifacts/coffee-log/src/pages/Dashboard.tsx`, `artifacts/coffee-log/src/components/layout/Shell.tsx`, `artifacts/coffee-log/src/lib/selector-options.ts`, `lib/db/src/schema/shots.ts` (confirmed `dose`/`yield`/`pour_time` are nullable columns), `docs/completed-tasks.md`, `docs/implementation/launch-readiness-audit.md`.
+
+## Files changed
+
+- `artifacts/coffee-log/src/pages/ShotDetail.tsx` — five `DetailItem` value expressions in the Extraction Details grid.
+- `artifacts/api-server/src/api-contract.test.ts` — new regression test.
+- `docs/completed-tasks.md` — this entry.
+
+## Tests added/updated
+
+Added `"Shot Detail never renders the literal word null for unrecorded extraction fields"` to `artifacts/api-server/src/api-contract.test.ts`, immediately after the existing `"Shot Detail displays zero ratings instead of treating them as blank"` test (same source-scan pattern): asserts the corrected `!= null` guard is present for `dose`/`yield`/`pourTime`, and asserts the old unguarded template-literal patterns are absent.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (4/4 workspace projects).
+- `CI=true pnpm --filter @workspace/api-server test` — 62/62 passed (61 pre-existing at the start of this task + 1 new).
+- `CI=true pnpm run build:render` — passed.
+- Live Chrome verification against the real dev DB, before and after the fix, on shot #240 (a real shot with all three fields null) — confirmed the visual defect before the fix and its resolution after.
+
+## Findings not acted on (colorblind indicators / mobile usability)
+
+- **Colorblind status indicators**: `Shell.tsx`'s mobile bottom nav and `Dashboard.tsx`'s `DeltaStatusMarker` already have non-color cues (underline+bold, and pattern-fill overlays respectively) from earlier sessions. However, several `Dashboard.tsx` text spans still convey severity by color alone with no icon or pattern — e.g. `bag.openDays >= 28 ? "text-destructive" : "text-amber-600"` on the "Open Nd" label, and the similar `daysSinceLastChange`/grind-drift coloring. The underlying number is always visible (so no data is hidden), but the at-a-glance severity cue is color-only. Judged lower-value than the "null" text bug (a real display defect vs. an accessibility polish item) and left as a candidate for a future task rather than expanded into this one.
+- **Log Shot mobile usability**: no new defect found this pass. `NumberStepper`, bag-selector pills, and card layout all already use mobile-safe patterns from prior sessions (established in this file's history). Did not find a concrete, verifiable mobile-usability bug to act on.
+
+## Assumptions
+
+- Treated `temperature`/`ratio`'s truthy-vs-`!= null` normalization as in-scope for the same tiny fix (same file, same grid, same one-line change per field) even though no live `0` value was observed, since it's the identical bug class already fixed once for `rating` and costs nothing extra to close off.
+- Left the currently-uncommitted `ShotForm.tsx` / `api-contract.test.ts` diff (Reference/Signature Shot fault-status suggestion, documented in the "Log Shot Flag/Status Behavior Fix" entry immediately above this one) completely untouched — it predates this task and is unrelated to Shot Detail.
+
+## Unresolved issues
+
+- The colorblind-severity-by-text-color-only pattern noted above (Dashboard bag-age/grind-drift coloring) is unresolved — flagged for a future task if wanted, not implemented here since it's polish, not a defect, and this task's boundary is one tiny fix per review.
+- No mobile-usability defect was found or fixed this pass.
+
+## Recommended commit command
+
+    git add artifacts/coffee-log/src/pages/ShotDetail.tsx artifacts/api-server/src/api-contract.test.ts docs/completed-tasks.md
+    git commit -m "fix(shots): show '-' instead of literal null text for unrecorded dose/yield/pour time"
+
+Not run automatically, per task boundaries (no commit, no push). Note the working tree also contains an unrelated, uncommitted, already-documented change from a separate task (`ShotForm.tsx`'s Reference/Signature fault-status fix) that is not part of this command.

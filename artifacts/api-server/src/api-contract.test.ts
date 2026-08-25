@@ -1167,6 +1167,24 @@ test("Shot Detail displays zero ratings instead of treating them as blank", asyn
   assert.match(detailSource, /shot\.preferenceRating != null \? shot\.preferenceRating : "—"/);
 });
 
+test("Shot Detail never renders the literal word null for unrecorded extraction fields", async () => {
+  const detailSource = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // Regression guard: dose/yield/pourTime are nullable columns (real, live
+  // shots — e.g. grinder-cleanout/workflow-event entries with status
+  // "Grinder Setup" — regularly have all three null). Rendering
+  // `${shot.dose}g` unconditionally literally prints "nullg" to the user.
+  assert.match(detailSource, /shot\.dose != null \? `\$\{shot\.dose\}g` : "-"/);
+  assert.match(detailSource, /shot\.yield != null \? `\$\{shot\.yield\}g` : "-"/);
+  assert.match(detailSource, /shot\.pourTime != null \? `\$\{shot\.pourTime\}s` : "-"/);
+  assert.doesNotMatch(detailSource, /value=\{`\$\{shot\.dose\}g`\}/);
+  assert.doesNotMatch(detailSource, /value=\{`\$\{shot\.yield\}g`\}/);
+  assert.doesNotMatch(detailSource, /value=\{`\$\{shot\.pourTime\}s`\}/);
+});
+
 test("API response shaping excludes internal evidence fields", () => {
   const response = toShotApi({
     id: 1,
