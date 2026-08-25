@@ -71,6 +71,8 @@ Quick Log is shelved for the first owner-only release candidate. The app should 
 
 The existing Quick Log code may remain in the repository as a parked prototype, but it should not be promoted in primary navigation or Settings during launch hardening. Quick Log can be revisited after real user demand proves that a separate reduced-entry mode is worth the extra workflow complexity.
 
+Drink Type defaults are single-level for the first release candidate: there is one user-level `Default Drink Type` in Settings, plus user-extensible custom drink types. Machine-level and grinder/profile-level drink type defaults (for example, a specific machine+grinder setup implying Americano, or a decaf/pour-over/guest setup implying a different default) are shelved for now and should not be implemented. Shots do not yet expose a machine/grinder/setup-profile selector in `Log Shot`, so there is no reliable signal to key a machine/profile default off of. Reconsider machine/profile-level drink defaults only after users/OAuth exist and shots can explicitly select a machine/grinder/setup profile.
+
 ## Gate 1 — Repository and CI
 
 Required:

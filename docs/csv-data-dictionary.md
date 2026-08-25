@@ -39,18 +39,18 @@ UI codes: text, long text, number, currency, date/time, checkbox, dropdown, chip
 | Flow Time (sec) | Number | E | number | Active scale-detected coffee-flow duration; formerly Scale Time; GSP/MSI. |
 | Yield (g) | Number | E | number | Beverage output; GSP/OSI and target windows. |
 | Ratio | Formula | R | read-only | Yield divided by actual basket dose; GSP/MSI. |
-| Finished Shot | Checkbox | E | checkbox | Whether the beverage was completed/consumed. |
+| Finished Shot | Checkbox | E | checkbox | Whether the beverage was completed/consumed (displayed as `Did Not Finish` context when false). Recorded as context only; does not automatically change Include in Analysis or any other selector. |
 | Rating | Number | E | rating | Technical/overall score; GSP/BLI/MSI. |
 | Preference Rating | Number | E | rating | Personal enjoyment score; GSP/BLI/MSI. |
 | Rating Difference | Formula | R | read-only | Difference between rating dimensions; MSI. |
 | Average Rating and Preference Rating weighted to Preference | Formula | R | read-only | Preference-weighted composite; BLI/GSP, formula unresolved. |
-| Rated | Checkbox | E | checkbox | Personal rating participation flag. `Not Rated` shots remain preserved as records but are excluded from rating/preference statistics and rating-driven insights. |
+| Rated | Checkbox | E | checkbox | Personal rating participation flag. `Not Rated` shots remain preserved as records but are excluded from rating/preference statistics and rating-driven insights. `Not Rated` is related to but distinct from `Include in Analysis`: `Not Rated` controls rating/statistical participation, while `Include in Analysis` is the separate scientific/process eligibility gate (Shot Status `Good`/`Dialed In` plus Fault Status `Good`). |
 | Sour | Checkbox | E | checkbox | Manual sensory marker; MSI/GSP. |
 | For Others | Checkbox | E | checkbox | Guest/non-owner consumption context. In app entry, selecting this defaults the shot to `Not Rated` unless the user explicitly chooses to rate it. |
 | Reference Shot | Checkbox | E | checkbox | Manual benchmark; GSP/BLI/reference comparison. Never infer from rating. |
 | Signature Shot | Checkbox | E | checkbox | Manual exceptional-shot flag; implies Reference Shot. |
 | Boundary Shot | Checkbox | E | checkbox | Manual edge/boundary case; MSI and model calibration. |
-| Drink Type | Single Select | E | dropdown | Beverage preparation classification. Curated list (includes Affogato) plus user-added custom drink types from Defaults & Settings, stored as free text so existing values are never rejected. The user can set a default drink type; non-default drinks can be marked `Not Rated` to protect the user's core espresso baseline. |
+| Drink Type | Single Select | E | dropdown | Beverage preparation classification. Curated list (includes Affogato) plus user-added custom drink types from Defaults & Settings, stored as free text so existing values are never rejected. New shots pre-fill from the single user-level `Default Drink Type` in Settings; changing `Drink Type` never automatically changes `Rated`/`Not Rated`, `Include in Analysis`, `Shot Status`, or `Fault Status`. Machine/profile-level drink type defaults (e.g. a specific machine+grinder setup implying a drink type) are deferred until shots can explicitly select a machine/grinder/setup profile and until users/OAuth exist. |
 | Shot Status | Single Select | E | dropdown | Operational record state; analysis eligibility context. |
 | Shot Classification | Multi Select historically; curated as single-choice workflow type in app | E | dropdown | Record/workflow type such as Good Shot, Dial-In Shot, grinder event, new bag entry, hopper refill, maintenance, experiment, or sink shot. Not the authority for reference/signature/daily-driver status. |
 | Fault Status | Multi Select historically; curated as single-choice analysis condition in app | E | dropdown | Analytical cleanliness/fault reason. `Good` is required with Shot Status `Good` or `Dialed In` for Include in Analysis. Other values explain why a record is excluded or exceptional. |

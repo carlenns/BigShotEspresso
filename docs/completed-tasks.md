@@ -503,3 +503,30 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 ## Unresolved
 
 - Drink type defaults are not yet machine/equipment-profile aware. The `machines` table has no drink-type field, and adding one was intentionally deferred to avoid an unnecessary schema change for this scoped task. Recommended next step: once equipment profiles need multiple simultaneous defaults (e.g. regular espresso vs. decaf vs. pour-over), add an optional `default_drink_type` text column to `machines` (or a small join table if a machine needs more than one) and surface it in the Equipment Defaults section of Settings.
+
+# Log Shot Serving Context Polish; Machine/Profile Drink Defaults Officially Shelved — 2026-08-25
+
+## Completed
+
+- Fixed a `Drink Type` / `Not Rated` coupling bug in `ShotForm.tsx`: picking a `Drink Type` other than the user's `Default Drink Type` no longer force-sets `Not Rated`. `Drink Type` and `Not Rated` are now fully independent, matching the product decision that they must remain separate.
+- Clarified `Log Shot` Serving Context copy: the section description now states that `For Others` suggests `Not Rated` but never changes `Drink Type`, and the `Not Rated` hint now states it does not affect `Include in Analysis`.
+- Grouped `Shot Detail`'s serving-context fields (`Drink Type`, `For Others`, `Not Rated`, `Did Not Finish`) into one labeled "Serving Context" block, shown only when at least one of those fields is meaningful, with a one-line reminder that `Not Rated` is independent of `Include in Analysis`. Renamed the previous ambiguous labels (`Rated: No`, `Finished Drink: No`) to the same `Not Rated` / `Did Not Finish` language already used in `Log Shot`.
+- Documented that machine/profile-level drink type defaults are officially shelved: updated `docs/csv-data-dictionary.md` (Drink Type, Rated, Finished Shot rows) and `docs/implementation/release-candidate-checklist.md` (Gate 0.5) to state there is one user-level `Default Drink Type` plus user-extensible custom drink types, and that machine/profile-level defaults are deferred until shots can explicitly select a machine/grinder/setup profile and until users/OAuth exist.
+- Confirmed no changes were needed to `Settings.tsx` or `selector-options.ts` — the single `Default Drink Type` and `customDrinkTypes` behavior already matched the target design.
+- Quick Log was left untouched and remains shelved.
+
+## Verified
+
+- Workspace typecheck passed.
+- API/Phase 1.5 test suite passed: 42 passed, 0 failed.
+- Render production build passed.
+
+## Assumptions
+
+- Renaming `Shot Detail`'s `Rated`/`Finished Drink` labels to `Not Rated`/`Did Not Finish` (to match `Log Shot`'s own checkbox language) counts as display polish, not a behavior change, since the underlying `shot.rated` / `shot.finishedShot` fields and their conditions were not altered.
+- Grouping the four serving-context fields into one visual block on `Shot Detail` is within "smallest safe change" because it only reorganizes existing conditional `DetailItem`s already in the JSX; no new data is read or written.
+
+## Unresolved
+
+- Machine/profile-level drink type defaults remain deferred, per the recommendation already on record above: add an optional `default_drink_type` column to `machines` (or a small join table) only once shots can explicitly select a machine/grinder/setup profile and once equipment/profile selection is actually surfaced in `Log Shot`. Do not implement until users/OAuth and that selector exist.
+- `Log Shot` still has no machine or grinder selector at all (`machineId`/`grinderId` exist on `shots` in the DB but are not exposed in the form). This is the actual blocker for any future machine/profile-aware default and should be scoped as its own task before machine/profile drink defaults are revisited.

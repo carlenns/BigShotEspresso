@@ -816,6 +816,7 @@ export default function ShotForm() {
                   <Label>Serving Context</Label>
                   <p className="text-xs text-muted-foreground mt-1">
                     Use this to separate your espresso science from guest drinks, milk drinks, or coffees you did not rate.
+                    For Others suggests Not Rated but never changes Drink Type — you can still rate it if you tasted it.
                   </p>
                 </div>
 
@@ -877,7 +878,8 @@ export default function ShotForm() {
 
                 {form.watch("rated") === false && (
                   <p className="rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
-                    Not Rated clears technical and preference ratings when saved. The shot remains in the log as workflow evidence.
+                    Not Rated clears technical and preference ratings when saved. The shot remains in the log as workflow
+                    evidence and is unaffected by Include in Analysis below.
                   </p>
                 )}
               </div>

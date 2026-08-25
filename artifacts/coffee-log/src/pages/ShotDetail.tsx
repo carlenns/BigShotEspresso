@@ -37,6 +37,12 @@ export default function ShotDetail() {
     shot.timeAdj != null ||
     shot.overGrindRemoved != null;
 
+  const hasServingContext =
+    Boolean(shot.drinkType) ||
+    shot.isForOthers === true ||
+    shot.rated === false ||
+    shot.finishedShot === false;
+
   const handleDelete = () => {
     deleteShot.mutate({ id }, {
       onSuccess: () => {
@@ -100,10 +106,6 @@ export default function ShotDetail() {
               {shot.grindTime != null && <DetailItem label="Grind Time" value={`${shot.grindTime}s`} />}
               {shot.initialGrindWeight != null && <DetailItem label="Initial Grinder Output" value={`${shot.initialGrindWeight}g`} />}
               <DetailItem label="Status" value={displaySelectorValue(shot.status) || "-"} />
-              {shot.drinkType && <DetailItem label="Drink Type" value={shot.drinkType} />}
-              {shot.isForOthers && <DetailItem label="For Others" value="Yes" />}
-              {shot.rated === false && <DetailItem label="Rated" value="No" />}
-              {shot.finishedShot === false && <DetailItem label="Finished Drink" value="No" />}
               <DetailItem label="Include in Analysis" value={shot.includeInAnalysis ? "Yes" : "No"} />
               <DetailItem label="Fault Status" value={<ChipList values={shot.faultStatus} />} />
               <DetailItem label="Shot Classification" value={<ChipList values={shot.shotClassification} />} />
@@ -111,6 +113,23 @@ export default function ShotDetail() {
               <DetailItem label="Expression Style" value={<ChipList values={shot.expressionStyle} />} />
               <DetailItem label="Taste Zone" value={shot.tasteZone || shot.zone || "-"} />
             </div>
+
+            {hasServingContext && (
+              <div className="rounded-lg border p-4">
+                <div className="mb-3">
+                  <p className="text-sm font-semibold text-muted-foreground">Serving Context</p>
+                  <p className="text-xs text-muted-foreground/80">
+                    Not Rated excludes this shot from rating averages only — it does not affect Include in Analysis above.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                  {shot.drinkType && <DetailItem label="Drink Type" value={shot.drinkType} />}
+                  {shot.isForOthers && <DetailItem label="For Others" value="Yes" />}
+                  {shot.rated === false && <DetailItem label="Not Rated" value="Yes" />}
+                  {shot.finishedShot === false && <DetailItem label="Did Not Finish" value="Yes" />}
+                </div>
+              </div>
+            )}
 
             {hasGrindEvent && (
               <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900 dark:bg-amber-950/20">

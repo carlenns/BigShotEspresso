@@ -67,10 +67,11 @@ test("Shot detail exposes evaluation fields that affect interpretation", async (
     "Expression Style",
     "Taste Zone",
     "Include in Analysis",
+    "Serving Context",
     "Drink Type",
     "For Others",
-    "Rated",
-    "Finished Drink",
+    "Not Rated",
+    "Did Not Finish",
   ]) {
     assert.match(source, new RegExp(requiredText));
   }
@@ -173,6 +174,61 @@ test("Settings lets users add custom Drink Types and pick a Default Drink Type; 
   // wiring up drink type controls.
   assert.doesNotMatch(settingsSource, /LoggingPreferencesSection/);
   assert.doesNotMatch(settingsSource, /Choose which fields appear in Quick Log/);
+});
+
+test("Drink Type never forces Not Rated; For Others may suggest it but stays overridable", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // Regression guard: Drink Type selection must be a plain field update with
+  // no side effect on `rated`. The removed `setDrinkType` helper used to set
+  // rated=false whenever drinkType differed from the Default Drink Type.
+  assert.doesNotMatch(source, /setDrinkType/);
+  assert.match(source, /name="drinkType"[\s\S]{0,400}onChange=\{field\.onChange\}/);
+
+  // For Others is the only control allowed to suggest Not Rated.
+  assert.match(source, /if \(forOthers\) form\.setValue\("rated", false\)/);
+
+  // The Not Rated checkbox remains its own independent, always-editable
+  // field, so a user can still rate a For Others shot if they tasted it.
+  assert.match(source, /name="rated"[\s\S]{0,300}onCheckedChange=\{\(checked\) => field\.onChange\(checked === true \? false : true\)\}/);
+});
+
+test("Shot Detail groups serving-context fields and shows them only when meaningful", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  assert.match(source, /const hasServingContext =/);
+  assert.match(source, /shot\.rated === false/);
+  assert.match(source, /shot\.finishedShot === false/);
+  assert.match(source, /shot\.isForOthers === true/);
+  assert.match(source, /\{hasServingContext && \(/);
+  assert.match(source, /Serving Context/);
+  assert.match(source, /label="Not Rated" value="Yes"/);
+  assert.match(source, /label="Did Not Finish" value="Yes"/);
+  assert.match(source, /label="For Others" value="Yes"/);
+});
+
+test("Machine/profile-level drink defaults are documented as deferred, not implemented", async () => {
+  const [checklistSource, dictionarySource, equipmentSchemaSource, shotFormSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../../docs/implementation/release-candidate-checklist.md", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../docs/csv-data-dictionary.md", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/src/schema/equipment.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  assert.match(checklistSource, /Machine-level and grinder\/profile-level drink type defaults[\s\S]{0,200}are shelved for now/);
+  assert.match(dictionarySource, /Machine\/profile-level drink type defaults[\s\S]{0,200}are deferred/);
+
+  // The schema must not have grown a machine-level default drink type field,
+  // and the shot entry form must not have a machine/grinder selector, which
+  // is the documented blocker for ever wiring one up.
+  assert.doesNotMatch(equipmentSchemaSource, /default_drink_type|defaultDrinkType/);
+  assert.doesNotMatch(shotFormSource, /machineId|grinderId/);
 });
 
 test("Today's Coffee Brief uses active-bag performance windows only", async () => {
