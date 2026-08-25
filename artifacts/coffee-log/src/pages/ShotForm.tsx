@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ChevronDown, ChevronUp, Save } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Minus, Plus, Save } from "lucide-react";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import {
   useCreateShot,
   useGetShot,
@@ -181,6 +182,102 @@ function seedSuggestedNumber(
 
   if (target && target.value === "") target.value = String(value);
   field.onChange(value);
+}
+
+function decimalPlaces(step: number): number {
+  const text = step.toString();
+  const dot = text.indexOf(".");
+  return dot === -1 ? 0 : text.length - dot - 1;
+}
+
+function roundToStep(value: number, step: number): number {
+  const factor = Math.pow(10, decimalPlaces(step));
+  return Math.round(value * factor) / factor;
+}
+
+// NumberStepper preserves raw typed strings (like the plain inputs it
+// replaces) so users can type a trailing "." or "0" without the controlled
+// input fighting them. Callers that need a number for display or Slider
+// arithmetic should read the field value through this helper.
+function asNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+// Mobile-friendly increment/decrement control for Log Shot number fields.
+// Native <input type="number"> spinners don't render on mobile Safari, so
+// this reuses the field's existing value/placeholder default (never 0) as
+// the base for +/- taps, and hides the native spinner so there's only one
+// set of controls on any platform.
+function NumberStepper({
+  field,
+  step,
+  min,
+  max,
+  placeholder,
+  suggestedValue,
+  className,
+}: {
+  field: SeedableNumberField;
+  step: number;
+  min?: number;
+  max?: number;
+  placeholder?: string;
+  suggestedValue?: number | string | null;
+  className?: string;
+}) {
+  const currentNumeric = (): number | undefined => {
+    if (field.value === undefined || field.value === null || field.value === "") return undefined;
+    const n = Number(field.value);
+    return Number.isFinite(n) ? n : undefined;
+  };
+
+  const suggestedNumeric = (): number | undefined => {
+    if (suggestedValue === undefined || suggestedValue === null || suggestedValue === "") return undefined;
+    const n = Number(suggestedValue);
+    return Number.isFinite(n) ? n : undefined;
+  };
+
+  const adjust = (direction: 1 | -1) => {
+    const base = currentNumeric() ?? suggestedNumeric() ?? 0;
+    let next = roundToStep(base + direction * step, step);
+    if (min !== undefined) next = Math.max(min, next);
+    if (max !== undefined) next = Math.min(max, next);
+    field.onChange(next);
+  };
+
+  const seed = (event: React.SyntheticEvent<HTMLInputElement>) => {
+    seedSuggestedNumber(field, suggestedValue, event.currentTarget);
+  };
+
+  return (
+    <InputGroup className={className}>
+      <InputGroupAddon align="inline-start">
+        <InputGroupButton type="button" aria-label="Decrease" onClick={() => adjust(-1)}>
+          <Minus />
+        </InputGroupButton>
+      </InputGroupAddon>
+      <InputGroupInput
+        type="number"
+        inputMode="decimal"
+        step={step}
+        min={min}
+        max={max}
+        placeholder={placeholder}
+        value={(field.value as string | number | undefined) ?? ""}
+        onChange={(event) => field.onChange(event.target.value === "" ? undefined : event.target.value)}
+        onPointerDown={seed}
+        onFocus={seed}
+        className="text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+      />
+      <InputGroupAddon align="inline-end">
+        <InputGroupButton type="button" aria-label="Increase" onClick={() => adjust(1)}>
+          <Plus />
+        </InputGroupButton>
+      </InputGroupAddon>
+    </InputGroup>
+  );
 }
 
 export default function ShotForm() {
@@ -489,21 +586,21 @@ export default function ShotForm() {
               <FormField control={form.control} name="grindSetting" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Grind Setting</FormLabel>
-                  <FormControl><Input type="number" step="0.01" placeholder={defaultGrindSetting.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultGrindSetting, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultGrindSetting, event.currentTarget)} /></FormControl>
+                  <FormControl><NumberStepper field={field} step={0.01} placeholder={defaultGrindSetting.toString()} suggestedValue={defaultGrindSetting} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="grindTime" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Grind Time (s)</FormLabel>
-                  <FormControl><Input type="number" step="0.1" placeholder={defaultGrindTime.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultGrindTime, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultGrindTime, event.currentTarget)} /></FormControl>
+                  <FormControl><NumberStepper field={field} step={0.1} placeholder={defaultGrindTime.toString()} suggestedValue={defaultGrindTime} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="initialGrindWeight" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Initial Grinder Output (g)</FormLabel>
-                  <FormControl><Input type="number" step="0.1" placeholder={defaultDose.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} /></FormControl>
+                  <FormControl><NumberStepper field={field} step={0.1} placeholder={defaultDose.toString()} suggestedValue={defaultDose} /></FormControl>
                   <p className="text-xs text-muted-foreground">Grinder output before basket correction — not the final basket dose.</p>
                   <FormMessage />
                 </FormItem>
@@ -511,7 +608,7 @@ export default function ShotForm() {
               <FormField control={form.control} name="topUpGrind" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Top-Up Grind Added (g)</FormLabel>
-                  <FormControl><Input type="number" step="0.1" placeholder="0.1" {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, 0.1, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, 0.1, event.currentTarget)} /></FormControl>
+                  <FormControl><NumberStepper field={field} step={0.1} placeholder="0.1" suggestedValue={0.1} /></FormControl>
                   <p className="text-xs text-muted-foreground">Enter only the extra grams added, e.g. 0.5 — not the final basket dose.</p>
                   <FormMessage />
                 </FormItem>
@@ -519,21 +616,21 @@ export default function ShotForm() {
               <FormField control={form.control} name="timeAdj" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Top-Up Time Adj (s)</FormLabel>
-                  <FormControl><Input type="number" step="0.1" placeholder={String(defaultTopUpTime)} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultTopUpTime, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultTopUpTime, event.currentTarget)} /></FormControl>
+                  <FormControl><NumberStepper field={field} step={0.1} placeholder={String(defaultTopUpTime)} suggestedValue={defaultTopUpTime} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="temperature" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Temp (°C)</FormLabel>
-                  <FormControl><Input type="number" step="1" placeholder={defaultTemp.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultTemp, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultTemp, event.currentTarget)} /></FormControl>
+                  <FormControl><NumberStepper field={field} step={1} placeholder={defaultTemp.toString()} suggestedValue={defaultTemp} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="dose" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Target / Basket Dose (g)</FormLabel>
-                  <FormControl><Input type="number" step="0.1" placeholder={defaultDose.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} /></FormControl>
+                  <FormControl><NumberStepper field={field} step={0.1} placeholder={defaultDose.toString()} suggestedValue={defaultDose} /></FormControl>
                   <p className="text-xs text-muted-foreground">The final dose that ends up in the basket, after any top-up or trim.</p>
                   <FormMessage />
                 </FormItem>
@@ -564,28 +661,28 @@ export default function ShotForm() {
               <FormField control={form.control} name="pourDelay" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Pour Delay (s)</FormLabel>
-                  <FormControl><Input type="number" step="1" placeholder={latestShotDefaults?.pourDelay?.toString() ?? ""} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourDelay, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourDelay, event.currentTarget)} /></FormControl>
+                  <FormControl><NumberStepper field={field} step={1} placeholder={latestShotDefaults?.pourDelay?.toString() ?? ""} suggestedValue={latestShotDefaults?.pourDelay} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="pourTime" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Pour Time (s)</FormLabel>
-                  <FormControl><Input type="number" step="1" placeholder={latestShotDefaults?.pourTime?.toString() ?? ""} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourTime, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourTime, event.currentTarget)} /></FormControl>
+                  <FormControl><NumberStepper field={field} step={1} placeholder={latestShotDefaults?.pourTime?.toString() ?? ""} suggestedValue={latestShotDefaults?.pourTime} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="flowTime" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Flow Time (s)</FormLabel>
-                  <FormControl><Input type="number" step="1" placeholder={latestShotDefaults?.flowTime?.toString() ?? ""} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, latestShotDefaults?.flowTime, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, latestShotDefaults?.flowTime, event.currentTarget)} /></FormControl>
+                  <FormControl><NumberStepper field={field} step={1} placeholder={latestShotDefaults?.flowTime?.toString() ?? ""} suggestedValue={latestShotDefaults?.flowTime} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="yield" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Yield (g)</FormLabel>
-                  <FormControl><Input type="number" step="0.1" placeholder={defaultYield.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultYield, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultYield, event.currentTarget)} /></FormControl>
+                  <FormControl><NumberStepper field={field} step={0.1} placeholder={defaultYield.toString()} suggestedValue={defaultYield} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -600,23 +697,18 @@ export default function ShotForm() {
                 <FormItem>
                   <FormLabel className="flex items-center justify-between">
                     <span>Rating <span className="text-muted-foreground text-xs font-normal">(0.05 increments)</span></span>
-                    <span className="font-bold text-primary tabular-nums text-lg">{field.value?.toFixed(2) ?? "—"}</span>
+                    <span className="font-bold text-primary tabular-nums text-lg">{asNumber(field.value)?.toFixed(2) ?? "—"}</span>
                   </FormLabel>
                   <div className="flex gap-3 items-center">
                     <FormControl>
                       <Slider
                         min={0} max={10} step={0.05}
-                        value={[field.value ?? 7]}
+                        value={[asNumber(field.value) ?? 7]}
                         onValueChange={(v) => field.onChange(Math.round(v[0] * 100) / 100)}
                         className="flex-1"
                       />
                     </FormControl>
-                    <Input
-                      type="number" min={0} max={10} step={0.05}
-                      value={field.value ?? ""}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                      className="w-20 text-right tabular-nums"
-                    />
+                    <NumberStepper field={field} step={0.05} min={0} max={10} suggestedValue={7} className="w-36" />
                   </div>
                   <FormMessage />
                 </FormItem>
@@ -626,7 +718,7 @@ export default function ShotForm() {
                 <FormItem>
                   <FormLabel className="flex items-center justify-between">
                     <span>Preference Rating <span className="text-muted-foreground text-xs font-normal">optional</span></span>
-                    {field.value != null && <span className="font-bold tabular-nums">{field.value.toFixed(2)}</span>}
+                    {asNumber(field.value) != null && <span className="font-bold tabular-nums">{asNumber(field.value)!.toFixed(2)}</span>}
                   </FormLabel>
                   <p className="text-xs text-muted-foreground">
                     Personal preference can reach 11 for a rare once-in-a-blue-moon shot. Technical rating stays capped at 10.
@@ -635,17 +727,12 @@ export default function ShotForm() {
                     <FormControl>
                       <Slider
                         min={0} max={11} step={0.05}
-                        value={[field.value ?? 0]}
+                        value={[asNumber(field.value) ?? 0]}
                         onValueChange={(v) => field.onChange(Math.round(v[0] * 100) / 100)}
                         className="flex-1"
                       />
                     </FormControl>
-                    <Input
-                      type="number" min={0} max={11} step={0.05}
-                      value={field.value ?? ""}
-                      onChange={(e) => { const v = e.target.value === "" ? undefined : parseFloat(e.target.value); field.onChange(v); }}
-                      className="w-20 text-right tabular-nums"
-                    />
+                    <NumberStepper field={field} step={0.05} min={0} max={11} className="w-36" />
                   </div>
                   <FormMessage />
                 </FormItem>

@@ -561,3 +561,32 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 
 - `Grind Setting` precision/step still cannot be equipment-aware (fixed at `0.01`) because `Log Shot` has no grinder selector to know which grinder's `grindSettingPrecision`/`grindStepIncrement` applies. This is the same underlying gap already on record above (no machine/grinder selector in `Log Shot`) and should be resolved together with it, not patched separately.
 - `Grind Waste` still has no real computed default (no `settings.defaultGrindWaste` or equivalent exists) — its field is now honestly empty rather than misleadingly pre-filled-looking, but there is no "smart" default to offer here yet.
+
+# Mobile-Friendly Number Controls For Log Shot — 2026-08-25
+
+## Completed
+
+- Added a reusable `NumberStepper` component to `ShotForm.tsx` (`−  value  +`) built on the existing, previously-unused `InputGroup`/`InputGroupAddon`/`InputGroupButton`/`InputGroupInput` primitives in `components/ui/input-group.tsx`, so no new UI primitives were introduced. Native number-input spin buttons are hidden via `appearance:textfield` (and the WebKit inner/outer spin-button selectors) so there is exactly one set of increment controls on any platform, not a redundant native+custom pair on desktop.
+- Applied it to all 13 requested `Log Shot` fields: Grind Setting, Grind Time, Initial Grinder Output, Top-Up Grind Added, Top-Up Time Adj, Target/Basket Dose, Pour Delay, Pour Time, Flow Time, Yield, Temp, Rating, and Preference Rating — using the exact increments specified (0.01 / 0.1 / 1 / 0.05 as applicable) and respecting existing min/max (Rating 0–10, Preference Rating 0–11). `Grind Waste` was intentionally left as a plain input — it was not in the requested field list.
+- The +/- buttons compute their own base value (`current field value → suggested/default value → 0`) directly in JS rather than relying on any native browser stepper behavior, so they are not subject to the earlier native-spinner seeding race condition at all — a strictly more robust mechanism than the desktop-only fix from the previous session. Confirmed the resulting layout visually (a static render of the exact class/DOM structure against the real production CSS) before finishing: renders as a clean `−  18  +` row with no visual bulk.
+- For Rating/Preference Rating specifically, kept the existing Slider (still useful for touch drag) alongside the new stepper, replacing only the small plain number input that sat beside it.
+- Found and fixed a latent type-safety gap this change would otherwise have exposed: `NumberStepper` preserves raw typed strings while the user is typing (matching the pre-existing behavior of the plain inputs it replaces, which avoids the input fighting a user typing a trailing "." or "0"), but Rating/Preference Rating's own display code called `.toFixed()` directly on `field.value` and fed it straight into the Slider's `value` prop, both of which assumed a number. Added a small `asNumber()` helper and used it at all four call sites so display/Slider math is safe regardless of whether the field currently holds a string or a number.
+- Preserved all existing validation and submit behavior: `NumberStepper`'s typing path stores the same raw value shape RHF/zod already expected before this change, and `onSubmit` still runs through the existing `zodResolver`/`z.coerce.number()` path unchanged.
+- Did not touch Quick Log, schemas, APIs, migrations, or add any machine/grinder selector or equipment-aware precision.
+
+## Verified
+
+- Workspace typecheck passed.
+- API/Phase 1.5 test suite passed: 42 passed, 0 failed (no test changes needed — this is a UI control swap with no behavior/contract change).
+- Render production build passed.
+- Visually confirmed the composed stepper's rendering (icons, spacing, hidden native spinner) using the actual built CSS in a real Chrome tab, since this session introduced genuinely new UI rather than only fixing existing logic.
+
+## Assumptions
+
+- Reusing the existing (previously unused anywhere in the app) `InputGroup*` primitives satisfies "create or reuse a small number-control component" better than writing bespoke markup, since it stays consistent with the app's established shadcn component system.
+- Hiding the native number-input spinner is in scope of "keep it clean and not visually bulky" — showing both native and custom controls side by side on desktop would be redundant and cluttered.
+- Rounding increments to the step's own decimal precision (e.g. 0.01 steps round to 2 decimals) prevents floating-point drift (e.g. `18 + 0.1 + 0.1 = 18.2`, not `18.199999999999996`) without inventing a new precision rule — it mirrors the step values already specified.
+
+## Unresolved
+
+- None new. The existing `Grind Setting` equipment-precision limitation and the missing `Log Shot` machine/grinder selector (both logged above) are unchanged by this session.
