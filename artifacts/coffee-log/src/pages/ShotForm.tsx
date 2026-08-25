@@ -354,6 +354,7 @@ export default function ShotForm() {
   const [showPreviousBags, setShowPreviousBags] = useState(false);
   const [showAdvancedEvaluation, setShowAdvancedEvaluation] = useState(false);
   const [recordGrindWaste, setRecordGrindWaste] = useState(false);
+  const [showTasteLater, setShowTasteLater] = useState(false);
 
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
@@ -380,8 +381,8 @@ export default function ShotForm() {
       dose: 18,
       yield: 36,
       temperature: 94,
-      rating: 7,
-      rated: true,
+      rating: undefined,
+      rated: undefined,
       isForOthers: false,
       drinkType: undefined,
       finishedShot: undefined,
@@ -423,6 +424,11 @@ export default function ShotForm() {
       (existingShot.expressionStyle?.length ?? 0) > 0 ||
       (existingShot.beanAchievement?.length ?? 0) > 0 ||
       (existingShot.shotClassification?.length ?? 0) > 0;
+    const hasTasteLaterData =
+      existingShot.rating != null ||
+      existingShot.preferenceRating != null ||
+      Boolean(existingShot.tasteZone) ||
+      Boolean(existingShot.sensoryNotes);
     form.reset({
       shotDate: existingShot.shotDate ? toDateTimeLocal(existingShot.shotDate) : nowDateTimeLocal(),
       bagId: existingShot.bagId ?? undefined,
@@ -469,7 +475,16 @@ export default function ShotForm() {
       (existingShot.faultStatus ?? []).includes("Grind Waste Intentional"),
     );
     setShowAdvancedEvaluation(hasAdvancedEvaluation);
+    if (hasTasteLaterData) setShowTasteLater(true);
   }, [existingShot, isEditing, form]);
+
+  // existingTasteSelectors loads via its own query, separate from existingShot,
+  // so a shot whose only "Taste Later" evidence is taste-selector tags (no
+  // rating/tasteZone/sensoryNotes) needs its own check once those arrive.
+  useEffect(() => {
+    if (!isEditing) return;
+    if (existingTasteSelectors.length > 0) setShowTasteLater(true);
+  }, [existingTasteSelectors, isEditing]);
 
   useEffect(() => {
     if (isEditing || !settings?.defaultDrinkType) return;
@@ -706,117 +721,159 @@ export default function ShotForm() {
           {/* Extraction */}
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Extraction</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <FormField control={form.control} name="grindSetting" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Grind Setting</FormLabel>
-                  <FormControl><NumberStepper field={field} step={0.01} placeholder={defaultGrindSetting.toString()} suggestedValue={defaultGrindSetting} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="grindTime" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Grind Time (s)</FormLabel>
-                  <FormControl><NumberStepper field={field} step={0.1} placeholder={defaultGrindTime.toString()} suggestedValue={defaultGrindTime} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="initialGrindWeight" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Initial Grinder Output (g)</FormLabel>
-                  <FormControl><NumberStepper field={field} step={0.1} placeholder={defaultDose.toString()} suggestedValue={defaultDose} /></FormControl>
-                  <p className="text-xs text-muted-foreground">Grinder output before basket correction — not the final basket dose.</p>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="topUpGrind" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Top-Up Grind Added (g)</FormLabel>
-                  <FormControl><NumberStepper field={field} step={0.1} placeholder="0.1" suggestedValue={0.1} /></FormControl>
-                  <p className="text-xs text-muted-foreground">Enter only the extra grams added, e.g. 0.5 — not the final basket dose.</p>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="timeAdj" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Top-Up Time Adj (s)</FormLabel>
-                  <FormControl><NumberStepper field={field} step={0.1} placeholder={String(defaultTopUpTime)} suggestedValue={defaultTopUpTime} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="temperature" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Temp (°C)</FormLabel>
-                  <FormControl><Input type="number" step="1" placeholder={defaultTemp.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultTemp, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultTemp, event.currentTarget)} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="dose" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Target / Basket Dose (g)</FormLabel>
-                  <FormControl><Input type="number" step="0.1" placeholder={defaultDose.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} /></FormControl>
-                  <p className="text-xs text-muted-foreground">The final dose that ends up in the basket, after any top-up or trim.</p>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              {correctionPreview.doseCorrectionType && (
-                <div className="rounded-md border bg-muted/40 p-3 text-sm sm:col-span-3">
-                  <p className="font-medium">Dose correction: {correctionPreview.doseCorrectionType}</p>
-                  {correctionPreview.overGrindRemoved != null && (
-                    <p className="text-muted-foreground">Remove {correctionPreview.overGrindRemoved}g to reach target dose.</p>
-                  )}
-                  {correctionPreview.topUpGrind != null && (
-                    <p className="text-muted-foreground">
-                      Top up {correctionPreview.topUpGrind}g to reach target dose
-                      {correctionPreview.timeAdj != null ? ` using ${correctionPreview.timeAdj}s.` : "."}
-                    </p>
-                  )}
-                  {correctionPreview.doseCorrectionType === "Under → Top-Up" && correctionPreview.topUpGrind == null && (
-                    <p className="text-muted-foreground">
-                      Enter Top-Up Grind grams if used
-                      {correctionPreview.timeAdj != null ? `; time defaults to ${correctionPreview.timeAdj}s if blank.` : "."}
-                    </p>
-                  )}
-                  {correctionPreview.doseCorrectionType === "None" && (
-                    <p className="text-muted-foreground">Initial output matches target dose.</p>
+            <CardContent className="space-y-6">
+
+              {/* Grind & Dose */}
+              <div>
+                <p className="text-sm font-semibold text-muted-foreground mb-1">Grind & Dose</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Initial Grinder Output is what the grinder produced, before correction. Top-Up Grind Added is
+                  extra grams added, not the final dose. BSE compares those against Target / Basket Dose below
+                  to work out any top-up or over-grind trim automatically.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <FormField control={form.control} name="grindSetting" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Grind Setting</FormLabel>
+                      <FormControl><NumberStepper field={field} step={0.01} placeholder={defaultGrindSetting.toString()} suggestedValue={defaultGrindSetting} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="grindTime" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Grind Time (s)</FormLabel>
+                      <FormControl><NumberStepper field={field} step={0.1} placeholder={defaultGrindTime.toString()} suggestedValue={defaultGrindTime} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="initialGrindWeight" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Initial Grinder Output (g)</FormLabel>
+                      <FormControl><Input type="number" step="0.1" placeholder={defaultDose.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} /></FormControl>
+                      <p className="text-xs text-muted-foreground">Before basket correction — not the final basket dose.</p>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="topUpGrind" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Top-Up Grind Added (g)</FormLabel>
+                      <FormControl><Input type="number" step="0.1" placeholder="0.1" {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, 0.1, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, 0.1, event.currentTarget)} /></FormControl>
+                      <p className="text-xs text-muted-foreground">Extra grams added, e.g. 0.5 — not the final basket dose.</p>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="timeAdj" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Top-Up Time Adj (s)</FormLabel>
+                      <FormControl><Input type="number" step="0.1" placeholder={String(defaultTopUpTime)} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultTopUpTime, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultTopUpTime, event.currentTarget)} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="temperature" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Temp (°C)</FormLabel>
+                      <FormControl><Input type="number" step="1" placeholder={defaultTemp.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultTemp, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultTemp, event.currentTarget)} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="dose" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Target / Basket Dose (g)</FormLabel>
+                      <FormControl><Input type="number" step="0.1" placeholder={defaultDose.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} /></FormControl>
+                      <p className="text-xs text-muted-foreground">The final dose that ends up in the basket, after any top-up or trim.</p>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  {correctionPreview.doseCorrectionType && (
+                    <div className="rounded-md border bg-muted/40 p-3 text-sm sm:col-span-3">
+                      <p className="font-medium">Dose correction: {correctionPreview.doseCorrectionType}</p>
+                      {correctionPreview.overGrindRemoved != null && (
+                        <p className="text-muted-foreground">Remove {correctionPreview.overGrindRemoved}g to reach target dose (calculated from Initial Grinder Output over Target Dose).</p>
+                      )}
+                      {correctionPreview.topUpGrind != null && (
+                        <p className="text-muted-foreground">
+                          Top up {correctionPreview.topUpGrind}g to reach target dose
+                          {correctionPreview.timeAdj != null ? ` using ${correctionPreview.timeAdj}s.` : "."}
+                        </p>
+                      )}
+                      {correctionPreview.doseCorrectionType === "Under → Top-Up" && correctionPreview.topUpGrind == null && (
+                        <p className="text-muted-foreground">
+                          Enter Top-Up Grind grams if used
+                          {correctionPreview.timeAdj != null ? `; time defaults to ${correctionPreview.timeAdj}s if blank.` : "."}
+                        </p>
+                      )}
+                      {correctionPreview.doseCorrectionType === "None" && (
+                        <p className="text-muted-foreground">Initial output matches target dose.</p>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-              <FormField control={form.control} name="pourDelay" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Pour Delay (s)</FormLabel>
-                  <FormControl><NumberStepper field={field} step={1} placeholder={latestShotDefaults?.pourDelay?.toString() ?? ""} suggestedValue={latestShotDefaults?.pourDelay} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="pourTime" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Pour Time (s)</FormLabel>
-                  <FormControl><NumberStepper field={field} step={1} placeholder={latestShotDefaults?.pourTime?.toString() ?? ""} suggestedValue={latestShotDefaults?.pourTime} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="flowTime" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Flow Time (s)</FormLabel>
-                  <FormControl><NumberStepper field={field} step={1} placeholder={latestShotDefaults?.flowTime?.toString() ?? ""} suggestedValue={latestShotDefaults?.flowTime} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="yield" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Yield (g)</FormLabel>
-                  <FormControl><NumberStepper field={field} step={0.1} placeholder={defaultYield.toString()} suggestedValue={defaultYield} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              </div>
+
+              {/* Extraction Timing */}
+              <div>
+                <p className="text-sm font-semibold text-muted-foreground mb-3">Extraction Timing</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <FormField control={form.control} name="pourDelay" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pour Delay (s)</FormLabel>
+                      <FormControl><Input type="number" step="1" placeholder={latestShotDefaults?.pourDelay?.toString() ?? ""} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourDelay, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourDelay, event.currentTarget)} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="pourTime" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pour Time (s)</FormLabel>
+                      <FormControl><Input type="number" step="1" placeholder={latestShotDefaults?.pourTime?.toString() ?? ""} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourTime, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, latestShotDefaults?.pourTime, event.currentTarget)} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="flowTime" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Flow Time (s)</FormLabel>
+                      <FormControl><Input type="number" step="1" placeholder={latestShotDefaults?.flowTime?.toString() ?? ""} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, latestShotDefaults?.flowTime, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, latestShotDefaults?.flowTime, event.currentTarget)} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+              </div>
+
+              {/* Output */}
+              <div>
+                <p className="text-sm font-semibold text-muted-foreground mb-3">Output</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <FormField control={form.control} name="yield" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Yield (g)</FormLabel>
+                      <FormControl><Input type="number" step="0.1" placeholder={defaultYield.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultYield, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultYield, event.currentTarget)} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+              </div>
+
             </CardContent>
           </Card>
 
-          {/* Evaluation — ratings + taste */}
+          {/* Taste Later — ratings + taste, optional now, add after tasting */}
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-base">Evaluation</CardTitle></CardHeader>
-            <CardContent className="space-y-5">
+            <CardHeader className="pb-3">
+              <button
+                type="button"
+                onClick={() => setShowTasteLater((v) => !v)}
+                className="flex w-full items-center justify-between text-left"
+              >
+                <div>
+                  <CardTitle className="text-base">Taste Later</CardTitle>
+                  <p className="text-xs font-normal text-muted-foreground mt-1">
+                    Optional — save your extraction data now and come back to rate it after tasting.
+                  </p>
+                </div>
+                {showTasteLater ? <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />}
+              </button>
+            </CardHeader>
+            {showTasteLater && (
+            <CardContent className="space-y-5 animate-in fade-in slide-in-from-top-1 duration-200">
               <FormField control={form.control} name="rating" render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center justify-between">
@@ -909,6 +966,7 @@ export default function ShotForm() {
                 </FormItem>
               )} />
             </CardContent>
+            )}
           </Card>
 
           {/* Shot Evaluation */}
@@ -971,6 +1029,7 @@ export default function ShotForm() {
                     <FormItem>
                       <FormLabel>Grind Waste (g)</FormLabel>
                       <FormControl><Input type="number" step="0.1" min="0" {...field} value={field.value ?? ""} /></FormControl>
+                      <p className="text-xs text-muted-foreground">A workflow event, not part of the brewed basket dose or extraction yield.</p>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -1182,17 +1241,22 @@ export default function ShotForm() {
                 )}
               </div>
 
-              {/* Notes */}
+            </CardContent>
+          </Card>
+
+          {/* Notes */}
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Notes</CardTitle></CardHeader>
+            <CardContent>
               <FormField control={form.control} name="notes" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel>Notes <span className="text-muted-foreground text-xs font-normal">optional</span></FormLabel>
                   <FormControl>
                     <Textarea placeholder="Anything worth noting about this shot…" className="min-h-[80px]" {...field} value={field.value ?? ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
-
             </CardContent>
           </Card>
 

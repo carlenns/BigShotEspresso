@@ -815,3 +815,74 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 - No live smoke test performed (see above) — recommend one before shipping, specifically confirming the Dashboard "Active Hopper Status" panel and the Bags-page phase badge (both built in an earlier session) correctly pick up the newly-created hopper row without any further changes needed (they should, since both already key off `useListHoppers()` filtered by `isActive && bagId`).
 - Same-day duplicate-phase-name collisions are not specially handled (see Assumptions) — low risk, but worth deciding whether a friendlier error message is warranted later.
 - Hopper top-up and lifecycle-event workflows remain explicitly out of scope, per the task boundary and the standing plan document.
+
+# Bag/Hopper Lifecycle Work Package: Start Hopper Phase UX, Status Cues, Closeout Copy — 2026-08-25
+
+## Completed
+
+### 1. Start Hopper Phase UX
+- **Mobile**: `BagRow`'s action row now wraps (`flex flex-wrap items-center gap-3`) instead of forcing everything into one unbreakable row, and the outer bean-info/actions split stacks vertically below `sm` (`flex flex-col sm:flex-row`). Shortened the trigger button label from "Start Hopper Phase" to "Start Phase" so it doesn't crowd the row next to "Close" and the edit/chevron icon buttons — the dialog title itself still reads "Start Hopper Phase" in full. The dialog's own layout (`max-w-md max-h-[90vh] overflow-y-auto`, single-column stacked fields, `DialogFooter`'s existing `flex-col-reverse sm:flex-row` stacking) was already mobile-safe from the prior session and needed no change.
+- **Prefill**: Starting Beans / Phase Baseline is now prefilled from `bag.bagWeight` only when this is genuinely the bag's *first* hopper phase (`!hoppers.some(h => h.bagId === bag.id)`) and `bagWeight` is known. This is the only case where "safe and obvious" holds — once a bag already has phase history, BSE has no tracked figure for how much was actually depleted between phases, so guessing would misrepresent evidence. Editing the field (or opening the dialog when the prefill condition doesn't hold) clears/skips the prefill and shows different helper text explaining why nothing was filled in.
+- Preserved the approved-phase-only list and the exact `Bag #{bagNumber} — {phase} — {YYYY-MM-DD}` name format unchanged from the previous session.
+
+### 2. Active bag / hopper status cues (Bags page)
+- Active-bag visibility (the `Active` badge + `border-primary/50 bg-primary/5` card styling) already existed from an earlier session and was left as-is — it already reads as "obvious."
+- New: when an active bag has **no** active hopper phase, `BagRow` now shows an inline, non-blocking cue — `"No active hopper phase — start one"` as a small dotted-underline text button in the badge row — that opens the same Start Hopper Phase dialog `onStartPhase` already wires up. It's plain inline text, not a disabled/blocking control, and sits right where the `Hopper: {phase}` badge would otherwise appear.
+
+### 3. Bag closeout copy
+- Expanded the single-sentence amber note in the Close Out Bag dialog into four short lines explicitly covering: (a) the closed-out date marks the bag inactive, (b) the remaining-beans estimate is reconciliation evidence only and does not rewrite past shot consumption, (c) closeout notes are saved to the bag record, and (d) maintenance/purge-waste/hopper-cleanout are not yet their own lifecycle events, and that closing a bag does **not** automatically close its active hopper phase. No new fields were added — same three existing inputs (`closedOutDate`, `remainingEstimate`, `reconciliationNotes`) feed all four points.
+
+### 4. Documentation
+- No wording gap found in `docs/implementation/bag-hopper-lifecycle-plan.md` that this package's changes contradict or require updating — the prefill behavior is a literal copy of `bagWeight` (no formula/calculation), consistent with the plan's "do not calculate hopper percentage locally until the formula is approved" rule. Left that file untouched.
+- Added one new regression test to `artifacts/api-server/src/api-contract.test.ts` covering the prefill condition, the non-blocking status cue, the four closeout-copy points, and the mobile wrap classes.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (workspace-wide).
+- `CI=true pnpm --filter @workspace/api-server test` — 46/46 passed, 0 failed (45 pre-existing + 1 new).
+- `CI=true pnpm run build:render` — build succeeded.
+- Not run: a live Postgres-backed browser smoke test (same environment limitation as every prior session in this thread — no running app instance available). Verified via source inspection and the new regression test instead. Recommend confirming the mobile wrap/stacking and the prefill behavior visually before shipping.
+
+## Assumptions
+
+- "Safe and obvious" prefill was interpreted narrowly (first-phase-for-this-bag only) rather than broadly (e.g., prefilling from a prior phase's baseline minus some estimate), since any broader interpretation would require inventing a depletion estimate the app doesn't track — explicitly disallowed by the task boundary ("do not implement hopper formulas").
+- The "no active hopper phase" cue text intentionally does not use amber/warning styling as strong as the multi-active-bags warning in the dialog — it's a gentle nudge (informational), not a warning about a problem, per the requirement that it stay "informational, not blocking."
+- Shortening the BagRow button label to "Start Phase" (from "Start Hopper Phase") is a mobile-readability tradeoff; the full phrase remains in the dialog title and the inline status-cue text, so the feature's full name is still discoverable.
+
+## Unresolved
+
+- No live smoke test performed (see above).
+- `docs/implementation/bag-hopper-lifecycle-plan.md` was reviewed but not changed — flagging in case a reviewer disagrees that the prefill behavior needs no documentation update.
+- Everything previously unresolved (same-day duplicate hopper-name collisions, no hard one-active-bag rule, top-up/lifecycle-event workflows) remains unresolved and out of scope, unchanged by this package.
+
+# Log Shot Mobile-First Usability Package — 2026-08-25
+
+## Completed
+
+- Reorganized `ShotForm.tsx`'s Extraction card into three labeled sub-groups within the same card — "Grind & Dose," "Extraction Timing," "Output" — rather than three separate top-level Cards, to avoid trading stepper density for card-chrome density. Field order within each group is unchanged from before (Pour Delay → Pour Time → Flow Time → Yield was already the existing order; no reorder was actually needed there, only relabeling into named groups).
+- Reduced stepper density: kept `NumberStepper` only on Grind Setting and Grind Time (the two fields a user genuinely nudges from a remembered baseline while dialing in a grinder). Reverted Initial Grinder Output, Top-Up Grind Added, Top-Up Time Adj, Pour Delay, Pour Time, Flow Time, and Yield to plain `<Input type="number">`, using the exact seed-on-focus/pointerdown pattern already established for Temp and Target/Basket Dose in the prior "Mobile Stepper UI Refinement" session — these are values typically read once off a scale or timer, not nudged incrementally.
+- Added a persistent explanatory caption at the top of "Grind & Dose" describing how Initial Grinder Output, Top-Up Grind Added, and Target/Basket Dose relate (no new formula — this describes the existing `calculateDoseCorrection` behavior in plain language). Tightened the existing over-grind-removed correction-preview line to say it's "calculated from Initial Grinder Output over Target Dose." Added a caption on the Grind Waste input itself (previously the only one of the four dose/waste fields without its own caption), reusing the exact wording already established in `ShotDetail.tsx`'s "Grinder / Workflow Event" section ("not part of the brewed basket dose or extraction yield") rather than inventing new phrasing.
+- Renamed the "Evaluation" card to "Taste Later" and made it collapsible (reusing the same conditional-render pattern already shipped for "Advanced tags"), collapsed by default for a new shot with a one-line hint ("Optional — save your extraction data now and come back to rate it after tasting"). On edit, it auto-expands whenever the shot already has any taste-later evidence (`rating`, `preferenceRating`, `tasteZone`, `sensoryNotes`, or existing taste-selector tags) — the taste-selector check is a separate effect from the main `existingShot` reset effect, since `existingTasteSelectors` loads via its own query not in that effect's dependency array, and adding it there would have re-run `form.reset(...)` whenever the selectors query resolved.
+- New shots no longer silently default to a hidden `7/10` rating while "Taste Later" is collapsed. The slider still opens at 7 as a neutral starting point when a user chooses to rate, but untouched new shots remain unrated until the user records a rating.
+- Moved the general `notes` field out of "Shot Evaluation" into its own standalone "Notes" card at the end, matching the requested section list. Shot Status, Fault Status, grind-waste checkbox/field, Flags, Serving Context, the analysis-eligibility banner, and "Advanced tags" all stay in "Shot Evaluation," unchanged in position — none of these were reclassified into "Taste Later," since they're assessable at/near pour time, not solely dependent on drinking.
+- Did not change `Include in Analysis`, Reference/Signature/Sour logic, the dose-correction formula, any selector value list, or `NULLABLE_ON_EDIT_FIELDS`. Did not touch schemas, APIs, OpenAPI, generated clients, or Quick Log. Did not add any new form field — every field that existed before this change still exists and still submits/clears exactly as before; only its input control, grouping, label, and caption changed.
+- Reviewed `docs/implementation/release-candidate-checklist.md`'s Gate 0.5 claim that Log Shot "is now mobile-friendly" and `docs/product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md` for anything this package would make inaccurate — found nothing that needed correcting (this change makes the existing mobile-friendly claim more true, not less), so neither file was edited.
+
+## Verified
+
+- Workspace typecheck passed (all 4 projects).
+- API/Phase 1.5 test suite passed: 46 passed, 0 failed (no test changes needed — this is a UI control/grouping change with no contract change, consistent with how the two prior mobile-stepper sessions verified).
+- Render production build passed.
+- Live smoke test against the real dev DB using Chrome automation (not assumed): created a new shot, confirmed Grind Setting/Grind Time render as steppers and the other 7 fields render as plain inputs with working seed-on-focus placeholders; confirmed "Taste Later" starts collapsed on a new shot; expanded it, set a Rating and a distinctive Sensory Note, collapsed it again *before* submitting, and confirmed via the saved Shot Detail page that both values were still submitted correctly — this directly verifies React Hook Form retains field values across the section's mount/unmount cycle (the specific risk flagged as needing real verification, not assumption, in the preceding planning review). Also confirmed that re-opening that same shot for edit auto-expanded "Taste Later" since it now had rating/sensory-note data. Deleted the test shot afterward.
+
+## Assumptions
+
+- The Grind Setting/Grind Time-keep-stepper split was implemented as recommended in the preceding planning review, not re-confirmed with Carl directly first (the planning review flagged this as needing his direct confirmation, matching how Temp/Dose were handled last time) — this should be treated as provisional pending that confirmation, not a finalized product decision.
+- "Extraction Timing" and "Output" are sub-labeled groups within the existing "Extraction" Card, not separate top-level Cards — the task's section-name list could be read either way; fewer full Cards was chosen to avoid adding card-chrome weight while removing stepper weight.
+- Serving Context (Drink Type, For Others, Not Rated, Did Not Finish) stayed in "Shot Evaluation" rather than being reclassified into "Taste Later" — flagged as a straddling case in planning, resolved conservatively (no field moved) rather than guessed.
+
+## Unresolved
+
+- Whether Grind Time should also revert to plain input (only Grind Setting definitely keeps it) is still an open judgment call needing Carl's direct input, not resolved here.
+- The hidden default-rating issue flagged during review has been corrected in this commit: new shots start with blank `rating`/`rated` values unless the user explicitly records taste data.
+- No changes were made to `release-candidate-checklist.md` or the onboarding doc; if a reviewer finds a specific sentence that now reads as inaccurate, it was not caught by this review.
