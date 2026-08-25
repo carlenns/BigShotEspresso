@@ -779,3 +779,39 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 
 - Same as before: no live Postgres-backed browser smoke test performed in this session; recommended before shipping.
 - No other known instances of this bug pattern remain in `ShotForm.tsx`'s submit path as of this session's inspection.
+
+# Bag Lifecycle Slice: Start Hopper Phase — 2026-08-25
+
+## Chosen hopper name format
+
+`Bag #{bagNumber} — {phase} — {YYYY-MM-DD}`, e.g. `Bag #12 — Phase 2 — 2026-08-25` — exactly the format suggested in the task brief. `{bagNumber}` falls back to the bag's numeric `id` if `bagNumber` is unset (matching the existing display convention already used elsewhere on this page, e.g. `#{bag.bagNumber ?? bag.id}`). `{phase}` is always one of the six approved labels (never free text, see below).
+
+## Completed
+
+- Added a "Start Hopper Phase" action, visible only on active bags in `artifacts/coffee-log/src/pages/Bags.tsx`, next to the existing "Close" action. Opens a dialog (same `Dialog`/`DialogContent max-w-md max-h-[90vh] overflow-y-auto` pattern already used by the Closeout dialog on this page).
+- Dialog fields: Phase (`Select`, restricted to `HOPPER_PHASE_OPTIONS = ["Phase 1", "Phase 2", "Phase 3", "End of Bag", "Single Bag Phase", "Custom"]` — `Grinder Cleanout` is explicitly not offered, per `docs/implementation/bag-hopper-lifecycle-plan.md`'s resolved decision that it's a lifecycle/workflow event type, not a Hopper phase), Starting Beans / Phase Baseline (g, optional numeric), Notes (optional). A "Custom Phase Label" field appears only when Phase = Custom.
+- Validation: if Phase = Custom, either the Custom Phase Label or Notes must be non-empty (checked in the mutation before the request is sent, mirroring this file's existing pattern of validating inside `mutationFn` and throwing to trigger `onError`). The `phase` value sent to the API is always one of the six approved literal labels — it is never overwritten with free text, keeping phase evidence structured. A typed custom label is instead folded into `notes` as `"Custom: {label}."` so the elaboration is preserved without polluting the approved-label field.
+- On submit: `POST /api/hoppers` (existing endpoint, no API/schema changes) with `{ name, bagId, isActive: true, phase, startingBeans?, notes? }`. Relies entirely on the existing, already-transactional "deactivate any other active hopper for this bag" behavior in that route — no new logic was added server-side. `hopperMass`, `hopperPercent`, and `shotsLeftEstimate` are never set from the client (they're `readOnly` in the API contract, computed elsewhere) — no hopper formula was implemented or invented.
+- Non-blocking warning: if more than one bag is currently active (`activeBags.length > 1`), the dialog shows an amber informational banner. It does not disable the Start Phase button and no hard one-active-bag database rule was added, per the explicit requirement.
+- Explanatory copy in the dialog states hopper phases are "a measured operating window ... not a count of every bean physically left in the hopper or bag" and that "unmeasured leftover beans can be intentionally left out of this baseline," per the required UI copy.
+- Updated one existing sentence in the page's "Bag Lifecycle Flow" card (`Launch-safe note: ...`) to reflect that starting a hopper phase is now available today, not just closeout — small copy-only change, kept the "Dedicated lifecycle events..." phrase the existing regression test asserts on.
+- Added one new regression test to `artifacts/api-server/src/api-contract.test.ts` asserting: the approved-only phase list (and absence of "Grinder Cleanout"), the Custom-requires-label-or-notes check, reuse of the existing `POST /api/hoppers` endpoint with `isActive: true`, the exact documented name format, the non-blocking (not `disabled`-gated) multi-active-bag warning, and the required explanatory copy.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (workspace-wide).
+- `CI=true pnpm --filter @workspace/api-server test` — 45/45 passed, 0 failed (44 pre-existing + 1 new; the two prior "Shot Edit Reliability" tests are unaffected since this task touched neither the API contract nor `ShotForm.tsx`).
+- `CI=true pnpm run build:render` — build succeeded.
+- Not run: a live Postgres-backed browser smoke test of actually starting a phase, seeing the Dashboard/Bags-badge hopper status update, and confirming a same-day duplicate phase name is handled gracefully — no running app instance was available in this environment, same limitation as the previous two sessions. Verified via source/contract inspection and the new regression test instead.
+
+## Assumptions
+
+- The `hoppers.name` column has a database-level `UNIQUE` constraint (confirmed by reading `lib/db/src/schema/hopper.ts`). If a user starts the same phase for the same bag twice on the same day, the second `POST /api/hoppers` will fail with a Postgres unique-violation, surfaced via this page's existing generic `onError: (e) => toast({ ..., description: String(e) })` pattern (same as `saveMutation`/`closeBagMutation` already do for their own errors) — not a new failure mode, just an un-prettified one. Not specially handled, since inventing retry/dedup logic wasn't requested and would have expanded scope.
+- A typed Custom label is stored in `notes` (prefixed `"Custom: {label}."`) rather than replacing the `phase` value, so that `phase` always remains one of the six approved literal strings — interpreted "Use only approved Hopper phase labels" as a hard constraint on the `phase` column specifically, not on where elaborating text can live.
+- "Another bag is already active" was read as "more than one row in `bags` currently has `isActive = true`" (the documented, currently-unenforced invariant), not anything about hoppers.
+
+## Unresolved
+
+- No live smoke test performed (see above) — recommend one before shipping, specifically confirming the Dashboard "Active Hopper Status" panel and the Bags-page phase badge (both built in an earlier session) correctly pick up the newly-created hopper row without any further changes needed (they should, since both already key off `useListHoppers()` filtered by `isActive && bagId`).
+- Same-day duplicate-phase-name collisions are not specially handled (see Assumptions) — low risk, but worth deciding whether a friendlier error message is warranted later.
+- Hopper top-up and lifecycle-event workflows remain explicitly out of scope, per the task boundary and the standing plan document.

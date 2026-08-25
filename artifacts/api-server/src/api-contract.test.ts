@@ -405,6 +405,38 @@ test("large setup dialogs stay scrollable inside small windows", async () => {
   }
 });
 
+test("Start Hopper Phase uses only approved phase labels via the existing Hopper API", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // Only the approved, launch-documented phase labels may be offered.
+  assert.match(source, /HOPPER_PHASE_OPTIONS = \["Phase 1", "Phase 2", "Phase 3", "End of Bag", "Single Bag Phase", "Custom"\]/);
+  assert.doesNotMatch(source, /Grinder Cleanout/);
+
+  // Custom must require a custom label or notes explaining it.
+  assert.match(source, /phase === "Custom" && !customLabel && !notes/);
+
+  // Must reuse the existing POST /api/hoppers endpoint (no new schema/API),
+  // always as a new active row, so the server's existing transactional
+  // "deactivate the bag's other active hopper" logic applies.
+  assert.match(source, /fetch\("\/api\/hoppers"/);
+  assert.match(source, /isActive: true/);
+
+  // Documented hopper name format: Bag #{bagNumber} — {phase} — {YYYY-MM-DD}.
+  assert.match(source, /`Bag #\$\{startPhaseBag\.bagNumber \?\? startPhaseBag\.id\} — \$\{phase\} — \$\{todayDate\(\)\}`/);
+
+  // Non-blocking warning when more than one bag is active; no hard single-active-bag rule.
+  assert.match(source, /activeBags\.length > 1/);
+  assert.doesNotMatch(source, /disabled=\{[^}]*activeBags\.length > 1/);
+
+  // Must explain phases are measured windows, not total physical inventory,
+  // and that unmeasured leftovers may be intentionally ignored.
+  assert.match(source, /measured operating window/);
+  assert.match(source, /intentionally.*left out/);
+});
+
 test("Bags page exposes launch-safe bag lifecycle workflow", async () => {
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
