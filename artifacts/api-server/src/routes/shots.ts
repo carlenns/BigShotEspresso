@@ -16,6 +16,7 @@ import {
   ListReferenceShotsQueryParams,
 } from "@workspace/api-zod";
 import { eligibleShotConditions } from "../lib/shot-eligibility";
+import { computeIncludeInAnalysis } from "../lib/shot-analysis-eligibility";
 import {
   csvRowFingerprint,
   flattenUnique,
@@ -328,6 +329,9 @@ router.post("/shots", async (req, res): Promise<void> => {
     res.status(400).json({ error: ratingError });
     return;
   }
+  // Never trust a client-supplied includeInAnalysis — always recompute it
+  // from the submitted Status/Fault Status, the single approved rule.
+  data.includeInAnalysis = computeIncludeInAnalysis(data.status, data.faultStatus);
   const shot = await db.insert(shotsTable).values(data).returning();
   await carryForwardActiveBagGrindDefaults(shot[0]?.bagId, data);
   res.status(201).json(toShotApi(shot[0]!));
@@ -402,7 +406,19 @@ router.patch("/shots/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: ratingError });
     return;
   }
-  const shot = await db.update(shotsTable).set(data).where(eq(shotsTable.id, Number(params.data.id))).returning();
+  const id = Number(params.data.id);
+  const existing = await db.select().from(shotsTable).where(eq(shotsTable.id, id));
+  if (!existing[0]) { res.status(404).json({ error: "Shot not found" }); return; }
+  // Never trust a client-supplied includeInAnalysis on update either. Merge
+  // whatever Status/Fault Status this request is actually changing with the
+  // shot's existing values (fetched above) and recompute unconditionally —
+  // this both closes the write-through gap and naturally preserves the
+  // existing eligibility when neither field is part of this update, since
+  // "merged" then just equals "existing" and the recomputed result matches.
+  const effectiveStatus = data.status !== undefined ? data.status : existing[0].status;
+  const effectiveFaultStatus = data.faultStatus !== undefined ? data.faultStatus : existing[0].faultStatus;
+  data.includeInAnalysis = computeIncludeInAnalysis(effectiveStatus, effectiveFaultStatus);
+  const shot = await db.update(shotsTable).set(data).where(eq(shotsTable.id, id)).returning();
   if (!shot[0]) { res.status(404).json({ error: "Shot not found" }); return; }
   await carryForwardActiveBagGrindDefaults(shot[0].bagId, data);
   res.json(toShotApi(shot[0]));

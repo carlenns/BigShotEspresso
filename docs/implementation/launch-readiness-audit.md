@@ -25,9 +25,13 @@ Confirmed by direct inspection, not assumption: there is no login flow, no sessi
 
 This is the single largest gap between the landing page's stated plan (public pricing, a 500-seat Founder tier, "early access for founders") and the current app. Every other item in this audit is secondary to it. This is documented here as a blocker, per this task's boundary — it is not scoped for implementation in this pass.
 
-### 2. No live/manual smoke test has ever been performed, anywhere, in this project's history
+### 2. No live/manual smoke test has ever been performed, anywhere, in this project's history — **PARTIALLY RESOLVED 2026-08-25**
 
-This is not a one-off gap — it is a pattern repeated in essentially every implementation session's own handoff across this project's history: "no live browser smoke test performed... no running Postgres-backed instance available," over and over, for the hopper-phase workflow, the bag closeout flow, the flag-behavior fix, the mobile nav fix, the Change Bag flow, and more. `docs/START_HERE.md`'s own "Current gate" section lists *"Manual UI shot-entry smoke test passes"* as still outstanding. Every individual piece has been verified by typecheck/tests/build and code inspection, which is real signal, but the whole has never been clicked through end-to-end by a human in a browser against real data.
+This was a pattern repeated in essentially every implementation session's own handoff across this project's history: "no live browser smoke test performed... no running Postgres-backed instance available," over and over. That pattern broke for the first time in "Two Bugs From Live Lifecycle Review" (`docs/completed-tasks.md`, 2026-08-25): a session actually ran against the real dev DB — created/patched/deleted a throwaway Hopper via the live API and confirmed null-clearing and delete behavior for real, and reproduced the Change-Bag partial-failure data sequence directly against live `GET /api/bags`. It found and fixed two real bugs this way (see "Resolved since this audit was first written," below) that static verification alone had not caught.
+
+The fully interactive browser click-through (open the app, click through Change Bag with a bad Custom-phase entry, watch the list update live) was attempted but blocked by a Chrome-extension tooling fault in that environment, not an app bug — worked around with an equivalent data-layer reproduction, documented as such rather than silently skipped.
+
+**Still open:** no one has yet clicked through the *complete* lifecycle in a real browser in one pass — create bean → bag → dial-in → log shot → edit shot → Shot Detail → close bag → Change Bag → Start Hopper Phase → Dashboard. The hopper-API and partial-failure pieces are now real-data-verified; the full UI walkthrough is not. `docs/START_HERE.md`'s *"Manual UI shot-entry smoke test passes"* gate remains open.
 
 ### 3. Render deployment has never been smoke-tested
 
@@ -38,6 +42,57 @@ This is not a one-off gap — it is a pattern repeated in essentially every impl
 Verified directly by grepping every consumer of these Settings keys across `artifacts/coffee-log/src`: **`ratingSystem`, `unitSystem`, `timeFormat`, `ratingInputMode`, `grindTimerMode`, `hopperTracking`, `defaultHopperFullness`, `grindTimeIncrement`, `grindScaleMin`, `grindScaleMax`** are all present in `Settings.tsx`'s `SECTIONS` array, savable, and displayed — but are never read by `ShotForm.tsx`, `ShotDetail.tsx`, `Bags.tsx`, or any other page. (The one nearby field that *is* real: `grindMinTime` is read three times in `ShotForm.tsx`.) A first user who sets "Unit System: Imperial" or "Rating System: 0–100" will see zero change anywhere — dose still shows grams, rating still caps at 10. This is exactly the kind of first-impression trust break the project's own trust-and-safety principles ("the app does not silently invent thresholds or conclusions," "unknowns remain unknown") argue against, applied to Settings itself: it currently implies more control than it delivers.
 
 **Resolution:** 13 fields removed (the 10 above plus `temperatureUnit`, `defaultBrewRatio`, and a global `usePuckScreen` key found via the same verification method during implementation). `grindTimerMode` was kept, per this audit's own suggested treatment, with a visible "not yet used elsewhere in the app" caption rather than removal, since it plausibly ties to the already-deferred single-dose workflow. See `docs/completed-tasks.md`, "Launch Readiness Audit Slice 2: Removed Non-Functional Settings Fields — 2026-08-25," for full detail. Typecheck clean, 55/55 tests, build clean. No live-browser confirmation performed yet — same standing gap as Critical Blocker #2.
+
+## Resolved since this audit was first written (reconciled 2026-08-25, later same day)
+
+- **Critical Blocker #4 (dead Settings fields):** resolved — see above.
+- **Critical Blocker #2 (no live smoke test):** partially resolved — see above.
+- **Hopper API could not be edited or deleted** (previously listed as a known risk under Phase D of `bag-hopper-lifecycle-plan.md`): resolved. `DELETE /hoppers/:id` added; `PATCH /hoppers/:id` fixed to actually clear `bagId`/`startingBeans`/`phase`/`notes` to `null` instead of silently ignoring the request (same undefined-vs-null bug class fixed earlier for `bags.remainingEstimate`). Live-verified against the real dev DB, not just typechecked.
+- **ChangeBagDialog silently looked broken on partial failure:** found and fixed in the same session. Its `onError` handler now refreshes the same queries `onSuccess` does, so a new bag created before a later step failed actually appears in the list instead of requiring a manual reload.
+- **Hopper→Bag documentation disagreement** (previously an open item in `bag-hopper-lifecycle-plan.md`'s workflow-5 section): resolved by direct schema verification. `hoppers.bag_id` is confirmed real, live, and authoritative; the two docs were describing different things (Airtable import-time inference vs. the live Postgres schema), not actually disagreeing. One minor, low-priority data-hygiene item surfaced during that check: a small number of historically-imported Hopper rows have `bag_id = null` and `is_active = true`; invisible to all current UI and harmless, not created by any live write path.
+- **Zero technical ratings displayed as blank in Shot Detail** (`shot.rating || "-"` treated `0` as falsy): fixed, unrelated to this audit's original findings but good general correctness work from the same session.
+
+## In progress, not yet complete (found uncommitted in the working tree during this reconciliation)
+
+**Server-side `Include in Analysis` enforcement.** `artifacts/api-server/src/lib/shot-eligibility.ts` and `artifacts/api-server/src/routes/shots.ts` currently have uncommitted changes adding a `computeIncludeInAnalysis(status, faultStatus)` function and wiring it into both `POST /shots` and `PATCH /shots/:id` so the server always recomputes eligibility from Status/Fault Status rather than trusting a client-supplied `includeInAnalysis` value. This directly matters to this task's own watch-list item ("Include in Analysis must remain Status Good/Dialed In + Fault Status Good") — previously a client could in principle send `includeInAnalysis: true` regardless of the actual Status/Fault values, and the server would store it as-is. No tests or doc entry exist for this yet, and it wasn't reviewed or touched as part of this reconciliation (out of scope — do not implement, per this task's own boundary). Flagged here so it isn't lost, and recommended as the first of the next three slices below.
+
+## Launch tiers — three different bars, not one
+
+This task specifically asked these to be kept separate, since conflating them is the single easiest way to misjudge readiness.
+
+### Tier 1 — Owner-only alpha (current de facto state)
+
+What's left before the owner can call this a stable release candidate, per `release-candidate-checklist.md`'s own gates:
+
+- Render deployment smoke test (Critical Blocker #3) — not started.
+- Full browser UI lifecycle walkthrough (remainder of Critical Blocker #2) — not started; the hopper-API and partial-failure pieces are done.
+- Finish the in-progress server-side `Include in Analysis` enforcement (above) — close, not committed.
+- Everything else in this tier is essentially done: Settings no longer misleads, the core bag/bean/shot/hopper CRUD paths are live-verified at the API layer, migrations have rollback evidence.
+
+### Tier 2 — Outside testers (a handful of trusted people, still not paying, still not self-serve)
+
+Everything in Tier 1, plus a gap Tier 1 doesn't surface because there's only ever been one user: **there is zero data isolation between users.** Every table in this schema assumes a single global user — two testers using the same deployed instance would see and edit each other's beans, bags, shots, and Settings with no separation at all. This does not require full OAuth/billing to fix for a *small, trusted* tester group — even simple per-tester database scoping or separate deployed instances would do — but it does require *something*, and today there is nothing. This is a smaller, cheaper version of Critical Blocker #1, worth solving on its own before Tier 3.
+
+Also worth doing before outside testers see the app, even though none of these are hard blockers: Quick Log hard-block (High-Priority Fix #6), Bags page action-path clarity (#5), Dashboard hopper blank-stat labeling (#7) — an owner has context a stranger doesn't, and these are exactly the kind of thing that reads as "broken" to someone with no history with the product.
+
+### Tier 3 — Paid public launch (the landing page's actual plan: $10/mo, $80/yr Founder tier, first 500)
+
+Everything in Tiers 1–2, plus:
+
+- Real accounts, authentication, and per-user data ownership (Critical Blocker #1) — confirmed, still by far the largest gap. Nothing in the recent commits touched this at all; it remains completely unstarted.
+- Billing/subscription enforcement for the tiered pricing the landing page already commits to.
+- `docs/implementation/release-security-hardening-checklist.md`'s gates, specifically the ones scoped to public (not owner-only) access — not reviewed in this pass, flagged as needing its own check before Tier 3, not assumed complete.
+- Terms of service / privacy policy — implied by taking payment and storing personal taste/equipment data, not yet mentioned as existing anywhere in this project's docs.
+
+**Confirmed, per this task's item 6:** auth/accounts/data ownership remains the largest single blocker for paid public launch. Nothing in this reconciliation changes that — it's the one item in this whole audit that hasn't moved at all.
+
+## Top 5 remaining launch blockers (ranked)
+
+1. Auth/accounts/per-user data ownership (Critical Blocker #1) — blocks Tier 3 entirely, and a lighter version of it blocks Tier 2.
+2. Full browser UI lifecycle smoke test + Render deployment smoke test (remainder of Critical Blockers #2 and #3) — blocks declaring Tier 1 done.
+3. Finish the in-progress server-side `Include in Analysis` enforcement — small, close, but a real data-integrity gap while it sits uncommitted.
+4. Bags page action-path clarity (High-Priority Fix #5) and the Quick Log hard-block (#6) — the two clearest "reads as broken/confusing to a stranger" items standing between Tier 1 and Tier 2.
+5. Billing enforcement + security-hardening-checklist review for public access — the two concrete Tier-3 items beyond auth itself that haven't been assessed yet.
 
 ## High-priority fixes
 
@@ -85,15 +140,15 @@ The recent edge-fade fix (`Shell.tsx`, `mask-image`) correctly solved the "Setti
 - Live "beans consumed"/dashboard inventory correction — explicitly deferred pending the lifecycle-event model, a shot→hopper linkage in `Log Shot`, and an approved hopper-percentage formula; already discussed and correctly held open in this project's own recent history.
 - Machine/profile-level Drink Type defaults — explicitly deferred pending stronger machine/grinder context in `Log Shot`.
 
-## Suggested next 5 implementation slices
+## Suggested next 5 implementation slices (original list, 2026-08-25 — status updated at reconciliation, later same day)
 
 Ordered by leverage — each closes a disproportionately large risk relative to its size.
 
-1. **Actually run the deferred smoke test.** Deploy to Render (or a disposable equivalent) and manually click through the full lifecycle once: create bean → bag → dial-in → log shot → edit shot (clear a field) → view Shot Detail → close bag → Change Bag → Start Hopper Phase → Dashboard. This isn't a code slice, but it's the highest-leverage single action available — it either confirms months of typecheck/test-verified work actually works end to end, or it surfaces the one thing static verification can't catch.
-2. **Settings cleanup pass.** Remove or clearly label (as not-yet-functional) the confirmed-dead fields: `ratingSystem`, `unitSystem`, `timeFormat`, `ratingInputMode`, `grindTimerMode`, `hopperTracking`, `defaultHopperFullness`, `grindTimeIncrement`, `grindScaleMin`, `grindScaleMax`. Small, safe, high first-impression value — directly closes Critical Blocker #4.
-3. **Bags page action-path clarity.** Either add a one-line explanation of when to use "Change Bag" vs. the per-row Close/Start Phase buttons, or fold the per-row buttons into the guided flow once it's proven out. Closes High-Priority Fix #5.
-4. **Hard-block `/shots/quick`.** Redirect it to `/shots/new` or show a short "this mode has been retired" notice, instead of leaving the full old form silently reachable. Closes High-Priority Fix #6.
-5. **Auth/accounts scoping ADR.** Before any implementation, produce (or formally update ADR-0008 into) a real plan for what "public early-access launch" requires: account creation, session handling, per-user data ownership on every table currently assumed single-user, and how the Founder-tier billing described in the landing page doc actually gets enforced. This is the real precondition for the business plan in `BSE_PRODUCT_LANDING_PAGE_CONTENT.md` and deserves its own dedicated planning pass — documentation before implementation, per the Constitution — not a quick code slice bolted onto something else.
+1. **Actually run the deferred smoke test.** — **Partially done.** Deploy to Render (or a disposable equivalent) and manually click through the full lifecycle once: create bean → bag → dial-in → log shot → edit shot (clear a field) → view Shot Detail → close bag → Change Bag → Start Hopper Phase → Dashboard. A live-data pass has since happened for the Hopper API and the Change-Bag partial-failure path (see "Resolved since this audit was first written," above); the full interactive browser click-through and the Render deployment smoke test have not.
+2. **Settings cleanup pass.** — **Done.** Removed 13 confirmed-dead fields, labeled one (`grindTimerMode`) rather than removing it. See `docs/completed-tasks.md`, "Launch Readiness Audit Slice 2."
+3. **Bags page action-path clarity.** — Still open. Either add a one-line explanation of when to use "Change Bag" vs. the per-row Close/Start Phase buttons, or fold the per-row buttons into the guided flow once it's proven out. Closes High-Priority Fix #5.
+4. **Hard-block `/shots/quick`.** — Still open. Redirect it to `/shots/new` or show a short "this mode has been retired" notice, instead of leaving the full old form silently reachable. Closes High-Priority Fix #6.
+5. **Auth/accounts scoping ADR.** — Still open, still unstarted. Before any implementation, produce (or formally update ADR-0008 into) a real plan for what "public early-access launch" requires: account creation, session handling, per-user data ownership on every table currently assumed single-user, and how the Founder-tier billing described in the landing page doc actually gets enforced. This is the real precondition for the business plan in `BSE_PRODUCT_LANDING_PAGE_CONTENT.md` and deserves its own dedicated planning pass — documentation before implementation, per the Constitution — not a quick code slice bolted onto something else.
 
 ## Handoff
 
@@ -118,59 +173,157 @@ No application code, schema, API, or migration files were touched. No build was 
 
 Slices 2, 3, and 4 above are small, safe, and can happen in any order or in parallel. Slice 1 (the smoke test) should happen before declaring any release candidate, regardless of what else ships. Slice 5 (the auth/accounts ADR) is the real gate on the landing page's actual business plan and should start now given how much lead time it needs, even though it's the largest.
 
-### Copyable Agent 1 prompt for the highest-priority *implementable* fix
+### Superseded — the prompt originally here (Settings cleanup) shipped
 
-(Slice 1, the smoke test, isn't a code task; Slice 5, the ADR, is a planning task, not an Agent 1 implementation task. This is the highest-priority fix that fits an ordinary Agent 1 code slice.)
+See "Resolved since this audit was first written," above, and the reconciliation handoff below for the current next-3-slices recommendation and copyable prompts.
+
+## Reconciliation Handoff — 2026-08-25 (later same day)
+
+This addendum records the second pass over this document, after `c0c66cf` and `d01c447` landed. The original "Handoff" section above is left as the historical record of this document's first authoring pass, per this project's "never silently discard historical evidence" rule — it is not overwritten.
+
+### Files inspected (this pass)
+
+`git log`/`git status`/`git show --stat` for the three expected commits (`55c4a04`, `c0c66cf`, `d01c447`); full diffs of `hopper.ts`, `Bags.tsx`, `bag-hopper-lifecycle-plan.md`, `ShotDetail.tsx`, and the relevant `docs/completed-tasks.md` entries within those commits; the currently-uncommitted `shot-eligibility.ts`/`routes/shots.ts` diff (in-progress, not touched). Did not re-read the full text of `docs/ROADMAP.md`, `docs/product/BSE_PRODUCT_LANDING_PAGE_CONTENT.md`, or `docs/product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md` this pass — already read in full during this document's original authoring earlier the same day, content unchanged since.
+
+### Files changed (this pass)
+
+- `docs/implementation/launch-readiness-audit.md` (this reconciliation)
+
+No application code, schema, API, or migration files touched. No build run — documentation-only.
+
+### Launch state summary
+
+Tier 1 (owner-only alpha) is close: Settings no longer misleads, the hopper API is now live-verified and can be edited/deleted, a real partial-failure bug got caught and fixed by an actual live-data test — the first one in this project's history. What's left for Tier 1 is finishing the in-progress `Include in Analysis` server enforcement, and the still-outstanding full browser click-through plus Render deployment smoke test. Tier 2 (outside testers) additionally needs at least minimal per-tester data isolation, which doesn't exist in any form yet. Tier 3 (paid public launch) is unchanged and unstarted on its one defining blocker: real auth/accounts/data ownership.
+
+### Resolved items
+
+See "Resolved since this audit was first written" above — five items, spanning Settings cleanup, partial live-smoke-test coverage, Hopper API edit/delete, ChangeBagDialog cache refresh, the Hopper→Bag doc-consistency question, and a small zero-rating display bug.
+
+### Unresolved blockers
+
+See "Top 5 remaining launch blockers" above.
+
+### Recommended next implementation order
+
+Three slices, ordered by leverage:
+
+1. **Finish server-side `Include in Analysis` enforcement** (Agent 1) — already coded, uncommitted, close to done; finishing it closes a real data-integrity gap rather than leaving it half-shipped.
+2. **Bags page action-path clarity** (Agent 1) — still open from the original audit, small, and this same session's live testing just demonstrated the Bags/hopper flows are exactly where bugs are currently being found.
+3. **Quick Log hard-block + Dashboard hopper blank-stat labeling** (Agent 2) — two small, independent, first-impression-relevant fixes, naturally bundled since both are quick UI-copy/routing changes rather than logic changes.
+
+### Copyable Agent 1 prompt
 
 ```markdown
-# BigShotEspresso — Fix: Remove or Label Non-Functional Settings Fields
+# BigShotEspresso — Finish Include-in-Analysis Enforcement + Bags Action-Path Clarity
 
-You are Agent 1: Implementation Agent. This is a small, scoped fix closing
-Critical Blocker #4 from docs/implementation/launch-readiness-audit.md.
+You are Agent 1: Implementation Agent.
 
-## What was found
-Grepping every consumer of these Settings.tsx keys across artifacts/coffee-log/src
-confirms none of them are read anywhere outside Settings.tsx itself:
-ratingSystem, unitSystem, timeFormat, ratingInputMode, grindTimerMode,
-hopperTracking, defaultHopperFullness, grindTimeIncrement, grindScaleMin,
-grindScaleMax. (grindMinTime is the one nearby field that IS real — it's
-read three times in ShotForm.tsx — do not touch it.)
+## Part 1: Finish the in-progress Include-in-Analysis enforcement
 
-## Exact task
-For each of the ten dead fields above, choose one of two treatments and
-apply it consistently:
-(a) Remove it entirely from Settings.tsx's SECTIONS array (simplest, if
-    there's no near-term plan to wire it up), or
-(b) Keep it visible but add a small "Not yet used elsewhere in the app"
-    caption, matching the pattern already used elsewhere in this codebase
-    for known-future fields (e.g. how "Grinder Output Measurement" reads
-    once slice covers it too — coordinate if both land in the same pass).
+Uncommitted changes already exist in artifacts/api-server/src/lib/shot-eligibility.ts
+(a new computeIncludeInAnalysis(status, faultStatus) function) and
+artifacts/api-server/src/routes/shots.ts (wiring it into POST /shots and
+PATCH /shots/:id so includeInAnalysis is always server-recomputed, never
+trusted from the client). Read this code first — do not rewrite it, finish it:
 
-Prefer (a) removal unless you find evidence one of these ties to a
-near-term planned feature (e.g. grindTimerMode may be intended for the
-already-deferred single-dose workflow — if so, use (b) for that one
-specifically and say why in your handoff).
+1. Confirm the logic is correct: included only when status is "Good" or
+   "Dialed In" AND faultStatus is exactly ["Good"] (single value). This
+   matches the project's standing rule (Include in Analysis = Status
+   Good/Dialed In + Fault Status Good) — verify against
+   docs/csv-data-dictionary.md and docs/intelligence-engine-map.md's shared
+   rules before assuming it's right.
+2. Add regression tests to api-contract.test.ts, following the existing
+   source-inspection pattern (see "Shot route enforces rating, ratio, and
+   signature/reference invariants" for the style) — assert the function
+   exists, is called in both POST and PATCH, and that PATCH correctly
+   merges with existing status/faultStatus when only one of them is part
+   of a given update (the existing code already handles this — write a
+   test that pins it, don't just trust the comment).
+3. Live-verify against the real dev DB if one is available in your
+   environment: create a shot with Status "Good"/Fault "Good", confirm
+   includeInAnalysis is true; then try to override it to false in the
+   same POST body and confirm the server ignores that and stores true
+   anyway (proving the server doesn't trust the client value). If no live
+   DB is available, say so explicitly rather than silently skipping this
+   step, matching how prior sessions in this project have handled the
+   same limitation.
+4. Add a dated docs/completed-tasks.md entry.
+
+## Part 2: Bags page action-path clarity
+
+Closes High-Priority Fix #5 from docs/implementation/launch-readiness-audit.md.
+An active bag row in Bags.tsx shows "Start Phase" and "Close" buttons
+individually, while the page header's "Change Bag" button does both (plus
+bean creation) in one guided dialog. Nothing explains when to use which.
+
+Add a short, one-line explanatory note near the per-row buttons or in the
+page's existing "Bag Lifecycle Flow" card (already present in Bags.tsx)
+clarifying that "Change Bag" is the all-in-one guided path, and the
+per-row buttons are for doing just one step on their own. Do not remove
+either path — both are legitimate for different situations (e.g. closing
+a bag without starting a new one yet).
 
 ## What NOT to touch
-- Do not touch grindMinTime — it's real and consumed by ShotForm.tsx.
-- Do not implement Unit System, Rating System, or Time Format conversion
-  logic — that's a much larger feature (unit conversion throughout the
-  app) and explicitly out of scope for this fix. This task only removes
-  or labels the currently-misleading controls, it does not make them work.
-- No schema/API/migration changes — these are all Settings key/value pairs
-  in the existing generic settings store, not typed columns.
-- Do not touch Quick Log, DCI/OSI/HMI/BLI/MSI/GSP, or auth/accounts.
+- No schema/API/OpenAPI changes beyond what's already uncommitted in Part 1.
+- Do not touch ShotForm.tsx, Settings.tsx, Quick Log, or DCI/OSI/HMI/BLI/MSI/GSP.
+- Do not implement auth/accounts.
+- Do not remove the per-row Close/Start Phase buttons — clarify, don't consolidate.
 
 ## Verification
 CI=true pnpm run typecheck; CI=true pnpm --filter @workspace/api-server test;
-CI=true pnpm run build:render. Add or update a contract test asserting the
-removed/labeled fields match what you actually did, following the existing
-source-inspection test pattern in api-contract.test.ts.
+CI=true pnpm run build:render.
 
 ## Documentation
-Add a dated docs/completed-tasks.md entry. Update the "Critical blockers"
-section of docs/implementation/launch-readiness-audit.md to mark item #4
-resolved (or partially resolved, listing what's left) once done.
+Update docs/implementation/launch-readiness-audit.md: mark the in-progress
+eligibility item and High-Priority Fix #5 resolved once done.
+
+## Handoff
+End with HANDOFF SUMMARY FOR CODEX. Do not commit. Do not push.
+```
+
+### Copyable Agent 2 prompt
+
+```markdown
+# BigShotEspresso — Quick Log Hard-Block + Dashboard Hopper Blank-Stat Labeling
+
+You are Agent 2: Implementation Agent. Two small, independent fixes from
+docs/implementation/launch-readiness-audit.md.
+
+## Part 1: Hard-block /shots/quick (closes High-Priority Fix #6)
+
+App.tsx still registers <Route path="/shots/quick" component={QuickLog} />
+live, even though nothing links to it anymore. Redirect it to /shots/new
+(simplest), or render a short "This mode has been retired — use Log Shot
+instead" notice with a link to /shots/new. Do not delete QuickLog.tsx or
+its route registration — per docs/implementation/release-candidate-checklist.md
+Gate 0.5, it should remain parked in the repo, just not reachable as a
+working form.
+
+## Part 2: Dashboard hopper blank-stat labeling (closes High-Priority Fix #7)
+
+Dashboard.tsx's Active Hopper Status panel shows "Starting beans" populated
+correctly for a phase started in-app, but "Hopper mass"/"Hopper %" render
+blank next to it, since those are imported/computed-elsewhere values never
+written by POST /api/hoppers. Add a one-line note (e.g. "Not tracked yet
+for phases started in the app") shown specifically when startingBeans is
+present but hopperMass/hopperPercent are null, so it reads as "not tracked
+yet" rather than "broken." Do not invent or locally compute a hopper
+mass/percentage formula — this is a display-only labeling fix.
+
+## What NOT to touch
+- No schema/API/OpenAPI changes.
+- Do not implement a hopper-percentage or mass-remaining formula of any kind.
+- Do not touch Bags.tsx, Settings.tsx, or the shot-eligibility work in progress.
+- Do not touch Quick Log's internal form code — only its route reachability.
+
+## Verification
+CI=true pnpm run typecheck; CI=true pnpm --filter @workspace/api-server test;
+CI=true pnpm run build:render. Add contract tests for both fixes following
+the existing source-inspection pattern in api-contract.test.ts.
+
+## Documentation
+Update docs/implementation/launch-readiness-audit.md: mark High-Priority
+Fixes #6 and #7 resolved once done. Add a dated docs/completed-tasks.md entry.
 
 ## Handoff
 End with HANDOFF SUMMARY FOR CODEX. Do not commit. Do not push.

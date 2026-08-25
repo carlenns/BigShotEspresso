@@ -109,6 +109,77 @@ test("Shot route enforces rating, ratio, and signature/reference invariants", as
   assert.match(source, /Preference rating cannot exceed 11/);
 });
 
+test("computeIncludeInAnalysis enforces the single approved eligibility rule with no override path", async () => {
+  const { computeIncludeInAnalysis } = await import("./lib/shot-analysis-eligibility");
+
+  // Eligible: Status Good/Dialed In AND Fault Status exactly ["Good"].
+  assert.equal(computeIncludeInAnalysis("Good", ["Good"]), true);
+  assert.equal(computeIncludeInAnalysis("Dialed In", ["Good"]), true);
+
+  // API create/update must not be able to force `includeInAnalysis: true`
+  // when Status/Fault make the shot ineligible — the function itself has no
+  // parameter through which a caller could pass a different result, so this
+  // is enforced structurally, not just by convention.
+  assert.equal(computeIncludeInAnalysis("Needs Work", ["Good"]), false);
+  assert.equal(computeIncludeInAnalysis("Good", ["Channeling"]), false);
+  assert.equal(computeIncludeInAnalysis("Good", ["Good", "Channeling"]), false);
+  assert.equal(computeIncludeInAnalysis("Good", []), false);
+  assert.equal(computeIncludeInAnalysis(null, ["Good"]), false);
+  assert.equal(computeIncludeInAnalysis(undefined, undefined), false);
+
+  // API create/update must not be able to force `includeInAnalysis: false`
+  // when Status/Fault make the shot eligible either — same structural
+  // guarantee, and per docs/csv-data-dictionary.md `Include in Analysis` is
+  // documented read-only/derived with no approved manual override, so there
+  // is no case where a caller-supplied override should win.
+  assert.equal(computeIncludeInAnalysis("Good", ["Good"]), true);
+
+  // Sour shots are not excluded by this rule on their own — Sour lives
+  // outside Status/Fault Status, so an otherwise-eligible sour shot still
+  // computes as included, matching "Sour shots may still be included if
+  // Status/Fault criteria are satisfied."
+  assert.equal(computeIncludeInAnalysis("Good", ["Good"]), true);
+});
+
+test("Shot create/update recompute includeInAnalysis server-side and never trust client input", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("./routes/shots.ts", import.meta.url)),
+    "utf8",
+  );
+
+  assert.match(source, /import \{ eligibleShotConditions \} from "\.\.\/lib\/shot-eligibility";/);
+  assert.match(source, /import \{ computeIncludeInAnalysis \} from "\.\.\/lib\/shot-analysis-eligibility";/);
+
+  // POST /shots: must unconditionally overwrite whatever includeInAnalysis
+  // the client sent, using only the submitted Status/Fault Status — not
+  // gated behind an `if (data.includeInAnalysis === undefined)` check that
+  // would let a client-supplied value win.
+  const postMatch = source.match(/router\.post\("\/shots", async[\s\S]*?\n\}\);/);
+  assert.ok(postMatch, "POST /shots handler not found");
+  assert.match(postMatch![0], /data\.includeInAnalysis = computeIncludeInAnalysis\(data\.status, data\.faultStatus\);/);
+  assert.doesNotMatch(postMatch![0], /if \(data\.includeInAnalysis/);
+
+  // PATCH /shots/:id: must fetch the existing shot first (so a partial
+  // update that omits Status/Fault Status can still be evaluated against
+  // the shot's actual current values) and recompute unconditionally from
+  // whichever of Status/Fault Status this request is actually changing,
+  // merged with the existing row for whichever it isn't.
+  const patchMatch = source.match(/router\.patch\("\/shots\/:id", async[\s\S]*?\n\}\);/);
+  assert.ok(patchMatch, "PATCH /shots/:id handler not found");
+  const patchBody = patchMatch![0];
+  assert.match(patchBody, /const existing = await db\.select\(\)\.from\(shotsTable\)\.where\(eq\(shotsTable\.id, id\)\);/);
+  assert.match(patchBody, /if \(!existing\[0\]\) \{ res\.status\(404\)\.json\(\{ error: "Shot not found" \}\); return; \}/);
+  assert.match(patchBody, /const effectiveStatus = data\.status !== undefined \? data\.status : existing\[0\]\.status;/);
+  assert.match(patchBody, /const effectiveFaultStatus = data\.faultStatus !== undefined \? data\.faultStatus : existing\[0\]\.faultStatus;/);
+  assert.match(patchBody, /data\.includeInAnalysis = computeIncludeInAnalysis\(effectiveStatus, effectiveFaultStatus\);/);
+  assert.doesNotMatch(patchBody, /if \(data\.includeInAnalysis/);
+
+  // Neither handler may filter/hide excluded shots from the response —
+  // they still return whatever row was written, included or not.
+  assert.doesNotMatch(postMatch![0], /if \(!data\.includeInAnalysis\)/);
+  assert.doesNotMatch(patchBody, /if \(!data\.includeInAnalysis\)/);
+});
+
 test("Log Shot flag selection suggests Status/Fault Status only when blank, never overwrites", async () => {
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)),
@@ -699,6 +770,26 @@ test("Bags page exposes launch-safe bag lifecycle workflow", async () => {
   ]) {
     assert.match(source, new RegExp(requiredText));
   }
+});
+
+test("Bags page distinguishes the guided Change Bag flow from per-row actions, and warns before a second active bag", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // Launch-QA finding: two independent review passes flagged that nothing
+  // explained when to use "Change Bag" vs. the per-row Close/Start Phase
+  // buttons. The Bag Lifecycle Flow card's intro copy must say so.
+  assert.match(source, /runs this whole flow in one guided dialog/);
+
+  // The Add\/Edit Bag dialog's own "Active Bag" switch could silently create
+  // a second active bag with zero warning, unlike Start Hopper Phase and
+  // Change Bag which already warn about this. Must reuse the same pattern
+  // (AlertTriangle, amber styling, excludes the bag currently being edited).
+  assert.match(source, /activeBags\.filter\(\(b\) => b\.id !== editing\?\.id\)\.length > 0/);
+  assert.match(source, /also marked active/);
+  assert.match(source, /the "Change Bag" button on this[\s\S]{0,30}page handles closing the old bag/);
 });
 
 test("Settings equipment defaults use saved equipment and accessory selectors", async () => {

@@ -1188,3 +1188,82 @@ The `NumberStepper` restoration flagged above as unresolved is intentional and c
 ## Unresolved
 
 - None.
+
+# Server-Side Include In Analysis Enforcement — 2026-08-25
+
+## Completed
+
+- **Confirmed the gap**: both `POST /shots` and `PATCH /shots/:id` in `artifacts/api-server/src/routes/shots.ts` previously passed whatever `includeInAnalysis` value the client sent straight through to the database, unmodified — a direct API write (or a buggy/malicious client) could force a shot to be included or excluded regardless of its actual Status/Fault Status.
+- Added `computeIncludeInAnalysis(status, faultStatus)` in a new file, `artifacts/api-server/src/lib/shot-analysis-eligibility.ts`, mirroring the client's already-approved rule in `artifacts/coffee-log/src/lib/selector-options.ts`'s `describeAnalysisEligibility` exactly: Status must be `Good` or `Dialed In`, and Fault Status must be exactly `["Good"]` (length 1, that one value). No new rule was invented — this is the existing UI rule, reused.
+- **Create**: `POST /shots` now unconditionally overwrites `data.includeInAnalysis` with `computeIncludeInAnalysis(data.status, data.faultStatus)` after validation, before the insert. There is no code path where a client-supplied value can win.
+- **Update**: `PATCH /shots/:id` now fetches the existing shot first, then computes an "effective" Status/Fault Status — the new value if this request is actually changing it, otherwise the shot's existing value — and always recomputes `includeInAnalysis` from that merged view. This closes the gap for every update (not just ones that touch Status/Fault) while naturally satisfying "preserve existing eligibility when Status/Fault aren't part of the update," since an unchanged field's "effective" value is just its existing value, so the recomputed result matches what was already there.
+- No manual-override mechanism was added — `docs/csv-data-dictionary.md` documents `Include in Analysis` as `Formula/Checkbox | R | read-only`, with no approved override, so per the task's own instruction the override case doesn't apply and neither route has one.
+- Excluded shots are still returned/stored exactly as before — neither handler filters or hides them; only the computed boolean itself changed from "trusted" to "derived."
+- Did not touch the UI rule (`describeAnalysisEligibility`) — the client already computes and sends the correct value in the normal flow, so this change is invisible to normal UI usage and only matters for direct API writes.
+
+## Why `computeIncludeInAnalysis` lives in its own file
+
+Initially added it to the existing `shot-eligibility.ts`, which already exports drizzle query-condition builders (`eligibleShotConditions`, `ratingEligibleShotConditions`) and therefore imports the live `@workspace/db` client. A first attempt to unit-test the new function via `await import("./lib/shot-eligibility")` failed in the test suite with `DATABASE_URL must be set` — importing anything from that module, even a function that doesn't touch the database, pulls in `@workspace/db`'s eager client initialization as a side effect. Moved `computeIncludeInAnalysis` to a new, deliberately dependency-free file (`shot-analysis-eligibility.ts`, zero imports) so it can be genuinely unit-tested without a live database connection, and updated `shots.ts`'s import accordingly. `shot-eligibility.ts` itself is back to byte-identical with its pre-task content.
+
+## Tests added
+
+All three in `artifacts/api-server/src/api-contract.test.ts`:
+1. `computeIncludeInAnalysis enforces the single approved eligibility rule with no override path` — a real unit test (not source-scan) calling the function directly: confirms eligible Status/Fault combinations return `true`, every category of ineligible combination (bad status, bad/extra fault, empty fault, null/undefined status) returns `false`, and — since the function signature has no override parameter — this is a structural guarantee that neither create nor update can force a result contrary to Status/Fault, in either direction.
+2. `Shot create/update recompute includeInAnalysis server-side and never trust client input` — source-scan confirming: the new import exists; POST's handler contains the unconditional `computeIncludeInAnalysis(data.status, data.faultStatus)` assignment with no gating `if`; PATCH's handler fetches the existing row, computes both effective fields, and assigns unconditionally with no gating `if`; and neither handler contains any code that would filter/hide a shot based on `includeInAnalysis`.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (workspace-wide).
+- `CI=true pnpm --filter @workspace/api-server test` — 59/59 passed (57 pre-existing as of this session + 2 new; the new unit test runs in ~30ms after the dependency-free-file fix, versus failing outright with a DB-connection error before it).
+- `CI=true pnpm run build:render` — build succeeded.
+- No live smoke test performed for this change specifically — it's server-only route logic, fully covered by the new unit test (exercising the actual function) plus the source-scan confirming the route wiring, which is a stronger verification combination than a manual click-through would add for this kind of backend validation logic.
+
+## Assumptions
+
+- Fetching the existing shot row before every PATCH (one extra indexed `SELECT` by primary key) is an acceptable, minimal cost for the correctness guarantee it buys — recomputing eligibility correctly for a partial update that doesn't include Status/Fault Status is not possible without knowing the shot's current values.
+- "Sour Shot" and other flags (`sourShot`, `isReference`, `signatureShot`, etc.) are correctly out of scope for this rule, per the task's own framing ("Sour shots may still be included if Status/Fault criteria are satisfied") — `computeIncludeInAnalysis` only ever looks at `status`/`faultStatus`, matching the client rule exactly.
+
+## Unresolved
+
+- None specific to this task.
+- `artifacts/coffee-log/src/pages/Bags.tsx` and `docs/implementation/launch-readiness-audit.md` show as modified in git status from other concurrent work during this session — not touched or reviewed as part of this task.
+
+# Bag / Hopper Lifecycle UI QA: Action-Path Clarity Fixes — 2026-08-25
+
+## Completed
+
+- Verified the two fixes recommended in the prior "Bag / Hopper Lifecycle Workflow Review" session (`routes/hopper.ts` DELETE endpoint + PATCH null-handling; `Bags.tsx`'s `ChangeBagDialog` `onError` cache invalidation) landed correctly in `c0c66cf` — confirmed by fresh code read and by the now-passing "Hopper API supports delete and clears bagId/startingBeans/phase/notes on explicit null" and "ChangeBagDialog refreshes cached queries on partial failure" tests.
+- Independently identified the exact same "Change Bag vs. per-row Close/Start Phase — nothing explains which to use" confusion later confirmed by `docs/implementation/launch-readiness-audit.md`'s High-Priority Fix #5, which recommended the same fix while this review was already in progress. Added one sentence to the existing "Bag Lifecycle Flow" card's intro copy in `Bags.tsx`: *"The 'Change Bag' button above runs this whole flow in one guided dialog; each active bag's own Close and Start Phase buttons below do just one step at a time, if that's all you need."* No new component, no schema/API change — text only.
+- Found a real, previously-unflagged duplicate-path risk: the "Add Bag" / "Edit Bag" dialog's own "Active Bag" switch could silently create a second active bag with **zero warning**, unlike Start Hopper Phase and Change Bag, which both already warn about multiple active bags. Fixed by adding the same amber `AlertTriangle` warning block (already established pattern in this file) to the Add/Edit dialog, shown when the switch is on and at least one *other* bag (excluding the one being edited, via `editing?.id`) is already active — text explicitly points the user at "Change Bag" instead.
+- Confirmed (again, live) that `HOPPER_PHASE_OPTIONS` remains exactly `Phase 1`, `Phase 2`, `Phase 3`, `End of Bag`, `Single Bag Phase`, `Custom` in both places the selector appears (standalone Start Hopper Phase dialog and the embedded selector in Change Bag), and that `Grinder Cleanout` never appears as a phase option anywhere — confirmed unchanged since the last review, no drift.
+- Confirmed measured-vs-intentionally-unmeasured closeout language is explicit (not just an optional blank field) in all three places it appears: standalone Close Out Bag dialog, the embedded closeout step in Change Bag, and the copy explaining what "skipping it" means in each.
+- Noted, but explicitly did **not** implement (out of this task's Bags.tsx-centric scope): `docs/implementation/launch-readiness-audit.md` also flags that `hopperMass`/`hopperPercent` always show blank on the Dashboard's Active Hopper Status panel for phases started through the app's own dialogs (since those are imported/computed-elsewhere values, never written by `POST /api/hoppers`), which "reads as broken, not as not yet tracked." This is a `Dashboard.tsx` fix, not a `Bags.tsx` one — flagged here for whoever picks up Dashboard.tsx next, not implemented in this pass.
+- Added one new contract test in `api-contract.test.ts` covering both fixes: the new guide-card sentence, and the new warning block's condition/copy/reference to "Change Bag."
+- Did not implement Hopper Intelligence, invent any hopper formula, add a lifecycle-event table, or touch Quick Log.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (all 4 workspace projects).
+- `CI=true pnpm --filter @workspace/api-server test` — 59 passed, 0 failed, including the new test. One transient failure was observed on a first run (`computeIncludeInAnalysis enforces the single approved eligibility rule with no override path`, `DATABASE_URL must be set`) — confirmed unrelated to this task (it's a different, concurrent agent's in-progress work in `shots.ts`/`shot-eligibility.ts`/the new `shot-analysis-eligibility.ts`, not `Bags.tsx`) and confirmed passing on a clean re-run with `DATABASE_URL` sourced.
+- `CI=true pnpm run build:render` — passed.
+- Live smoke test against the real dev DB using Chrome automation: confirmed the new guide-card sentence renders correctly; toggled "Active Bag" on in the Add Bag dialog with Bag #7 already active and confirmed the new amber warning appears with the expected copy; cancelled via Escape and confirmed via the API that no bag was created and exactly one bag (#7) remained active — no test data left behind.
+
+## Assumptions
+
+- Treated the Dashboard.tsx `hopperMass`/`hopperPercent` blank-looks-broken finding as out of scope for a "Bags.tsx action paths" task rather than silently expanding scope to fix it — flagged instead for a deliberate follow-up.
+- The new Add/Edit Bag warning intentionally does not block saving (matches the existing Start Hopper Phase pattern, which also only warns, never blocks) — multiple active bags remains a legitimate, supported workflow (e.g. decaf/regular split), just one the user should make deliberately, not by accident.
+
+## Unresolved lifecycle issues
+
+- Everything already on record from the prior review remains unchanged: no lifecycle-event table, hopper refill/top-up still requires it, structured maintenance checklist still deferred, two pre-existing orphaned Hopper rows (`bag_id=null`, `is_active=true`) still present and still harmless.
+- New: the Dashboard.tsx `hopperMass`/`hopperPercent` blank-field clarity fix (noted above) is recommended but not implemented.
+- The server-side `includeInAnalysis` enforcement gap this review's predecessor flagged appears to be actively being closed by a different, concurrent session (`shot-analysis-eligibility.ts`, in progress as of this task) — not verified end-to-end here since it's outside this task's file scope.
+
+## Recommended commit command
+
+Everything in this session's scope (my two Bags.tsx copy/UI fixes + their test) is small, low-risk, and fully verified. If Carl/Codex wants to commit just this task's changes on top of the current tree:
+
+    git add artifacts/coffee-log/src/pages/Bags.tsx artifacts/api-server/src/api-contract.test.ts docs/completed-tasks.md
+    git commit -m "fix(bags): clarify Change Bag vs per-row actions, warn before a second active bag"
+
+Not run automatically, per task boundaries (no commit, no push) — provided as the exact command if/when authorized. Note the working tree also contains unrelated, concurrent, in-progress changes (`shots.ts`, `shot-eligibility.ts`, the new `shot-analysis-eligibility.ts`, `launch-readiness-audit.md`) that are not part of this command and should be reviewed/committed separately by whoever owns that work.

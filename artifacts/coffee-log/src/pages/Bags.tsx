@@ -236,6 +236,8 @@ export default function Bags() {
                 <h2 className="font-semibold">Bag Lifecycle Flow</h2>
                 <p className="text-sm text-muted-foreground">
                   Use this flow when switching coffees: preserve old-bag evidence, then start the new bag cleanly.
+                  The "Change Bag" button above runs this whole flow in one guided dialog; each active bag's own
+                  Close and Start Phase buttons below do just one step at a time, if that's all you need.
                 </p>
               </div>
               <ol className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
@@ -348,6 +350,18 @@ export default function Bags() {
                 }}
               />
             </div>
+            {form.isActive === "true" && activeBags.filter((b) => b.id !== editing?.id).length > 0 && (
+              <div className="col-span-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span>
+                  {activeBags.filter((b) => b.id !== editing?.id).length === 1
+                    ? "Another bag is also marked active."
+                    : `${activeBags.filter((b) => b.id !== editing?.id).length} other bags are also marked active.`}{" "}
+                  This is allowed but usually means one should be closed out — the "Change Bag" button on this
+                  page handles closing the old bag for you.
+                </span>
+              </div>
+            )}
             <div className="col-span-2 space-y-1.5"><Label>Dial-in Notes</Label><Input value={form.dialInNotes} onChange={(e) => set("dialInNotes", e.target.value)} placeholder="Key observations during dial-in…" /></div>
             <div className="col-span-2 space-y-1.5"><Label>Notes</Label><Input value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
           </div>
