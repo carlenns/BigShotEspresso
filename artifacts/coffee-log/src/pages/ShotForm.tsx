@@ -250,6 +250,11 @@ export default function ShotForm() {
 
   const selectedBagId = form.watch("bagId");
 
+  const setAnalyzedShotDefaults = (status: "Good" | "Dialed In") => {
+    form.setValue("status", status, { shouldDirty: true, shouldValidate: true });
+    form.setValue("faultStatus", ["Good"], { shouldDirty: true, shouldValidate: true });
+  };
+
   useEffect(() => {
     if (!existingShot || !isEditing) return;
     const savedStatus = existingShot.status ?? "";
@@ -774,7 +779,10 @@ export default function ShotForm() {
                           onCheckedChange={(checked) => {
                             const ref = checked === true;
                             field.onChange(ref);
-                            if (ref) form.setValue("sourShot", false);
+                            if (ref) {
+                              setAnalyzedShotDefaults("Dialed In");
+                              form.setValue("sourShot", false);
+                            }
                             if (!ref) form.setValue("signatureShot", false);
                           }}
                         />
@@ -782,28 +790,25 @@ export default function ShotForm() {
                       <FormLabel className="font-normal cursor-pointer">Reference Shot</FormLabel>
                     </FormItem>
                   )} />
-                  {/* Signature Shot — requires Reference Shot */}
+                  {/* Signature Shot — automatically implies Reference Shot */}
                   <FormField control={form.control} name="signatureShot" render={({ field }) => {
-                    const isRef = form.watch("isReference");
                     return (
                       <FormItem className="flex items-center gap-2.5 space-y-0">
                         <FormControl>
                           <Checkbox
                             checked={field.value}
-                            disabled={!isRef}
                             onCheckedChange={(checked) => {
                               const sig = checked === true;
                               field.onChange(sig);
                               if (sig) {
+                                setAnalyzedShotDefaults("Dialed In");
                                 form.setValue("isReference", true);
                                 form.setValue("sourShot", false);
                               }
                             }}
                           />
                         </FormControl>
-                        <FormLabel className={cn("font-normal", isRef ? "cursor-pointer" : "cursor-not-allowed opacity-40")}>
-                          Signature Shot
-                        </FormLabel>
+                        <FormLabel className="font-normal cursor-pointer">Signature Shot</FormLabel>
                       </FormItem>
                     );
                   }} />
@@ -817,6 +822,7 @@ export default function ShotForm() {
                             const sour = checked === true;
                             field.onChange(sour);
                             if (sour) {
+                              setAnalyzedShotDefaults("Good");
                               form.setValue("isReference", false);
                               form.setValue("signatureShot", false);
                             }
