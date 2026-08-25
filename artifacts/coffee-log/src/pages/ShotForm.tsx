@@ -395,6 +395,8 @@ export default function ShotForm() {
   const defaultYield = latestShotDefaults?.yield ?? selectedBag?.defaultYield ?? (settings?.defaultTargetYield ? Number(settings.defaultTargetYield) : 36);
   const defaultTemp = selectedBag?.defaultTemp ?? (settings?.defaultBrewTemp ? Number(settings.defaultBrewTemp) : 94);
   const defaultTopUpTime = settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2;
+  const defaultGrindSetting = selectedBag?.currentGrindSetting ?? (settings?.defaultGrindSetting ? Number(settings.defaultGrindSetting) : 2.33);
+  const defaultGrindTime = selectedBag?.currentGrindTime ?? (settings?.defaultGrindTime ? Number(settings.defaultGrindTime) : 8.1);
   const saving = createShot.isPending || updateShot.isPending;
 
   return (
@@ -482,14 +484,14 @@ export default function ShotForm() {
               <FormField control={form.control} name="grindSetting" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Grind Setting</FormLabel>
-                  <FormControl><Input type="number" step="0.01" placeholder={selectedBag?.currentGrindSetting?.toString() ?? "2.33"} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, selectedBag?.currentGrindSetting, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, selectedBag?.currentGrindSetting, event.currentTarget)} /></FormControl>
+                  <FormControl><Input type="number" step="0.01" placeholder={defaultGrindSetting.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultGrindSetting, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultGrindSetting, event.currentTarget)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="grindTime" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Grind Time (s)</FormLabel>
-                  <FormControl><Input type="number" step="0.1" placeholder={selectedBag?.currentGrindTime?.toString() ?? "8.1"} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, selectedBag?.currentGrindTime, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, selectedBag?.currentGrindTime, event.currentTarget)} /></FormControl>
+                  <FormControl><Input type="number" step="0.1" placeholder={defaultGrindTime.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultGrindTime, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultGrindTime, event.currentTarget)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -497,6 +499,7 @@ export default function ShotForm() {
                 <FormItem>
                   <FormLabel>Initial Grinder Output (g)</FormLabel>
                   <FormControl><Input type="number" step="0.1" placeholder={defaultDose.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} /></FormControl>
+                  <p className="text-xs text-muted-foreground">Grinder output before basket correction — not the final basket dose.</p>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -518,14 +521,15 @@ export default function ShotForm() {
               <FormField control={form.control} name="temperature" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Temp (°C)</FormLabel>
-                  <FormControl><Input type="number" step="1" {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultTemp, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultTemp, event.currentTarget)} /></FormControl>
+                  <FormControl><Input type="number" step="1" placeholder={defaultTemp.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultTemp, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultTemp, event.currentTarget)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="dose" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Target / Basket Dose (g)</FormLabel>
-                  <FormControl><Input type="number" step="0.1" {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} /></FormControl>
+                  <FormControl><Input type="number" step="0.1" placeholder={defaultDose.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultDose, event.currentTarget)} /></FormControl>
+                  <p className="text-xs text-muted-foreground">The final dose that ends up in the basket, after any top-up or trim.</p>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -576,7 +580,7 @@ export default function ShotForm() {
               <FormField control={form.control} name="yield" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Yield (g)</FormLabel>
-                  <FormControl><Input type="number" step="0.1" {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultYield, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultYield, event.currentTarget)} /></FormControl>
+                  <FormControl><Input type="number" step="0.1" placeholder={defaultYield.toString()} {...field} value={field.value ?? ""} onPointerDown={(event) => seedSuggestedNumber(field, defaultYield, event.currentTarget)} onFocus={(event) => seedSuggestedNumber(field, defaultYield, event.currentTarget)} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -750,7 +754,7 @@ export default function ShotForm() {
                   <FormField control={form.control} name="grindWaste" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Grind Waste (g)</FormLabel>
-                      <FormControl><Input type="number" step="0.1" min="0" placeholder="32.2" {...field} value={field.value ?? ""} /></FormControl>
+                      <FormControl><Input type="number" step="0.1" min="0" {...field} value={field.value ?? ""} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />

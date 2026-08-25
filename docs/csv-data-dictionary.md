@@ -21,16 +21,16 @@ UI codes: text, long text, number, currency, date/time, checkbox, dropdown, chip
 | Grinder Setting | Number | E | number | Mechanical setting; GSP, DCI, BLI, HMI. |
 | Grind Adjusted | Checkbox | E | checkbox | Marks a setting change; GSP and drift analysis. |
 | Grind Time | Number | E | number | Timed-dose duration; core DCI/OSI input. |
-| Initial Output (g) | Number | E | number | Grinder output before correction; core DCI/OSI/HMI input. |
+| Initial Output (g) | Number | E | number | Grinder output before basket correction (app label: `Initial Grinder Output`); not the final basket dose. Core DCI/OSI/HMI input. |
 | Total Output (g) | Number | E | number | Output after top-up/trim, before basket normalization; DCI/HMI. |
-| Dose (g) | Number | E | number | Actual basket dose used for extraction; OSI/DCI/GSP. |
-| Time Adj (sec) | Number | E | number | Additional/subtracted grind time used for correction; DCI/HMI. |
-| Top-Up Grind (g) | Number | E | number | Added grounds after under-dose; DCI/HMI/OSI. |
-| Over Grind Removed (g) | Number | E | number | Removed grounds after over-dose; DCI/HMI/OSI. |
+| Dose (g) | Number | E | number | Final dose that ends up in the basket after any top-up/trim (app label: `Target / Basket Dose`); actual basket dose used for extraction; OSI/DCI/GSP. |
+| Time Adj (sec) | Number | E | number | Additional/subtracted grind time used for a top-up correction (app label: `Top-Up Time Adj`); DCI/HMI. If left blank during an under-dose top-up, the app falls back to the grinder minimum time setting or 0.2s. |
+| Top-Up Grind (g) | Number | E | number | Extra grounds added after under-dose (app label: `Top-Up Grind Added`) — the incremental grams added, not the final basket dose; DCI/HMI/OSI. |
+| Over Grind Removed (g) | Number | E | number | Grounds removed from the basket to reach target dose after over-dose; DCI/HMI/OSI. |
 | Bean Delta | Formula/Ledger | R | read-only | Inventory change caused by shot/event; Hopper state workflow. |
-| Grind Waste (g) | Number | E | number | Purge/discard amount; Hopper ledger and operational cost. |
+| Grind Waste (g) | Number | E | number | Purge/setup/grind-change waste, entered separately from any dose correction; not part of the basket dose. Counts against bag/hopper remaining; Hopper ledger and operational cost. |
 | Beans Added (g) | Number | E | number | Hopper fill/top-up event amount; Hopper state workflow/HMI. |
-| Dose Correction Type | Single Select | E | dropdown | `Over → Trim` or `Under → Top-Up`; DCI/HMI/OSI. |
+| Dose Correction Type | Single Select | E | dropdown | `Over → Trim` or `Under → Top-Up`, derived from Initial Output vs. Dose; DCI/HMI/OSI. |
 | Correction Amount (g) | Number | E | number | Magnitude of dose correction; DCI/HMI/OSI. |
 | Output Delta (g) | Formula | R | read-only | Difference between expected and produced output; DCI/HMI. |
 | Temp | Number | E | number | Brew temperature; GSP/MSI and reference comparisons. |

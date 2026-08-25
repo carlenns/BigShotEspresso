@@ -30,12 +30,14 @@ export default function ShotDetail() {
     return <div className="text-center text-red-500 py-12">Failed to load shot data.</div>;
   }
 
-  const hasGrindEvent =
-    shot.grindAdjusted ||
-    shot.grindWaste != null ||
+  const hasDoseCorrection =
+    (shot.doseCorrectionType && shot.doseCorrectionType !== "None") ||
     shot.topUpGrind != null ||
     shot.timeAdj != null ||
     shot.overGrindRemoved != null;
+
+  const hasGrinderWorkflowEvent =
+    Boolean(shot.grindAdjusted) || shot.grindWaste != null;
 
   const hasServingContext =
     Boolean(shot.drinkType) ||
@@ -94,8 +96,10 @@ export default function ShotDetail() {
             <CardTitle>Shot Extraction</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-              <DetailItem label="Basket Dose" value={`${shot.dose}g`} />
+            <div>
+              <p className="text-sm font-semibold text-muted-foreground mb-3">Extraction Details</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                <DetailItem label="Basket Dose" value={`${shot.dose}g`} />
               <DetailItem label="Yield" value={`${shot.yield}g`} />
               <DetailItem label="Pour Time" value={`${shot.pourTime}s`} />
               <DetailItem label="Temp" value={shot.temperature ? `${shot.temperature}°C` : "-"} />
@@ -112,6 +116,7 @@ export default function ShotDetail() {
               <DetailItem label="Bean Achievement" value={<ChipList values={shot.beanAchievement} />} />
               <DetailItem label="Expression Style" value={<ChipList values={shot.expressionStyle} />} />
               <DetailItem label="Taste Zone" value={shot.tasteZone || shot.zone || "-"} />
+              </div>
             </div>
 
             {hasServingContext && (
@@ -131,20 +136,36 @@ export default function ShotDetail() {
               </div>
             )}
 
-            {hasGrindEvent && (
+            {hasDoseCorrection && (
+              <div className="rounded-lg border p-4">
+                <div className="mb-3">
+                  <p className="text-sm font-semibold text-muted-foreground">Dose Correction</p>
+                  <p className="text-xs text-muted-foreground/80">
+                    Correction between Initial Grinder Output and Target/Basket Dose. Separate from Grind Waste below.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                  {shot.doseCorrectionType && shot.doseCorrectionType !== "None" && (
+                    <DetailItem label="Correction Type" value={shot.doseCorrectionType} />
+                  )}
+                  {shot.topUpGrind != null && <DetailItem label="Top-Up Grind Added" value={`${shot.topUpGrind}g`} />}
+                  {shot.timeAdj != null && <DetailItem label="Top-Up Time Adj" value={`${shot.timeAdj}s`} />}
+                  {shot.overGrindRemoved != null && <DetailItem label="Over-Grind Removed" value={`${shot.overGrindRemoved}g`} />}
+                </div>
+              </div>
+            )}
+
+            {hasGrinderWorkflowEvent && (
               <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900 dark:bg-amber-950/20">
                 <div className="mb-3">
-                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">Recorded Grind / Waste Event</p>
+                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">Grinder / Workflow Event</p>
                   <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
-                    This is inventory and workflow evidence attached to the shot. It is not part of the brewed basket dose or extraction yield.
+                    Inventory and workflow evidence attached to the shot. Not part of the brewed basket dose or extraction yield.
                   </p>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                   {shot.grindAdjusted && <DetailItem label="Event Type" value={shot.grindAdjusted} />}
                   {shot.grindWaste != null && <DetailItem label="Purge / Setup Waste" value={`${shot.grindWaste}g`} />}
-                  {shot.topUpGrind != null && <DetailItem label="Top-Up Added" value={`${shot.topUpGrind}g`} />}
-                  {shot.timeAdj != null && <DetailItem label="Top-Up Time Adj" value={`${shot.timeAdj}s`} />}
-                  {shot.overGrindRemoved != null && <DetailItem label="Removed From Dose" value={`${shot.overGrindRemoved}g`} />}
                 </div>
               </div>
             )}

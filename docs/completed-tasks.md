@@ -530,3 +530,34 @@ After both checks pass, Phase 2 should begin with DCI. No intelligence engine wa
 
 - Machine/profile-level drink type defaults remain deferred, per the recommendation already on record above: add an optional `default_drink_type` column to `machines` (or a small join table) only once shots can explicitly select a machine/grinder/setup profile and once equipment/profile selection is actually surfaced in `Log Shot`. Do not implement until users/OAuth and that selector exist.
 - `Log Shot` still has no machine or grinder selector at all (`machineId`/`grinderId` exist on `shots` in the DB but are not exposed in the form). This is the actual blocker for any future machine/profile-aware default and should be scoped as its own task before machine/profile drink defaults are revisited.
+
+# Log Shot Numeric Stepper Fix, Dose Correction Clarity, Shot Detail Regrouping — 2026-08-25
+
+## Completed
+
+- Fixed the real numeric-stepper bug: for `Grind Setting` and `Grind Time`, the browser up/down control's placeholder showed a hardcoded fallback (`2.33` / `8.1`) that was never passed into the actual seeding logic when no bag was selected — so clicking the stepper started the increment from 0, not from the displayed number. Confirmed the exact failure mode with an isolated React repro in a real browser (state went to `0.01` instead of `2.34`) before fixing it, and confirmed the fix afterward (state correctly went to `2.34`). Root cause: `ShotForm.tsx` computed `dose`/`yield`/`temperature` defaults through a `bag → settings → hardcoded constant` fallback chain used for both the placeholder and the seed value, but `grindSetting`/`grindTime` only had that chain in the placeholder string, not in the seed call. Added `defaultGrindSetting`/`defaultGrindTime` consts using the same fallback chain (now also reading the existing `settings.defaultGrindSetting`/`settings.defaultGrindTime` Settings keys, which `ShotForm` was not previously reading at all) and used them for both placeholder and seeding.
+- Removed `Grind Waste`'s misleading static placeholder (`32.2`), which had no seeding logic and no real computed default — it visually suggested a number the stepper could never reach, matching the same class of bug. There is no bag/settings-derived default for grind waste, so the field now correctly shows no placeholder and starts from 0, matching its true empty state. Did not invent a fabricated default.
+- Added matching placeholders to `Target / Basket Dose`, `Yield`, and `Temp`, which already seeded correctly on stepper click but showed no visual default at all (inconsistent with `Grind Setting`/`Grind Time`/`Initial Grinder Output`/`Top-Up Grind Added`/`Top-Up Time Adj`, which all show one). Purely additive; no behavior change since seeding already worked for these three.
+- Confirmed all requested numeric increments already matched the target step sizes (Pour Delay/Pour Time/Flow Time: 1; Rating/Preference Rating: 0.05; Dose/Yield/Initial Grinder Output/Top-Up Grind/Grind Waste: 0.1; Grind Time/Top-Up Time Adj: 0.1) — no `step` attributes needed to change.
+- Left `Grind Setting`'s precision (`step="0.01"`) unchanged. `grinders` already has per-grinder `grindSettingPrecision`/`grindStepIncrement` columns, but `Log Shot` has no grinder selector, so there is no way to know which grinder's precision applies at shot-entry time. Documented as a limitation rather than guessed at.
+- Clarified dose-correction labels/help text on `Log Shot` without changing any formula: added one-line captions to `Initial Grinder Output` ("before basket correction — not the final basket dose") and `Target / Basket Dose` ("final dose that ends up in the basket, after any top-up or trim"). `Top-Up Grind Added`'s and `Grind Waste`'s existing help text already matched the target wording and were left unchanged.
+- Restructured `Shot Detail`'s single "Recorded Grind / Waste Event" box into two separate, independently-conditional sections: `Dose Correction` (Correction Type, Top-Up Grind Added, Top-Up Time Adj, Over-Grind Removed — shown only when a real correction or its inputs are recorded) and `Grinder / Workflow Event` (Event Type, Purge/Setup Waste — shown only when recorded). `doseCorrectionType`/`doseCorrection` were computed and stored on shots already but were never previously displayed anywhere in `Shot Detail`. Added an "Extraction Details" subheading above the existing extraction grid for consistency with the other four labeled groupings (`Extraction Details`, `Dose Correction`, `Grinder / Workflow Event`, `Serving Context`) without moving any fields out of that grid.
+- Updated `docs/csv-data-dictionary.md` (Initial Output, Dose, Time Adj, Top-Up Grind, Over Grind Removed, Grind Waste, Dose Correction Type rows) to state the same label meanings and the existing grind-minimum-time/0.2s top-up fallback behavior, without inventing new formulas.
+
+## Verified
+
+- Workspace typecheck passed.
+- API/Phase 1.5 test suite passed: 42 passed, 0 failed (no test changes were needed — this was a source/UI/docs fix, not new behavior requiring new coverage).
+- Render production build passed.
+- The stepper bug and its fix were each independently reproduced and confirmed live in a real Chrome tab using an isolated React repro of the exact `seedSuggestedNumber` pattern (not just read through statically), before and after the code change.
+
+## Assumptions
+
+- `2.33` and `8.1` (the pre-existing hardcoded placeholder fallbacks for `Grind Setting`/`Grind Time`) are acceptable last-resort constants to keep as the final fallback in the new `bag → settings → constant` chain, since they were already the values shown to users before this fix and are not new invented numbers.
+- Adding placeholders to `Target / Basket Dose`/`Yield`/`Temp` (fields that already seeded correctly but showed nothing) is in scope as part of "the input should actually hold that value" — a visible default is part of a user actually seeing/trusting the value the stepper will use.
+- The "Extraction Details" subheading is cosmetic-only (a `<p>` label wrapping the existing grid in one extra `<div>`); no `DetailItem`s were added, removed, or moved between sections other than the deliberate Dose Correction / Grinder Workflow Event split.
+
+## Unresolved
+
+- `Grind Setting` precision/step still cannot be equipment-aware (fixed at `0.01`) because `Log Shot` has no grinder selector to know which grinder's `grindSettingPrecision`/`grindStepIncrement` applies. This is the same underlying gap already on record above (no machine/grinder selector in `Log Shot`) and should be resolved together with it, not patched separately.
+- `Grind Waste` still has no real computed default (no `settings.defaultGrindWaste` or equivalent exists) — its field is now honestly empty rather than misleadingly pre-filled-looking, but there is no "smart" default to offer here yet.
