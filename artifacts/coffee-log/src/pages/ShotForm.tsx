@@ -194,6 +194,46 @@ function ScalarSelect({
   );
 }
 
+// True multi-select chip toggle for fields where more than one value can
+// reasonably apply (currently Expression Style only — see
+// docs/csv-data-dictionary.md, which documents it as "Multi Select"/"chips"
+// with no single-choice curation, unlike Fault Status / Bean Achievement /
+// Shot Classification). Selection order is preserved so the first tap stays
+// the "primary highlight" per that same doc entry. Same visual language as
+// the existing Taste Selectors chip toggle below.
+function ChipMultiSelect({
+  options,
+  value,
+  onChange,
+}: {
+  options: string[];
+  value: string[];
+  onChange: (value: string[]) => void;
+}) {
+  const toggle = (option: string) => {
+    onChange(value.includes(option) ? value.filter((v) => v !== option) : [...value, option]);
+  };
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((option) => (
+        <button
+          key={option}
+          type="button"
+          onClick={() => toggle(option)}
+          className={cn(
+            "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+            value.includes(option)
+              ? "bg-primary text-primary-foreground border-primary"
+              : "hover:border-primary/40 text-muted-foreground"
+          )}
+        >
+          {option}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function EquipmentSelect({
   options,
   value,
@@ -402,7 +442,7 @@ export default function ShotForm() {
 
   const statusOptions = curatedScalarOptions("status", form.watch("status"));
   const faultStatusOptions = curatedOptions("faultStatus", form.watch("faultStatus")?.slice(0, 1) ?? []);
-  const expressionStyleOptions = curatedOptions("expressionStyle", form.watch("expressionStyle")?.slice(0, 1) ?? []);
+  const expressionStyleOptions = curatedOptions("expressionStyle", form.watch("expressionStyle") ?? []);
   const beanAchievementOptions = curatedOptions("beanAchievement", form.watch("beanAchievement")?.slice(0, 1) ?? []);
   const shotClassificationOptions = curatedOptions("shotClassification", form.watch("shotClassification")?.slice(0, 1) ?? []);
   const drinkTypeOptions = drinkTypeOptionsFromSettings(settings, form.watch("drinkType"));
@@ -1259,11 +1299,11 @@ export default function ShotForm() {
                   <div className="space-y-5 animate-in fade-in slide-in-from-top-1 duration-200">
                     <FormField control={form.control} name="expressionStyle" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Expression Style</FormLabel>
-                        <ScalarSelect
+                        <FormLabel>Expression Style <span className="text-muted-foreground text-xs font-normal">select all that apply — first tap is the primary highlight</span></FormLabel>
+                        <ChipMultiSelect
                           options={expressionStyleOptions}
-                          value={(field.value ?? [])[0]}
-                          onChange={(value) => field.onChange(value ? [value] : [])}
+                          value={field.value ?? []}
+                          onChange={field.onChange}
                         />
                         <FormMessage />
                       </FormItem>

@@ -810,6 +810,52 @@ test("Change Bag guided flow reuses existing endpoints and never forces hopper p
   assert.ok(beanStepIndex > 0 && bagStepIndex > beanStepIndex && closeStepIndex > bagStepIndex, "expected bean -> new bag -> close-old order in ChangeBagDialog's mutationFn");
 });
 
+test("Change Bag suggests the next Bag Number and clearly labels Roast Date", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // Suggestion is derived only from purely-numeric existing bag numbers
+  // ("7" -> 8), never invents a starting number, and never overwrites a
+  // manual edit: it seeds the initial form value once (in blank()) rather
+  // than being applied by an effect that could re-fire after the user types.
+  assert.match(source, /function suggestNextBagNumber\(bags: Bag\[\]\): string \{/);
+  assert.match(source, /\/\^\\d\+\$\/\.test\(n\)/);
+  assert.match(source, /numeric\.length > 0 \? String\(Math\.max\(\.\.\.numeric\) \+ 1\) : ""/);
+  assert.match(source, /bagNumber: suggestNextBagNumber\(allBags\)/);
+  assert.doesNotMatch(source, /useEffect\([^)]*setForm[^)]*bagNumber[^)]*suggestNextBagNumber/s);
+
+  // The full bags list (not just the active bag) must reach the dialog, and
+  // ChangeBagDialog's own props type must require it.
+  assert.match(source, /allBags=\{bags\}/);
+  assert.match(source, /allBags: Bag\[\];/);
+
+  // Graceful fallback + explanation when no numeric bag numbers exist yet,
+  // vs. an explicit statement of what was suggested when they do.
+  assert.match(source, /Bag Number suggested as \$\{suggestedBagNumber\}/);
+  assert.match(source, /No previous numeric bag numbers found, so nothing was suggested/);
+
+  // Roast Date must now have an explicit, unambiguous Label distinguishing
+  // it from Purchase Date and Opened Date — not just an input placeholder.
+  assert.match(source, /<Label className="text-xs font-normal text-muted-foreground">Roast Date <span className="text-muted-foreground\/70">\(or estimated\)<\/span><\/Label>/);
+  assert.match(source, /Roast Date is when the beans were roasted \(exact or your best estimate\) — not Purchase Date \(when bought, not collected here\)\. Opened Date is set automatically to today when this bag is created\./);
+
+  // Roast Date Confidence already exists on the Bag schema (used elsewhere
+  // in this same file's full Edit form) and is small/safe enough to surface
+  // here too — no new schema, reuses the existing ROAST_DATE_CONFIDENCE list.
+  assert.match(source, /roastDateConfidence: ""/);
+  assert.match(source, /if \(form\.roastDateConfidence\) bagBody\.roastDateConfidence = form\.roastDateConfidence;/);
+  const changeBagDialogSource = source.slice(source.indexOf("function ChangeBagDialog("));
+  assert.match(changeBagDialogSource, /ROAST_DATE_CONFIDENCE\.map\(\(v\) => <SelectItem key=\{v\} value=\{v\}>\{v\}<\/SelectItem>\)/);
+
+  // Deliberately excluded from this compact flow (available via full Edit
+  // later): free-text roast-date detail is more than a quick-create flow
+  // warrants, and this task's boundaries forbid new schema regardless.
+  assert.doesNotMatch(changeBagDialogSource, /freshnessDatingMethod/);
+  assert.doesNotMatch(changeBagDialogSource, /estimatedRoastWindow/);
+});
+
 test("ChangeBagDialog refreshes cached queries on partial failure, not just on success", async () => {
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
@@ -1276,6 +1322,44 @@ test("Shot form supports editing, active-bag-first entry, and Taste Zone selecti
   assert.match(formSource, /setSelectedTastes\(existingTasteSelectors\.map\(\(selector\) => selector\.id\)\)/);
   assert.match(formSource, /setShowAdvancedEvaluation\(hasAdvancedEvaluation\)/);
   assert.match(formSource, /data\.id && \(isEditing \|\| selectedTastes\.length > 0\)/);
+});
+
+test("Expression Style is a true multi-select chip control, unlike the intentionally single-select fields", async () => {
+  const [formSource, dictionarySource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../docs/csv-data-dictionary.md", import.meta.url)), "utf8"),
+  ]);
+
+  // docs/csv-data-dictionary.md documents Expression Style as plain "Multi
+  // Select" / "chips" with no single-choice curation note, unlike Fault
+  // Status / Bean Achievement / Shot Classification (each explicitly
+  // "curated as single-choice ... in app"). The UI must match that.
+  assert.match(dictionarySource, /\| Expression Style \| Multi Select \| E \| chips \|/);
+  assert.match(dictionarySource, /Fault Status \| Multi Select historically; curated as single-choice/);
+  assert.match(dictionarySource, /Bean Achievement \| Multi Select historically; curated as single-choice/);
+  assert.match(dictionarySource, /Shot Classification \| Multi Select historically; curated as single-choice/);
+
+  // Expression Style renders through the true multi-select chip toggle...
+  assert.match(formSource, /function ChipMultiSelect/);
+  assert.match(
+    formSource,
+    /name="expressionStyle" render=\{\(\{ field \}\) => \([\s\S]{0,400}<ChipMultiSelect/,
+  );
+  assert.match(formSource, /value=\{field\.value \?\? \[\]\}\s*\n\s*onChange=\{field\.onChange\}/);
+
+  // ...and its options are no longer truncated to the first selected value.
+  assert.doesNotMatch(formSource, /curatedOptions\("expressionStyle", form\.watch\("expressionStyle"\)\?\.slice\(0, 1\)/);
+
+  // Bean Achievement and Shot Classification remain single-select dropdowns
+  // — this fix must not touch either of them.
+  assert.match(
+    formSource,
+    /name="beanAchievement" render=\{\(\{ field \}\) => \([\s\S]{0,200}<ScalarSelect/,
+  );
+  assert.match(
+    formSource,
+    /name="shotClassification" render=\{\(\{ field \}\) => \([\s\S]{0,200}<ScalarSelect/,
+  );
 });
 
 test("Shot Detail displays zero ratings instead of treating them as blank", async () => {

@@ -1810,3 +1810,145 @@ No code follow-up needed from this task. No Agent 1 prompt required — nothing 
     git commit -m "feat(shots): add shot-level Brew Method, independent of Drink Type"
 
 Not run automatically, per task boundaries (no commit, no push). Note the working tree also contains other unrelated, uncommitted, already-documented changes from separate concurrent tasks (`docs/implementation/README.md`, `docs/implementation/auth-data-ownership-implementation-plan.md`) that are not part of this command.
+
+# Change Bag Bag Number + Date Clarity — 2026-08-26
+
+## Completed
+
+- **Bag Number auto-suggest**: `ChangeBagDialog` (in `artifacts/coffee-log/src/pages/Bags.tsx`) now receives the full bags list (`allBags`, a new prop wired from the parent `Bags` component's existing `bags` query — no new fetch). A new `suggestNextBagNumber(bags)` helper finds the highest *purely numeric* existing `bagNumber` (e.g. `"7"`) and suggests one more (`"8"`); mixed/non-numeric values (`"7-Trial"`) are ignored rather than guessed at. The suggestion seeds `form.bagNumber`'s initial value once, inside `blank()`, which only runs on the dialog's open transition — it is never re-applied by a live effect, so a manual edit can never be clobbered.
+- **Graceful fallback**: when no purely-numeric bag numbers exist anywhere, the field is left blank and the helper copy explains why nothing was suggested, instead of guessing a starting number.
+- **Roast Date clarity**: the previously bare, unlabeled date input in the compact "New Bag Details" box (inside Change Bag only — the separate full bag-edit form already had a proper `Roast Date` label) now has an explicit `Roast Date (or estimated)` label, plus helper copy distinguishing it from Purchase Date (when bought, not collected in this compact flow) and Opened Date (set automatically to today).
+- **Roast Date Confidence surfaced**: this field already existed on the Bag schema and already had a working `<Select>` pattern (the `ROAST_DATE_CONFIDENCE` list) in the full bag-edit form elsewhere in the same file. Replicated that same small, existing dropdown into the compact Change Bag flow — no new schema, no new options invented.
+- Deliberately did **not** surface `freshnessDatingMethod`, `estimatedRoastWindow`, or the free-text `roastDateNotes` in this compact flow — those are more detail than a quick-create dialog warrants and remain available via the existing full Edit form (`This bag will be created... Add more detail anytime from Edit.` copy already covers this).
+
+## Files inspected
+
+- `artifacts/coffee-log/src/pages/Bags.tsx` (both the full bag-edit form and `ChangeBagDialog`)
+- `artifacts/api-server/src/api-contract.test.ts`
+
+## Exact behavior before/after
+
+- **Before**: opening Change Bag showed an empty `Bag Number` field with only a `"Bag number"` placeholder — no suggestion, no explanation. The roast-date input had no `<Label>`, just a `"Roast date"` placeholder, easily confused with Purchase/Opened Date. `Roast Date Confidence` had no way to be set from this flow at all.
+- **After**: opening Change Bag with an active Bag #7 pre-fills `Bag Number` with `8` (verified live: `Bag Number suggested as 8 (one after your highest numbered bag) — edit if needed.`), still fully editable and never re-overwritten. The date input is now labeled `Roast Date (or estimated)`, with a helper line distinguishing Purchase/Roast/Opened Date. A new, optional `Roast Date Confidence` dropdown (`Exact` / `Estimated High` / `Estimated Medium` / `Estimated Low` / `Unknown`) is available directly in the compact flow.
+
+## Tests added/updated
+
+Added `"Change Bag suggests the next Bag Number and clearly labels Roast Date"` to `artifacts/api-server/src/api-contract.test.ts`, source-scanning `Bags.tsx`. Asserts: `suggestNextBagNumber`'s numeric-only regex and fallback-to-`""` logic; that it seeds `blank()`'s `bagNumber` (not a live effect that could overwrite a manual edit); that `allBags` reaches the dialog via both the prop wiring and the type signature; both helper-copy variants (suggested vs. no-numeric-bag-numbers-found); the new Roast Date `<Label>` text exactly; the Purchase/Roast/Opened Date distinguishing copy exactly; that `roastDateConfidence` is wired into both form state and the submit body and reuses the existing `ROAST_DATE_CONFIDENCE` list; and that `freshnessDatingMethod`/`estimatedRoastWindow` were deliberately not added to `ChangeBagDialog`.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (4/4 workspace projects).
+- `CI=true pnpm --filter @workspace/api-server test` — 67/67 passed, 0 failed, including the new test above. No `static-serving`/127.0.0.1 bind issue.
+- `CI=true pnpm run build:render` — build succeeded (pre-existing, unrelated sourcemap/chunk-size warnings only).
+- Live smoke test against the real dev DB (already running, serving this exact build — confirmed the served bundle hash matched what `build:render` had just produced) via Chrome automation: opened Change Bag with active Bag #7 and confirmed, by screenshot, the exact rendered output described above — `Bag Number` pre-filled `8`, both helper paragraphs present verbatim, `Roast Date (or estimated)` label present, `Roast Date Confidence` dropdown present and defaulting to `— not set —`. Pure read-only verification — dialog was closed via Escape without submitting, no data created or modified.
+
+## Assumptions
+
+- "Existing numeric bag numbers" (requirement 1) means the `bagNumber` string must be *purely* digits after trimming — a mixed value like `"7-Trial"` is excluded from the max calculation rather than partially parsed, since guessing at partial-numeric intent risked suggesting a wrong number.
+- Interpreted "surface them in this flow only if tiny and safe" (requirement 4) as: reuse an already-existing, already-working small UI pattern (`ROAST_DATE_CONFIDENCE` select) with zero schema/API change — and drew the line there, treating the remaining, more free-text roast-date fields as out of scope for a compact quick-create dialog.
+- Left the separate, already-fully-labeled full bag-edit form (`blankForm`/main "Bag Number", "Purchase Date", "Roast Date", etc. fields around line 300-330) untouched — it was never the source of the reported confusion; only `ChangeBagDialog`'s compact box was.
+
+## Unresolved issues
+
+- None new. The already-documented gap (no lifecycle-event table, hopper top-up/maintenance still text-evidence-only) remains unchanged and out of this task's scope.
+
+## Recommended commit command
+
+    git add artifacts/coffee-log/src/pages/Bags.tsx artifacts/api-server/src/api-contract.test.ts docs/completed-tasks.md
+    git commit -m "fix(bags): suggest next Bag Number and clarify Roast Date in Change Bag flow"
+
+Not run automatically, per task boundaries (no commit, no push). Note the working tree also contains other unrelated, uncommitted changes from a separate, earlier task in this session (the shot-level Brew Method work: schema/migration/OpenAPI/generated-client/ShotForm/ShotDetail/selector-options/Settings files) that are not part of this command.
+
+# Expression Style Selector Consistency — 2026-08-26
+
+## Decision
+
+**Option B: made Expression Style a true multi-select chip control.** Two prior sessions' reviews independently reached the same conclusion and this task's own product guidance confirmed it: `docs/csv-data-dictionary.md` documents Expression Style as plain `Multi Select` / `chips` with **no** single-choice curation note — unlike Fault Status, Bean Achievement, and Shot Classification, each explicitly documented as `Multi Select historically; curated as single-choice ... in app`. The task's given examples (Balanced, Sweet, Clean, Chocolatey, Fruity, Heavy / Syrupy) can naturally co-occur on one shot, matching the "if multiple can reasonably apply, multi-select is probably correct" guidance. Docs were already correct; the UI was the thing out of sync, so the code was changed to match the docs rather than the other way around.
+
+## Completed
+
+- Added a new `ChipMultiSelect` component to `ShotForm.tsx` (placed right after `ScalarSelect`): a small, self-contained multi-select chip toggle operating directly on a `string[]` field value, using the exact same visual language as the existing Taste Selectors chip toggle already in the same file (`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors`, `bg-primary text-primary-foreground border-primary` when selected). Selection order is preserved (append on select, filter on deselect) so the first tap stays the "primary highlight," matching the data dictionary's own description of the field.
+- Swapped Expression Style's `FormField` render from `ScalarSelect` (single-value dropdown, `(field.value ?? [])[0]` / `onChange={(value) => field.onChange(value ? [value] : [])}`) to `ChipMultiSelect`, passed the full array directly (`value={field.value ?? []}`, `onChange={field.onChange}`). Added a short inline label hint ("select all that apply — first tap is the primary highlight") so the new interaction model is self-explanatory.
+- Removed the `.slice(0, 1)` truncation on `expressionStyleOptions` (`curatedOptions("expressionStyle", form.watch("expressionStyle")?.slice(0, 1) ?? [])` → `curatedOptions("expressionStyle", form.watch("expressionStyle") ?? [])`) so all currently-selected values — not just the first — are considered when deciding whether a historical/CSV value needs to be appended to the curated option list.
+- Did not touch Fault Status, Bean Achievement, or Shot Classification — confirmed all three remain single-select `ScalarSelect` dropdowns, matching their own "curated as single-choice" documentation.
+- Confirmed `ShotDetail.tsx`'s existing `ChipList` component already renders the full `expressionStyle` array (`{(shot.expressionStyle?.length ?? 0) > 0 && <DetailItem label="Expression Style" value={<ChipList values={shot.expressionStyle} />} />}`) — no display-side change was needed, live-verified below.
+- No schema, migration, OpenAPI, or generated-client changes — `expressionStyle` was already `string[]` end-to-end (`z.array(z.string()).optional()` in the form schema, `expressionStyle: jsonb(...)`-equivalent array column in `shots`), so this was a pure client-side interaction-pattern fix.
+
+## Files inspected
+
+`docs/field-type-map.md`, `docs/csv-data-dictionary.md`, `artifacts/coffee-log/src/lib/selector-options.ts`, `artifacts/coffee-log/src/pages/ShotForm.tsx`, `artifacts/coffee-log/src/pages/ShotDetail.tsx`, `artifacts/api-server/src/api-contract.test.ts`, `docs/completed-tasks.md`.
+
+## Files changed
+
+- `artifacts/coffee-log/src/pages/ShotForm.tsx`
+- `artifacts/api-server/src/api-contract.test.ts`
+- `docs/completed-tasks.md` (this entry)
+
+No `selector-options.ts` or `docs/csv-data-dictionary.md` changes were needed — both were already correct; only `ShotForm.tsx` was out of sync with them.
+
+## Tests added/updated
+
+Added `"Expression Style is a true multi-select chip control, unlike the intentionally single-select fields"` to `artifacts/api-server/src/api-contract.test.ts` (source-scan pattern, reads both `ShotForm.tsx` and `docs/csv-data-dictionary.md`): asserts the data dictionary's documented type distinction (Expression Style plain "Multi Select"/"chips" vs. the other three's "curated as single-choice"); asserts `ChipMultiSelect` exists and Expression Style's `FormField` renders through it with the full-array `value`/`onChange` wiring; asserts the `.slice(0, 1)` truncation is gone; asserts Bean Achievement and Shot Classification still render through `ScalarSelect` (guards against this fix accidentally spreading to fields that must stay single-select).
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (4/4 workspace projects).
+- `CI=true pnpm --filter @workspace/api-server test` — 66/66 passed on first run after this change; re-ran the full suite a second time after a separate, concurrent, unrelated task landed more test additions in the same file mid-session — 67/67 passed together.
+- `CI=true pnpm run build:render` — passed.
+- Live end-to-end verification against the real dev DB via Chrome: opened `/shots/new`, expanded Advanced tags, selected two Expression Style chips ("Chocolatey" then "Fruity" — both visibly highlighted simultaneously, unlike before where selecting a second value would have deselected the first), saved a real test shot (id 254), confirmed via `GET /api/shots/254` that `expressionStyle: ["Chocolatey", "Fruity"]` persisted in that exact order, confirmed `/shots/254` displays both as chips via the existing `ChipList`, confirmed `/shots/254/edit` reloads both chips pre-selected, then deleted the test shot via `DELETE /api/shots/254` (204, confirmed 404 on re-fetch) — no test data left behind.
+
+## Assumptions
+
+- Treated this as a pure UI/interaction-pattern fix, not a data-model change, since `expressionStyle` was already an array end-to-end; no schema/migration/OpenAPI work was needed or attempted, consistent with the task's "do not change DB schema unless absolutely necessary" boundary.
+- Kept the curated `expressionStyle` vocabulary in `selector-options.ts` completely unchanged — no new selector values were invented.
+- The short inline label hint is copy-only guidance for the new interaction model, not a new selector rule or intelligence behavior.
+
+## Unresolved issues
+
+None found specific to this task. Everything requested was resolved: the docs were already correct, the one out-of-sync UI was fixed, and the fix was verified live end-to-end with real persisted multi-value data.
+
+## Recommended commit command
+
+    git add artifacts/coffee-log/src/pages/ShotForm.tsx artifacts/api-server/src/api-contract.test.ts docs/completed-tasks.md
+    git commit -m "fix(shots): make Expression Style a true multi-select chip control"
+
+Not run automatically, per task boundaries (no commit, no push). Note the working tree also contains other unrelated, uncommitted changes from a separate, concurrent task in this session (`Bags.tsx`'s Change Bag Bag-Number-suggestion / Roast Date labeling work, and its own `api-contract.test.ts` additions in the same file) that are not part of this command and should be reviewed/committed separately by whoever owns that work.
+
+# Maintenance Workflow Planning Doc — 2026-08-26
+
+## Completed
+
+- Added a full "Maintenance Workflow Model" section to `docs/implementation/bag-hopper-lifecycle-plan.md` (placed after the System Phase / Experiment Phase model, mirroring its structure): why maintenance is not Shot Classification/Fault Status (even after lifecycle events exist); where rules can attach (machine/grinder/accessory/user-default); the six reminder-basis options (every shot, every X shots/bags/kg, every X days, manual only — explicitly including manual-only as a legitimate non-interval case, not a gap); the nine-item minimum maintenance event-type vocabulary; Carl's own concrete workflow recorded as real evidence (Profitec Go / Eureka Mignon Magnifico, 1kg backflush, 2kg full clean, bag-change-triggered grinder vacuum, event-triggered chute purge, manual/water-hardness-guided descale); the future dashboard reminder model (event-resets-counter, never blocks logging, calm not naggy); and the AI-onboarding implication (cross-referenced, not duplicated, into the onboarding doc).
+- Extended the existing "Between-Bag Cleanout and Maintenance" workflow (workflow 2) with one clarifying paragraph pointing to the new full model, rather than rewriting that already-accurate section.
+- Added a manufacturer-suggested-maintenance-interval field to both the machine and grinder capability field lists in `docs/architecture/equipment-capability-library-model.md`, explicitly framed as a starting suggestion, not the actual reminder rule.
+- Added a maintenance-routine question (what they clean, on what basis) to the workflow-interview question list in `docs/product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md`, with the "part of the scientific process, not a separate chore" framing requested, and the confound-avoidance rationale (a stale puck screen or overdue backflush can look like a grind/dose problem if maintenance state isn't tracked).
+- Added one line to `docs/product/BSE_PRODUCT_LANDING_PAGE_CONTENT.md`'s "Not launch scope" list distinguishing the maintenance *workflow* (launch scope) from the dashboard *reminder* UI (future scope).
+- Did not touch `docs/table-relationships.md` or `docs/implementation/release-candidate-checklist.md` — checked both first; neither had an existing maintenance mention worth extending (`table-relationships.md`'s one existing line already correctly states maintenance stays in state history excluded from analytics, and needed no change), and forcing an addition into either would have been unnecessary duplication rather than a real gap.
+- Did not create a maintenance table, migration, schema, or reminder formula — all explicitly out of this task's scope and left as open implementation-task work.
+
+## Files changed
+
+- `docs/implementation/bag-hopper-lifecycle-plan.md`
+- `docs/architecture/equipment-capability-library-model.md`
+- `docs/product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md`
+- `docs/product/BSE_PRODUCT_LANDING_PAGE_CONTENT.md`
+- `docs/completed-tasks.md` (this entry)
+
+No application code, schema, API, migration, or test files touched.
+
+## Verified
+
+- `git diff` reviewed for every changed file to confirm each edit is targeted and additive.
+- Confirmed via `git status` before starting that none of these files were concurrently dirty from the other in-flight tasks in this session (`Bags.tsx`, `ShotForm.tsx`, and their shared `api-contract.test.ts`/`docs/completed-tasks.md` entries belong to separate, unrelated work).
+- No build run — documentation-only change, no code touched.
+
+## Assumptions
+
+- "Manual only" is a legitimate, permanent reminder-basis option (not a placeholder for "not yet supported") — Carl's own descale example is explicitly manual/guidance-based, not just unimplemented.
+- The nine maintenance event types listed are a minimum, extensible vocabulary, not a closed enum — consistent with how `Shot Classification`/`Bean Achievement` already tolerate custom/historical values elsewhere in this project.
+
+## Unresolved
+
+- No exact reminder formula (how "X grams processed" is computed from shot/bag/hopper records, how multiple simultaneous rules interact, how "due" is calculated) — deliberately left open, per task boundary.
+- No maintenance table/schema exists yet — this remains planning only.
+- Whether maintenance rules eventually live in the same lifecycle-event model already proposed for bag/hopper events, or as a separate model entirely, is not decided — the new section notes maintenance should get its own event type(s) *within* that model if/when it's built, but the model itself remains unimplemented either way.

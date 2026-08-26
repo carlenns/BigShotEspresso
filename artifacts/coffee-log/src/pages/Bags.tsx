@@ -48,6 +48,19 @@ function todayDate(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+// Suggests the next Bag Number as one higher than the highest existing
+// *purely* numeric bagNumber (e.g. "7" -> "8"). Ignores non-numeric or mixed
+// values ("7-Trial", "Sample") rather than guessing at their meaning.
+// Returns "" when no numeric bag numbers exist so the caller can fall back
+// gracefully instead of suggesting a made-up starting number.
+function suggestNextBagNumber(bags: Bag[]): string {
+  const numeric = bags
+    .map((b) => b.bagNumber?.trim())
+    .filter((n): n is string => !!n && /^\d+$/.test(n))
+    .map(Number);
+  return numeric.length > 0 ? String(Math.max(...numeric) + 1) : "";
+}
+
 export default function Bags() {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -538,6 +551,7 @@ export default function Bags() {
         open={changeBagOpen}
         onOpenChange={setChangeBagOpen}
         activeBags={activeBags}
+        allBags={bags}
         beans={beans}
         qc={qc}
         toast={toast}
@@ -641,6 +655,7 @@ function ChangeBagDialog({
   open,
   onOpenChange,
   activeBags,
+  allBags,
   beans,
   qc,
   toast,
@@ -648,6 +663,7 @@ function ChangeBagDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   activeBags: Bag[];
+  allBags: Bag[];
   beans: Bean[];
   qc: QueryClient;
   toast: (opts: { title: string; description?: string; variant?: "destructive" }) => void;
@@ -663,11 +679,12 @@ function ChangeBagDialog({
     newBeanName: "",
     newBeanRoaster: "",
     newBeanOrigin: "",
-    bagNumber: "",
+    bagNumber: suggestNextBagNumber(allBags),
     bagName: "",
     bagWeight: "",
     purchaseDate: "",
     roastDate: "",
+    roastDateConfidence: "",
     startPhase: true,
     phase: "Phase 1",
     customLabel: "",
@@ -684,6 +701,11 @@ function ChangeBagDialog({
 
   const set = <K extends keyof ReturnType<typeof blank>>(key: K, value: ReturnType<typeof blank>[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
+
+  // Reflects the suggestion Bag Number was *seeded* with (not the live form
+  // value, which the user may since have edited) — used only to pick the
+  // right helper copy below.
+  const suggestedBagNumber = suggestNextBagNumber(allBags);
 
   const changeBagMutation = useMutation({
     mutationFn: async () => {
@@ -715,6 +737,7 @@ function ChangeBagDialog({
       if (form.bagWeight !== "") bagBody.bagWeight = Number(form.bagWeight);
       if (form.purchaseDate) bagBody.purchaseDate = form.purchaseDate;
       if (form.roastDate) bagBody.roastDate = form.roastDate;
+      if (form.roastDateConfidence) bagBody.roastDateConfidence = form.roastDateConfidence;
       bagBody.openedDate = todayDate();
       const bagRes = await fetch("/api/bags", {
         method: "POST",
@@ -927,8 +950,29 @@ function ChangeBagDialog({
               <Input value={form.bagNumber} onChange={(e) => set("bagNumber", e.target.value)} placeholder="Bag number" />
               <Input value={form.bagName} onChange={(e) => set("bagName", e.target.value)} placeholder="Bag name/label" />
               <Input type="number" step="0.1" min="0" value={form.bagWeight} onChange={(e) => set("bagWeight", e.target.value)} placeholder="Bag weight (g)" />
-              <Input type="date" value={form.roastDate} onChange={(e) => set("roastDate", e.target.value)} placeholder="Roast date" />
+              <div className="space-y-1">
+                <Label className="text-xs font-normal text-muted-foreground">Roast Date <span className="text-muted-foreground/70">(or estimated)</span></Label>
+                <Input type="date" value={form.roastDate} onChange={(e) => set("roastDate", e.target.value)} />
+              </div>
+              <div className="col-span-2 space-y-1">
+                <Label className="text-xs font-normal text-muted-foreground">Roast Date Confidence <span className="text-muted-foreground/70">(optional)</span></Label>
+                <Select value={form.roastDateConfidence || "__none__"} onValueChange={(v) => set("roastDateConfidence", v === "__none__" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— not set —</SelectItem>
+                    {ROAST_DATE_CONFIDENCE.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              {suggestedBagNumber
+                ? `Bag Number suggested as ${suggestedBagNumber} (one after your highest numbered bag) — edit if needed.`
+                : "No previous numeric bag numbers found, so nothing was suggested — enter one to help identify this bag."}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Roast Date is when the beans were roasted (exact or your best estimate) — not Purchase Date (when bought, not collected here). Opened Date is set automatically to today when this bag is created.
+            </p>
             <p className="text-xs text-muted-foreground">This bag will be created and set active immediately. Add more detail anytime from Edit.</p>
           </div>
 
