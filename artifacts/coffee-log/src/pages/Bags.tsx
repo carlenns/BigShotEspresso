@@ -42,6 +42,19 @@ function fetchBeans(): Promise<Bean[]> { return fetch("/api/beans").then((r) => 
 
 const ROAST_DATE_CONFIDENCE = ["Exact", "Estimated High", "Estimated Medium", "Estimated Low", "Unknown"];
 
+// How a Roast Date was derived — distinct from Roast Date Confidence (how
+// sure you are). "Best-Before Minus One Year" covers roasters (e.g. De
+// Luca's) that print a Best-Before date rather than a roast date; see the
+// helper copy near its selector below for the concrete example.
+const FRESHNESS_DATING_METHOD_OPTIONS = [
+  "Exact Roast Date",
+  "Best-Before Minus One Year",
+  "Roaster / Staff Confirmed",
+  "Printed Bag Code",
+  "Unknown",
+  "Other",
+];
+
 function todayDate(): string {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -223,6 +236,13 @@ export default function Bags() {
   const activeBags = bags.filter((b) => b.isActive);
   const inactiveBags = bags.filter((b) => !b.isActive);
 
+  // Preserve a historical Freshness Dating Method value that predates this
+  // curated list (e.g. imported free text) by keeping it selectable rather
+  // than letting the Select silently show it as unmatched.
+  const freshnessDatingMethodOptions = form.freshnessDatingMethod && !FRESHNESS_DATING_METHOD_OPTIONS.includes(form.freshnessDatingMethod)
+    ? [...FRESHNESS_DATING_METHOD_OPTIONS, form.freshnessDatingMethod]
+    : FRESHNESS_DATING_METHOD_OPTIONS;
+
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -335,7 +355,19 @@ export default function Bags() {
             <div className="space-y-1.5"><Label>Actual Roast Date</Label><Input value={form.actualRoastDate} onChange={(e) => set("actualRoastDate", e.target.value)} placeholder="2026-08-15" /></div>
             <div className="space-y-1.5"><Label>Estimated Roast Date</Label><Input value={form.estimatedRoastDate} onChange={(e) => set("estimatedRoastDate", e.target.value)} placeholder="2026-08-10" /></div>
             <div className="col-span-2 space-y-1.5"><Label>Estimated Roast Window</Label><Input value={form.estimatedRoastWindow} onChange={(e) => set("estimatedRoastWindow", e.target.value)} placeholder="2026-08-03 to 2026-08-17" /></div>
-            <div className="col-span-2 space-y-1.5"><Label>Freshness Dating Method</Label><Input value={form.freshnessDatingMethod} onChange={(e) => set("freshnessDatingMethod", e.target.value)} placeholder="Bag label, staff estimate, roaster workflow…" /></div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>Freshness Dating Method</Label>
+              <Select value={form.freshnessDatingMethod || "__none__"} onValueChange={(v) => set("freshnessDatingMethod", v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— not set —</SelectItem>
+                  {freshnessDatingMethodOptions.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="col-span-2 text-xs text-muted-foreground">
+              Roast Date can be exact or your best estimate. Freshness Dating Method records how you derived it — e.g. some roasters like De Luca's print a Best-Before date rather than a roast date; De Luca's own Best-Before month/year appears to be about one year after the roast/packing month, so pick "Best-Before Minus One Year" and set Roast Date Confidence to Estimated High for the month (lower if you need the exact day and it isn't confirmed). If Dating Method is "Other", describe it in Roast Date Notes below.
+            </p>
             <div className="col-span-2 space-y-1.5"><Label>Roast Date Notes</Label><Input value={form.roastDateNotes} onChange={(e) => set("roastDateNotes", e.target.value)} placeholder="Evidence for actual/estimated roast date…" /></div>
             <div className="space-y-1.5"><Label>Opened Date</Label><Input type="date" value={form.openedDate} onChange={(e) => set("openedDate", e.target.value)} placeholder="2026-05-22" /></div>
             <div className="space-y-1.5"><Label>Closed Out Date</Label><Input type="date" value={form.closedOutDate} onChange={(e) => set("closedOutDate", e.target.value)} placeholder="2026-08-17" /></div>
@@ -973,7 +1005,7 @@ function ChangeBagDialog({
             <p className="text-xs text-muted-foreground">
               Roast Date is when the beans were roasted (exact or your best estimate) — not Purchase Date (when bought, not collected here). Opened Date is set automatically to today when this bag is created.
             </p>
-            <p className="text-xs text-muted-foreground">This bag will be created and set active immediately. Add more detail anytime from Edit.</p>
+            <p className="text-xs text-muted-foreground">This bag will be created and set active immediately. Add Freshness Dating Method (how you derived the Roast Date, e.g. Best-Before Minus One Year) and more detail anytime from Edit.</p>
           </div>
 
           <div className="space-y-3 rounded-lg border p-3">

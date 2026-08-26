@@ -1952,3 +1952,138 @@ No application code, schema, API, migration, or test files touched.
 - No exact reminder formula (how "X grams processed" is computed from shot/bag/hopper records, how multiple simultaneous rules interact, how "due" is calculated) — deliberately left open, per task boundary.
 - No maintenance table/schema exists yet — this remains planning only.
 - Whether maintenance rules eventually live in the same lifecycle-event model already proposed for bag/hopper events, or as a separate model entirely, is not decided — the new section notes maintenance should get its own event type(s) *within* that model if/when it's built, but the model itself remains unimplemented either way.
+
+# Release Readiness Reconciliation After Recent Work — 2026-08-26
+
+## Completed
+
+- Reconciled `docs/implementation/launch-readiness-audit.md` against four newly-landed commits (`bc796fa`, `c7dc9b9`, `3f84987`, `482246a`). Found three High-Priority Fixes (#5 Bags action-path clarity, #6 Quick Log hard-block, #7 Dashboard hopper blank-stat labeling) were already resolved by earlier same-day commits but never had their status markers updated in the audit — added `RESOLVED` markers with the exact commit references for each, rather than leaving them silently stale.
+- Updated Critical Blocker #2 (no live smoke test) with new evidence: two further sessions successfully used live Chrome browser automation (previously blocked by a tooling fault) — one screenshot-verified the Change Bag dialog's rendered UI, the other did a full interactive create → verify → edit → delete round trip for Expression Style. Noted the Chrome-extension fault is no longer blocking, while keeping the "no single continuous full-lifecycle pass yet" finding accurate and unchanged.
+- Rewrote the "Top 5 remaining launch blockers" list, which had gone stale (two of its five items were already resolved). New list surfaces a genuinely new finding from this reconciliation: **15 commits are currently sitting unpushed to `origin/main`** — not a code defect, but a real release-readiness risk worth its own line.
+- Confirmed High-Priority Fix #8 (Grinder Setting precision still hardcoded) is genuinely still open — verified directly against current `ShotForm.tsx` source (`step={0.01}` still hardcoded, no `grindSettingPrecision` reference) rather than assumed.
+
+## Files changed
+
+- `docs/implementation/launch-readiness-audit.md`
+- `docs/completed-tasks.md` (this entry)
+
+No application code touched. `Bags.tsx` shows as separately dirty from unrelated concurrent work at the time of this task — not reviewed or touched here.
+
+## Verified
+
+- `git status --short` / `git diff --stat` run before and after to confirm scope.
+- Each "resolved" claim traced to a specific commit and its actual diff content before marking it, not assumed from a commit message alone (e.g. read `be8afe7`'s actual `Bags.tsx` diff to confirm the explanatory copy it added genuinely addresses Fix #5, not just that its commit message mentioned "bag actions").
+- No build run — documentation-only change, no code touched.
+
+## Assumptions
+
+- Treated the three status-marker corrections and the Top-5-list refresh as "tiny doc corrections obviously needed" per this task's boundary, since each was a factual staleness (a resolved item shown as open), not a new editorial judgment call.
+
+## Unresolved
+
+- The 15-unpushed-commits finding is newly surfaced, not resolved — flagged for a push/tag decision, not actioned here (out of scope: no commit, no push, per boundary).
+- Everything already on record as open (auth/accounts, full continuous smoke test, Render deployment smoke test, Grinder Setting precision, billing, security-hardening-checklist review) remains open and unchanged by this reconciliation.
+
+# Roast Date Dating Method UX — 2026-08-26
+
+## Completed
+
+- Converted `Freshness Dating Method` in the full Edit Bag form (`artifacts/coffee-log/src/pages/Bags.tsx`) from a free-text `<Input>` into a curated `<Select>`, using a new `FRESHNESS_DATING_METHOD_OPTIONS` list — exactly the task's suggested options, no values invented: `Exact Roast Date`, `Best-Before Minus One Year`, `Roaster / Staff Confirmed`, `Printed Bag Code`, `Unknown`, `Other`.
+- Added historical-value preservation: a `freshnessDatingMethodOptions` derived list appends the current form value to the curated set if it doesn't already match, so an existing free-text value is never silently hidden by the Select. This was not theoretical — the real, active De Luca's bag (#7) already has `freshnessDatingMethod = "Best-before/date-code evidence plus staff and roaster workflow"`, confirmed live on the dev DB before implementing, and verified live afterward to still display correctly in the dropdown.
+- Added one helper paragraph in the full Edit Bag form (no new dialog/section) tying Roast Date (exact-or-estimated), Freshness Dating Method (how derived), and Roast Date Confidence (how sure) together, with the concrete, owner-verified De Luca's example: Best-Before month/year is ~1 year after roast/packing month, so Dating Method `Best-Before Minus One Year` + Confidence `Estimated High` for the month (lower for the exact day unless confirmed). Also notes that an `Other` Dating Method should be described in the existing `Roast Date Notes` field, rather than adding a new free-text field.
+- In the compact Change Bag flow (already has Roast Date + Roast Date Confidence from the prior task), made a one-line copy change only — the closing helper line now says "...Add Freshness Dating Method (how you derived the Roast Date, e.g. Best-Before Minus One Year) and more detail anytime from Edit." No new field/select was added there, keeping the flow's existing footprint unchanged, per the "do not make the compact Change Bag flow too heavy" boundary.
+- Extended the `Freshness Dating Method` and `Roast Date Confidence` rows in `docs/csv-data-dictionary.md`'s Bags table with the curated option lists, the historical-value-preservation note, and the De Luca's example — documenting the owner-known dating method as requested.
+- No schema, API, or OpenAPI change: `freshnessDatingMethod`/`roastDateConfidence`/`estimatedRoastDate`/`actualRoastDate`/`estimatedRoastWindow`/`roastDateNotes` were all already plain nullable `text` columns with no enum constraint anywhere (schema, drizzle-zod, or route body parsing) — confirmed by reading `lib/db/src/schema/bags.ts` and `artifacts/api-server/src/routes/bags.ts` before writing any code. No new formula: this is a manual selection + explanatory copy only, never a computed "roast date = best-before minus 365 days" assignment.
+
+## Files inspected
+
+- `artifacts/coffee-log/src/pages/Bags.tsx`
+- `lib/db/src/schema/bags.ts`
+- `artifacts/api-server/src/routes/bags.ts`
+- `artifacts/api-server/src/api-contract.test.ts`
+- `docs/csv-data-dictionary.md`
+- `docs/table-relationships.md`
+- `docs/completed-tasks.md`
+- Live dev DB (`GET /api/bags`, read-only) — confirmed Bag #7's real, pre-existing `freshnessDatingMethod`/`roastDateConfidence`/`estimatedRoastWindow`/`estimatedRoastDate` values before designing the preservation logic.
+
+## Tests added/updated
+
+- Added `"Freshness Dating Method is a curated selector that preserves historical free text"` to `artifacts/api-server/src/api-contract.test.ts`, source-scanning `Bags.tsx`. Asserts: the exact curated options list; the field is now a `<Select>` (not `<Input>`) reusing the `roastDateConfidence`-select pattern; the historical-value-preservation derivation exists verbatim; the full explanatory paragraph and De Luca's example text are present verbatim; and no computed roast-date-from-best-before formula was introduced.
+- Extended the existing `"Change Bag suggests the next Bag Number and clearly labels Roast Date"` test with one more assertion confirming the Change Bag helper-copy tweak (prose only, no `freshnessDatingMethod` identifier) — the test's pre-existing `doesNotMatch(changeBagDialogSource, /freshnessDatingMethod/)` guard (proving the compact flow doesn't reference the field's identifier/logic) still holds, since the new copy is human-readable text ("Freshness Dating Method"), not the camelCase field name.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (4/4 workspace projects).
+- `CI=true pnpm --filter @workspace/api-server test` — 68/68 passed, 0 failed, including both the new and extended tests above. No `static-serving`/127.0.0.1 bind issue.
+- `CI=true pnpm run build:render` — build succeeded (pre-existing, unrelated sourcemap/chunk-size warnings only).
+- Live smoke test against the real dev DB (already running, confirmed serving this exact build by bundle hash) via Chrome automation: opened Edit Bag on the real Bag #7 and confirmed, by screenshot, that `Freshness Dating Method` renders as a Select correctly showing the bag's actual historical value (`Best-before/date-code evidence plus staff and roaster workflow`) rather than blank, and that the full helper paragraph renders exactly as coded beneath it. Closed via Escape without saving — no data modified.
+
+## Assumptions
+
+- "Dating Method" in the task's Desired UX bullets refers to the existing `freshnessDatingMethod` field (the task's own "Likely existing fields to reuse" list confirms this); kept the existing UI label `Freshness Dating Method` rather than renaming it to bare "Dating Method", for continuity with the CSV data dictionary and to avoid an unrequested rename.
+- Interpreted "Do not make the compact Change Bag flow too heavy" as license to make only a one-line copy change there (pointing to Edit) rather than adding a third Select to that flow — Roast Date Confidence was already added there in the prior task, and a second curated dropdown felt like the line into "too heavy."
+- `Other` as a Dating Method value doesn't get its own new free-text field — reused the existing `Roast Date Notes` field, per the "no schema unless absolutely necessary" boundary, and documented this in the helper copy so it isn't a dead end for the user.
+- The historical-value-preservation pattern (append-if-not-curated) mirrors the established `curatedScalarOptions`-style approach used elsewhere in this codebase (`selector-options.ts`, for Shot fields) but was written inline in `Bags.tsx` rather than importing that shot-domain module, to avoid cross-domain coupling for one small derived list.
+
+## Unresolved issues
+
+- None new. `Roast Date Used` (a `roast_date_used` column the CSV dictionary marks "Formula/Date, R, read-only" but the app already treats as freely editable text) was left untouched — it wasn't part of this task's Desired UX and changing its edit/read-only treatment would be a separate, unrequested behavior change.
+- No resolution/normalization logic exists (or was added) that actually reads `freshnessDatingMethod`/`roastDateConfidence` to pick which of `roastDate`/`actualRoastDate`/`estimatedRoastDate` is authoritative for downstream freshness calculations (`Days off Roast at Open`, etc.) — this task was scoped to input UX only, per "do not invent new formulas."
+
+## Recommended commit command
+
+    git add artifacts/coffee-log/src/pages/Bags.tsx artifacts/api-server/src/api-contract.test.ts docs/csv-data-dictionary.md docs/completed-tasks.md
+    git commit -m "feat(bags): curate Freshness Dating Method options and explain Roast Date confidence"
+
+Not run automatically, per task boundaries (no commit, no push). Note the working tree also contains other unrelated, uncommitted changes from a separate, concurrent task (`docs/implementation/launch-readiness-audit.md`) that are not part of this command.
+
+# Full Owner-Alpha Browser Smoke Test — 2026-08-26
+
+## Completed
+
+Review-only single-pass smoke test against the local dev app (production build, real dev DB) across all 7 requested areas. **6 of 7 areas fully pass with zero findings.** One real, reproducible bug found in Log Shot (area 2): the Bag selector always defaults to "No bag" on a new shot, even when exactly one bag is active. No source code was changed — per this task's own boundary ("prefer reporting bugs clearly"), the fix was reported with a copyable Agent 1 prompt rather than implemented here, since it's a real behavior gap (not a copy/label tweak) with a genuine design question (what should happen with 2+ active bags) attached to it.
+
+Full pass/fail detail is in the handoff block below (not duplicated here to avoid drift between the two).
+
+## Files inspected
+
+`artifacts/coffee-log/src/pages/ShotForm.tsx` (specifically: `defaultValues`, the bag-selector `useEffect`s, and the existing `machineId`/`grinderId` default-selection pattern used as the fix template). No other source files were read for this task — it was a live-app smoke test, not a code review; findings were reasoned about from live UI behavior first, then traced to `ShotForm.tsx` only for the one confirmed bug.
+
+## Files changed
+
+None. Pure review/smoke-test task — no source edits.
+
+## Smoke test target
+
+Local dev app: `CI=true pnpm run build:render`, then production build served via `NODE_ENV=production node dist/index.mjs` on port 3000, against the real dev Postgres DB (same DB used throughout this multi-agent session). Not the deployed Render app (local was available and is the documented preferred target when available).
+
+## Data created and cleaned up
+
+- Created shot #254 while testing Expression Style multi-select on `/shots/new` (bag: none selected, Expression Style: Chocolatey + Fruity, notes: "TEST - Agent 2 Expression Style verification - delete me") — this was from the *previous* session's task, already deleted before this task began.
+- Created shot #255 during this task specifically to exercise Area 3 (Edit Shot): bag De Luca's #7, Expression Style Balanced + Sweet, Sour Shot flag, Brew Method Espresso → cleared to null via edit, notes "TEST - Agent 2 owner-alpha smoke test - safe to delete". Confirmed via `GET /api/shots/255` at each step (multi-value Expression Style persisted, Brew Method null persisted), then deleted via `DELETE /api/shots/255` (204, confirmed 404 on re-fetch).
+- Opened the Change Bag dialog (area 5) and closed it via Escape without submitting — confirmed via `GET /api/bags` afterward that bag count stayed at 7 (no bag 8 was created).
+- Final check: `GET /api/shots?limit=1000` confirms zero shots with "TEST" in their notes remain. No other data was created, modified, or left behind.
+
+## Verification performed
+
+Review-only per task instructions — browser smoke test only, no code changed, so `typecheck`/`test`/`build:render` were not required. (`build:render` was run once to produce the local server build used for the smoke test itself, not as code-change verification — it succeeded.)
+
+## Assumptions
+
+- Treated "Bag defaults to active bag" (area 2) as describing expected behavior to verify, not existing behavior to merely confirm — it does not currently happen, so this was logged as a bug rather than a pass.
+- Used exactly-one-active-bag as the safe default-selection condition in the reported fix, to avoid silently guessing between multiple active bags (the project has previously and explicitly supported multiple simultaneous active bags, e.g. a decaf/regular split).
+- Treated `Grind Output Measurement`'s "Not yet used elsewhere in the app — reserved for future single-dose workflow support" caption in Settings as an intentionally-labeled placeholder, not a "dead field" — it's self-documented as not-yet-functional rather than silently doing nothing, so it doesn't count as a smoke-test failure for area 6.2.
+- A `mcp__claude-in-chrome__form_input` tool call repeatedly failed with an identical malformed-JSON error across several retries for unrelated reasons (tooling glitch, not an app bug); worked around it using direct JS execution via `javascript_tool` to set the native `<select>` value and dispatch a `change` event, which is what let Area 3.4 (Brew Method clearing) get tested at all.
+
+## Unresolved issues
+
+- The one confirmed bug (Log Shot's Bag selector not defaulting to the active bag) is unresolved — reported with a full repro and a copyable Agent 1 prompt in the handoff block below.
+- Found several other agents' work concurrently in-progress and uncommitted in the working tree during this task (`Bags.tsx`, `api-contract.test.ts`, `docs/csv-data-dictionary.md`, `docs/implementation/launch-readiness-audit.md`) — none of it inspected or touched, noted here only so it isn't mistaken for something this task produced.
+
+## Recommended next step
+
+Hand the Bag-default bug to Agent 1 using the copyable prompt in the handoff block. No other follow-up needed — everything else in this smoke test's 7 areas passed.
+
+## Recommended commit command
+
+No commit — this task made no file changes.

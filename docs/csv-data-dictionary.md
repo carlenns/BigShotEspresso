@@ -127,8 +127,8 @@ UI codes: text, long text, number, currency, date/time, checkbox, dropdown, chip
 | Actual Roast Date | Date | E | date | Known roast date when available. |
 | Estimated Expiry Date | Formula/Date | R | read-only | Normalized expiry date. |
 | Estimated Roast Date | Formula/Date | R | read-only | Inferred roast date. |
-| Freshness Dating Method | Single Select | E | dropdown | Method used to establish roast date. |
-| Roast Date Confidence | Single Select | E | dropdown | Confidence in freshness estimate. |
+| Freshness Dating Method | Single Select | E | dropdown | Method used to establish roast date, distinct from `Roast Date Confidence` (how sure) — app options: `Exact Roast Date`, `Best-Before Minus One Year`, `Roaster / Staff Confirmed`, `Printed Bag Code`, `Unknown`, `Other` (describe in `Roast Date Notes`). A historical free-text value that predates this curated list (e.g. an Airtable import) is preserved and kept selectable rather than being hidden. Known example: De Luca's prints a Best-Before date rather than a roast date — its Best-Before month/year appears to be approximately one year after the actual roast/packing month, so this bag's Dating Method is `Best-Before Minus One Year` with `Roast Date Confidence` `Estimated High` for the month (the exact day remains uncertain unless separately confirmed). |
+| Roast Date Confidence | Single Select | E | dropdown | Confidence in the Roast Date/Estimated Roast Date, independent of `Freshness Dating Method` (how derived) — app options: `Exact`, `Estimated High`, `Estimated Medium`, `Estimated Low`, `Unknown`. |
 | Roast Date Notes | Long Text | E | long text | Evidence and assumptions behind dates. |
 | Opened Date | Date | E | date | Start of bag lifecycle; BLI/HMI. |
 | End Date | Date | E/S | date | End of bag lifecycle. |

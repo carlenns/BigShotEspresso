@@ -854,6 +854,55 @@ test("Change Bag suggests the next Bag Number and clearly labels Roast Date", as
   // warrants, and this task's boundaries forbid new schema regardless.
   assert.doesNotMatch(changeBagDialogSource, /freshnessDatingMethod/);
   assert.doesNotMatch(changeBagDialogSource, /estimatedRoastWindow/);
+
+  // The Change Bag helper copy should point to Dating Method via Edit
+  // without adding a field to this compact flow (prose only, no identifier).
+  assert.match(source, /Add Freshness Dating Method \(how you derived the Roast Date, e\.g\. Best-Before Minus One Year\) and more detail anytime from Edit\./);
+});
+
+test("Freshness Dating Method is a curated selector that preserves historical free text", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // No new schema/formula: reuses the existing freshnessDatingMethod column
+  // as a curated set of user-facing options, exactly as requested — no
+  // values invented beyond what was specified.
+  assert.match(
+    source,
+    /const FRESHNESS_DATING_METHOD_OPTIONS = \[\s*"Exact Roast Date",\s*"Best-Before Minus One Year",\s*"Roaster \/ Staff Confirmed",\s*"Printed Bag Code",\s*"Unknown",\s*"Other",\s*\];/,
+  );
+
+  // Freshness Dating Method must now be a curated Select (not a free-text
+  // Input) in the full Edit Bag form, matching the existing Roast Date
+  // Confidence Select pattern already used elsewhere in this same form.
+  assert.match(
+    source,
+    /<Select value=\{form\.freshnessDatingMethod \|\| "__none__"\} onValueChange=\{\(v\) => set\("freshnessDatingMethod", v === "__none__" \? "" : v\)\}>/,
+  );
+  assert.match(source, /\{freshnessDatingMethodOptions\.map\(\(v\) => <SelectItem key=\{v\} value=\{v\}>\{v\}<\/SelectItem>\)\}/);
+
+  // A historical value that predates this curated list (confirmed live on
+  // the real dev DB's De Luca's bag: free text, not one of the six curated
+  // options) must stay selectable rather than becoming invisible.
+  assert.match(
+    source,
+    /const freshnessDatingMethodOptions = form\.freshnessDatingMethod && !FRESHNESS_DATING_METHOD_OPTIONS\.includes\(form\.freshnessDatingMethod\)\s*\n\s*\? \[\.\.\.FRESHNESS_DATING_METHOD_OPTIONS, form\.freshnessDatingMethod\]\s*\n\s*: FRESHNESS_DATING_METHOD_OPTIONS;/,
+  );
+
+  // Roast Date exact-vs-estimated, Dating Method, and Confidence must be
+  // explained together, with the concrete, owner-verified De Luca's example
+  // (Best-Before month/year ~1 year after roast/packing; high confidence for
+  // the month, lower for the exact day unless confirmed).
+  assert.match(source, /Roast Date can be exact or your best estimate\. Freshness Dating Method records how you derived it/);
+  assert.match(source, /De Luca's own Best-Before month\/year appears to be about one year after the roast\/packing month/);
+  assert.match(source, /pick "Best-Before Minus One Year" and set Roast Date Confidence to Estimated High for the month/);
+  assert.match(source, /If Dating Method is "Other", describe it in Roast Date Notes below\./);
+
+  // No new formula: this is a manual selection/explanation, never a
+  // computed roast-date-from-best-before-date assignment.
+  assert.doesNotMatch(source, /estimatedRoastDate\s*=.*-\s*1|roastDate\s*=.*bestBefore/i);
 });
 
 test("ChangeBagDialog refreshes cached queries on partial failure, not just on success", async () => {
