@@ -70,6 +70,8 @@ Brew-curve capture, Bluetooth scale integration, machine/grinder/device compatib
 
 This module should be revisited only after BSE is live, has a paying user base, and subscription revenue can support device testing and experimentation. Current shot, bag, hopper, machine, grinder, and accessory records should remain linkable to future device-session or brew-curve records, but no Bluetooth, brew-curve, or live-device functionality is authorized in the current phase.
 
+Users may eventually be able to upload a telemetry file (e.g. an export from an advanced machine's own app) as an alternative to live Bluetooth integration. When this is built, uploaded telemetry should attach as evidence to the Shot, System Phase, or Experiment it belongs to, with clear provenance (source, upload date, confidence), the same way other imported evidence is already handled — not implemented now, and not a substitute for deciding the live-Bluetooth question separately.
+
 ## Roadmap change control
 
 Roadmap changes require:

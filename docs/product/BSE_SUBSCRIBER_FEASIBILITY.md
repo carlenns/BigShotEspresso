@@ -52,6 +52,10 @@ Whether customers perceive that value must be validated with real sign-ups, acti
 - US$10/month, equal to US$120/year before any annual discount.
 - A future annual option around US$96–100 was discussed as a potentially attractive annual-first structure, but was not approved.
 
+### Advanced tier (future, not part of the current model)
+
+An "Advanced" add-on or tier — deeper experiment tracking, telemetry attachment, and custom metrics beyond core logging — is a plausible future pricing line raised in an owner discussion on 2026-08-25, not yet part of this model's US$10/month baseline. It should follow the same staged-cost-gating logic already applied above to community/media features (see "Community, forums, leaderboards, and media cost note"): not assumed free inside the core price, and not built until usage and cost are actually measured. Founder-cohort subscribers should receive it included during the founder period specifically, since they are the users helping develop and test these advanced workflows — this is an acquisition/goodwill decision for that cohort, not a claim that Advanced features cost nothing to run. This should not be read as a promise of every future product line remaining free or included forever.
+
 ### Important currency note
 
 The historical planning model presented subscriber revenue in US dollars and also showed a Canadian-dollar equivalent. Payment-provider pricing and foreign-exchange costs can depend on the merchant entity, settlement currency, card origin, taxes, and product configuration. A launch model must use one explicit settlement currency and current verified fees throughout.

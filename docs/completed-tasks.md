@@ -1449,3 +1449,233 @@ Added `"Shot Detail never renders the literal word null for unrecorded extractio
     git commit -m "fix(shots): show '-' instead of literal null text for unrecorded dose/yield/pour time"
 
 Not run automatically, per task boundaries (no commit, no push). Note the working tree also contains an unrelated, uncommitted, already-documented change from a separate task (`ShotForm.tsx`'s Reference/Signature fault-status fix) that is not part of this command.
+
+# Compact Active Hopper Status UI — 2026-08-26
+
+## Completed
+
+- Fixed `Dashboard.tsx` so "Active Hopper Status" no longer renders as a large standalone panel when a hopper only has phase-level context (`phase` + `startingBeans`, no `hopperMass`/`hopperPercent`/`shotsLeftEstimate`).
+- Split `activeHoppers` into `detailedHoppers` (has at least one of `hopperMass`/`hopperPercent`/`shotsLeftEstimate` populated — real, phase-level calculations) and `compactHoppers` (has none of the three).
+- `compactHoppers` are now rendered as a small contextual line ("Line 4") inside the existing "Current Baseline" card, immediately after the equipment line, formatted exactly as the owner's preferred direction specified: `Hopper Phase: {phase} · Started With {startingBeans}g · Phase Tracking Active` (parts are omitted individually if `phase` or `startingBeans` is itself null, rather than showing a blank clause). Uses the existing `Package` icon (already used for the "Starting beans" stat) rather than color, per the color-blind-friendly requirement.
+- The standalone "Active Hopper Status" section now only renders — and only maps over — `detailedHoppers`, i.e. only when at least one active hopper has a real calculated field. The two previous dashed-border placeholder cards ("No active bag set — hopper status is shown per active bag" and "No active hopper linked to this bag / Hopper tracking hasn't been set up for this bag yet") were removed entirely, since those were exactly the kind of "big empty card" the task said not to show. No hopper-related big card or section appears at all now for a bag with no active hopper, or with only phase-only hoppers.
+- The full-card display for hoppers that do have real calculated fields (including the existing "Not tracked yet" fallback treatment for a partially-populated imported hopper) is byte-for-byte unchanged — only which hoppers reach that branch changed.
+- No hopper formula was invented; no phase-remaining/phase-consumed/phase-shots-left calculation was added — `compactHoppers` only ever displays fields the hopper record already has (`phase`, `startingBeans`) plus a static "Phase Tracking Active" label.
+- No schema, API, migration, OpenAPI, HMI, or intelligence-engine change. No other Dashboard section touched.
+
+## Files inspected
+
+- `artifacts/coffee-log/src/pages/Dashboard.tsx`
+- `artifacts/api-server/src/api-contract.test.ts`
+- `docs/table-relationships.md` (confirmed `Hopper Phase` approved values include `Single Bag Phase`, matching the owner's example format exactly — no invented label)
+- `docs/completed-tasks.md`
+
+## Tests added/updated
+
+Added `"Active Hopper Status is compact for phase-only hoppers, not a large standalone panel"` to `artifacts/api-server/src/api-contract.test.ts`, immediately after the existing `"Dashboard explains blank hopper mass/percent/shots-left instead of hiding them silently"` test, following the same source-scan pattern (fresh `readFile` of `Dashboard.tsx`). Asserts: the `detailedHoppers`/`compactHoppers` filter definitions exist with the correct predicates; the compact line's three literal template clauses and its "Line 4" marker comment are present; the full section is gated on `detailedHoppers.length > 0` and maps only over `detailedHoppers`; the two removed placeholder-card strings no longer appear anywhere in the file; no `phaseRemaining =` / `phaseConsumed =` assignment was introduced.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (4/4 workspace projects).
+- `CI=true pnpm --filter @workspace/api-server test` — 63/63 passed, 0 failed. No `static-serving`/127.0.0.1 bind issue occurred this run.
+- `CI=true pnpm run build:render` — build succeeded (pre-existing, unrelated sourcemap/chunk-size warnings only, same as prior sessions' builds).
+- Live smoke test against the real dev DB (already running on port 3000) via Chrome automation, `get_page_text` at a 390×844 mobile viewport: confirmed the real active hopper (`#18`, linked to active Bag #7, `phase: "Phase 1"`, `startingBeans: 300`, all three calculated fields `null`) renders the line `Hopper Phase: Phase 1 · Started With 300g · Phase Tracking Active` directly inside the Current Baseline card, and that no "Active Hopper Status" heading/section appears anywhere on the page for this bag. Did not exercise the `detailedHoppers` full-card path live — the dev DB's only two hoppers with real `hopperMass`/`hopperPercent` values (`#15`, `#17`) are pre-existing orphaned rows with `bagId: null` (documented in earlier sessions as harmless leftovers), so they never attach to any bag's dashboard; that path is unchanged code already covered by the pre-existing "Not tracked yet" fallback test plus this task's new source-scan assertions. Pure read-only verification — no data created, modified, or needing cleanup.
+
+## Assumptions
+
+- Interpreted "real phase-level calculations are present" as: at least one of `hopperMass`, `hopperPercent`, `shotsLeftEstimate` is non-null on that specific hopper record — these are exactly the three fields the existing code already treats as calculated/imported-only (never written by `POST`/`PATCH /api/hoppers`), per the immediately-prior "Dashboard Hopper Blank-State Clarity" task.
+- Followed the owner's exact preferred line format and wording (`Hopper Phase: … · Started With …g · Phase Tracking Active`) literally, including for `Single Bag Phase`, rather than paraphrasing.
+- Did not add a compact line for the "no active hopper at all" case — there is no phase/startingBeans data to show compactly, and the task's own framing ("do not show a big empty card unless real phase-level calculations are present") reads as license to show nothing at all in that case, not just a smaller nothing-card.
+- Left multiple-active-hoppers-per-bag handling generic (each compact hopper gets its own line, each detailed hopper its own card) even though a bag normally has at most one active hopper in practice — matches the pre-existing code's assumption that `activeHoppers` can contain more than one row.
+
+## Unresolved issues
+
+- None new from this task. Carried forward, unchanged: the two orphaned `bagId=null` active Hopper rows (`#15`, `#17`) noted above remain in the dev DB and are still harmless/invisible to any Dashboard view, exactly as documented in earlier sessions.
+
+## Recommended commit command
+
+    git add artifacts/coffee-log/src/pages/Dashboard.tsx artifacts/api-server/src/api-contract.test.ts docs/completed-tasks.md
+    git commit -m "fix(dashboard): compact Active Hopper Status into a Current Baseline line for phase-only hoppers"
+
+Not run automatically, per task boundaries (no commit, no push). Note the working tree also contains other unrelated, uncommitted, already-documented changes from separate tasks (`ShotForm.tsx`'s Reference/Signature fault-status fix, `ShotDetail.tsx`'s null-text fix) that are not part of this command.
+
+# Planning Reconciliation: Brew Method, Hopper Capacity, System Phase/Experiments — 2026-08-25
+
+## Completed
+
+Recorded seven owner decisions from a product/architecture discussion across the appropriate existing docs, making targeted edits rather than new duplicate sections, per task boundary:
+
+1. **Brew Method vs Drink Type**: added a new §4.1.1 to `docs/product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md` defining the distinction (how extracted vs. what was served) and the future shot-level-field intent (machine may suggest a default, is not itself the evidence). Added a corresponding bullet to `bag-hopper-lifecycle-plan.md`'s Future Development Notes and a field-list mention in `BSE_PRODUCT_LANDING_PAGE_CONTENT.md`'s Product Pillar 1. Added a clarifying note to `release-candidate-checklist.md`'s Gate 0.5 so Brew Method isn't accidentally read as covered by the already-shelved Drink Type machine/profile-default decision — and corrected a now-stale claim in that same gate ("Shots do not yet expose a machine/grinder selector"), which was true when written but no longer is as of this session's equipment-selector work.
+2. **Hopper phases**: `Single Bag Phase`'s definition was already present verbatim in `table-relationships.md`; added the missing `End of Bag` definition next to it. Phase label list was already correct and unchanged.
+3. **Hopper capacity**: added the "guidance, not a hard limit — actual Phase Starting Beans always wins, app may warn on overfill but must allow it" rule to `table-relationships.md` (the authoritative home, since it already introduced these two fields), with a concrete 340g/300g example. Added a one-line cross-reference (not a duplicate) from `equipment-capability-library-model.md`'s existing field list.
+4. **System Phase and Experiments**: restructured `bag-hopper-lifecycle-plan.md`'s "System Phase / Experiment Phase model" section, which previously flattened both concepts into one example list. Split into System Phase examples (broad era, e.g. `System Phase 4 — Active Experimentation Era`) and Experiment examples (specific test nested inside a phase, e.g. `Experiment: Hopper Overfill / Timed Dose Stability`), and added the rule that experiment-specific fields/metrics should only apply while that experiment is active. Fixed the same flattening in `BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md`'s "Learning phases" section with a cross-reference back to the fuller model rather than repeating it.
+5. **Future telemetry**: added a telemetry-file-upload-as-Bluetooth-alternative note (with provenance-attachment requirement) to `docs/ROADMAP.md`'s Future section, `BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md`'s Future scope section, and `BSE_PRODUCT_LANDING_PAGE_CONTENT.md`'s Future development language section.
+6. **Advanced subscription**: added a new "Advanced tier (future, not launch pricing)" subsection to `BSE_PRODUCT_LANDING_PAGE_CONTENT.md` and a matching, cost-framing-consistent subsection to `BSE_SUBSCRIBER_FEASIBILITY.md` (modeled on that doc's existing community/media staged-cost-gating section), recording the Founder-cohort-included-access decision and the "don't promise every future line forever" caveat. Added to the landing page's "Not launch scope" list.
+7. **MCP/API natural-language logging**: added to `BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md`'s Future scope section (cross-referencing ADR-0009 for the auth/permissions dependency) and to the landing page's "Not launch scope" list.
+
+## Files changed
+
+- `docs/ROADMAP.md`
+- `docs/table-relationships.md`
+- `docs/architecture/equipment-capability-library-model.md`
+- `docs/implementation/bag-hopper-lifecycle-plan.md`
+- `docs/product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md`
+- `docs/product/BSE_PRODUCT_LANDING_PAGE_CONTENT.md`
+- `docs/product/BSE_SUBSCRIBER_FEASIBILITY.md`
+- `docs/implementation/release-candidate-checklist.md`
+- `docs/completed-tasks.md` (this entry)
+
+No application code, schema, API, migration, generated-client, or test files touched.
+
+## Verified
+
+- `git diff` reviewed for every changed file to confirm each edit is targeted and additive, not a rewrite of surrounding content.
+- Confirmed via `git status` before starting that none of these 8 doc files were concurrently dirty from other in-flight work (two other doc/code files were dirty from separate, unrelated tasks and were left untouched).
+- No build run — documentation-only change, no code touched.
+
+## Assumptions
+
+- Where a point was already fully documented elsewhere (e.g. `Single Bag Phase`'s definition, the approved phase-label list, the existing Hopper Capacity/Preferred Fill field proposal), left it as-is or added only a cross-reference, per the task's explicit "do not duplicate" instruction, rather than re-stating it.
+- Treated the Gate 0.5 "Shots do not yet expose a machine/grinder selector" correction as in-scope for this task, since it sits in the exact same sentence being edited for the Brew Method clarification and leaving a known-stale claim uncorrected right next to a new edit would be a worse outcome than fixing it.
+
+## Unresolved
+
+- None of these are implementation decisions — all seven remain documentation/future-scope only, per this task's explicit boundary. No schema fields, formulas, or UI were added.
+
+# Log Shot UI Usability Review — 2026-08-26
+
+## Completed
+
+Reviewed `ShotForm.tsx` against all 6 known-issue areas in this task's brief. Result: 5 of 6 areas were already correctly implemented by prior sessions (live-verified, not just read); 1 area (#1, Default Drink Type) had a real but non-code root cause and was fixed; 1 area (#6, selector single/multi consistency) surfaced a genuine, documented, moderate-value mismatch that is not tiny and is written up below as an Agent 1 prompt rather than implemented here.
+
+1. **Drink Type default (fixed — data, not code)**: `ShotForm.tsx`'s `useEffect` that applies `settings.defaultDrinkType` to new shots was already correct (confirmed by reading it and by the pre-existing test `"Shot entry separates serving context from automated analysis eligibility"`, which already source-scans for `defaultDrinkType` wiring in `Settings.tsx`/`selector-options.ts`). The actual problem: `GET /api/settings` on the live dev DB had no `defaultDrinkType` key at all — it had never been saved. Live-verified the bug end-to-end: `/shots/new` showed `Drink Type: — not set —`. **Fix**: set `Default Drink Type = Americano` via the Settings UI (the exact mechanism a real user would use — matches this task's own stated desired setup) and saved. Re-verified `/shots/new` now shows `Drink Type: Americano` pre-filled. Also confirmed `Default Brew Method = Espresso` was already correctly set (a separate, already-working per-app-instance setting, distinct from the per-`Machine` equipment `brewMethod` column) — no action needed there. Per the task's explicit instruction, did not add any shot-level Brew Method field — it does not exist on `shots`, and none was added.
+2. **Default fields / stepper starting value (confirmed correct, no fix needed)**: Live-tested `NumberStepper`'s `+` button on an empty field with a placeholder (Grind Setting: empty, placeholder `2.33` → clicked `+` → became `2.34`, not `0.01`; Top-Up Grind Added: empty, placeholder `0.1` → clicked `+` → became `0.2`, not `0.1`). Confirms `adjust()`'s `base = currentNumeric() ?? suggestedNumeric() ?? 0` fallback chain already works correctly across the shared component.
+3. **Top-Up Grind / Top-Up Time Adj (confirmed correct, no fix needed)**: `Top-Up Grind Added`'s existing caption already reads "Extra grams added, e.g. 0.5 — not the final basket dose," matching this task's own example wording verbatim. `Top-Up Time Adj` already defaults from the `grindMinTime` setting (`settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2`), i.e. the grinder-minimum-pulse setting, exactly as this task describes. No formula invented, none added.
+4. **Grind Waste (confirmed correct, no fix needed)**: Live-verified the `Grind Waste (g)` field is rendered only when "Record grind change / purge waste" is checked, with caption "A workflow event, not part of the brewed basket dose or extraction yield" and the checkbox's own caption "Counts against bag/hopper remaining, but not basket dose."
+5. **Flags (confirmed correct, no fix needed)**: Live-verified all three rules on `/shots/new`: checking Signature Shot auto-checked Reference Shot and the eligibility banner switched to "Shot is included in analysis — Dialed In with Fault Status Good is included in analysis" (confirms both `setStatusIfBlank`/`setFaultStatusIfBlank` fired); checking Sour Shot afterward cleared both Reference and Signature while the banner stayed "included" (confirms Sour does not clobber an already-Good Status/Fault, i.e. a sour shot can remain analytically valid). This is the fix from commit `f837714` (a prior session), reconfirmed live rather than re-implemented.
+6. **Single-select vs multi-select consistency (real finding — not fixed, see Agent 1 prompt below)**: Cross-checked all 4 array-typed selector fields (`expressionStyle`, `beanAchievement`, `shotClassification`, `faultStatus`) against `docs/csv-data-dictionary.md`'s per-field type column and live production data. `faultStatus`/`beanAchievement`/`shotClassification` are each explicitly documented as "Multi Select historically; curated as single-choice ... in app" — i.e. the app's current single-dropdown UI (`ScalarSelect`, `(field.value ?? [])[0]`) for all three is the *intended, approved* simplification, confirmed correct as-is (live data has heavy real multi-value usage for `shotClassification` at 101/157 populated shots and `beanAchievement` at 24/85, but the app deliberately curates these down to one choice for new logging — not a bug). `expressionStyle` is the one outlier: the data dictionary lists it as plain **"Multi Select"** (no single-choice curation qualifier) with UI type **"chips"** in `field-type-map.md`'s control policy ("Multi-selects use ordered chip selectors"), yet `ShotForm.tsx` renders it through the exact same single-value `ScalarSelect` as the other three. Live data currently has zero shots with more than one `expression_style` value (124 populated, 0 multi), so this is a documented design-consistency gap, not an active data-loss risk today — written up as a follow-up rather than fixed here since it requires a new multi-select chip UI, not a copy/label tweak.
+
+## Files inspected
+
+`artifacts/coffee-log/src/pages/ShotForm.tsx`, `artifacts/coffee-log/src/lib/selector-options.ts`, `artifacts/coffee-log/src/pages/Settings.tsx`, `lib/db/src/schema/equipment.ts` (confirmed `brewMethod` is a real per-`Machine` column, unrelated to the Settings `brewMethod` key), `docs/csv-data-dictionary.md`, `docs/field-type-map.md`, `artifacts/api-server/src/api-contract.test.ts`, `docs/completed-tasks.md`. Live dev DB queried directly (read-only except the one intentional Settings save) for `settings` keys and for multi-value counts on the four array-typed shot selector columns.
+
+## Files changed
+
+- None (no source files edited). `docs/completed-tasks.md` — this entry.
+- One live data/configuration change: `settings.defaultDrinkType` set to `"Americano"` via the Settings UI (matches this task's explicitly stated desired setup; trivially reversible from the same page).
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (4/4 workspace projects).
+- `CI=true pnpm --filter @workspace/api-server test` — 63/63 passed.
+- `CI=true pnpm run build:render` — passed.
+- Live Chrome verification against the real dev DB for items 1, 2, 4, and 5 (screenshots confirmed each before/after state described above). No shot records were created or altered; the one persisted change was the intentional Settings save in item 1.
+
+## Assumptions
+
+- Treated "Confirm Default Drink Type from Settings applies to new Log Shot records" as asking to verify (and fix if broken) the actual end-to-end behavior, not just the code path — the code was already correct, so the fix was configuring the missing setting value rather than touching `ShotForm.tsx`.
+- Treated setting `defaultDrinkType = "Americano"` as in-scope even though it's a data change, not a UI code change, because it's the literal, explicitly-stated desired configuration in this task's own brief, and Settings changes are exactly what a real user would make through the same UI being reviewed.
+- Did not touch `expressionStyle`, `beanAchievement`, or `shotClassification` code, since converting any of them to a true multi-select chip UI is a real interaction-pattern change, not a tiny/safe fix, per this task's own boundary ("If a finding is not tiny/safe, report it instead of fixing").
+- This session found `Dashboard.tsx`, parts of `docs/completed-tasks.md`, and several other docs concurrently modified and uncommitted by a separate, unrelated in-flight task (a Dashboard hopper detail/compact split, and Brew Method documentation clarifications) at the time this task ran. Left all of it completely untouched — confirmed via `git status`/`git diff --stat` before starting and did not base any of this task's own findings on assuming that work was finished.
+
+## Unresolved issues
+
+- `expressionStyle` is documented as a true multi-select ("chips") field but is currently implemented identically to the three intentionally-curated single-select fields. See the Agent 1 prompt below.
+- No other unresolved issues from this task's own scope.
+
+## Recommended next step
+
+The one substantive follow-up (`expressionStyle` chip multi-select) is not tiny — see the Agent 1 prompt below. Everything else in this task's brief is confirmed already correct or fixed via a Settings value, no code follow-up needed.
+
+## Agent 1 follow-up prompt
+
+```markdown
+# Agent 1 — Convert Expression Style to a true multi-select chip control
+
+## Context
+
+`docs/csv-data-dictionary.md` documents `Expression Style` as a plain "Multi Select"
+field (no single-choice curation, unlike Fault Status / Bean Achievement / Shot
+Classification, which are each explicitly documented as "curated as single-choice
+... in app"). `docs/field-type-map.md`'s control policy states "Multi-selects use
+ordered chip selectors." Despite this, `artifacts/coffee-log/src/pages/ShotForm.tsx`
+currently renders Expression Style through the same single-value `ScalarSelect`
+dropdown as the three intentionally-curated fields:
+
+    <FormField control={form.control} name="expressionStyle" render={({ field }) => (
+      <FormItem>
+        <FormLabel>Expression Style</FormLabel>
+        <ScalarSelect
+          options={expressionStyleOptions}
+          value={(field.value ?? [])[0]}
+          onChange={(value) => field.onChange(value ? [value] : [])}
+        />
+        <FormMessage />
+      </FormItem>
+    )} />
+
+and its options are computed with an artificial single-value truncation:
+
+    const expressionStyleOptions = curatedOptions("expressionStyle", form.watch("expressionStyle")?.slice(0, 1) ?? []);
+
+Live dev-DB data currently has zero shots with more than one `expression_style`
+value (124 populated, 0 multi), so this is a design-consistency gap, not an
+active data-loss bug — do this as a clean improvement, not an emergency fix.
+
+## Task
+
+Convert Expression Style (only — leave Fault Status, Bean Achievement, and Shot
+Classification exactly as they are; their single-select behavior is intentional
+and documented) to a real multi-select chip control:
+
+1. Add a small reusable chip multi-select component (or a local one scoped to
+   `ShotForm.tsx` if you judge that's cleaner) that operates directly on a
+   `string[]` field value / `onChange`, toggling membership on click — same
+   visual language as the existing Taste Selectors chip toggle already in this
+   file (`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors`,
+   `bg-primary text-primary-foreground border-primary` when selected). Taste
+   Selectors uses local `useState`, not a form field — you'll need the same
+   visual pattern but driven by `field.value`/`field.onChange` instead.
+2. Swap Expression Style's `FormField` render to use the new component instead
+   of `ScalarSelect`.
+3. Remove the `.slice(0, 1)` truncation on the `expressionStyleOptions` line so
+   all currently-selected values (not just the first) keep any historical/CSV
+   values available as options via `curatedOptions`'s existing
+   not-in-curated-list fallback.
+4. Do not touch `beanAchievement`, `shotClassification`, or `faultStatus` — all
+   three are intentionally single-select per `docs/csv-data-dictionary.md`.
+5. Do not add new Expression Style vocabulary — use the existing
+   `CURATED_SELECTOR_OPTIONS.expressionStyle` list unchanged.
+6. Check `ShotDetail.tsx`'s existing `ChipList` rendering for `expressionStyle`
+   still displays correctly for a shot with 2+ values (it already renders from
+   the full array, so this is a read-only display check, not expected to need
+   a code change).
+
+## Boundaries
+
+- No schema/API/OpenAPI/migration changes — `expressionStyle` is already
+  `string[]` end-to-end; this is a pure client UI change.
+- No changes to Fault Status, Bean Achievement, Shot Classification, or Taste
+  Zone.
+- No new selector vocabulary.
+
+## Verification
+
+    CI=true pnpm run typecheck
+    CI=true pnpm --filter @workspace/api-server test
+    CI=true pnpm run build:render
+
+Add/update a source-scan regression test in `api-contract.test.ts` (follow the
+existing pattern in that file) confirming Expression Style no longer uses
+`ScalarSelect`/single-value truncation, and that Fault Status / Bean Achievement
+/ Shot Classification still do.
+
+Browser-check `/shots/new`: select 2+ Expression Style chips, save a real test
+shot, confirm both values persist and display correctly on `/shots/:id`, then
+delete the test shot via the API to leave the dev DB clean.
+
+## Handoff
+
+End with HANDOFF SUMMARY FOR CODEX (files inspected/changed, verification
+results, before/after behavior, assumptions, unresolved issues). Do not commit,
+do not push.
+```

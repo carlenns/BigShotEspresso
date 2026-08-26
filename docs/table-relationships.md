@@ -71,7 +71,7 @@ The Hopper table is a state-tracking ledger supporting HMI, DCI, and OSI—not a
    - `Grinder Cleanout` is a lifecycle/workflow event, not a Hopper Phase label.
    - A phase is a measured operating window, not necessarily the total physical beans present in the hopper.
    - When the user resets to a new phase, the newly added measurable quantity becomes the phase baseline. Unmeasured leftover beans may be intentionally ignored when the user cannot accurately count them.
-   - For large bags, users commonly may use Phase 1, Phase 2, Phase 3, and End of Bag. For small bags, `Single Bag Phase` means the entire bag is treated as one tracked phase.
+   - For large bags, users commonly may use Phase 1, Phase 2, Phase 3, and End of Bag. For small bags, `Single Bag Phase` means the entire bag is treated as one tracked phase. `End of Bag` means the final leftover phase after the prior measured phases have been used, not a fixed quantity of its own.
    - A transition may create a new Hopper state or change the current state; the app must preserve explicit user phase selection and must not infer unmeasured leftover inventory.
 
 5. **Close/reconcile**
@@ -84,8 +84,10 @@ Confirmed fields are `Starting Beans (g)`, `Hopper Mass (g)`, and `Hopper %`. Go
 
 The grinder/accessory model should include:
 
-- `Hopper Size` or `Hopper Capacity`, describing the physical grinder hopper capacity.
-- `Preferred Hopper Phase Fill Amount`, describing how much the user normally adds for a tracked phase.
+- `Hopper Size` or `Hopper Capacity`, describing the physical grinder hopper capacity (example: 340g).
+- `Preferred Hopper Phase Fill Amount`, describing how much the user normally adds for a tracked phase (example: 300g).
+
+Both are guidance, not hard limits. The app may warn when an actual phase's starting-beans entry exceeds the grinder's `Hopper Capacity`, but must still allow it — the actual measured Phase Starting Beans value the user enters always wins over the configured capacity or preferred fill amount.
 
 The preferred phase fill amount is user-configurable. For example, a 1kg-bag workflow may use 300g phases, while another user may choose 250g phases. The phase fill amount becomes the denominator for phase percentage unless a specific fill/reconciliation event supplies a different measured baseline.
 

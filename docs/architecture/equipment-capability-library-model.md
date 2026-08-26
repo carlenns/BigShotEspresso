@@ -79,7 +79,7 @@ Personal grinder record fields should eventually include:
 - burr size,
 - burr type,
 - hopper-fed or single-dose workflow,
-- hopper capacity,
+- hopper capacity (guidance, not a hard limit — `docs/table-relationships.md`'s "Hopper percentage" section has the full rule: the app may warn on overfill but must still allow it, and the actual entered Phase Starting Beans always wins),
 - preferred hopper phase fill amount,
 - timed dosing available,
 - manual dosing available,

@@ -117,7 +117,7 @@ During the Scientific Process / Baseline Phase, onboarding should usually tell u
 
 The product should teach that imperfections such as small over-doses, top-ups, or imperfect shots are useful if they are recorded honestly. The problem is not imperfection; the problem is changing too many variables without knowing what caused the result.
 
-System phases should eventually be first-class analysis context. Users may label phases with specific names and purposes, such as `System Phase 3 — Timed Dose Optimization`, `Bluetooth Brew Curve Scale Test`, or `New Grinder Baseline`. Starting a new piece of equipment, workflow, basket, scale, grinder, brew-curve capture method, or major technique change should allow the user to begin a new phase.
+System phases should eventually be first-class analysis context. A System Phase is a broad operating era (e.g. `System Phase 3 — Timed Dose Optimization`); an Experiment is a specific, deliberate test nested inside a phase (e.g. `Bluetooth Brew Curve Scale Test` or `New Grinder Baseline` running inside a phase like `System Phase 4 — Active Experimentation Era`) — see `docs/implementation/bag-hopper-lifecycle-plan.md`'s "System Phase / Experiment Phase model" for the full decision and examples; this section intentionally does not repeat that full list. Starting a new piece of equipment, workflow, basket, scale, grinder, brew-curve capture method, or major technique change should allow the user to begin a new phase or a new experiment within the current one.
 
 Future analysis should support filtering and comparison by system phase. Examples:
 
@@ -259,6 +259,17 @@ The assistant may use the user's historical `Rating`, `Preference Rating`, `Dail
 - calculated ranking lenses, such as weighted technical/preference score;
 - tentative buying suggestions, which are recommendations rather than source data.
 
+### 4.1.1 Teach Brew Method vs Drink Type
+
+BSE onboarding must teach that Brew Method and Drink Type are two different, non-interchangeable concepts:
+
+- `Brew Method` means how the beverage was extracted — for example Espresso, Pour-over, AeroPress, French Press, or Moka Pot.
+- `Drink Type` means what was actually served or drunk — for example Americano, Espresso, Affogato, Macchiato, or Latte.
+
+A normal owner workflow commonly combines both without conflict: Brew Method Espresso, Drink Type Americano. Neither field substitutes for the other, and onboarding should not treat "espresso" as settling both questions at once.
+
+The shot is BSE's durable evidence record, so Brew Method should eventually be captured at the shot level, not only assumed from a machine or Settings default. A selected machine may suggest a likely default Brew Method, but the machine alone is not the shot's evidence — the actual extraction method used for that specific shot is. This is future scope (no shot-level Brew Method field exists yet); see `docs/implementation/bag-hopper-lifecycle-plan.md`'s Future Development Notes for the implementation-side status.
+
 ### 4.2 Teach Daily Driver semantics
 
 `Daily Driver` is a personal bean achievement, not a generic synonym for “good.” It marks a shot or coffee expression that the user would genuinely want to drink every day: repeatable, enjoyable, comfortable, and aligned with that user’s own taste preferences.
@@ -382,7 +393,8 @@ The following are future possibilities, not commitments:
 - Opt-in citizen-science contribution and anonymized aggregate research.
 - BSE-funded API features where a measured business case justifies cost and operational risk.
 - Phase 9 AI Coffee Assistant capabilities, only when authorized under the roadmap.
-- Brew-curve capture, Bluetooth scale/device compatibility, machine telemetry, and live extraction data import. These are deferred post-revenue R&D features and should be explained as future possibilities only, not onboarding requirements.
+- Brew-curve capture, Bluetooth scale/device compatibility, machine telemetry, and live extraction data import. These are deferred post-revenue R&D features and should be explained as future possibilities only, not onboarding requirements. A user-initiated telemetry-file upload (e.g. an export from an advanced machine's own app) is a plausible lighter-weight alternative to live Bluetooth integration; either way, telemetry should attach as evidence to the Shot, System Phase, or Experiment it belongs to, with clear provenance — not implemented now.
+- A future app-facing MCP/API surface that lets a user log shots or ask BSE questions through their own AI assistant of choice, beyond the ChatGPT-specific integration already described in this document. This depends on auth, permissions, API tokens, and safety controls that do not exist yet (see ADR-0009) and is not scoped until those exist.
 
 Any material architecture decision should receive an ADR. Any roadmap change must follow roadmap change control. Intelligence functionality must use the existing named phases and research specifications; this strategy must not be used to introduce a parallel or informal intelligence engine.
 

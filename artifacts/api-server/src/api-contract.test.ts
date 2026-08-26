@@ -1005,6 +1005,46 @@ test("Dashboard explains blank hopper mass/percent/shots-left instead of hiding 
   assert.doesNotMatch(source, /hopperPercent\s*=.*startingBeans/);
 });
 
+test("Active Hopper Status is compact for phase-only hoppers, not a large standalone panel", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/Dashboard.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // A hopper only counts as having "real phase-level calculations" once one
+  // of these three fields is populated; a phase started purely through the
+  // app's own dialogs has only phase/startingBeans and must not get the full
+  // standalone card treatment.
+  assert.match(
+    source,
+    /const detailedHoppers = activeHoppers\.filter\(\s*\(h\) => h\.hopperMass != null \|\| h\.hopperPercent != null \|\| h\.shotsLeftEstimate != null,\s*\);/,
+  );
+  assert.match(
+    source,
+    /const compactHoppers = activeHoppers\.filter\(\s*\(h\) => h\.hopperMass == null && h\.hopperPercent == null && h\.shotsLeftEstimate == null,\s*\);/,
+  );
+
+  // The compact line lives near Current Baseline (inside the same Card as
+  // the bag identity/recipe/equipment lines), not in a separate section.
+  assert.match(source, /Line 4: compact hopper phase context/);
+  assert.equal(source.includes('hopper.phase ? `Hopper Phase: ${hopper.phase}` : null,'), true);
+  assert.equal(source.includes('hopper.startingBeans != null ? `Started With ${hopper.startingBeans}g` : null,'), true);
+  assert.equal(source.includes('"Phase Tracking Active",'), true);
+
+  // The full "Active Hopper Status" section only renders once a hopper has
+  // real calculations, and only maps over detailedHoppers (not all active
+  // hoppers) — no big empty/dashed placeholder card for the no-bag or
+  // no-active-hopper cases anymore.
+  assert.match(source, /detailedHoppers\.length > 0 && \(/);
+  assert.match(source, /\{detailedHoppers\.map\(\(hopper\) => \(/);
+  assert.doesNotMatch(source, /No active bag set — hopper status is shown per active bag/);
+  assert.doesNotMatch(source, /No active hopper linked to this bag/);
+
+  // Must not invent phase-remaining/consumed/shots-left calculations.
+  assert.doesNotMatch(source, /phaseRemaining\s*=/);
+  assert.doesNotMatch(source, /phaseConsumed\s*=/);
+});
+
 test("Runtime startup applies additive equipment schema guards", async () => {
   const [indexSource, runtimeSchemaSource] = await Promise.all([
     readFile(fileURLToPath(new URL("./index.ts", import.meta.url)), "utf8"),

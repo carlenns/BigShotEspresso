@@ -478,6 +478,7 @@ These are documented for context only and are explicitly out of scope for this l
 - **Equipment-aware advice**: depends on a machine/grinder selector existing in `Log Shot` (currently absent — `machineId`/`grinderId` exist on `shots` in the DB but are not exposed in the form, per `docs/completed-tasks.md`) and on the shared equipment library described in `docs/architecture/equipment-capability-library-model.md`; not implemented.
 - **AI-guided onboarding interview**: no design exists yet; would likely feed the beginner-path Start New Bag flow described above, but is not scoped for launch.
 - **User-specific workflow methods**: `workflow_method` (hopper / dose cup / single dose / frozen single dose / vacuum-packed doses / decaf split / pour-over / guest drinks / mixed) is recorded as a concept in this plan's domain boundaries but has no storage field yet; future work, not launch-blocking.
+- **Shot-level Brew Method**: Brew Method (how the beverage was extracted — Espresso, Pour-over, etc.) is distinct from Drink Type (what was served — Americano, Affogato, etc.); see `docs/product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md` for the full distinction. A user's normal workflow can combine both, e.g. Brew Method Espresso with Drink Type Americano. The shot is the durable evidence record, so Brew Method should eventually be captured at the shot level, not only inferred from the selected machine — a machine may suggest a default Brew Method, but the machine alone is not the shot evidence. No storage field exists yet; future work, not launch-blocking.
 - **Community/equipment library implications**: per `docs/architecture/equipment-capability-library-model.md`, shared verified equipment library work is explicit future scope "after account/auth, ownership, moderation, admin review, and privacy controls exist." For launch, equipment stays personal/user-owned only.
 
 ## Recommended data model direction
@@ -542,23 +543,33 @@ Do not invent formulas in this model. It should store evidence and workflow stat
 
 System phases should eventually become first-class context for shots and lifecycle events.
 
+**Decided (2026-08-25): System Phase and Experiment are two different, nested concepts, not one flat list.** A System Phase is a broad operating era — it can last a long time and cover many kinds of shots. An Experiment is a specific, deliberate test that happens *inside* a System Phase. A phase does not need an active experiment; an experiment always belongs to exactly one phase. Earlier drafts of this section flattened both into a single example list — that was a documentation gap, not a decision to treat them as equivalent, and is corrected below.
+
 Purpose:
 
 - label a period of operation with a user-defined name and goal,
 - preserve evidence context when workflow or equipment changes,
 - support later filtering and comparison,
-- avoid mixing initial setup records with controlled baseline or optimization records.
+- avoid mixing initial setup records with controlled baseline or optimization records,
+- let a focused experiment inside a stable phase be analyzed on its own without losing the phase's broader context.
 
-Examples:
+System Phase examples (broad era):
 
 - `System Phase 1 — Initial Setup Phase`,
 - `System Phase 2 — Scientific Process / Baseline Phase`,
 - `System Phase 3 — Timed Dose Optimization`,
+- `System Phase 4 — Active Experimentation Era`.
+
+Experiment examples (a specific test, nested inside a System Phase — e.g. all of these could sit inside `System Phase 4 — Active Experimentation Era`):
+
+- `Experiment: Hopper Overfill / Timed Dose Stability`,
 - `Bluetooth Brew Curve Scale Test`,
 - `Flow Control Taste Exploration`,
 - `Preinfusion Baseline Test`,
 - `New Grinder Baseline`,
 - `Single Dose Workflow Trial`.
+
+Rule: experiment-specific fields and metrics (e.g. whatever `Hopper Overfill / Timed Dose Stability` needs to track) should only appear/apply while that experiment is the active one — they should not leak into every shot logged during the wider System Phase, and should not persist as visible fields once the experiment ends.
 
 Conceptual fields:
 

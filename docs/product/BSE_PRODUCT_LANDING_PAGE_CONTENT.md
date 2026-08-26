@@ -68,6 +68,7 @@ Some users may arrive before they have chosen a machine, grinder, scale, or time
 Record the important facts of each extraction:
 
 - Bag and bean
+- Brew method (how the beverage was extracted, distinct from what was served — future shot-level field, not yet captured)
 - Grinder setting
 - Grind time
 - Initial grinder output
@@ -221,6 +222,8 @@ The landing page should avoid presenting these as current product features:
 - Frozen-dose inventory
 - Vacuum-packed dose inventory
 - Fully automated dialing-in recommendations
+- App-facing MCP/API access for logging via a user's own AI assistant
+- An "Advanced" experiments/telemetry tier or add-on
 
 These may be described only as future possibilities where appropriate.
 
@@ -229,6 +232,12 @@ These may be described only as future possibilities where appropriate.
 Approved future-facing language:
 
 > Future modules may include brew curves, Bluetooth scale/device compatibility, live extraction telemetry, and specialized workflows such as frozen or vacuum-packed doses. These are post-revenue research-and-development features and are not required for launch.
+
+Users may eventually be able to upload a telemetry file from an advanced machine's own app as a lighter-weight alternative to live Bluetooth integration; the page should not promise this ahead of implementation. A future app-facing MCP/API surface — letting users log or ask BSE questions through their own AI assistant of choice — is possible future scope after auth, permissions, API tokens, and safety controls exist, and should not be described as available now.
+
+### Advanced tier (future, not launch pricing)
+
+An "Advanced" add-on or tier — covering deeper experiment tracking, telemetry attachment, and custom metrics beyond the core logging product — is a plausible future pricing line, not a launch commitment. If introduced, Founder-cohort subscribers should receive it included during the founder period, since they are the users helping develop and test these advanced workflows. The page should avoid promising every future product line permanently; frame this as a direction, not a guarantee. See `docs/product/BSE_SUBSCRIBER_FEASIBILITY.md` for the pricing/cost framing this would need to satisfy before launch.
 
 ## Future community and interaction possibilities
 

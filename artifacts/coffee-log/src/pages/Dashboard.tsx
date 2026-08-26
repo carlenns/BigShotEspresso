@@ -156,6 +156,17 @@ export default function Dashboard() {
 
   const hasBagProgress = bp && (bp.startingWeight || bp.consumed > 0);
   const activeHoppers = bag ? hoppers.filter((h) => h.isActive && h.bagId === bag.id) : [];
+  // A hopper only has "real phase-level calculations" once one of these three
+  // fields is populated (imported values, or values computed elsewhere — this
+  // app never writes them). A phase started purely through the app's own
+  // dialogs has only `phase`/`startingBeans` and belongs in the compact line
+  // near Current Baseline, not a full standalone card.
+  const detailedHoppers = activeHoppers.filter(
+    (h) => h.hopperMass != null || h.hopperPercent != null || h.shotsLeftEstimate != null,
+  );
+  const compactHoppers = activeHoppers.filter(
+    (h) => h.hopperMass == null && h.hopperPercent == null && h.shotsLeftEstimate == null,
+  );
   const hasBagComparison = intel?.bagComparison && intel.bagComparison.length > 1;
   const hasTimingWindows = tw && (tw.yieldRange || tw.pourTimeRange || tw.flowTimeRange || tw.pourDelayRange);
   const hasPerfWindow = bi && (bi.bestYieldRange || bi.bestPourDelayRange);
@@ -266,6 +277,22 @@ export default function Dashboard() {
                   )}
                 </div>
               )}
+
+              {/* Line 4: compact hopper phase context (no real mass/%/shots-left calc) */}
+              {!isLoadingHoppers && compactHoppers.length > 0 && (
+                <div className="flex flex-col gap-1 text-xs text-muted-foreground border-t pt-2">
+                  {compactHoppers.map((hopper) => (
+                    <span key={hopper.id} className="flex items-center gap-1.5 flex-wrap">
+                      <Package className="h-3 w-3 shrink-0" />
+                      {[
+                        hopper.phase ? `Hopper Phase: ${hopper.phase}` : null,
+                        hopper.startingBeans != null ? `Started With ${hopper.startingBeans}g` : null,
+                        "Phase Tracking Active",
+                      ].filter(Boolean).join(" · ")}
+                    </span>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -319,29 +346,17 @@ export default function Dashboard() {
         </section>
       )}
 
-      {/* Active Hopper Status (read-only; no fill/top-up/phase-transition UI here) ── */}
-      <section>
-        <SectionLabel>Active Hopper Status</SectionLabel>
-        {isLoading || isLoadingHoppers ? (
-          <Skeleton className="h-24 w-full" />
-        ) : !bag ? (
-          <Card className="border-dashed">
-            <CardContent className="py-6 text-center text-muted-foreground text-sm">
-              <Package className="h-6 w-6 mx-auto mb-2 opacity-30" />
-              No active bag set — hopper status is shown per active bag.
-            </CardContent>
-          </Card>
-        ) : activeHoppers.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="py-6 text-center text-muted-foreground text-sm">
-              <Package className="h-6 w-6 mx-auto mb-2 opacity-30" />
-              <p className="font-medium">No active hopper linked to this bag.</p>
-              <p className="text-xs mt-1">Hopper tracking hasn't been set up for this bag yet.</p>
-            </CardContent>
-          </Card>
-        ) : (
+      {/* Active Hopper Status (read-only; no fill/top-up/phase-transition UI here) ──
+          Only rendered once a hopper has real phase-level calculations
+          (hopperMass/hopperPercent/shotsLeftEstimate). A hopper with only
+          phase/startingBeans is shown as a compact line near Current Baseline
+          instead — this section no longer appears as a large panel for that
+          limited-context case. */}
+      {isLoading || isLoadingHoppers ? null : detailedHoppers.length > 0 && (
+        <section>
+          <SectionLabel>Active Hopper Status</SectionLabel>
           <div className="flex flex-col gap-3">
-            {activeHoppers.map((hopper) => (
+            {detailedHoppers.map((hopper) => (
               <Card key={hopper.id}>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -378,8 +393,8 @@ export default function Dashboard() {
               </Card>
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* 3. Today's Coffee Brief (with bag phase inline) ────────────────────── */}
       {intel?.todaysBrief && (
