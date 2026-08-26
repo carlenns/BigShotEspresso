@@ -13,6 +13,7 @@ Implementation records are subordinate to the Constitution, ADRs, architecture, 
 - [Route Exposure Audit](route-exposure-audit.md)
 - [Bag and Hopper Lifecycle Plan](bag-hopper-lifecycle-plan.md)
 - [Launch Readiness Audit](launch-readiness-audit.md)
+- [Auth, Accounts, and Data Ownership Implementation Plan](auth-data-ownership-implementation-plan.md)
 - [Replit Deployment Prep](replit-deployment-prep.md)
 - [Render Deployment Prep](render-deployment-prep.md)
 - [Render Environment Checklist](render-environment-checklist.md)
