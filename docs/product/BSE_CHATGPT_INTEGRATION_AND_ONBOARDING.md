@@ -88,7 +88,8 @@ The assistant should ask how the user currently handles:
 - dose collection, including dose cup or direct-to-portafilter;
 - dose verification, including weighed/corrected before basket, weighed after basket, assumed dose, or no scale;
 - timed versus manual grinder use;
-- new-bag dial-in, stable-bag logging, troubleshooting, and between-bag maintenance.
+- new-bag dial-in, stable-bag logging, troubleshooting, and between-bag maintenance;
+- their actual maintenance routine specifically — what they clean (backflush, Cafiza, portafilter/basket, shower screen, grinder chute purge, grinder vacuum, burr clean, descale, full machine clean) and on what basis (every shot, every X shots/bags/kg of beans, every X days, or manual only). See `docs/implementation/bag-hopper-lifecycle-plan.md`'s "Maintenance Workflow Model" for the full rule structure this feeds. Framed as part of the scientific process, not a chore separate from logging: inconsistent maintenance is a real confound (e.g. a stale puck screen or overdue backflush can look like a grind or dose problem), so understanding the user's actual routine helps the assistant avoid misattributing a maintenance-driven change to grind, dose, or bean variables.
 
 The default BSE coaching style should treat espresso as a practical scientific experiment:
 

@@ -222,6 +222,7 @@ The landing page should avoid presenting these as current product features:
 - Frozen-dose inventory
 - Vacuum-packed dose inventory
 - Fully automated dialing-in recommendations
+- Dashboard maintenance due/reminder indicators (e.g. "Water Backflush Due After This Bag") — the maintenance workflow itself (recording cleaning events) is launch scope; the reminder dashboard is future scope, see `docs/implementation/bag-hopper-lifecycle-plan.md`'s "Maintenance Workflow Model"
 - App-facing MCP/API access for logging via a user's own AI assistant
 - An "Advanced" experiments/telemetry tier or add-on
 

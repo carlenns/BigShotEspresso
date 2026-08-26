@@ -67,6 +67,7 @@ Personal machine record fields should eventually include:
 - pressure profiling available,
 - brew-curve capture available,
 - Bluetooth/device telemetry available,
+- suggested maintenance interval(s) (e.g. water/rinse backflush, Cafiza/detergent backflush, descale guidance) — manufacturer/library-sourced suggestion only, per `docs/implementation/bag-hopper-lifecycle-plan.md`'s "Maintenance Workflow Model," not the actual reminder rule,
 - user notes,
 - source/evidence notes.
 
@@ -88,6 +89,7 @@ Personal grinder record fields should eventually include:
 - default top-up pulse,
 - retention notes,
 - default grinder flag,
+- suggested maintenance interval(s) (e.g. burr clean) — manufacturer/library-sourced, treated only as a starting suggestion; see `docs/implementation/bag-hopper-lifecycle-plan.md`'s "Maintenance Workflow Model" for the full rule — the user's own confirmed workflow, not this suggested default, is what actually drives a reminder,
 - user notes,
 - source/evidence notes.
 

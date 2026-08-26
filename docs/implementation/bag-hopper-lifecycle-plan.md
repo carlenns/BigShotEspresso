@@ -184,6 +184,8 @@ Future implementation:
 - allow the user to skip maintenance if they did not do it.
 - later correlate maintenance events with improved dose consistency or extraction stability, but do not implement intelligence logic in the lifecycle phase.
 
+**Decided (2026-08-26): maintenance gets its own workflow model, not just a between-bag moment.** The between-bag timing above is when maintenance most *commonly* happens, but maintenance is a broader, ongoing workflow with its own rules, event types, and reminder logic — it should not be treated only as a bag-closeout side effect, and it must not be folded into `Shot Classification` or `Fault Status` even after lifecycle events exist. See the full "Maintenance Workflow Model" section below.
+
 ## 3. Start New Bag
 
 Goal: create or select the Bean, create the Bag, and make it the active logging context.
@@ -600,7 +602,84 @@ Implementation note:
 
 This should not be implemented as free-text shot notes only. Free-text notes are useful evidence, but future analytics need a structured phase relationship from Shots and lifecycle events to a System Phase.
 
-## Implementation order
+## Maintenance Workflow Model
+
+Maintenance is its own workflow, not a subset of Shot Classification or Fault Status, and not implementable as a maintenance table yet — this section is the plan for that model, not the model itself.
+
+### Why not Shot Classification / Fault Status
+
+`Shot Classification` historically listed values like "Maintenance / Cleaning" and "Grind Change / Purge" as if maintenance were a kind of shot record. It is not. A maintenance event usually has no extraction at all, and even when it's logged alongside a shot (e.g. a grind-change purge before a drink shot), the maintenance fact and the drink-shot fact are two different pieces of evidence that happen to be close in time. Folding maintenance into a shot-record selector:
+
+- forces every maintenance action to pretend to be a shot, even when no coffee was extracted,
+- pollutes `Shot Classification`'s real purpose (describing the shot itself),
+- gives maintenance no place to carry its own structured fields (event type, interval basis, due-date logic) that a single selector value can't hold,
+- makes it impossible to build the dashboard reminder model described below, since there's nowhere to attach "last did this" state per rule.
+
+This decision holds even once lifecycle events (the model already proposed above under "New model recommended before full lifecycle launch") exist — maintenance should get its own event type(s) within that model, not a `Shot Classification` value repurposed to mean something else.
+
+### Where maintenance rules can attach
+
+A maintenance rule (e.g. "backflush every 1kg") is not one universal thing — it can be scoped to:
+
+- a specific **machine** (e.g. the Profitec Go's own backflush interval),
+- a specific **grinder** (e.g. burr-clean interval, which varies by grinder),
+- a specific **accessory** (e.g. a puck screen's own clean/replace interval),
+- the **user/default profile** (a fallback rule when no more specific machine/grinder/accessory rule is set).
+
+Manufacturer/library-suggested defaults (once a shared equipment library exists — see `docs/architecture/equipment-capability-library-model.md`) are a *starting suggestion* only. The rule that actually drives a reminder is whatever the user has confirmed for their own workflow, which may differ significantly from the manufacturer's suggestion (see Carl's own workflow below, which is user-derived, not a manufacturer schedule).
+
+### How a reminder basis can be defined
+
+A maintenance rule needs a way to say "how often." At minimum, launch-scope thinking should support all of:
+
+- every shot (e.g. a blind-disk backflush after every shot, for users who do this),
+- every X shots,
+- every X bags,
+- every X grams/kg of beans processed,
+- every X days/weeks (pure time-based),
+- manual only (no reminder — the user decides when, with no due-date tracking at all).
+
+No exact reminder formula is decided here — how "X grams processed" gets computed from shot/bag/hopper records, how multiple simultaneous rules interact, and how "due" is calculated are all deliberately left open for a future implementation task, per this task's own boundary.
+
+### Maintenance event types (minimum launch-relevant set)
+
+- water/rinse backflush,
+- Cafiza/detergent backflush,
+- portafilter/basket clean,
+- shower screen clean,
+- grinder chute purge,
+- grinder vacuum,
+- burr clean,
+- descale,
+- full machine clean.
+
+This list is a minimum starting vocabulary, not a closed enum — it should remain easy to extend, the same way `Shot Classification`/`Bean Achievement` already tolerate historical/custom values elsewhere in this project.
+
+### Concrete example: Carl's current owner workflow
+
+Recorded here as real evidence for the model above, not as a universal default for other users:
+
+- Machine: Profitec Go. Grinder: Eureka Mignon Magnifico.
+- Water/rinse backflush: after each 1kg bag.
+- Full clean (Cafiza/detergent backflush, portafilter clean, basket clean, machine/shower-screen cleaning): every 2kg of beans.
+- Grinder vacuum: only on bag change (not on a shot- or gram-based interval).
+- Grinder chute purge / grind waste: on grind-setting changes or bag changes (event-triggered, not interval-triggered).
+- Descale: manual, based on water hardness and machine guidance — explicitly *not* a blind fixed-interval reminder. This is a deliberate exception to the interval-basis list above: some maintenance genuinely should stay manual-only, and the model must not force every event type onto a schedule.
+
+This example demonstrates why the model needs multiple simultaneous, independently-scoped rules (per-bag, per-kg, per-event-trigger, and manual-only) rather than one global interval — a single "clean every N units" setting could not represent Carl's actual routine.
+
+### Future dashboard reminder model
+
+Not implemented now; described here so future work has a target shape:
+
+- Show upcoming/due maintenance derived from recorded maintenance events (when a rule's basis was last satisfied) and the user's own confirmed rules (not manufacturer defaults, unless the user hasn't overridden them) — e.g. "Water Backflush Due After This Bag" or "Cafiza Clean In 0.5kg."
+- A recorded maintenance event of the matching type should reset that rule's due-date/counter — this is the core mechanic that makes the reminder actually track real behavior instead of a static calendar.
+- Must never block shot logging — a due/overdue reminder is informational, shown on the Dashboard or similar, not a gate in `Log Shot`.
+- Should read as helpful, not naggy — a single calm indicator per due/upcoming item, not a blocking modal or repeated interruption. Exact presentation is a future UI decision, not specified here.
+
+### AI onboarding implications
+
+`docs/product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md`'s onboarding flow should ask about the user's actual maintenance routine (what they clean, how often, by what basis) the same way it already asks about bean feed method, dose verification, and other workflow questions — and should frame consistent cleaning as part of the scientific espresso process (a confound to control for, not a chore separate from logging). See that document for the actual onboarding-flow wording; not repeated here.
 
 ## Phase A — Documentation and UI copy
 
