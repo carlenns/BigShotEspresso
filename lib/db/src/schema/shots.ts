@@ -50,6 +50,7 @@ export const shotsTable = pgTable("shots", {
   boundaryShot: boolean("boundary_shot"),
   beanAchievement: text("bean_achievement").array(),
   drinkType: text("drink_type"),
+  brewMethod: text("brew_method"),
   status: text("status"),
   shotClassification: text("shot_classification").array(),
   faultStatus: text("fault_status").array(),

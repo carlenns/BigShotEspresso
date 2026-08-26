@@ -1679,3 +1679,134 @@ End with HANDOFF SUMMARY FOR CODEX (files inspected/changed, verification
 results, before/after behavior, assumptions, unresolved issues). Do not commit,
 do not push.
 ```
+
+# Auth/Accounts/Data-Ownership Implementation Plan — 2026-08-26
+
+## Completed
+
+- Turned ADR-0009's accepted direction into a phased implementation sequence: `docs/implementation/auth-data-ownership-implementation-plan.md`. Recommends an auth mechanism (magic-link, deferring password storage and OAuth) since ADR-0009 deliberately left that open; a 9-phase sequence (users/session model → per-table `user_id` migrations → the `settings` compound-constraint migration as its own phase → a shared route-scoping helper built once before any route is touched → per-route update order → frontend login/session UI → owner backfill → mandatory cross-user isolation tests → deployment rollout); a concrete table-by-table ownership list (`NOT NULL` vs. nullable-for-future-shared-library) restated from direct schema inspection rather than re-derived from scratch; the four highest-risk items consolidated; and a recommendation to stage Tier 2 (outside testers, minimal auth surface) before building Tier 3's (paid public launch) full self-serve/billing surface.
+- Added the new doc to `docs/implementation/README.md`'s index.
+- Left `airtable_sync_evidence`'s scoping as an explicit open question (recommended it stay unscoped/owner-only) rather than deciding it without product input.
+
+## Files changed
+
+- `docs/implementation/auth-data-ownership-implementation-plan.md` (new)
+- `docs/implementation/README.md` (index entry added)
+- `docs/completed-tasks.md` (this entry)
+
+No application code, schema, API, migration, or test files touched — documentation/planning only, per task boundary.
+
+## Verified
+
+- `git diff`/`git status` reviewed to confirm only the three doc files above changed.
+- No build run — documentation-only.
+
+## Assumptions
+
+- The auth-mechanism recommendation (magic-link) is a recommendation for sequencing purposes, not a re-opening of ADR-0009's ownership-model decision, which this plan builds on rather than revisits.
+- Table ownership assignments (`NOT NULL` vs. nullable) restate ADR-0009's own conclusions rather than re-deciding them independently, since the ADR already did that analysis directly against the live schema.
+
+## Unresolved
+
+- Everything in this plan is sequencing/design only — no phase has been implemented, and this plan itself is not yet approved.
+- `airtable_sync_evidence` scoping remains an open question, as it was in ADR-0009.
+- The auth-mechanism recommendation (magic-link) has not been confirmed by Carl/Codex — flagged as needing confirmation before Phase 1 starts.
+
+# Mobile UX Review After Recent Owner-Alpha Changes — 2026-08-26
+
+## Completed
+
+Review-only task: live-verified all 5 review areas at mobile viewport width (606px, below the `md:` 768px breakpoint — confirmed mobile layout was active by the bottom nav rendering) against the real dev DB via Chrome. **Result: zero new bugs found.** Every item was already correctly implemented by prior sessions' work (the "Log Shot UI Usability Review" and "Dashboard Hopper Blank-State Clarity" tasks, commits `721556a`, `f837714`, `a85b972`, and earlier). This task's value was confirming those fixes hold up together, live, at actual mobile width, rather than finding anything new.
+
+1. **Log Shot mobile flow — confirmed correct.** `/shots/new` at 606px: Setup card, bag-selector pills, and all Extraction fields render cleanly with no overflow or cramped touch targets. Field order matches the requested workflow exactly: Grind Setting → Grind Time → Initial Grinder Output → Top-Up Grind Added → Top-Up Time Adj → Temp → Target/Basket Dose (all "grind settings/output/corrections"), then Extraction Timing (Pour Delay → Pour Time → Flow Time), then Output (Yield) — screenshotted and confirmed. `NumberStepper` fields render as a compact 2-column grid with reasonably sized +/- targets, not overwhelming. Drink Type correctly pre-fills "Americano" (the `defaultDrinkType` Settings value set during the prior "Log Shot UI Usability Review" task is still persisted and still applies).
+2. **Shot Detail — confirmed correct.** Live-checked shot #240 (a real "Grinder Setup"/workflow-event shot with `dose`/`yield`/`pourTime` all null): every previously-null field now shows `-`, not literal "null"/"undefined" text (confirms commit `721556a` holds). "Grinder / Workflow Event" (Purge/Setup Waste: 32.2g) renders in a visually distinct amber-bordered box, separate from the main Extraction Details grid. "Serving Context" (Drink Type: Americano, Not Rated: Yes) renders in its own bordered box with an explanatory caption distinguishing it from "Include in Analysis." All chip lists (Fault Status: "Grind Waste Intentional" / "DO NOT COUNT towards waste metrics") wrap cleanly at mobile width with no overflow.
+3. **Dashboard — confirmed correct.** Active bag (#7) has one hopper (#18) that is phase-only (no `hopperMass`/`hopperPercent`/`shotsLeftEstimate`) — confirmed it renders as a single compact line ("Hopper Phase: Phase 1 · Started With 300g · Phase Tracking Active") inside the Current Baseline card, not as a separate large "Active Hopper Status" panel (confirms commit `a85b972`'s `detailedHoppers`/`compactHoppers` split works correctly end-to-end against live data). Current Bag card is 4 compact lines (identity, recipe, equipment, hopper), not overloaded. Reviewed every color-conveying UI element on the page (bag-age text, completion-% bar, `DirectionBadge`, Bag Comparison table's Direction column, `DeltaStatusMarker`, confidence pills, watchlist cards): every one that conveys a distinct state pairs color with an icon and/or explicit text label (e.g. `DirectionBadge` = icon + "Coarser"/"Finer"/"Stable" text; `DeltaStatusMarker` already uses pattern-fill overlays from an earlier session). A few decorative accents (bag-age "Open Nd" text color, Grind Journey's "Net Change" number color) are color-only, but the underlying number/label is always shown as plain text immediately alongside — no critical meaning is lost to a colorblind user, only a secondary at-a-glance hint. Consistent with this exact same conclusion reached and documented in an earlier session's review — reconfirmed, not re-litigated.
+4. **Mobile navigation — confirmed correct.** Settings is reachable two ways: (a) the mobile top-bar hamburger → "Setup & System" dropdown, always visible with no scrolling required, screenshotted with Settings as the last item; (b) the bottom nav, confirmed horizontally scrollable by swiping — Settings is the last item, reachable, and the existing right-edge fade mask (from an earlier session) plus a visible horizontal scrollbar both signal there's more to scroll to. No navigation item is unreachable or hidden with no cue.
+5. **Quick Log — confirmed correct.** Navigated directly to `/shots/quick`; the tab URL updated to `/shots/new` and rendered the full Log Shot form (confirms commit `86f7086`'s hard redirect still works).
+
+## Files inspected
+
+`artifacts/coffee-log/src/pages/ShotForm.tsx`, `artifacts/coffee-log/src/pages/ShotDetail.tsx`, `artifacts/coffee-log/src/pages/Dashboard.tsx`, `artifacts/coffee-log/src/components/layout/Shell.tsx` (re-confirmed from recent memory, not re-read line-by-line since untouched since an earlier session), `docs/completed-tasks.md`. Live dev DB / running app inspected via Chrome only — read-only, no data created or altered.
+
+## Files changed
+
+None. This was a pure review task; no code or data changes were made or needed.
+
+## Verified
+
+- Review-only per task instructions — no code changed, so `typecheck`/`test`/`build:render` were not required and not run for this task specifically (the tree was already green from the immediately preceding session's verification run on the same commit).
+- Live browser verification at mobile viewport width (606px, `md:hidden` bottom nav confirmed active) for all 5 review areas, screenshotted at each step, against the real dev DB.
+- Confirmed `git status` was clean at the start of this task (11 commits ahead of `origin/main`, matching the end of the prior session) before beginning, and found only unrelated, separate in-flight work (`docs/implementation/README.md`, a new `auth-data-ownership-implementation-plan.md`) appear mid-task — left entirely untouched.
+
+## Assumptions
+
+- Treated the 606px screenshot width this environment renders as a valid mobile-width proxy, since it is below the app's own `md:` (768px) breakpoint and the mobile-only bottom nav was confirmed rendering — this matches the same approach and caveat documented in earlier sessions (`resize_window` does not actually change `window.innerWidth` in this environment).
+- Did not attempt to re-verify Log Shot's "field order" requirement via automated test, since no existing regression test enforces visual/DOM order and adding one was judged out of scope for a review-only task with zero findings.
+
+## Unresolved issues
+
+None found in this task's scope. Everything reviewed was already correct.
+
+## Recommended next step
+
+No code follow-up needed from this task. No Agent 1 prompt required — nothing to fix.
+
+# Shot-Level Brew Method — 2026-08-26
+
+## Completed
+
+- Added `brewMethod` as a real, durable shot-level field — separate from `drinkType` — capturing *how* the beverage was extracted (Espresso, Pour-over, AeroPress, French Press, Moka Pot) as distinct from `drinkType`'s *what was served* (Americano, Latte, etc.).
+- **Schema**: `lib/db/src/schema/shots.ts` — added `brewMethod: text("brew_method")` (nullable), next to `drinkType`.
+- **Migration**: new `lib/db/migrations/0010_shot_brew_method.sql`/`.down.sql` — additive `ADD COLUMN IF NOT EXISTS`, plus a backfill (`UPDATE shots SET brew_method = 'Espresso' WHERE brew_method IS NULL`) that only ever fills a blank value, never overwrites one that's already set.
+- **Live-DB application mechanism**: this repo doesn't run migration files against the deployed/dev database directly — `ensureRuntimeSchema()` (`artifacts/api-server/src/lib/runtime-schema.ts`), which runs on every server boot, is what actually applies additive schema changes. Added the identical additive-`ALTER`-plus-guarded-`UPDATE` SQL there too (`SHOTS_SCHEMA_SQL`), kept in sync with the migration file's logic, so the backfill actually reaches the deployed data on the next real boot.
+- **Backfill safety check**: queried the live dev DB (Neon) before deciding to backfill — 248 total shots, 242 linked to the single registered Machine (`brewMethod: "Espresso"`), the remaining 6 have no machine but are clearly espresso-domain rows (dose/yield/ratio populated). No evidence anywhere in the historical dataset of any other brew method, so backfilling every pre-existing null to `Espresso` is data-safe and launch-safe.
+- **API/OpenAPI**: added `brewMethod: { type: ["string", "null"] }` to both the `Shot` (read) and `ShotWriteFields` (shared create/update) schemas in `lib/api-spec/openapi.yaml`, then ran `pnpm --filter @workspace/api-spec codegen` (orval) to regenerate `lib/api-zod/src/generated/*` and `lib/api-client-react/src/generated/*` — confirmed `brewMethod?: string | null` landed in the generated `Shot`/`ShotInput`/`ShotUpdate`/`ShotWriteFields` types and only the expected generated files changed. `artifacts/api-server/src/lib/api-shapes.ts`'s `toShotApi` needed no change — it spreads all columns through except three explicitly-omitted internal ones.
+- **Curated options**: added `brewMethod: ["Espresso", "Pour-over", "AeroPress", "French Press", "Moka Pot"]` to `CURATED_SELECTOR_OPTIONS` in `artifacts/coffee-log/src/lib/selector-options.ts` — an exact copy of Settings' existing `Default Brew Method` option list (no invented values). Also changed `Settings.tsx`'s "Default Brew Method" field to source its options from this shared list (`CURATED_SELECTOR_OPTIONS.brewMethod`) instead of its own separately-hardcoded array, so the two can never drift apart.
+- **Log Shot (`ShotForm.tsx`)**:
+  - Added `brewMethod` to the form schema, default values, `NULLABLE_ON_EDIT_FIELDS` (clearable to null on edit, like `drinkType`), and the `existingShot` reset block.
+  - Added a `Brew Method` scalar-select field in the Setup card, alongside Machine and Grinder (grid widened to 3 columns on `sm:` and up, unchanged 2-column stacking on mobile).
+  - Added a dedicated default-fill `useEffect`, separate from the pre-existing Drink Type default-fill effect: prefers the currently-selected (or default) Machine's own `brewMethod` when one is clearly available, otherwise falls back to the Settings-level `brewMethod`; only fills when the field is blank (never overwrites a user-entered or already-defaulted value), matching the same "suggest only if blank" convention already used for Status/Fault Status/Drink Type elsewhere in this form. Waits for the machines list to finish loading (`isLoadingMachines`) before falling back to Settings, closing a race where the Settings-level default could otherwise win before the selected Machine's own value was known.
+  - Verified structurally (and by test, see below) that the Drink Type default-fill effect and the Brew Method default-fill effect never reference each other's field — changing one can never change the other.
+- **Shot Detail (`ShotDetail.tsx`)**: shows `Brew Method` in Extraction Details, next to Machine/Grinder (conditionally rendered, matching the existing pattern for optional equipment fields).
+- **Documentation**: added a `Brew Method` row to `docs/csv-data-dictionary.md`, directly after `Drink Type`, describing the field, its curated options, its Machine-then-Settings default preference, its independence from Drink Type, and the backfill.
+
+## Boundaries respected
+
+- No pour-over workflow implemented — Brew Method is just a labeled selector value, no downstream pour-over-specific logic.
+- No machine/profile-level defaults beyond the already-easy, already-safe selected-Machine preference explicitly permitted by the task.
+- No auth/accounts, no intelligence engine, Quick Log untouched (its own `/api/shots/selector-options` GET route and `SelectorOptions`-typed fetch helper were deliberately left alone — Brew Method isn't wired into Quick Log at all).
+- No new selector values invented — the curated list is a literal copy of Settings' pre-existing `Default Brew Method` options.
+- Historical evidence preserved — the backfill only ever fills a blank, and both the migration and the runtime guard assert this with a `WHERE brew_method IS NULL` guard, verified by a real (PGlite) migration test, not just a source-scan.
+
+## Tests added/updated
+
+- `artifacts/api-server/src/migration.integration.test.ts`: new test `"Shot brew_method migration backfills only null rows, is repeatable, and rolls back cleanly"` — a genuine PGlite (real-Postgres-compatible) execution of the actual `0010_shot_brew_method.sql`/`.down.sql` files. Proves: the column is added; a pre-existing null row is backfilled to `Espresso`; a row with an explicit non-Espresso value (`Pour-over`) is untouched by both the initial run and a repeated run (idempotency); the down migration drops the column and is itself repeatable.
+- `artifacts/api-server/src/api-contract.test.ts`: new test `"Shot-level Brew Method is durable evidence, independent of Drink Type"` — source-scans the schema file, both migration files, `runtime-schema.ts`, the relevant `openapi.yaml` blocks, the regenerated `api-zod` types, `selector-options.ts`, `Settings.tsx`, `ShotForm.tsx`, and `ShotDetail.tsx`. Specifically asserts: Settings sources its options from the shared curated list rather than its own array; the Brew Method default-fill effect waits for machines to load, prefers the selected Machine, falls back to Settings, and only fills when blank; and — by slicing out each effect's own body — that the Drink Type effect's text never mentions `brewMethod` and the Brew Method effect's text never mentions `drinkType`, directly proving requirement 6 (changing one never changes the other) at the source level.
+
+## Verified
+
+- `CI=true pnpm run typecheck` — passed (all workspace projects, including `lib/db`, `lib/api-zod`, `lib/api-client-react` after codegen).
+- `CI=true pnpm --filter @workspace/api-server test` — 65/65 passed, 0 failed, including both new tests above. No `static-serving`/127.0.0.1 bind issue occurred.
+- `CI=true pnpm run build:render` — build succeeded (pre-existing, unrelated sourcemap/chunk-size warnings only).
+- `pnpm --filter @workspace/api-spec codegen` (orval) — succeeded; `git status` confirmed only the expected generated files changed (`lib/api-zod/src/generated/{api.ts,types/shot*.ts}`, `lib/api-client-react/src/generated/api.schemas.ts`).
+- Did **not** boot the api-server against the live/shared dev DB (a remote Neon Postgres instance, read from `.env`'s `DATABASE_URL`) to apply the migration for a live smoke test. `ensureRuntimeSchema()` runs automatically on every real server boot and would apply this migration's `ALTER TABLE`/backfill `UPDATE` for real, permanently, to shared data — that's the intended, expected mechanism, but triggering it myself as part of a "do not commit/push," verification-only task felt like an unrequested, hard-to-reverse mutation of shared state rather than pure verification. Confirmed instead via a genuine PGlite execution of the exact same SQL (see Tests above), which exercises real Postgres semantics without touching the shared database. The migration will apply automatically the next time the api-server is actually booted for real use.
+
+## Assumptions
+
+- Interpreted "Settings `brewMethod`" (requirement 2) as the existing generic-settings-store key literally named `"brewMethod"` (labeled "Default Brew Method" in the UI) — confirmed this key already existed and is distinct from the per-`Machine` equipment `brewMethod` column (requirement 3's subject), matching an explicit finding already on record in this doc from an earlier session.
+- Interpreted "clearly available from selected machine context" (requirement 3) as: a Machine is currently selected (or about to be, via the pre-existing default-Machine effect) AND that Machine's own `brewMethod` field is non-null — anything less direct (e.g. inferring from Machine name/brand) was treated as out of scope.
+- Placed the Brew Method form field in Setup (next to Machine/Grinder) rather than in the Serving Context box (next to Drink Type) — the task explicitly allowed either ("near Drink Type or Setup"), and Setup groups it with the equipment context it's actually derived from (Machine's own `brewMethod`), which also visually reinforces its independence from Drink Type in the separate Serving Context box below.
+- Did not add a "custom Brew Method" user-extension mechanism (unlike Drink Type's `customDrinkTypes` settings key) — not requested, and the task explicitly said not to invent values beyond the existing curated list.
+- Did not touch the `/api/shots/selector-options` GET route (used only by Quick Log) — Brew Method isn't exposed there, consistent with the "do not touch Quick Log" boundary.
+
+## Unresolved issues
+
+- The live/shared dev DB has not yet had this migration applied (see Verified above) — it will apply automatically on the next real api-server boot via `ensureRuntimeSchema()`. Until then, any live smoke test against that DB will show shots without a `brewMethod` value.
+- Working tree also contains other unrelated, concurrent, uncommitted changes not part of this task: `docs/implementation/README.md`, `docs/implementation/auth-data-ownership-implementation-plan.md` (new file). Not reviewed or touched.
+
+## Recommended commit command
+
+    git add lib/db/src/schema/shots.ts lib/db/migrations/0010_shot_brew_method.sql lib/db/migrations/0010_shot_brew_method.down.sql artifacts/api-server/src/lib/runtime-schema.ts artifacts/api-server/src/migration.integration.test.ts artifacts/api-server/src/api-contract.test.ts lib/api-spec/openapi.yaml lib/api-zod/src/generated/api.ts lib/api-zod/src/generated/types/shot.ts lib/api-zod/src/generated/types/shotInput.ts lib/api-zod/src/generated/types/shotUpdate.ts lib/api-zod/src/generated/types/shotWriteFields.ts lib/api-client-react/src/generated/api.schemas.ts artifacts/coffee-log/src/lib/selector-options.ts artifacts/coffee-log/src/pages/Settings.tsx artifacts/coffee-log/src/pages/ShotForm.tsx artifacts/coffee-log/src/pages/ShotDetail.tsx docs/csv-data-dictionary.md docs/completed-tasks.md
+    git commit -m "feat(shots): add shot-level Brew Method, independent of Drink Type"
+
+Not run automatically, per task boundaries (no commit, no push). Note the working tree also contains other unrelated, uncommitted, already-documented changes from separate concurrent tasks (`docs/implementation/README.md`, `docs/implementation/auth-data-ownership-implementation-plan.md`) that are not part of this command.

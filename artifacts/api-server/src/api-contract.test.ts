@@ -336,6 +336,88 @@ test("Shot entry separates serving context from automated analysis eligibility",
   }
 });
 
+test("Shot-level Brew Method is durable evidence, independent of Drink Type", async () => {
+  const [schemaSource, migrationSource, migrationRollbackSource, runtimeSchemaSource, openApiSource, selectorSource, settingsSource, shotFormSource, shotDetailSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../../lib/db/src/schema/shots.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/migrations/0010_shot_brew_method.sql", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/migrations/0010_shot_brew_method.down.sql", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./lib/runtime-schema.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/api-spec/openapi.yaml", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/lib/selector-options.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Settings.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  // Schema: a real, separate, nullable column — not reusing drinkType.
+  assert.match(schemaSource, /brewMethod: text\("brew_method"\)/);
+
+  // Migration: additive, and the backfill only ever fills a blank value.
+  assert.match(migrationSource, /ADD COLUMN IF NOT EXISTS brew_method text/);
+  assert.match(migrationSource, /SET brew_method = 'Espresso'/);
+  assert.match(migrationSource, /WHERE brew_method IS NULL/);
+  assert.match(migrationRollbackSource, /DROP COLUMN IF EXISTS brew_method/);
+
+  // This repo's live/deployed DB is actually kept in sync by the additive
+  // runtime guard (ensureRuntimeSchema), not by running migration files
+  // directly — the guard must carry the identical additive+backfill logic.
+  assert.match(runtimeSchemaSource, /ADD COLUMN IF NOT EXISTS brew_method text/);
+  assert.match(runtimeSchemaSource, /SET brew_method = 'Espresso'/);
+  assert.match(runtimeSchemaSource, /WHERE brew_method IS NULL/);
+
+  // OpenAPI: present on both the read shape and the shared write-fields
+  // shape (covers both create and update request bodies).
+  const shotSchemaBlock = openApiSource.slice(openApiSource.indexOf("    Shot:"), openApiSource.indexOf("    ShotList:"));
+  assert.match(shotSchemaBlock, /brewMethod: \{ type: \["string", "null"\]/);
+  const shotWriteFieldsBlock = openApiSource.slice(openApiSource.indexOf("    ShotWriteFields:"), openApiSource.indexOf("    ShotInput:"));
+  assert.match(shotWriteFieldsBlock, /brewMethod: \{ type: \["string", "null"\] \}/);
+
+  // Generated API types actually picked up the spec change.
+  const [shotType, shotWriteFieldsType] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../../lib/api-zod/src/generated/types/shot.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/api-zod/src/generated/types/shotWriteFields.ts", import.meta.url)), "utf8"),
+  ]);
+  assert.match(shotType, /brewMethod\?: string \| null/);
+  assert.match(shotWriteFieldsType, /brewMethod\?: string \| null/);
+
+  // Curated options: must exactly match Settings' existing Brew Method
+  // options — no invented values — and Settings must source from the same
+  // shared list rather than keeping its own separate hardcoded array.
+  assert.match(selectorSource, /brewMethod: \["Espresso", "Pour-over", "AeroPress", "French Press", "Moka Pot"\]/);
+  assert.match(settingsSource, /options: CURATED_SELECTOR_OPTIONS\.brewMethod/);
+  assert.doesNotMatch(settingsSource, /options: \["Espresso", "Pour-over", "AeroPress", "French Press", "Moka Pot"\]/);
+
+  // ShotForm: field exists, is clearable to null on edit, defaults from the
+  // selected Machine's own brewMethod when available (only after the
+  // machines list has finished loading, avoiding a race with the Settings
+  // fallback), else from Settings, and never overwrites a value already set.
+  assert.match(shotFormSource, /brewMethod: z\.string\(\)\.optional\(\)/);
+  assert.match(shotFormSource, /"drinkType", "brewMethod", "finishedShot"/);
+  assert.match(shotFormSource, /brewMethod: existingShot\.brewMethod \?\? undefined/);
+  assert.match(shotFormSource, /if \(isEditing \|\| isLoadingMachines\) return;/);
+  assert.match(shotFormSource, /if \(form\.getValues\("brewMethod"\)\) return;/);
+  assert.match(shotFormSource, /const preferred = relevantMachine\?\.brewMethod \|\| settings\?\.brewMethod;/);
+  assert.match(shotFormSource, /name="brewMethod"/);
+  assert.match(shotFormSource, /<FormLabel>Brew Method<\/FormLabel>/);
+
+  // Independence: changing one must never set the other. The Drink Type
+  // default-fill effect must not reference brewMethod, and the Brew Method
+  // default-fill effect must not reference drinkType.
+  const drinkTypeEffect = shotFormSource.slice(
+    shotFormSource.indexOf('if (isEditing || !settings?.defaultDrinkType) return;') - 20,
+    shotFormSource.indexOf('}, [settings?.defaultDrinkType, isEditing, form]);'),
+  );
+  assert.doesNotMatch(drinkTypeEffect, /brewMethod/);
+  const brewMethodEffect = shotFormSource.slice(
+    shotFormSource.indexOf('if (isEditing || isLoadingMachines) return;') - 20,
+    shotFormSource.indexOf('}, [machines, isLoadingMachines, selectedMachineId, settings?.brewMethod, isEditing, form]);'),
+  );
+  assert.doesNotMatch(brewMethodEffect, /drinkType/);
+
+  // Shot Detail: shown near Extraction Details / Machine, not invented text.
+  assert.match(shotDetailSource, /shot\.brewMethod && <DetailItem label="Brew Method" value=\{shot\.brewMethod\} \/>/);
+});
+
 test("Drink Type is user-extensible: Affogato is curated and custom values merge without dropping saved shots", async () => {
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/lib/selector-options.ts", import.meta.url)),

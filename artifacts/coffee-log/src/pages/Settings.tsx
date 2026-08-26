@@ -65,7 +65,7 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
     icon: SettingsIcon,
     description: "General preferences for units, time format, and display.",
     fields: [
-      { key: "brewMethod", label: "Default Brew Method", type: "select", options: ["Espresso", "Pour-over", "AeroPress", "French Press", "Moka Pot"] },
+      { key: "brewMethod", label: "Default Brew Method", type: "select", options: CURATED_SELECTOR_OPTIONS.brewMethod },
       { key: "defaultDrinkType", label: "Default Drink Type", type: "select", options: CURATED_SELECTOR_OPTIONS.drinkType },
     ],
   },

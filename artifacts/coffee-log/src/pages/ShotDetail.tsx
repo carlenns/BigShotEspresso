@@ -126,6 +126,7 @@ export default function ShotDetail() {
               {shot.initialGrindWeight != null && <DetailItem label="Initial Grinder Output" value={`${shot.initialGrindWeight}g`} />}
               {machine && <DetailItem label="Machine" value={equipmentLabel(machine)} />}
               {grinder && <DetailItem label="Grinder" value={equipmentLabel(grinder)} />}
+              {shot.brewMethod && <DetailItem label="Brew Method" value={shot.brewMethod} />}
               <DetailItem label="Status" value={displaySelectorValue(shot.status) || "-"} />
               <DetailItem label="Include in Analysis" value={shot.includeInAnalysis ? "Yes" : "No"} />
               <DetailItem label="Fault Status" value={<ChipList values={shot.faultStatus} />} />

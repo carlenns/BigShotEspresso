@@ -97,6 +97,11 @@ export interface Shot {
   boundaryShot?: boolean | null;
   /** @nullable */
   drinkType?: string | null;
+  /**
+     * How the beverage was extracted (e.g. Espresso, Pour-over, AeroPress). Independent of Drink Type (what was served).
+     * @nullable
+     */
+  brewMethod?: string | null;
   /** @nullable */
   status?: string | null;
   faultStatus?: StringArray | null;

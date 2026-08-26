@@ -5,6 +5,7 @@ export interface SelectorOptions {
   status: string[];
   faultStatus: string[];
   drinkType: string[];
+  brewMethod: string[];
 }
 
 export const TASTE_ZONE_OPTIONS = ["Center", "Edge", "Outside"];
@@ -94,6 +95,10 @@ export const CURATED_SELECTOR_OPTIONS: SelectorOptions = {
     "Guest Drink",
     "Other",
   ],
+  // How the beverage was extracted — independent of Drink Type (what was
+  // served). Matches Settings' existing "Default Brew Method" options
+  // exactly; Settings.tsx sources its select from this same list.
+  brewMethod: ["Espresso", "Pour-over", "AeroPress", "French Press", "Moka Pot"],
 };
 
 export function curatedOptions<K extends keyof SelectorOptions>(

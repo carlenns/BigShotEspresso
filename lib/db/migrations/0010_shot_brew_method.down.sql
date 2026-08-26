@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE shots
+  DROP COLUMN IF EXISTS brew_method;
+
+COMMIT;

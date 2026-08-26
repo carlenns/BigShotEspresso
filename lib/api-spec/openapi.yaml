@@ -510,6 +510,7 @@ components:
         sourShot: { type: ["boolean", "null"] }
         boundaryShot: { type: ["boolean", "null"] }
         drinkType: { type: ["string", "null"] }
+        brewMethod: { type: ["string", "null"], description: "How the beverage was extracted (e.g. Espresso, Pour-over, AeroPress). Independent of Drink Type (what was served)." }
         status: { type: ["string", "null"] }
         faultStatus:
           oneOf: [{ $ref: "#/components/schemas/StringArray" }, { type: "null" }]
@@ -620,6 +621,7 @@ components:
         sourShot: { type: ["boolean", "null"] }
         boundaryShot: { type: boolean }
         drinkType: { type: ["string", "null"] }
+        brewMethod: { type: ["string", "null"] }
         status: { type: string }
         faultStatus: { $ref: "#/components/schemas/StringArray" }
         shotClassification:

@@ -20,6 +20,14 @@ const bagCloseoutRollbackUrl = new URL(
   "../../../lib/db/migrations/0002_bag_closeout_date.down.sql",
   import.meta.url,
 );
+const brewMethodMigrationUrl = new URL(
+  "../../../lib/db/migrations/0010_shot_brew_method.sql",
+  import.meta.url,
+);
+const brewMethodRollbackUrl = new URL(
+  "../../../lib/db/migrations/0010_shot_brew_method.down.sql",
+  import.meta.url,
+);
 
 async function loadMigration(url: URL): Promise<string> {
   return readFile(fileURLToPath(url), "utf8");
@@ -196,5 +204,58 @@ test("Phase 1 migration refuses conflicting scale_time and flow_time values", as
   `);
 
   await assert.rejects(db.exec(await loadMigration(forwardMigrationUrl)), /conflicting values/);
+  await db.close();
+});
+
+test("Shot brew_method migration backfills only null rows, is repeatable, and rolls back cleanly", async () => {
+  const db = new PGlite();
+  await db.exec(`
+    CREATE TABLE shots (
+      id serial PRIMARY KEY,
+      shot_date text NOT NULL
+    );
+    INSERT INTO shots (shot_date) VALUES ('2026-06-24T03:30:00.000Z');
+  `);
+
+  const forward = await loadMigration(brewMethodMigrationUrl);
+  const rollback = await loadMigration(brewMethodRollbackUrl);
+
+  // First application: column added, the one existing (previously null) row
+  // backfilled to Espresso.
+  await db.exec(forward);
+  const afterFirstRun = await db.query<{ id: number; brew_method: string | null }>(`
+    SELECT id, brew_method FROM shots ORDER BY id
+  `);
+  assert.deepEqual(afterFirstRun.rows, [{ id: 1, brew_method: "Espresso" }]);
+
+  // A row with an explicit, non-Espresso brew method must never be
+  // overwritten by a later (or repeated) application of this migration.
+  const inserted = await db.query<{ id: number }>(`
+    INSERT INTO shots (shot_date, brew_method)
+    VALUES ('2026-06-25T03:30:00.000Z', 'Pour-over')
+    RETURNING id
+  `);
+  const pourOverId = inserted.rows[0]!.id;
+
+  // Repeatable: applying forward again must be a no-op for both rows.
+  await db.exec(forward);
+  const afterSecondRun = await db.query<{ id: number; brew_method: string | null }>(`
+    SELECT id, brew_method FROM shots ORDER BY id
+  `);
+  assert.deepEqual(afterSecondRun.rows, [
+    { id: 1, brew_method: "Espresso" },
+    { id: pourOverId, brew_method: "Pour-over" },
+  ]);
+
+  await db.exec(rollback);
+  const columnAfterRollback = await db.query<{ column_name: string }>(`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'shots' AND column_name = 'brew_method'
+  `);
+  assert.equal(columnAfterRollback.rows.length, 0);
+
+  // Rollback is itself idempotent (DROP COLUMN IF EXISTS).
+  await db.exec(rollback);
+
   await db.close();
 });

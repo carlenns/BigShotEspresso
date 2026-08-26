@@ -79,6 +79,8 @@ export interface ShotUpdate {
   boundaryShot?: boolean;
   /** @nullable */
   drinkType?: string | null;
+  /** @nullable */
+  brewMethod?: string | null;
   status?: string;
   faultStatus?: StringArray;
   shotClassification?: StringArray | null;

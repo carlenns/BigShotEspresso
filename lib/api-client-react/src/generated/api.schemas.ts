@@ -101,6 +101,11 @@ export interface Shot {
   boundaryShot?: boolean | null;
   /** @nullable */
   drinkType?: string | null;
+  /**
+     * How the beverage was extracted (e.g. Espresso, Pour-over, AeroPress). Independent of Drink Type (what was served).
+     * @nullable
+     */
+  brewMethod?: string | null;
   /** @nullable */
   status?: string | null;
   faultStatus?: StringArray | null;
@@ -288,6 +293,8 @@ export interface ShotWriteFields {
   boundaryShot?: boolean;
   /** @nullable */
   drinkType?: string | null;
+  /** @nullable */
+  brewMethod?: string | null;
   status?: string;
   faultStatus?: StringArray;
   shotClassification?: StringArray | null;
@@ -383,6 +390,8 @@ export interface ShotInput {
   boundaryShot?: boolean;
   /** @nullable */
   drinkType?: string | null;
+  /** @nullable */
+  brewMethod?: string | null;
   status?: string;
   faultStatus?: StringArray;
   shotClassification?: StringArray | null;
@@ -478,6 +487,8 @@ export interface ShotUpdate {
   boundaryShot?: boolean;
   /** @nullable */
   drinkType?: string | null;
+  /** @nullable */
+  brewMethod?: string | null;
   status?: string;
   faultStatus?: StringArray;
   shotClassification?: StringArray | null;

@@ -39,7 +39,7 @@ interface Bag {
 interface TasteSelector { id: number; name: string; category: string; }
 
 interface Grinder { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; isDefault: boolean }
-interface Machine { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; isDefault: boolean }
+interface Machine { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; brewMethod: string | null; isDefault: boolean }
 
 const NO_TASTE_SELECTORS: TasteSelector[] = [];
 
@@ -120,6 +120,7 @@ const formSchema = z.object({
   rated: z.boolean().optional(),
   isForOthers: z.boolean().default(false),
   drinkType: z.string().optional(),
+  brewMethod: z.string().optional(),
   finishedShot: z.boolean().optional(),
   // Shot Evaluation
   status: z.string().optional(),
@@ -153,7 +154,7 @@ type ShotMutationResult = { id?: number };
 const NULLABLE_ON_EDIT_FIELDS: (keyof FormValues)[] = [
   "machineId", "grinderId", "grindWaste", "topUpGrind", "timeAdj",
   "tasteZone", "shotClassification", "beanAchievement", "expressionStyle",
-  "sensoryNotes", "notes", "drinkType", "finishedShot",
+  "sensoryNotes", "notes", "drinkType", "brewMethod", "finishedShot",
   "isForOthers", "rated", "sourShot", "signatureShot",
 ];
 
@@ -359,7 +360,7 @@ export default function ShotForm() {
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
   const { data: grinders = [] } = useQuery({ queryKey: ["equipment", "grinders"], queryFn: fetchGrinders });
-  const { data: machines = [] } = useQuery({ queryKey: ["equipment", "machines"], queryFn: fetchMachines });
+  const { data: machines = [], isLoading: isLoadingMachines } = useQuery({ queryKey: ["equipment", "machines"], queryFn: fetchMachines });
   const { data: activeBagIntelligence } = useQuery({ queryKey: ["intelligence"], queryFn: fetchActiveBagIntelligence });
   const { data: tasteSelectors = [] } = useQuery({ queryKey: ["taste-selectors"], queryFn: fetchTasteSelectors });
   const { data: existingTasteSelectors = NO_TASTE_SELECTORS } = useQuery({
@@ -385,6 +386,7 @@ export default function ShotForm() {
       rated: undefined,
       isForOthers: false,
       drinkType: undefined,
+      brewMethod: undefined,
       finishedShot: undefined,
       isReference: false,
       signatureShot: false,
@@ -404,12 +406,14 @@ export default function ShotForm() {
   const beanAchievementOptions = curatedOptions("beanAchievement", form.watch("beanAchievement")?.slice(0, 1) ?? []);
   const shotClassificationOptions = curatedOptions("shotClassification", form.watch("shotClassification")?.slice(0, 1) ?? []);
   const drinkTypeOptions = drinkTypeOptionsFromSettings(settings, form.watch("drinkType"));
+  const brewMethodOptions = curatedScalarOptions("brewMethod", form.watch("brewMethod"));
   const tasteZoneOptions = form.watch("tasteZone") && !TASTE_ZONE_OPTIONS.includes(form.watch("tasteZone")!)
     ? [...TASTE_ZONE_OPTIONS, form.watch("tasteZone")!]
     : TASTE_ZONE_OPTIONS;
   const analysisEligibility = describeAnalysisEligibility(form.watch("status"), form.watch("faultStatus") ?? []);
 
   const selectedBagId = form.watch("bagId");
+  const selectedMachineId = form.watch("machineId");
 
   // Flag selection can suggest a Shot Status / Fault Status, but must never
   // clobber a value the user already entered — only fill in when blank.
@@ -460,6 +464,7 @@ export default function ShotForm() {
       rated: existingShot.rated ?? true,
       isForOthers: existingShot.isForOthers ?? false,
       drinkType: existingShot.drinkType ?? undefined,
+      brewMethod: existingShot.brewMethod ?? undefined,
       finishedShot: existingShot.finishedShot ?? undefined,
       status: savedStatus,
       faultStatus: existingShot.faultStatus ?? [],
@@ -504,6 +509,26 @@ export default function ShotForm() {
     const defaultMachine = machines.find((m) => m.isDefault);
     if (defaultMachine) form.setValue("machineId", defaultMachine.id);
   }, [machines, isEditing, form]);
+
+  // Brew Method (how it was extracted) is independent of Drink Type (what
+  // was served) — this effect never touches drinkType, and the drinkType
+  // effect above never touches this field. Prefer the selected Machine's own
+  // brewMethod when one is clearly available; otherwise fall back to the
+  // Settings-level default. Waits for the machines list to finish loading
+  // (rather than reading `machines` while it's still `[]`) so a default
+  // Machine with its own brewMethod isn't raced by the Settings fallback —
+  // and, like every other flag/status suggestion in this form, only fills a
+  // blank field and never overwrites a value already present.
+  useEffect(() => {
+    if (isEditing || isLoadingMachines) return;
+    if (form.getValues("brewMethod")) return;
+    const currentMachineId = form.getValues("machineId");
+    const relevantMachine = currentMachineId != null
+      ? machines.find((m) => m.id === currentMachineId)
+      : machines.find((m) => m.isDefault);
+    const preferred = relevantMachine?.brewMethod || settings?.brewMethod;
+    if (preferred) form.setValue("brewMethod", preferred);
+  }, [machines, isLoadingMachines, selectedMachineId, settings?.brewMethod, isEditing, form]);
 
   useEffect(() => {
     if (isEditing) return;
@@ -693,8 +718,8 @@ export default function ShotForm() {
                 })()}
               </div>
 
-              {/* Machine / Grinder selectors */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Machine / Grinder / Brew Method selectors */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <FormField control={form.control} name="machineId" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Machine <span className="text-muted-foreground text-xs font-normal">optional</span></FormLabel>
@@ -714,6 +739,21 @@ export default function ShotForm() {
                     <FormControl>
                       <EquipmentSelect
                         options={grinders.map((g) => ({ id: g.id, label: equipmentLabel(g) }))}
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                {/* How the beverage was extracted — independent of Drink Type
+                    (what was served) below in Serving Context. */}
+                <FormField control={form.control} name="brewMethod" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Brew Method</FormLabel>
+                    <FormControl>
+                      <ScalarSelect
+                        options={brewMethodOptions}
                         value={field.value}
                         onChange={field.onChange}
                       />
