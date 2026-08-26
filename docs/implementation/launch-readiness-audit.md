@@ -33,7 +33,9 @@ This was a pattern repeated in essentially every implementation session's own ha
 
 The fully interactive browser click-through (open the app, click through Change Bag with a bad Custom-phase entry, watch the list update live) was attempted but blocked by a Chrome-extension tooling fault in that environment, not an app bug — worked around with an equivalent data-layer reproduction, documented as such rather than silently skipped.
 
-**Still open:** no one has yet clicked through the *complete* lifecycle in a real browser in one pass — create bean → bag → dial-in → log shot → edit shot → Shot Detail → close bag → Change Bag → Start Hopper Phase → Dashboard. The hopper-API and partial-failure pieces are now real-data-verified; the full UI walkthrough is not. `docs/START_HERE.md`'s *"Manual UI shot-entry smoke test passes"* gate remains open.
+**Update 2026-08-26:** the Chrome-extension tooling fault above is no longer blocking — two further sessions successfully used live Chrome browser automation. One opened Change Bag with a real active bag and screenshot-confirmed the exact rendered UI (Bag Number suggestion, Roast Date labeling). The other did a full interactive round trip through `/shots/new`: selected two Expression Style chips live in the browser, saved a real shot, confirmed the persisted multi-value array via the API, confirmed the edit view reloaded both chips pre-selected, then deleted the test shot — the most complete single-workflow live verification this project has had.
+
+**Still open:** no one has yet clicked through the *complete* lifecycle in one continuous real-browser pass — create bean → bag → dial-in → log shot → edit shot → Shot Detail → close bag → Change Bag → Start Hopper Phase → Dashboard. What exists now is real interactive verification of several individual pieces (hopper API, Change Bag partial-failure, Change Bag UI rendering, Expression Style end-to-end), not one continuous session covering all of them in order. `docs/START_HERE.md`'s *"Manual UI shot-entry smoke test passes"* gate remains open.
 
 ### 3. Render deployment has never been smoke-tested
 
@@ -88,27 +90,33 @@ Everything in Tiers 1–2, plus:
 
 **Confirmed, per this task's item 6:** auth/accounts/data ownership remains the largest single blocker for paid public launch. Nothing in this reconciliation changes that — it's the one item in this whole audit that hasn't moved at all.
 
-## Top 5 remaining launch blockers (ranked)
+## Top 5 remaining launch blockers (ranked, updated 2026-08-26)
 
-1. Auth/accounts/per-user data ownership (Critical Blocker #1) — blocks Tier 3 entirely, and a lighter version of it blocks Tier 2.
-2. Full browser UI lifecycle smoke test + Render deployment smoke test (remainder of Critical Blockers #2 and #3) — blocks declaring Tier 1 done.
-3. Finish the in-progress server-side `Include in Analysis` enforcement — small, close, but a real data-integrity gap while it sits uncommitted.
-4. Bags page action-path clarity (High-Priority Fix #5) and the Quick Log hard-block (#6) — the two clearest "reads as broken/confusing to a stranger" items standing between Tier 1 and Tier 2.
+1. Auth/accounts/per-user data ownership (Critical Blocker #1) — blocks Tier 3 entirely, and a lighter version of it blocks Tier 2. ADR-0009 and `docs/implementation/auth-data-ownership-implementation-plan.md` now exist (full design), but zero implementation has started, correctly, per boundary.
+2. Full *continuous* browser UI lifecycle smoke test + Render deployment smoke test — several individual pieces now have real interactive-browser verification (see Critical Blocker #2's 2026-08-26 update), but no one has yet clicked through the whole lifecycle in one pass, and Render itself has never been touched.
+3. Grinder Setting precision still hardcoded (High-Priority Fix #8) — the one remaining unresolved High-Priority Fix; everything else in that section (#5, #6, #7) resolved as of this reconciliation pass.
+4. 15 commits sitting unpushed to `origin/main` as of this reconciliation — not a code defect, but a real release-readiness risk: this much verified work exists only locally. Recommend a deliberate push-and-tag decision soon, independent of any further feature work.
 5. Billing enforcement + security-hardening-checklist review for public access — the two concrete Tier-3 items beyond auth itself that haven't been assessed yet.
 
 ## High-priority fixes
 
-### 5. Bags page has two overlapping, unexplained paths to the same outcome
+### 5. Bags page has two overlapping, unexplained paths to the same outcome — **RESOLVED 2026-08-25**
 
 Verified in the current `Bags.tsx`: an active bag row shows a "Start Phase" button and a "Close" button individually, while the page header also has a "Change Bag" button that does *both* (create the new bag, optionally close the old one, optionally start its hopper phase) in one guided dialog. Nothing in the UI explains when to use which. A first user closing a bag one way and then finding a second, larger button that seems to do the same thing is a real point of confusion, not a hypothetical one.
 
-### 6. Quick Log is unlinked but not actually blocked
+**Resolution:** commit `be8afe7` added explanatory copy to the Bag Lifecycle Flow card ("The 'Change Bag' button above runs this whole flow in one guided dialog; each active bag's own Close and Start Phase buttons below do just one step at a time") and a matching note in the multi-active-bag warning. This status marker was itself stale until this reconciliation pass caught it — the fix landed same-day but the audit wasn't updated at the time.
+
+### 6. Quick Log is unlinked but not actually blocked — **RESOLVED 2026-08-25**
 
 `App.tsx` still registers `<Route path="/shots/quick" component={QuickLog} />`. Nothing in navigation links to it (confirmed — no `QuickLog`/`/shots/quick` reference anywhere in `Shell.tsx`), but the route itself is fully live. A stray bookmark, an old shared link, or a guessed URL lands a user in a form the project has explicitly, repeatedly declared shelved and not maintained for launch (`docs/implementation/release-candidate-checklist.md` Gate 0.5). Unlinking is not the same as blocking.
 
-### 7. Dashboard's Active Hopper Status panel will show as partially blank for the exact workflow it was built to support
+**Resolution:** commit `86f7086 fix(routing): hard-block /shots/quick, redirect to /shots/new`. Same stale-marker note as #5 applies.
+
+### 7. Dashboard's Active Hopper Status panel will show as partially blank for the exact workflow it was built to support — **RESOLVED 2026-08-25**
 
 `hopperMass`/`hopperPercent` are imported/computed-elsewhere values (per this project's own repeated, standing rule: "do not calculate hopper percentage locally until the formula is approved"), never written by the live app's `POST /api/hoppers` path. A user who starts a hopper phase through the new, polished "Start Hopper Phase" or "Change Bag" dialogs will see "Starting beans" populated correctly next to a blank "Hopper mass"/"Hopper %" — which reads as broken, not as "not yet tracked." A one-line "not tracked yet for phases started in-app" label would resolve the confusion without inventing any formula.
+
+**Resolution:** commit `beb0282 fix(dashboard): explain untracked hopper phase stats` (later compacted further in `a85b972`). Same stale-marker note as #5 applies.
 
 ### 8. Grinder Setting precision is still hardcoded, independent of which grinder is selected
 
