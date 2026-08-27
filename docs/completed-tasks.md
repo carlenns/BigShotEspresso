@@ -2,6 +2,32 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Log Shot Bag auto-fill run-once guard — 2026-08-27
+
+### Completed
+
+- The "Auto-fill from bag selection" effect in `ShotForm.tsx` now applies a bag's saved bean / grind setting / grind time / dose / yield / temp **once per distinct bag selection**, tracked by an `appliedBagDefaultsFor` ref.
+- Before: the effect depended on `[selectedBagId, bags]` and re-ran on every background refetch of `/api/bags` (react-query's default `refetchOnWindowFocus`), unconditionally re-writing those seven fields back to bag defaults and discarding any edits the user had made after selecting the bag.
+- The sole-active-bag auto-select landed in `8276971` made this the common path on `/shots/new` (the field is now pre-selected rather than blank), so a user who tweaked grind/dose/yield/temp and then changed window focus would silently lose those edits.
+- Switching to a different bag still re-applies that bag's values (the id changes, so the ref guard passes) — deliberate bag switching is unchanged.
+- Edit mode is still fully guarded by the existing `if (isEditing) return`.
+- Added regression assertions to `artifacts/api-server/src/api-contract.test.ts` under the "active-bag-first entry" test.
+
+### Verified
+
+- `CI=true pnpm run typecheck`
+- `CI=true pnpm --filter @workspace/api-server test`
+- `CI=true pnpm run build:render`
+
+### Assumptions
+
+- No schema or API contract change. Bag identity is `bag.id` (number) as already used throughout the form.
+- Re-clicking the already-selected bag no longer re-resets its defaults; this was an undocumented side effect, not a designed "reset" affordance.
+
+### Unresolved
+
+- None from this slice. Broader consideration: the app-wide `new QueryClient()` uses library defaults (`staleTime: 0`, `refetchOnWindowFocus: true`); other effects keyed on query data could have similar re-run sensitivity, but each is already guarded with `form.getValues(...)` blank checks. No change made here.
+
 ## Log Shot Bag selector default fix — 2026-08-27
 
 ### Completed

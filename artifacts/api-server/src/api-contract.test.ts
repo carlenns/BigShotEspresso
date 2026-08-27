@@ -1365,6 +1365,11 @@ test("Shot form supports editing, active-bag-first entry, and Taste Zone selecti
   assert.match(formSource, /if \(active\.length === 1\) form\.setValue\("bagId", active\[0\]\.id\);/);
   assert.match(formSource, /!isEditing && !activeBagId && activeBags\.length > 1 &&/);
   assert.match(formSource, /Multiple bags are active/);
+
+  // Bag auto-fill applies once per distinct selection so a background bags
+  // refetch can't re-clobber edits made after the bag was chosen.
+  assert.match(formSource, /const appliedBagDefaultsFor = useRef<number \| null>\(null\)/);
+  assert.match(formSource, /if \(appliedBagDefaultsFor\.current === bagId\) return;/);
   assert.match(formSource, /fetchShotTasteSelectors/);
   assert.match(formSource, /const NO_TASTE_SELECTORS: TasteSelector\[\] = \[\]/);
   assert.match(formSource, /const savedStatus = existingShot\.status \?\? ""/);

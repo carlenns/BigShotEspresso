@@ -600,12 +600,23 @@ export default function ShotForm() {
     setSelectedTastes(existingTasteSelectors.map((selector) => selector.id));
   }, [existingTasteSelectors, isEditing]);
 
-  // Auto-fill from bag selection
+  // Auto-fill from bag selection. Applies a bag's saved bean / grind / dose /
+  // yield / temp once per distinct selection. The bags list refetches in the
+  // background (react-query's default refetch-on-focus), producing a new array
+  // reference each time; without the run-once ref this effect would re-fire on
+  // every refetch and clobber edits the user made after picking the bag. Now
+  // that the sole active bag auto-selects on a new shot, that clobber path is
+  // the common case rather than an edge. Switching to a different bag changes
+  // the id and re-applies that bag's values, which is intended.
+  const appliedBagDefaultsFor = useRef<number | null>(null);
   useEffect(() => {
     if (isEditing) return;
     if (!selectedBagId) return;
-    const bag = bags.find((b) => b.id === Number(selectedBagId));
+    const bagId = Number(selectedBagId);
+    if (appliedBagDefaultsFor.current === bagId) return;
+    const bag = bags.find((b) => b.id === bagId);
     if (!bag) return;
+    appliedBagDefaultsFor.current = bagId;
     if (bag.beanName) form.setValue("bean", bag.beanName);
     if (bag.bagNumber) form.setValue("bag", bag.bagNumber);
     if (bag.currentGrindSetting != null) form.setValue("grindSetting", bag.currentGrindSetting);
@@ -613,7 +624,7 @@ export default function ShotForm() {
     if (bag.defaultDose != null) form.setValue("dose", bag.defaultDose);
     if (bag.defaultYield != null) form.setValue("yield", bag.defaultYield);
     if (bag.defaultTemp != null) form.setValue("temperature", bag.defaultTemp);
-  }, [selectedBagId, bags]);
+  }, [selectedBagId, bags, isEditing, form]);
 
   const toggleTaste = (id: number) => setSelectedTastes((prev) => prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]);
 
