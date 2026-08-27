@@ -2,6 +2,53 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Log Shot pre-fill analytics review + equipment-default consolidation plan — 2026-08-27
+
+Review / docs only. No app code, schema, API, migration, or test changed. Did not touch `ShotForm.tsx` or `api-contract.test.ts` (Agent 1's this cycle) or any `.tsx` page.
+
+### Part 1 — analytics-impact review of Log Shot default pre-fill
+
+New section at END of `docs/implementation/launch-readiness-audit.md`:
+**"Log Shot default pre-fill — analytics impact review — 2026-08-27"**.
+
+Reasoned from `ShotForm.tsx` (`a0fc7ba`) + `routes/dashboard.ts`. Result:
+- **Grind drift** — not distorted (carried-forward `grindSetting` on unchanged runs correctly reads as zero drift; `changesCount` keys off real diffs).
+- **Dose-correction** — not distorted (`calculateDoseCorrection` returns `{}` without a real user-entered `initialGrindWeight`).
+- **Pour-timing windows** — confirmed correct: `pourDelay` / `pourTime` / `flowTime` staying suggestion-only means the `v > 0` filter feeds `robustRange` only genuine measurements. Pre-filling them would fabricate spread + confidence.
+- **Flag for Carl:** `yield` (and `dose`) are hard pre-filled defaults, not suggestion-only. Rated shots logged without adjusting `yield` collapse `bestYieldRange` / `timingWindows.yieldRange` to a single point and drive `confidence` to "High" purely by repeating the default — the center is right but the spread/confidence are fabricated, which conflicts with the "no false certainty" principle. Decision needed: make measured outputs suggestion-only, or accept current behaviour. Also: `beanMassConsumed` assumes the default dose for un-edited shots. No code proposed.
+- **Decision (2026-08-27):** Carl chose full WYSIWYG pre-fill including `yield`, plus a top-of-form explanatory note; the yield-window/confidence self-reinforcement is an accepted logging-discipline tradeoff, not a blocker. Future mitigation (discount exact-repeat values in the confidence calc) noted as out of scope. Recorded inline in the audit section.
+- **Follow-up (2026-08-27):** the Standing-Rule Enforcement Audit's two client-only GAPs (Sour ⇏ Reference/Signature; hopper phase allow-list) are now marked **CLOSED (commit pending)** in that section — enforced in `normalizeShotInput` (`routes/shots.ts`) and `invalidHopperPhase` (`routes/hopper.ts`), interactive paths only, CSV import unaffected.
+
+### Part 2 — Option A consolidation plan
+
+New file `docs/implementation/equipment-default-consolidation-plan.md` (6 phases: 0 backfill, 1 Dashboard reads `isDefault` + Settings drops machine/grinder rows, 2 decaf/pour-over product decision, 3 fix accessory POST `isDefault` per-type, 4 basket/puck-screen onto accessory `isDefault`, 5 optional delete of orphaned keys). Covers deprecated keys, best-effort label-match backfill (never guesses — unmatched reported), exact post-change `routes/dashboard.ts` L507–511 behaviour, `Settings.tsx` UI changes, per-phase rollback, and test surface. **Pending Carl's approval — not authorization to implement.**
+
+## Server-side rule enforcement: sour exclusivity, hopper-phase allow-list, dead puck-screen key — 2026-08-27
+
+### What changed
+
+Closed the two server-side GAPs from the Standing-Rule Enforcement Audit (`docs/implementation/launch-readiness-audit.md`) plus one dead read. Server code only; no schema, migration, or new API fields.
+
+1. **Sour exclusivity — `artifacts/api-server/src/routes/shots.ts`, `normalizeShotInput`.** When `sourShot === true`, the server now forces `isReference = false` and `signatureShot = false`. Added after the existing signature⇒reference coupling so Sour wins even if a stale/hand-rolled client sends conflicting flags. `normalizeShotInput` runs on both `POST /shots` and `PATCH /shots/:id` (confirmed), so create and update are both covered. Include-in-analysis is untouched — a Sour shot can still be analytically valid, and `computeIncludeInAnalysis` remains the only rule for that.
+2. **Hopper phase allow-list — `artifacts/api-server/src/routes/hopper.ts`.** `body.phase` was taken as an unvalidated string on `POST /hoppers` and `PATCH /hoppers/:id`. Added a module-level `HOPPER_PHASES` constant (`Phase 1, Phase 2, Phase 3, End of Bag, Single Bag Phase, Custom` — mirrors `HOPPER_PHASE_OPTIONS` in `Bags.tsx` exactly, no invented values) and an `invalidHopperPhase()` guard that returns `400 { error: "phase must be one of: …" }`. `null`/`undefined` still allowed (early return), so the PATCH "clear the field" path is preserved.
+3. **Dead `settings.usePuckScreen` — `artifacts/api-server/src/routes/dashboard.ts`:510.** See findings below. Rewired the Dashboard `usePuckScreen` flag to `Boolean(settings.defaultPuckScreen?.trim())` and removed the dead `settings.usePuckScreen` read.
+
+### Findings on #3
+
+- `usePuckScreen` was a **global Settings key that was removed** from the Settings UI (it is in the `api-contract.test.ts` removed-keys list). Nothing in the current app writes it; the settings PUT route has no allow-list, and a legacy row could still exist in the `settings` table, so it is not *provably* always undefined, but it is functionally dead — no user can set it.
+- There is **no per-bag puck-screen source**: `lib/db/src/schema/bags.ts` has no puck/screen column, and the only producer of `usePuckScreen` was this one line reading the global key. (The `api-contract.test.ts` comment referring to a "per-bag usePuckScreen (Dashboard.tsx)" is aspirational — no such field exists.)
+- Removing the response field outright would break `Dashboard.tsx` (`bag.usePuckScreen` type + two usages), which is a client file outside this cycle's scope. And the dead flag was actively **suppressing a live feature**: `Default Puck Screen` is a real, still-written setting feeding `puckScreen`, but the Dashboard chip only renders when `bag.usePuckScreen` is true, which it never was.
+- **Resolution: wired, not removed.** `usePuckScreen` now reflects whether a Default Puck Screen is configured, which unblocks the existing Dashboard display with no client change.
+
+### Tests
+
+New block at EOF of `artifacts/api-server/src/api-contract.test.ts`: **"Standing-rule audit GAPs closed: sour-exclusivity, hopper-phase 400, dead puck-screen key"**. Also updated the adjacent existing block (renamed to "Standing rules: server enforces include-in-analysis + signature/reference + sour-exclusivity + hopper-phase allow-list") — its Rule 3 / Rule 5 assertions were negative GAP guards that its own comments said to flip once the gaps closed.
+
+### Follow-ups (not done here)
+
+- The audit findings in `docs/implementation/launch-readiness-audit.md` should be moved from GAP to "enforced" by whoever owns docs this cycle.
+- `shots.grinderId` / `shots.machineId` still have no `onDelete` rule (noted previously).
+
 ## Equipment default source-of-truth decision + standing-rule enforcement audit — 2026-08-27
 
 Review/docs only. No app code, schema, API, or migration changed.

@@ -1713,7 +1713,7 @@ function setOptionalEnv(key: string, value: string | undefined) {
   else process.env[key] = value;
 }
 
-test("Standing rules: server enforces include-in-analysis + signature/reference; sour + hopper-phase are UI-only", async () => {
+test("Standing rules: server enforces include-in-analysis + signature/reference + sour-exclusivity + hopper-phase allow-list", async () => {
   const [shotsRoute, eligibilityLib, hopperRoute, apiZod, bagsPage] = await Promise.all([
     readFile(fileURLToPath(new URL("./routes/shots.ts", import.meta.url)), "utf8"),
     readFile(fileURLToPath(new URL("./lib/shot-analysis-eligibility.ts", import.meta.url)), "utf8"),
@@ -1734,21 +1734,69 @@ test("Standing rules: server enforces include-in-analysis + signature/reference;
   assert.match(shotsRoute, /if \(normalized\.signatureShot === true\) normalized\.isReference = true;/);
   assert.match(shotsRoute, /if \(normalized\.isReference === false\) normalized\.signatureShot = false;/);
 
-  // Rule 3 — GAP (documented in launch-readiness-audit.md "Standing-Rule
-  // Enforcement Audit — 2026-08-27"): the Sour -/-> Reference/Signature
-  // exclusion is enforced only in ShotForm.tsx, not on the server. If this
-  // assertion starts failing because normalizeShotInput learned about
-  // sourShot, that is good — update the audit finding to "enforced".
+  // Rule 3 — Sour -/-> Reference/Signature is now enforced server-side in
+  // normalizeShotInput (was a GAP; see launch-readiness-audit.md "Standing-Rule
+  // Enforcement Audit"), after the signature/reference coupling so Sour wins.
   const normalizeFn = shotsRoute.slice(
     shotsRoute.indexOf("function normalizeShotInput"),
     shotsRoute.indexOf("function validateRatings"),
   );
-  assert.doesNotMatch(normalizeFn, /sourShot/);
+  assert.match(normalizeFn, /if \(normalized\.sourShot === true\) \{/);
+  assert.match(normalizeFn, /normalized\.isReference = false;/);
+  assert.match(normalizeFn, /normalized\.signatureShot = false;/);
 
-  // Rule 5 — GAP (same audit section): hopper phase labels are constrained
-  // only by the Bags.tsx dropdown constant; the API contract accepts any
-  // string and the route applies no allow-list.
+  // Rule 5 — hopper phase is now allow-listed on the route (was a GAP). The
+  // list must still mirror the Bags.tsx dropdown constant exactly.
   assert.match(bagsPage, /HOPPER_PHASE_OPTIONS = \["Phase 1", "Phase 2", "Phase 3", "End of Bag", "Single Bag Phase", "Custom"\]/);
   assert.match(apiZod, /"phase": zod\.string\(\)\.nullish\(\)/);
-  assert.doesNotMatch(hopperRoute, /"Phase 1",\s*"Phase 2"/);
+  assert.match(hopperRoute, /HOPPER_PHASES = \["Phase 1", "Phase 2", "Phase 3", "End of Bag", "Single Bag Phase", "Custom"\]/);
+  assert.match(hopperRoute, /function invalidHopperPhase\(/);
+});
+
+test("Standing-rule audit GAPs closed: sour-exclusivity, hopper-phase 400, dead puck-screen key", async () => {
+  const [shotsRoute, hopperRoute, dashboardRoute, auditDoc] = await Promise.all([
+    readFile(fileURLToPath(new URL("./routes/shots.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/hopper.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/dashboard.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../docs/implementation/launch-readiness-audit.md", import.meta.url)), "utf8"),
+  ]);
+
+  // GAP 1 — Sour exclusivity lives inside normalizeShotInput, which both the
+  // POST and PATCH handlers run, so it applies to create and update alike.
+  const normalizeFn = shotsRoute.slice(
+    shotsRoute.indexOf("function normalizeShotInput"),
+    shotsRoute.indexOf("function validateRatings"),
+  );
+  assert.match(normalizeFn, /normalized\.sourShot === true/);
+  assert.match(normalizeFn, /normalized\.isReference = false;\s*\n\s*normalized\.signatureShot = false;/);
+  // It must come AFTER the signature/reference coupling so Sour wins.
+  assert.ok(
+    normalizeFn.indexOf("normalized.sourShot === true")
+      > normalizeFn.indexOf("normalized.isReference === false"),
+    "sour exclusivity must run after the signature/reference coupling",
+  );
+  // Sour must NOT touch include-in-analysis — that stays computed elsewhere.
+  assert.doesNotMatch(normalizeFn, /includeInAnalysis/);
+  // normalizeShotInput is applied on both create and update.
+  assert.match(shotsRoute, /const data = normalizeShotInput\(\{ \.\.\.parsedData, shotDate: parsed\.data\.shotDate \}\)/);
+  assert.match(shotsRoute, /const data = normalizeShotInput\(parsedData\)/);
+
+  // GAP 2 — hopper phase allow-list returns a 400 with a clear message on
+  // both create and update; null/undefined is still allowed (early return).
+  assert.match(hopperRoute, /if \(phase == null\) return null;/);
+  assert.match(hopperRoute, /phase must be one of: \$\{HOPPER_PHASES\.join\(", "\)\}/);
+  assert.equal(
+    (hopperRoute.match(/const phaseError = invalidHopperPhase\(body\.phase\);/g) ?? []).length,
+    2,
+    "phase is validated in both POST /hoppers and PATCH /hoppers/:id",
+  );
+  assert.match(hopperRoute, /const phaseError = invalidHopperPhase\(body\.phase\);\s*\n\s*if \(phaseError\) \{\s*\n\s*res\.status\(400\)\.json\(\{ error: phaseError \}\);/);
+
+  // GAP 3 — the removed global Settings key `usePuckScreen` is no longer read;
+  // the Dashboard flag is derived from the live Default Puck Screen setting.
+  assert.doesNotMatch(dashboardRoute, /settings\.usePuckScreen/);
+  assert.match(dashboardRoute, /usePuckScreen: Boolean\(settings\.defaultPuckScreen && settings\.defaultPuckScreen\.trim\(\)\)/);
+
+  // The audit doc records these three as closed.
+  assert.match(auditDoc, /Standing-Rule Enforcement Audit/);
 });

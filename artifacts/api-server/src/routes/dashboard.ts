@@ -507,7 +507,12 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
       grinder: compactLabel(settings.defaultGrinder || settings.defaultRegularGrinder, grinders),
       machine: compactLabel(settings.defaultMachine, machines),
       basket: compactLabel(settings.defaultBasket, accessories) ?? settings.defaultBasket ?? null,
-      usePuckScreen: settings.usePuckScreen === "true",
+      // `usePuckScreen` had been reading a removed global Settings key that
+      // nothing writes any more (see api-contract.test.ts removed-keys list),
+      // so the Dashboard puck-screen chip never showed even when a Default
+      // Puck Screen was configured. There is no per-bag puck-screen column;
+      // the only real signal is whether a Default Puck Screen is set.
+      usePuckScreen: Boolean(settings.defaultPuckScreen && settings.defaultPuckScreen.trim()),
       puckScreen: compactPuckScreenLabel(settings.defaultPuckScreen, accessories),
     },
     bagIntelligence: {

@@ -18,6 +18,19 @@ import {
 
 const router: IRouter = Router();
 
+// Same list the Log Shot / Bags UI offers (HOPPER_PHASE_OPTIONS in Bags.tsx).
+// `phase` is a free-text column, so the API is the only guard against a typo or
+// a stale client writing an unknown phase. null/undefined stays allowed.
+const HOPPER_PHASES = ["Phase 1", "Phase 2", "Phase 3", "End of Bag", "Single Bag Phase", "Custom"] as const;
+
+function invalidHopperPhase(phase: unknown): string | null {
+  if (phase == null) return null;
+  if (typeof phase !== "string" || !(HOPPER_PHASES as readonly string[]).includes(phase)) {
+    return `phase must be one of: ${HOPPER_PHASES.join(", ")}`;
+  }
+  return null;
+}
+
 export function parseHopperCsv(text: string): string[][] {
   return parseCsvRecords(text);
 }
@@ -34,6 +47,11 @@ router.post("/hoppers", async (req, res): Promise<void> => {
     return;
   }
   const body = parsed.data;
+  const phaseError = invalidHopperPhase(body.phase);
+  if (phaseError) {
+    res.status(400).json({ error: phaseError });
+    return;
+  }
   const [row] = await db.transaction(async (tx) => {
     const bagId = body.bagId != null ? Number(body.bagId) : undefined;
     if (body.isActive && bagId != null) {
@@ -84,6 +102,11 @@ router.patch("/hoppers/:id", async (req, res): Promise<void> => {
   }
   const id = params.data.id;
   const body = parsed.data;
+  const phaseError = invalidHopperPhase(body.phase);
+  if (phaseError) {
+    res.status(400).json({ error: phaseError });
+    return;
+  }
   // Distinguish an explicit null (clear the field) from an omitted field
   // (undefined, leave untouched) for every nullable column here — the same
   // class of fix already applied to bags.ts's parseBagBody for

@@ -42,6 +42,16 @@ function normalizeShotInput<T extends Partial<InsertShot>>(data: T): T {
   if (normalized.signatureShot === true) normalized.isReference = true;
   if (normalized.isReference === false) normalized.signatureShot = false;
 
+  // A Sour shot is a fault-tasting result: it can never be a Reference or
+  // Signature exemplar, even when the client also sends those flags. This runs
+  // after the signature/reference coupling above so Sour wins. It does not
+  // touch include-in-analysis — a Sour shot can still be analytically valid,
+  // and computeIncludeInAnalysis remains the only rule for that.
+  if (normalized.sourShot === true) {
+    normalized.isReference = false;
+    normalized.signatureShot = false;
+  }
+
   if (normalized.ratio == null || normalized.ratio === "") {
     const ratio = calculatedRatio(normalized.dose, normalized.yield);
     if (ratio != null) normalized.ratio = ratio;
