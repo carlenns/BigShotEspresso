@@ -409,3 +409,68 @@ Review of whether pre-filling `grindSetting` / `grindTime` / `initialGrindWeight
 - `grindSetting` / `grindTime` pre-fill from carry-forward — drift and change-count logic key off real diffs, so unchanged runs read correctly as zero drift.
 - Dose-correction analytics — derived fields require a real `initialGrindWeight`; none are fabricated by pre-fill.
 - `pourDelay` / `pourTime` / `flowTime` suggestion-only — the `v > 0` filter cleanly excludes un-entered values from every timing range.
+
+## Standing-Rule Enforcement Audit — Part 2 (delete integrity, rating bounds, import) — 2026-08-27
+
+Source-level check, no code changed. Files read: `artifacts/api-server/src/routes/shots.ts`, `routes/hopper.ts`, `routes/beans.ts`, `routes/bags.ts`, `routes/equipment.ts`, `routes/accessories.ts`, `routes/taste-selectors.ts`, `routes/airtable.ts`, `src/app.ts`, `src/lib/airtable-mapping.ts`, `lib/api-zod/src/generated/api.ts`, `lib/db/src/schema/*.ts`, `lib/db/migrations/0000_bootstrap_current_schema.sql`, `lib/db/migrations/0001_phase1_data_foundation.sql`.
+
+### 1. Rating bounds
+
+| Aspect | Status | Evidence |
+|---|---|---|
+| Technical rating ≤ 10 (upper) | **Enforced (route)** | `routes/shots.ts:64-66` `validateRatings` returns a 400 "Technical rating cannot exceed 10." — called on POST (`shots.ts:337`) and PATCH (`shots.ts:414`). |
+| Preference rating ≤ 11 (upper) | **Enforced (route)** | `routes/shots.ts:67-69`, same call sites. |
+| Contract-level bound on the request body | **Gap (not in contract)** | `CreateShotBody` / `UpdateShotBody`: `"rating": zod.number().nullish()`, `"preferenceRating": zod.number().nullish()` — no `.max()` / `.min()` (`lib/api-zod/src/generated/api.ts:190-191` and `:384-385`). The `.max()` at `:85-86` / `:277-278` / `:449-450` is on **response** schemas only, which do not gate writes. The route check is the only enforcement. |
+| Lower bound (negative ratings) | **Gap** | `validateRatings` only checks `> 10` / `> 11`. A direct `POST /shots {"rating": -3}` is accepted and stored. Client blocks it (`ShotForm.tsx` `optionalRating` = `z.coerce.number().min(0).max(max)`), server does not. |
+| CSV / Airtable import | **N-A (deliberately skipped)** | Import builds the row directly (`shots.ts:601-602` `num(r[idxRating])`; `airtable-mapping.ts:117`) and never calls `validateRatings` — see section 4. |
+
+### 2. Brew Method vs Drink Type independence (server)
+
+**Enforced / neutral — no gap.** No server code cross-sets `drinkType` from `brewMethod` or vice-versa, and nothing coerces a request-time drink default:
+
+- `normalizeShotInput` (`routes/shots.ts:39-61`) touches only `signatureShot` / `isReference` / `sourShot` / `ratio` — never `drinkType` or `brewMethod`.
+- POST/PATCH `/shots` pass `drinkType` straight through; `shots.ts:154,173` are read-only aggregation for the options endpoint.
+- `brewMethod` server references are all machine-record scoped (`routes/equipment.ts:84,103`), not shot-level, not drink-derived.
+- The one server-side "default": `lib/runtime-schema.ts:30-34` is a **one-time migration backfill** (`ADD COLUMN IF NOT EXISTS brew_method text; ... SET brew_method = 'Espresso' WHERE brew_method IS NULL`) — scoped to null rows, no-op after first boot, drink-agnostic. Not a per-request coercion.
+- Airtable import maps `drinkType` from the Airtable "Effective Drink Type" computed field (`airtable-mapping.ts:127`) — an import-source value, no `brewMethod` interaction.
+
+### 3. Referential integrity on delete
+
+FK constraints (verified in `0000_bootstrap_current_schema.sql` / `0001_phase1_data_foundation.sql`, not just the drizzle schema):
+
+| Delete target | Referencing FK | DB behaviour | API surface |
+|---|---|---|---|
+| **Bean** used by a bag | `bags.bean_id → beans(id)`, no `ON DELETE` (`bootstrap:70`) | Postgres **rejects** (FK violation 23503); delete does not occur | `routes/beans.ts:112` is a bare `db.delete` with no `try/catch`. Express 5 forwards the rejection to its **default error handler → HTTP 500**, generic body. |
+| **Bag** used by shots or hoppers | `shots.bag_id → bags(id)` (`bootstrap:130`), `hoppers.bag_id → bags(id)` (`bootstrap:97`), no `ON DELETE` | **rejects** | `routes/bags.ts:240` bare delete → **HTTP 500** generic. |
+| **Grinder** used by shots | `shots.grinder_id → grinders(id)`, no `ON DELETE` (`bootstrap:133`) | **rejects** | `routes/equipment.ts:63` bare delete → **HTTP 500** generic. |
+| **Machine** used by shots | `shots.machine_id → machines(id)`, no `ON DELETE` (`bootstrap:134`) | **rejects** | `routes/equipment.ts:114` → **HTTP 500** generic. |
+| **Accessory** (any type) | **no FK anywhere** — `shots` / `bags` have no accessory/basket column | delete always succeeds | `routes/accessories.ts:80` → **204**. Any Settings default that names it (a free-text string like "18g VST") is silently left dangling; the dropdown value just stops resolving. |
+| **Taste selector** used by shots | `shot_taste_selectors.taste_selector_id → taste_selectors(id) ON DELETE CASCADE` (`bootstrap:256`) | **cascades** — every join row for that selector is deleted | `routes/taste-selectors.ts:79` → **204**. Historical shots keep all other data but silently lose that tag. |
+
+Findings:
+
+- **No orphaning risk for bean / bag / grinder / machine** — the DB rejects the delete, data stays consistent. But **there is no graceful error contract**: the delete routes have no `try/catch` and no reference pre-check, so a blocked delete returns an opaque **HTTP 500** instead of a 409 with "N shots/bags use this". The confirm-gate UI that just landed tells the user "this cannot be undone", they confirm, and then get a 500 with no explanation of *why* it failed. **Owner-alpha polish; Tier-2 correctness.**
+- **Accessories have no referential link at all.** Today the blast radius is a stale Settings string. If the equipment-default consolidation plan (Option A) lands — which makes the Dashboard summary and Log Shot depend on accessory `isDefault` — deleting a default accessory becomes a more visible break. Flag to revisit alongside that plan.
+- **`shot_taste_selectors` cascade on `taste_selector_id` silently mutates history.** Deleting a taste selector strips it from every past shot that carried it, with no warning and no way to tell later that the tag was ever there. This runs against the project's "preserve historical data" rule. Needs Carl's call: keep the cascade (accept that a deleted tag disappears everywhere) or switch to reject-when-referenced like the equipment tables.
+- Minor: `routes/equipment.ts` / `routes/accessories.ts` / `routes/taste-selectors.ts` delete handlers don't guard `isNaN(id)` (unlike beans/bags), and none 404 on a missing row — a delete of a nonexistent id returns 204.
+
+### 4. CSV / Airtable import rule consistency
+
+**All four rules are deliberately NOT applied on the import paths — this is intentional and consistent with the project's "import is a verbatim historical loader" posture, but it should be stated explicitly.**
+
+| Rule | App create/update path | CSV import (`POST /shots/import-csv`) | Airtable sync |
+|---|---|---|---|
+| include-in-analysis recompute | `computeIncludeInAnalysis` on POST (`shots.ts:344`) + PATCH (`shots.ts:430`) | **not applied** — `includeInAnalysis: boolOrNull(r[idxInclude])` verbatim (`shots.ts:619`); `tx.insert(shotsTable).values(row)` at `shots.ts:225` never calls it | **not applied** — `includeInAnalysis` taken from the Airtable field or `null` (`airtable-mapping.ts:135-137`); `db.insert(shotsTable).values(vals)` at `airtable.ts:567` |
+| signature ⇒ reference / sour exclusivity | `normalizeShotInput` on POST (`shots.ts:336`) + PATCH (`shots.ts:413`), incl. the new sour block (`shots.ts:50-53`) | **not applied** — parsed row inserted directly | **not applied** — mapped row inserted directly |
+| rating bounds | `validateRatings` (route) | **not applied** | **not applied** |
+| hopper phase allow-list | `invalidHopperPhase` on `POST /hoppers` (`hopper.ts:50`) + `PATCH` (`hopper.ts:105`) | **not applied** — `POST /hoppers/import-csv` (`hopper.ts:72-85`) inserts parsed values directly; shot-row `hopperPhase` copy (`shots.ts:625`) also verbatim | n/a for phase |
+
+- Import is **admin-token gated** (`app.ts:53-55`), so only the owner can run it.
+- The import code says so in spirit: `shots.ts:566` "Store every source column verbatim, regardless of export version"; the Part 1 audit already noted the hopper-phase allow-list "CSV import path is deliberately unaffected".
+- **Consequence for Carl:** the rules hold for shots *the app creates*, but the imported historical corpus is not re-checked. Analytics that read `includeInAnalysis` (`eligibleShotConditions`) trust whatever the CSV/Airtable said, so an imported shot can be "in analysis" without satisfying Status-Good/Fault-Good, or be flagged both Sour and Reference. If the analytics are ever expected to be *rule-consistent across the whole corpus*, a one-off backfill pass (recompute `includeInAnalysis`, normalise signature/sour, clamp ratings) on imported rows would be needed — deliberately out of scope here, flagged so the decision is explicit.
+
+### Assessment
+
+- **Enforced:** rating upper bounds (route), Brew Method / Drink Type server neutrality, and DB-level protection against orphaning bean/bag/grinder/machine.
+- **Gaps worth Carl's attention:** (a) blocked deletes return HTTP 500, not a graceful 409 with reason; (b) `taste_selector` delete cascades and silently rewrites shot history; (c) rating bounds are route-only (not in the zod contract) and have no lower bound; (d) accessories have no FK, so a "used" accessory deletes cleanly and leaves a dangling Settings reference — matters more if Option A lands.
+- **Intentional and consistent:** CSV / Airtable import skips all four rules by design; only note is that the imported corpus is therefore not rule-consistent with app-created shots, which matters only if whole-corpus analytics consistency is later required.

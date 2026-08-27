@@ -419,9 +419,12 @@ export default function ShotForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       shotDate: nowDateTimeLocal(),
-      dose: 18,
-      yield: 36,
-      temperature: 94,
+      // dose / yield / temperature are intentionally NOT hardcoded here — the
+      // WYSIWYG seeding effect below fills them (and the other number fields)
+      // with the exact defaultX value their placeholder shows, so the saved
+      // value always equals the displayed one. A literal here would win over a
+      // bag/settings default and re-introduce the "shown default isn't saved"
+      // mismatch.
       rating: undefined,
       rated: undefined,
       isForOthers: false,
@@ -709,6 +712,46 @@ export default function ShotForm() {
   const defaultTopUpTime = settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2;
   const defaultGrindSetting = selectedBag?.currentGrindSetting ?? (settings?.defaultGrindSetting ? Number(settings.defaultGrindSetting) : 2.33);
   const defaultGrindTime = selectedBag?.currentGrindTime ?? (settings?.defaultGrindTime ? Number(settings.defaultGrindTime) : 8.1);
+
+  // WYSIWYG number defaults (Carl-reported, primary flow): every number field
+  // whose placeholder shows a computed default must SAVE that default when the
+  // user leaves it untouched. This seeds each such field with the exact
+  // defaultX value its placeholder renders. Create-only, never in edit mode
+  // (existingShot reset already seeds these). Blank-only — a field the user has
+  // typed into is never overwritten. Waits for `settings` so the seeded value
+  // is the final placeholder value, not a mid-load fallback. Mirrors
+  // appliedBagDefaultsFor above: a run key of "bagId:hasLatestShot" means a
+  // plain background refetch can't re-run the seeding, but an actual bag change
+  // — or the active-bag intelligence arriving — does, so a still-blank field
+  // picks up the right default. Fields with no available default (pour timings
+  // on a bag's first shot) are left genuinely blank.
+  const appliedRecipeDefaultsFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (isEditing || settings === undefined) return;
+    const runKey = `${selectedBagId ?? 0}:${latestShotDefaults ? "L" : "-"}`;
+    if (appliedRecipeDefaultsFor.current === runKey) return;
+    appliedRecipeDefaultsFor.current = runKey;
+    const seed = (
+      name: "grindSetting" | "grindTime" | "initialGrindWeight" | "topUpGrind" | "timeAdj" | "temperature" | "dose" | "yield" | "pourDelay" | "pourTime" | "flowTime",
+      value: number | null | undefined,
+    ) => {
+      if (value == null) return;
+      const current = form.getValues(name);
+      if (current == null || (current as unknown) === "") form.setValue(name, value);
+    };
+    seed("grindSetting", defaultGrindSetting);
+    seed("grindTime", defaultGrindTime);
+    seed("initialGrindWeight", defaultDose);
+    seed("topUpGrind", 0.1);
+    seed("timeAdj", defaultTopUpTime);
+    seed("temperature", defaultTemp);
+    seed("dose", defaultDose);
+    seed("yield", defaultYield);
+    seed("pourDelay", latestShotDefaults?.pourDelay);
+    seed("pourTime", latestShotDefaults?.pourTime);
+    seed("flowTime", latestShotDefaults?.flowTime);
+  }, [isEditing, settings, selectedBagId, defaultGrindSetting, defaultGrindTime, defaultDose, defaultYield, defaultTemp, defaultTopUpTime, latestShotDefaults, form]);
+
   const saving = createShot.isPending || updateShot.isPending;
 
   return (
@@ -855,6 +898,12 @@ export default function ShotForm() {
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Extraction</CardTitle></CardHeader>
             <CardContent className="space-y-6">
+
+              {!isEditing && (
+                <p className="text-xs text-muted-foreground">
+                  Fields are pre-filled with your default values — leave them to log the default, or change any to match this shot.
+                </p>
+              )}
 
               {/* Grind & Dose */}
               <div>

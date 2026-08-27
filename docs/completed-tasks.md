@@ -2,6 +2,39 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Log Shot WYSIWYG defaults: shown default is now the saved default — 2026-08-27
+
+### Problem
+
+Carl-reported (primary flow): open Log Shot, submit without touching a number field, and the value shown in the field was **not** what got saved. Two causes:
+
+- `useForm` `defaultValues` hardcoded `dose: 18`, `yield: 36`, `temperature: 94`, while the placeholders show `defaultDose` / `defaultYield` / `defaultTemp` (which can be bag- or settings-derived, e.g. 20 / 38 / 92). The hardcoded literal won, so the saved row disagreed with the displayed number.
+- Most other number fields (`grindSetting`, `grindTime`, `initialGrindWeight`, `topUpGrind`, `timeAdj`, `pourDelay`, `pourTime`, `flowTime`) only showed their default as a placeholder / stepper suggestion and were omitted from the POST entirely unless the user focused or stepped them.
+
+### Change (`ShotForm.tsx` only — no schema/API/migration change)
+
+- Removed `dose` / `yield` / `temperature` from `defaultValues` so nothing pre-empts the computed default.
+- Added one create-only seeding effect (`appliedRecipeDefaultsFor` ref, mirrors the existing `appliedBagDefaultsFor` effect). Run key is `` `${selectedBagId ?? 0}:${latestShotDefaults ? "L" : "-"}` `` so a plain background refetch can't re-run it, but an actual bag change — or the active-bag intelligence query arriving — does. Guards: `if (isEditing || settings === undefined) return;` (never in edit mode; waits for `settings` so the seeded value is the final placeholder value, not a mid-load fallback).
+- It seeds each field with the **exact `defaultX` its placeholder renders**: `grindSetting←defaultGrindSetting`, `grindTime←defaultGrindTime`, `initialGrindWeight←defaultDose`, `topUpGrind←0.1`, `timeAdj←defaultTopUpTime`, `temperature←defaultTemp`, `dose←defaultDose`, `yield←defaultYield`, `pourDelay/pourTime/flowTime←latestShotDefaults.*`.
+- **Blank-only:** `seed()` writes only when the field is `null`/`undefined`/`""`, so a value the user has typed is never overwritten.
+- **No-default case:** `seed()` returns immediately when the value is `null`/`undefined`. On a bag's first shot there is no `latestShotDefaults`, so `pourDelay` / `pourTime` / `flowTime` are left genuinely blank — no invented number. (`grindSetting` etc. always have a hardcoded fallback in their `defaultX` expression, unchanged, so they always seed.)
+- Edit mode untouched — the `existingShot` `form.reset(...)` already seeds every field, and the new effect early-returns on `isEditing`.
+- Ratio unchanged — server still computes it from `dose` + `yield` in `normalizeShotInput` when not supplied.
+- Added an explanatory line at the top of the Extraction card (create-only), matching existing helper-copy style: "Fields are pre-filled with your default values — leave them to log the default, or change any to match this shot."
+
+### Tests / verification
+
+- New EOF block in `api-contract.test.ts`: **"Log Shot number fields are WYSIWYG: shown default is the saved default"** — asserts the `defaultValues` block no longer hardcodes dose/yield/temperature, the effect is create-only + settings-gated + ref-guarded + blank-only, every listed field is seeded from its `defaultX`, the no-default guard exists, and the explanatory copy is present.
+- `CI=true pnpm run typecheck` — pass. `CI=true pnpm --filter @workspace/api-server test` — pass (75/75). `CI=true pnpm run build:render` — pass.
+
+### Known limitation
+
+On a bag switch, a field already holding a value (manual edit **or** a prior auto-seed) is not re-seeded to the new bag's default — blank-only wins, to honour "never overwrite a manual edit". The five bag-scoped fields (`grindSetting`/`grindTime`/`dose`/`yield`/`temperature`) are still refreshed from the new bag by the pre-existing `appliedBagDefaultsFor` effect where that bag provides a value.
+
+## Standing-Rule Enforcement Audit — Part 2 (delete integrity, rating bounds, import) — 2026-08-27
+
+Review / docs only. No app or test code changed; did not touch `ShotForm.tsx` / `api-contract.test.ts` / any `.tsx` page. New section appended to END of `docs/implementation/launch-readiness-audit.md`: **"Standing-Rule Enforcement Audit — Part 2 (delete integrity, rating bounds, import) — 2026-08-27"**. Findings: rating upper bounds enforced in `routes/shots.ts` `validateRatings` (not in the zod contract; no lower bound); Brew Method / Drink Type are server-neutral (no cross-set, no request-time drink default); bean/bag/grinder/machine deletes are DB-protected against orphaning but surface as an opaque **HTTP 500** rather than a graceful 409; `shot_taste_selectors.taste_selector_id` is **ON DELETE CASCADE** — deleting a taste selector silently strips it from historical shots (needs Carl's call vs "preserve historical data"); accessories have no FK at all; CSV/Airtable import deliberately skips all four rules (verbatim historical loader, admin-gated) so the imported corpus is not rule-consistent with app-created shots.
+
 ## Log Shot pre-fill analytics review + equipment-default consolidation plan — 2026-08-27
 
 Review / docs only. No app code, schema, API, migration, or test changed. Did not touch `ShotForm.tsx` or `api-contract.test.ts` (Agent 1's this cycle) or any `.tsx` page.

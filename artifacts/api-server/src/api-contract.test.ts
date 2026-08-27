@@ -1800,3 +1800,57 @@ test("Standing-rule audit GAPs closed: sour-exclusivity, hopper-phase 400, dead 
   // The audit doc records these three as closed.
   assert.match(auditDoc, /Standing-Rule Enforcement Audit/);
 });
+
+test("Log Shot number fields are WYSIWYG: shown default is the saved default", async () => {
+  const formSource = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // The defaultValues/placeholder mismatch is gone — dose/yield/temperature are
+  // no longer hardcoded in defaultValues (they would win over a bag/settings
+  // default and re-create "shown default isn't saved"). The seeding effect owns
+  // them now.
+  const dvStart = formSource.indexOf("defaultValues: {");
+  const defaultValuesBlock = formSource.slice(dvStart, formSource.indexOf("\n    },", dvStart));
+  assert.doesNotMatch(defaultValuesBlock, /\bdose: 18\b/);
+  assert.doesNotMatch(defaultValuesBlock, /\byield: 36\b/);
+  assert.doesNotMatch(defaultValuesBlock, /\btemperature: 94\b/);
+
+  // Create-only, edit mode untouched, waits for settings so the seeded value is
+  // the final placeholder value, and mirrors the appliedBagDefaultsFor ref.
+  assert.match(formSource, /const appliedRecipeDefaultsFor = useRef<string \| null>\(null\)/);
+  assert.match(formSource, /if \(isEditing \|\| settings === undefined\) return;/);
+  assert.match(formSource, /const runKey = `\$\{selectedBagId \?\? 0\}:\$\{latestShotDefaults \? "L" : "-"\}`;/);
+  assert.match(formSource, /if \(appliedRecipeDefaultsFor\.current === runKey\) return;/);
+
+  // Blank-only: never overwrites a value the user has typed in.
+  assert.match(formSource, /if \(current == null \|\| \(current as unknown\) === ""\) form\.setValue\(name, value\);/);
+
+  // Every listed field is seeded from the exact defaultX its placeholder shows.
+  for (const line of [
+    'seed("grindSetting", defaultGrindSetting);',
+    'seed("grindTime", defaultGrindTime);',
+    'seed("initialGrindWeight", defaultDose);',
+    'seed("topUpGrind", 0.1);',
+    'seed("timeAdj", defaultTopUpTime);',
+    'seed("temperature", defaultTemp);',
+    'seed("dose", defaultDose);',
+    'seed("yield", defaultYield);',
+    'seed("pourDelay", latestShotDefaults?.pourDelay);',
+    'seed("pourTime", latestShotDefaults?.pourTime);',
+    'seed("flowTime", latestShotDefaults?.flowTime);',
+  ]) {
+    assert.ok(formSource.includes(line), `missing seed call: ${line}`);
+  }
+
+  // No-default case: seed() bails on a null/undefined value, so a first shot on
+  // a bag (no latestShotDefaults) leaves the pour timings genuinely blank.
+  assert.match(formSource, /if \(value == null\) return;/);
+
+  // Explanatory copy at the top of the shot-entry fields, create-only.
+  assert.match(
+    formSource,
+    /Fields are pre-filled with your default values — leave them to log the default, or change any to match this shot\./,
+  );
+});
