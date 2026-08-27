@@ -22,6 +22,11 @@ interface NavItem {
   href: string;
   icon: React.ElementType;
   exact?: boolean;
+  // Bottom-nav label override. The mobile bar shows only the first word of
+  // `title`, which turns "Log Shot" into "Log" and "Shot Log" into "Shot" —
+  // two near-identical adjacent tabs. Set this where the first word is
+  // ambiguous.
+  shortLabel?: string;
 }
 
 const primaryNav: NavItem[] = [
@@ -34,7 +39,7 @@ const primaryNav: NavItem[] = [
 const mobileBottomNav: NavItem[] = [
   { title: "Dashboard",       href: "/",            icon: LayoutDashboard, exact: true },
   { title: "Log Shot",        href: "/shots/new",   icon: Coffee,          exact: true },
-  { title: "Shot Log",        href: "/shots",       icon: BookOpen },
+  { title: "Shot Log",        href: "/shots",       icon: BookOpen,        shortLabel: "Shots" },
   { title: "Reference Shots", href: "/reference",   icon: Coffee },
   { title: "Beans", href: "/beans", icon: Sprout },
   { title: "Bags", href: "/bags", icon: Package },
@@ -202,7 +207,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   users, not just via the primary-color text. */}
               {isActive && <span aria-hidden="true" className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />}
               <item.icon className={cn("h-5 w-5", isActive && "fill-primary/10")} />
-              <span>{item.title.split(" ")[0]}</span>
+              <span>{item.shortLabel ?? item.title.split(" ")[0]}</span>
             </Link>
           );
         })}

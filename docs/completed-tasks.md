@@ -2,6 +2,54 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Mobile bottom-nav label disambiguation ("Log" vs "Shots") — 2026-08-27
+
+### Completed
+
+- Reviewed owner-alpha navigation (`Shell.tsx`, `App.tsx`) for mobile reachability and stale/shelved links. Findings: every destination (incl. Settings) is reachable on mobile via the scrollable bottom nav; the hamburger menu covers Setup & System; the desktop sidebar exposes no Quick Log and no "Full Log"/"Detailed Log" naming; `/shots/quick` redirects to `/shots/new` and QuickLog is unimported. No dead nav links.
+- One tiny fix: the bottom nav renders only the first word of each `title`, so "Log Shot" and "Shot Log" showed as the adjacent, near-identical tabs "Log" and "Shot". Added an optional `shortLabel` to the local `NavItem` interface and set `shortLabel: "Shots"` on the "Shot Log" bottom-nav entry, so the pair now reads "Log" (create) vs "Shots" (browse). Sidebar/hamburger titles and the `/shots` route are unchanged; mirrors the existing mobile-vs-sidebar label split already used for "Taste" / "Taste Selectors".
+- Added assertions to the "Mobile bottom nav signals it scrolls…" test in `api-contract.test.ts` locking the `shortLabel` entry and the `item.shortLabel ?? item.title.split(" ")[0]` render.
+
+### Verified
+
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass (69/69)
+- `CI=true pnpm run build:render` — pass
+
+### Not changed (documented, not fixed)
+
+- Bottom-nav active-state check (Shell.tsx, inline in the `mobileBottomNav.map`) ignores each item's `exact` flag and uses its own `startsWith` logic, so on `/shots/new` both the "Log" and "Shots" tabs highlight. The desktop sidebar's `isNavActive` has the same `/shots/new` dual-highlight (Log Shot `exact` + Shot Log prefix). Cosmetic only, pre-existing, both navs; left for a dedicated pass rather than changing shared active-state behavior here.
+- "Reference Shots" bottom-nav tab uses the same `Coffee` icon as "Log Shot". Minor icon ambiguity; not touched (icon change is closer to redesign).
+
+## Log Shot: make selected-bag defaults visible and trustworthy — 2026-08-27
+
+### Completed
+
+Copy/display-only pass on the Log Shot Bag selector (`ShotForm.tsx`). No change to bag selection, auto-select, or bag-derived-default logic — the `didAutoSelectBag` and `appliedBagDefaultsFor` effects from `8276971` / `de121a5` are untouched, and no bug was found in them.
+
+- Added one helper line under the Bag chip row, shown only on a new shot when a bag is selected (`!isEditing && activeBagId != null`):
+  - When the selected bag is the sole active bag, it leads with "Auto-selected as your only active bag." so the user knows why it is already chosen.
+  - Always states: "Grind, dose, yield and temperature are prefilled from `<bean> #<bagNumber>`. Choosing a different bag refreshes them from that bag." — naming the exact source bag and making the switch-refreshes-defaults behavior explicit.
+- Edit mode is unchanged: the line is create-only because in edit mode the grind/dose/yield/temp fields hold the saved shot's values, not freshly-pulled bag defaults.
+- The existing multi-active-bag amber cue ("Multiple bags are active — pick the one you pulled this shot from.") is unchanged and still covers the no-bag-selected ambiguous case.
+- The `Bag (auto-fills grind defaults)` label and the per-bag dial-in note line were left as-is.
+
+### Verified
+
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass (68/68)
+- `CI=true pnpm run build:render` — pass
+
+### Assumptions
+
+- Naming the source bag as `${beanName ?? "Bag"} #${bagNumber ?? id}` mirrors the existing bag-chip label format.
+- "Sole active bag" = `activeBags.length === 1 && activeBags[0].id === activeBagId`; this reads the same as the auto-select condition without depending on the (non-reactive) `didAutoSelectBag` ref, and stays accurate if the user manually re-picks that same bag.
+- Copy only; no schema, API, selector-value, or formula change.
+
+### Unresolved
+
+- None.
+
 ## Dashboard & Bags: whole-bag inventory vs hopper phase clarity pass — 2026-08-27
 
 ### Completed

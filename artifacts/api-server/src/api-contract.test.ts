@@ -1345,6 +1345,13 @@ test("Mobile bottom nav signals it scrolls and marks the active tab without rely
   // a shape cue (underline bar) and a label-weight cue (bold vs medium).
   assert.match(source, /isActive && <span aria-hidden="true"[\s\S]{0,80}bg-primary/);
   assert.match(source, /isActive \? "text-primary font-semibold" : "text-muted-foreground font-medium/);
+
+  // The bar shows only the first word of each title, which would render the
+  // "Log Shot" and "Shot Log" tabs as the adjacent near-identical labels
+  // "Log" and "Shot". "Shot Log" carries a shortLabel so the pair reads as
+  // "Log" (create) vs "Shots" (browse).
+  assert.match(source, /\{ title: "Shot Log",\s+href: "\/shots",\s+icon: BookOpen,\s+shortLabel: "Shots" \}/);
+  assert.match(source, /item\.shortLabel \?\? item\.title\.split\(" "\)\[0\]/);
 });
 
 test("Primary logging UI uses the full shot form and keeps Quick Log shelved", async () => {
@@ -1435,6 +1442,16 @@ test("Shot form supports editing, active-bag-first entry, and Taste Zone selecti
   // refetch can't re-clobber edits made after the bag was chosen.
   assert.match(formSource, /const appliedBagDefaultsFor = useRef<number \| null>\(null\)/);
   assert.match(formSource, /if \(appliedBagDefaultsFor\.current === bagId\) return;/);
+
+  // New-shot Bag selection is visible and its role is stated: which bag is
+  // selected, that it was auto-selected only when it is the sole active bag,
+  // that it prefills grind/dose/yield/temp, and that switching bags refreshes
+  // those. Edit mode shows saved values, so this line is create-only.
+  assert.match(formSource, /!isEditing && activeBagId != null && \(\(\) => \{/);
+  assert.match(formSource, /activeBags\.length === 1 && activeBags\[0\]\?\.id === activeBagId/);
+  assert.match(formSource, /Auto-selected as your only active bag\./);
+  assert.match(formSource, /Grind, dose, yield and temperature are prefilled from/);
+  assert.match(formSource, /Choosing a different bag refreshes them from that bag\./);
   assert.match(formSource, /fetchShotTasteSelectors/);
   assert.match(formSource, /const NO_TASTE_SELECTORS: TasteSelector\[\] = \[\]/);
   assert.match(formSource, /const savedStatus = existingShot\.status \?\? ""/);

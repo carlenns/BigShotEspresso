@@ -770,6 +770,17 @@ export default function ShotForm() {
                     </button>
                   ))}
                 </div>
+                {!isEditing && activeBagId != null && (() => {
+                  const b = bags.find((x) => x.id === activeBagId);
+                  const label = b ? `${b.beanName ?? "Bag"} #${b.bagNumber ?? b.id}` : "this bag";
+                  const soleActive = activeBags.length === 1 && activeBags[0]?.id === activeBagId;
+                  return (
+                    <p className="text-xs text-muted-foreground">
+                      {soleActive && "Auto-selected as your only active bag. "}
+                      Grind, dose, yield and temperature are prefilled from {label}. Choosing a different bag refreshes them from that bag.
+                    </p>
+                  );
+                })()}
                 {!isEditing && !activeBagId && activeBags.length > 1 && (
                   <p className="text-xs text-amber-600 dark:text-amber-500">
                     Multiple bags are active — pick the one you pulled this shot from.
