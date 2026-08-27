@@ -429,6 +429,10 @@ export default function Bags() {
               <p className="font-medium">{closeoutBag?.beanName ?? "Unknown Bean"}</p>
               <p className="text-muted-foreground">Bag #{closeoutBag?.bagNumber ?? closeoutBag?.id}</p>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Close Out Bag records that you have stopped using this bag: it marks the bag inactive and saves your
+              leftover and cleanout notes as evidence. It never edits past shots and does not start the next bag.
+            </p>
             <div className="space-y-1.5">
               <Label>Closed Out Date</Label>
               <Input
@@ -506,7 +510,8 @@ export default function Bags() {
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
               A hopper phase is a measured operating window you choose to track from this point forward — not a
               count of every bean physically left in the hopper or bag. Unmeasured leftover beans can be
-              intentionally left out of this baseline.
+              intentionally left out of this baseline. The Dashboard's Bag Progress still tracks whole-bag
+              consumed and remaining separately from this phase baseline.
             </div>
 
             {activeBags.length > 1 && (
@@ -524,6 +529,16 @@ export default function Bags() {
                   {HOPPER_PHASE_OPTIONS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {startPhaseForm.phase === "Single Bag Phase" && (
+                <p className="text-xs text-muted-foreground">
+                  Treats the whole bag as one tracked phase — use it when you won't split this bag into separate hopper loads.
+                </p>
+              )}
+              {startPhaseForm.phase === "End of Bag" && (
+                <p className="text-xs text-muted-foreground">
+                  The final leftover phase after earlier measured phases are used up — not a fixed amount of its own.
+                </p>
+              )}
             </div>
 
             {startPhaseForm.phase === "Custom" && (
@@ -868,6 +883,11 @@ function ChangeBagDialog({
           <DialogTitle>{activeBags.length > 0 ? "Change Bag" : "Start New Bag"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-5 py-2">
+          <p className="text-xs text-muted-foreground">
+            {activeBags.length > 0
+              ? "Change Bag walks the whole switch in one pass: optionally close and reconcile the old bag, pick or create the new bean, create the new active bag, and optionally start its first hopper phase. Each step is optional except creating the new bag."
+              : "Start New Bag creates your first active bag: pick or create the bean, add minimal bag details, and optionally start its first hopper phase."}
+          </p>
           <div className="rounded-lg border bg-muted/40 p-3 text-sm">
             {activeBags.length === 0 ? (
               <p className="text-muted-foreground">No bag is currently active. This creates your first one.</p>
@@ -1025,6 +1045,16 @@ function ChangeBagDialog({
                 </Select>
                 {form.phase === "Custom" && (
                   <Input value={form.customLabel} onChange={(e) => set("customLabel", e.target.value)} placeholder="Custom phase label" />
+                )}
+                {form.phase === "Single Bag Phase" && (
+                  <p className="text-xs text-muted-foreground">
+                    Treats the whole bag as one tracked phase — use it when you won't split this bag into separate hopper loads.
+                  </p>
+                )}
+                {form.phase === "End of Bag" && (
+                  <p className="text-xs text-muted-foreground">
+                    The final leftover phase after earlier measured phases are used up — not a fixed amount of its own.
+                  </p>
                 )}
                 <Input
                   type="number"

@@ -400,6 +400,33 @@ test("Shot-level Brew Method is durable evidence, independent of Drink Type", as
   assert.match(shotFormSource, /name="brewMethod"/);
   assert.match(shotFormSource, /<FormLabel>Brew Method<\/FormLabel>/);
 
+  // User-visible copy (not just code comments) spells out that Brew Method is
+  // the extraction method and Drink Type is the served drink, that the Drink
+  // Type helper distinguishes the Settings default from a per-shot change, and
+  // that an unset default points at Settings rather than hard-coding a drink.
+  assert.match(shotFormSource, /How it was extracted \(e\.g\. Espresso\) — separate from Drink Type/);
+  assert.match(shotFormSource, /The drink you served \(e\.g\. Americano, Latte, Affogato\) — separate from Brew Method/);
+  assert.match(shotFormSource, /field\.value === settings\.defaultDrinkType/);
+  assert.match(shotFormSource, /Using your Settings default/);
+  assert.match(shotFormSource, /Changed for this shot — your Settings default is/);
+  assert.match(shotFormSource, /Set a Default Drink Type in Settings to prefill this on new shots/);
+  assert.doesNotMatch(shotFormSource, /form\.setValue\("drinkType", "Americano"\)/);
+  // The Drink Type helper distinction is create-only (edit mode shows the saved value plainly).
+  assert.match(shotFormSource, /\{!isEditing && \(settings\?\.defaultDrinkType/);
+
+  // Edit mode preserves the saved Drink Type / Brew Method — reset seeds both
+  // from existingShot, and both default-fill effects early-return on isEditing.
+  assert.match(shotFormSource, /drinkType: existingShot\.drinkType \?\? undefined/);
+  assert.match(shotFormSource, /brewMethod: existingShot\.brewMethod \?\? undefined/);
+  assert.match(shotFormSource, /if \(isEditing \|\| !settings\?\.defaultDrinkType\) return;/);
+
+  // Settings makes the Brew Method / Drink Type relationship explicit and
+  // guides the user when Default Drink Type is unset without implying Americano.
+  assert.match(settingsSource, /They are independent fields/);
+  assert.match(settingsSource, /How the shot is extracted — e\.g\. Espresso, Pour-over\./);
+  assert.match(settingsSource, /there is no universal default/);
+  assert.doesNotMatch(settingsSource, /Default Drink Type[^\n]*(?:defaults to|is) Americano/);
+
   // Independence: changing one must never set the other. The Drink Type
   // default-fill effect must not reference brewMethod, and the Brew Method
   // default-fill effect must not reference drinkType.
@@ -1204,9 +1231,13 @@ test("Active Hopper Status is compact for phase-only hoppers, not a large standa
   // The compact line lives near Current Baseline (inside the same Card as
   // the bag identity/recipe/equipment lines), not in a separate section.
   assert.match(source, /Line 4: compact hopper phase context/);
-  assert.equal(source.includes('hopper.phase ? `Hopper Phase: ${hopper.phase}` : null,'), true);
-  assert.equal(source.includes('hopper.startingBeans != null ? `Started With ${hopper.startingBeans}g` : null,'), true);
-  assert.equal(source.includes('"Phase Tracking Active",'), true);
+  // Phase-only hoppers never have a null-collapsing gap: a missing phase
+  // falls back to "Hopper phase tracking active" rather than rendering
+  // nothing, and startingBeans is labeled as a measured baseline.
+  assert.equal(source.includes('hopper.phase ? `Hopper phase: ${hopper.phase}` : "Hopper phase tracking active",'), true);
+  assert.equal(source.includes('hopper.startingBeans != null ? `measured baseline ${hopper.startingBeans}g` : null,'), true);
+  // The compact line must state, in words, that it is NOT whole-bag inventory.
+  assert.equal(source.includes('"separate from whole-bag Bag Progress",'), true);
 
   // The full "Active Hopper Status" section only renders once a hopper has
   // real calculations, and only maps over detailedHoppers (not all active
@@ -1220,6 +1251,40 @@ test("Active Hopper Status is compact for phase-only hoppers, not a large standa
   // Must not invent phase-remaining/consumed/shots-left calculations.
   assert.doesNotMatch(source, /phaseRemaining\s*=/);
   assert.doesNotMatch(source, /phaseConsumed\s*=/);
+});
+
+test("Dashboard and Bags copy separates whole-bag inventory from hopper phase baseline", async () => {
+  const [dashboardSource, bagsSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Dashboard.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  // User concern: "Bag Progress shows whole-bag consumed/remaining" vs "Hopper
+  // phase shows phase-level starting beans only" must not be visually or
+  // verbally confused. Both Dashboard section labels carry an explicit scope,
+  // and Bag Progress states in words that a hopper phase baseline is separate
+  // and not subtracted from it.
+  assert.match(dashboardSource, /<SectionLabel scope="Whole-bag inventory">Bag Progress<\/SectionLabel>/);
+  assert.match(dashboardSource, /<SectionLabel scope="Current hopper phase">Active Hopper Status<\/SectionLabel>/);
+  assert.match(dashboardSource, /Whole-bag consumed and remaining\. A hopper phase baseline is a separate measured window and is not subtracted here\./);
+
+  // Product rules (docs/table-relationships.md line ~74): Single Bag Phase =
+  // whole bag as one tracked phase; End of Bag = final leftover phase, not a
+  // fixed quantity. These meanings must be surfaced in the UI, not just docs.
+  assert.match(bagsSource, /Treats the whole bag as one tracked phase — use it when you won't split this bag into separate hopper loads\./);
+  assert.match(bagsSource, /The final leftover phase after earlier measured phases are used up — not a fixed amount of its own\./);
+  assert.match(bagsSource, /The Dashboard's Bag Progress still tracks whole-bag\s+consumed and remaining separately from this phase baseline\./);
+
+  // The guided flows must each state, in a plain sentence, what the action
+  // does — not leave a new user to infer it from the form fields.
+  assert.match(bagsSource, /Close Out Bag records that you have stopped using this bag/);
+  assert.match(bagsSource, /Change Bag walks the whole switch in one pass/);
+
+  // Maintenance copy must always describe a FUTURE separate workflow, never
+  // imply one exists today.
+  assert.match(bagsSource, /a dedicated maintenance workflow with calm, non-blocking reminders is planned separately/i);
+  assert.match(bagsSource, /not yet tracked as their own lifecycle events/);
+  assert.doesNotMatch(bagsSource, /maintenance reminders? (are|is) now (available|enabled|tracked)/i);
 });
 
 test("Runtime startup applies additive equipment schema guards", async () => {

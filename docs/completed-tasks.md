@@ -2,6 +2,100 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Dashboard & Bags: whole-bag inventory vs hopper phase clarity pass — 2026-08-27
+
+### Completed
+
+Copy/display-only pass so a user never confuses whole-bag consumed/remaining with a hopper phase's measured baseline. No schema, API, migration, formula, or lifecycle-table work. `ShotForm.tsx` / `Settings.tsx` untouched (Agent 1 owns those this cycle).
+
+**Dashboard (`Dashboard.tsx`)**
+
+- `Bag Progress` section label now carries `scope="Whole-bag inventory"`; `Active Hopper Status` now carries `scope="Current hopper phase"` — the two sections previously had bare labels and nothing on them said which scope the numbers were.
+- Added a footer line to the Bag Progress card: "Whole-bag consumed and remaining. A hopper phase baseline is a separate measured window and is not subtracted here."
+- Reworked the compact hopper phase line under Current Baseline:
+  - `Hopper Phase: X` → `Hopper phase: X`, and when `phase` is null it now falls back to `Hopper phase tracking active` instead of collapsing to nothing (no blank/gap for phase-only hoppers created in-app).
+  - `Started With Ng` → `measured baseline Ng` (matches the "phase baseline" language in `docs/table-relationships.md` line 53 / `bag-hopper-lifecycle-plan.md`).
+  - Filler `Phase Tracking Active` → `separate from whole-bag Bag Progress below` (states in words that this is not whole-bag inventory).
+- The "Not tracked yet" + "Imported value — not set for phases started in the app" fallbacks for hopperMass / hopperPercent / shotsLeftEstimate were already present and correct — left unchanged.
+
+**Bags (`Bags.tsx`)**
+
+- `Start Hopper Phase` info box gained one sentence: "The Dashboard's Bag Progress still tracks whole-bag consumed and remaining separately from this phase baseline."
+- `End of Bag` helper copy (both the standalone Start Hopper Phase dialog and the Change Bag guided flow) reworded to match `docs/table-relationships.md` line 74: "The final leftover phase after earlier measured phases are used up — not a fixed amount of its own." `Single Bag Phase` helper ("Treats the whole bag as one tracked phase — use it when you won't split this bag into separate hopper loads.") kept. Both still render only when that option is selected (same pattern as the existing `Custom` helper).
+- `Close Out Bag` dialog gained a plain lead-in sentence: "Close Out Bag records that you have stopped using this bag: it marks the bag inactive and saves your leftover and cleanout notes as evidence. It never edits past shots and does not start the next bag."
+- `Change Bag` / `Start New Bag` dialog gained a plain lead-in sentence describing the whole guided flow (adapts to whether a bag is currently active).
+- Maintenance copy reviewed against boundary #6: every mention already frames it as a *future, separate* workflow ("not yet tracked as their own lifecycle events", "a dedicated maintenance workflow with calm, non-blocking reminders is planned separately"). No maintenance reminder formula, event table, or due-date logic added or implied. Lifecycle-flow step labels (test-locked) left unchanged.
+
+**Tests (`artifacts/api-server/src/api-contract.test.ts`)**
+
+- Updated "Active Hopper Status is compact for phase-only hoppers" to assert the new compact-line strings (phase fallback text, `measured baseline`, `separate from whole-bag Bag Progress below`).
+- Added "Dashboard and Bags copy separates whole-bag inventory from hopper phase baseline": locks the two `SectionLabel` scopes, the Bag Progress footer line, the Single Bag Phase / End of Bag helper wording, the Start Hopper Phase whole-bag sentence, the Close Out Bag and Change Bag lead-ins, and a `doesNotMatch` guard that maintenance copy never claims reminders exist today.
+
+### Verified
+
+- `CI=true pnpm run typecheck` — pass (all workspace projects)
+- `CI=true pnpm --filter @workspace/api-server test` — pass (69/69; +1 new test)
+- `CI=true pnpm run build:render` — pass ("✓ built"; pre-existing sourcemap warnings for Radix UI wrappers unrelated to this change)
+
+### Assumptions
+
+- Authoritative definitions taken verbatim from `docs/table-relationships.md` §"Phase transition" (line 74) and `docs/implementation/bag-hopper-lifecycle-plan.md` line 53 — not invented.
+- `hopperMass` / `hopperPercent` / `shotsLeftEstimate` are import/compute-elsewhere fields never written by `POST /api/hoppers` (existing code comment + prior completed-tasks entries); this pass does not change that.
+- `Hopper Capacity` / `Preferred Hopper Phase Fill Amount` remain future equipment-model work (lifecycle plan line 435) — no UI added for them.
+- Copy/label only; no behavior, schema, or historical-data change.
+
+### Unresolved
+
+- Three still-slightly-different labels for the "amount loaded" idea across contexts ("Starting weight" on Bag Progress, "measured baseline" on the compact line, "Starting Beans / Phase Baseline" in the Start Phase dialog field). Each is unambiguous in place; a full vocabulary unification is a separate wording decision, not done here.
+- `artifacts/api-server/src/api-contract.test.ts` and `docs/completed-tasks.md` were concurrently edited by Agent 1 (Brew Method / Drink Type slice) in the same working tree — non-overlapping regions, combined tree verified green, but Codex/Agent 3 should confirm on reconcile.
+
+## Log Shot & Settings Brew Method / Drink Type clarity pass — 2026-08-27
+
+### Completed
+
+**Log Shot (`ShotForm.tsx`)**
+
+- Added user-visible helper copy under the **Brew Method** field: "How it was extracted (e.g. Espresso) — separate from Drink Type, the drink you served." Previously the Brew Method / Drink Type distinction lived only in a code comment.
+- Added user-visible helper copy under the **Drink Type** field: "The drink you served (e.g. Americano, Latte, Affogato) — separate from Brew Method above." plus a new-shot-only sentence whose wording reflects the current field state, so the user can tell a Settings default apart from a manual pick:
+  - value equals the Settings default → "Using your Settings default (`<value>`); change it here just for this shot."
+  - value differs from the Settings default → "Changed for this shot — your Settings default is `<value>`."
+  - value blank, default set → "Your Settings default is `<value>`."
+  - no default configured → "Set a Default Drink Type in Settings to prefill this on new shots." (no hard-coded drink)
+- The state sentence is hidden in edit mode (`!isEditing` guard).
+
+**Settings (`Settings.tsx`)**
+
+- Rewrote the stale "User Defaults" section description (was "General preferences for units, time format, and display." — no such fields exist there) to: "Brew Method is how a shot is extracted (e.g. Espresso). Drink Type is what you served (e.g. Americano, Latte). They are independent fields — new shots prefill each from its default below, and you can still change either one per shot."
+- Added a `note` under **Default Brew Method**: "How the shot is extracted — e.g. Espresso, Pour-over. Prefilled on new shots (a Machine's own Brew Method wins when set). Not the served drink."
+- Added helper text under **Default Drink Type** (`DrinkTypeDefaultField`): when set → "What you serve — separate from Brew Method. New shots prefill this and you can change it per shot."; when unset → "Not set — new shots leave Drink Type blank. Pick the drink you log most often to prefill it; there is no universal default."
+
+**Behavior**
+
+- No change to defaulting logic. The existing create-only effects are untouched: Drink Type still fills from `settings.defaultDrinkType` when blank; Brew Method still fills from the selected Machine's `brewMethod` or `settings.brewMethod` when blank. The two effects remain independent (neither references the other's field). No real bug was found in the defaulting.
+- Edit mode still preserves the saved `drinkType` / `brewMethod` — form reset seeds both from `existingShot`; both default effects early-return on `isEditing`.
+
+**Tests**
+
+- Updated / added source-scan assertions in `artifacts/api-server/src/api-contract.test.ts` ("Shot-level Brew Method is durable evidence" test): Brew Method / Drink Type helper copy, the `field.value === settings.defaultDrinkType` provenance branch, the `!isEditing` guard, edit-mode reset seeds, and Settings copy (independent-fields description, Brew Method note, "no universal default"). Kept the `doesNotMatch` guard against a hard-coded `form.setValue("drinkType", "Americano")`.
+
+### Verified
+
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass (68/68)
+- `CI=true pnpm run build:render` — pass
+
+### Assumptions
+
+- `defaultDrinkType` and `brewMethod` are DB-backed settings keys only (`/api/settings` returns `Record<string, string>`); there is no code-level default drink value, and this task does not add one.
+- Carl's intent (Default Brew Method = Espresso, Default Drink Type = Americano) is configured in live DB Settings, not in code. All copy surfaces whatever value Settings holds rather than asserting Americano.
+- Comparing the live field value to `settings.defaultDrinkType` is an accurate enough "is this the default?" signal — if the value equals the default, the effect on the saved shot is identical whether it was auto-filled or hand-picked.
+- Copy only; no schema, API, migration, or historical-data change.
+
+### Deferred / Unresolved
+
+- Machine/profile-level drink-type defaults (a machine+grinder setup implying a Drink Type) remain deferred — already documented in `docs/csv-data-dictionary.md` (Drink Type row); not added here.
+- `docs/csv-data-dictionary.md` Drink Type / Brew Method rows were reviewed and already describe the independence and the deferred machine/profile defaults accurately — left unchanged.
+
 ## Log Shot Bag auto-fill run-once guard — 2026-08-27
 
 ### Completed

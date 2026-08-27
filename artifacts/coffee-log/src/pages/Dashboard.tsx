@@ -285,9 +285,9 @@ export default function Dashboard() {
                     <span key={hopper.id} className="flex items-center gap-1.5 flex-wrap">
                       <Package className="h-3 w-3 shrink-0" />
                       {[
-                        hopper.phase ? `Hopper Phase: ${hopper.phase}` : null,
-                        hopper.startingBeans != null ? `Started With ${hopper.startingBeans}g` : null,
-                        "Phase Tracking Active",
+                        hopper.phase ? `Hopper phase: ${hopper.phase}` : "Hopper phase tracking active",
+                        hopper.startingBeans != null ? `measured baseline ${hopper.startingBeans}g` : null,
+                        "separate from whole-bag Bag Progress",
                       ].filter(Boolean).join(" · ")}
                     </span>
                   ))}
@@ -301,7 +301,7 @@ export default function Dashboard() {
       {/* 2. Bag Progress (no bag phase — moved to Today's Brief) ─────────────── */}
       {hasBagProgress && (
         <section>
-          <SectionLabel>Bag Progress</SectionLabel>
+          <SectionLabel scope="Whole-bag inventory">Bag Progress</SectionLabel>
           <Card>
             <CardContent className="p-5 space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -341,6 +341,10 @@ export default function Dashboard() {
                   Avg dose {bp!.avgDose}g · {bp!.consumed > 0 ? `${Math.round(bp!.consumed / bp!.avgDose)} shots` : "no shots"} worth consumed
                 </p>
               )}
+
+              <p className="text-xs text-muted-foreground/80 border-t pt-2">
+                Whole-bag consumed and remaining. A hopper phase baseline is a separate measured window and is not subtracted here.
+              </p>
             </CardContent>
           </Card>
         </section>
@@ -354,7 +358,7 @@ export default function Dashboard() {
           limited-context case. */}
       {isLoading || isLoadingHoppers ? null : detailedHoppers.length > 0 && (
         <section>
-          <SectionLabel>Active Hopper Status</SectionLabel>
+          <SectionLabel scope="Current hopper phase">Active Hopper Status</SectionLabel>
           <div className="flex flex-col gap-3">
             {detailedHoppers.map((hopper) => (
               <Card key={hopper.id}>

@@ -832,6 +832,7 @@ export default function ShotForm() {
                         onChange={field.onChange}
                       />
                     </FormControl>
+                    <p className="text-xs text-muted-foreground">How it was extracted (e.g. Espresso) — separate from Drink Type, the drink you served.</p>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -1253,6 +1254,16 @@ export default function ShotForm() {
                         onChange={field.onChange}
                       />
                     </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      The drink you served (e.g. Americano, Latte, Affogato) — separate from Brew Method above.
+                      {!isEditing && (settings?.defaultDrinkType
+                        ? (field.value === settings.defaultDrinkType
+                            ? ` Using your Settings default (${settings.defaultDrinkType}); change it here just for this shot.`
+                            : field.value
+                              ? ` Changed for this shot — your Settings default is ${settings.defaultDrinkType}.`
+                              : ` Your Settings default is ${settings.defaultDrinkType}.`)
+                        : " Set a Default Drink Type in Settings to prefill this on new shots.")}
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )} />

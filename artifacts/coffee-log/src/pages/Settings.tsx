@@ -63,9 +63,9 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
   {
     title: "User Defaults",
     icon: SettingsIcon,
-    description: "General preferences for units, time format, and display.",
+    description: "Brew Method is how a shot is extracted (e.g. Espresso). Drink Type is what you served (e.g. Americano, Latte). They are independent fields — new shots prefill each from its default below, and you can still change either one per shot.",
     fields: [
-      { key: "brewMethod", label: "Default Brew Method", type: "select", options: CURATED_SELECTOR_OPTIONS.brewMethod },
+      { key: "brewMethod", label: "Default Brew Method", type: "select", options: CURATED_SELECTOR_OPTIONS.brewMethod, note: "How the shot is extracted — e.g. Espresso, Pour-over. Prefilled on new shots (a Machine's own Brew Method wins when set). Not the served drink." },
       { key: "defaultDrinkType", label: "Default Drink Type", type: "select", options: CURATED_SELECTOR_OPTIONS.drinkType },
     ],
   },
@@ -393,6 +393,11 @@ function DrinkTypeDefaultField({
           ))}
         </SelectContent>
       </Select>
+      <p className="text-xs text-muted-foreground">
+        {value
+          ? "What you serve — separate from Brew Method. New shots prefill this and you can change it per shot."
+          : "Not set — new shots leave Drink Type blank. Pick the drink you log most often to prefill it; there is no universal default."}
+      </p>
       {adding && (
         <div className="flex gap-2 pt-1">
           <Input
