@@ -290,8 +290,10 @@ export default function Bags() {
               </ol>
               <p className="text-xs text-muted-foreground">
                 Launch-safe note: closeout and starting a new hopper phase are both available today on an active bag.
-                Dedicated lifecycle events for maintenance, hopper top-ups, and cleanout are still planned next, so
-                those actions are not yet mixed into drink-shot analysis.
+                Dedicated lifecycle events for hopper top-ups and cleanout are still planned next, so
+                those actions are not yet mixed into drink-shot analysis. Maintenance (backflush, Cafiza clean,
+                grinder cleanout) is planned as its own calm workflow with non-blocking reminders, separate from
+                shot logging and from Shot Classification.
               </p>
             </div>
           </div>
@@ -477,7 +479,7 @@ export default function Bags() {
               <p>Closing this bag marks it inactive as of the closed-out date above.</p>
               <p>Your remaining-beans estimate is saved as reconciliation evidence only — it does not rewrite or recalculate past shot consumption.</p>
               <p>Closeout notes are saved to this bag's record for later reference.</p>
-              <p>Maintenance, purge waste, and hopper cleanout are not yet tracked as their own lifecycle events — for now, note them here or in the bag's Notes field. The bag's active hopper phase (if any) is not automatically closed by this action.</p>
+              <p>Maintenance, purge waste, and hopper cleanout are not yet tracked as their own lifecycle events — for now, note them here or in the bag's Notes field. A dedicated maintenance workflow (with calm, non-blocking reminders such as backflush or Cafiza clean) is planned separately from shot logging. The bag's active hopper phase (if any) is not automatically closed by this action.</p>
               <p className="font-medium">Next: create or select your new bag, then use Start Hopper Phase once you're ready to begin tracking it.</p>
             </div>
           </div>
@@ -940,7 +942,7 @@ function ChangeBagDialog({
                       placeholder="e.g. purged grinder, backflushed — evidence only"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Purge, cleanout, and maintenance notes are text evidence only for now — not yet a separate lifecycle event.
+                      Purge, cleanout, and maintenance notes are text evidence only for now — a dedicated maintenance workflow with calm, non-blocking reminders is planned separately.
                     </p>
                   </div>
                 </div>
