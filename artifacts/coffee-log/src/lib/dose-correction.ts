@@ -6,7 +6,7 @@ export interface DoseCorrectionFields {
   timeAdj?: number | null;
 }
 
-function roundToTenth(value: number): number {
+export function roundToTenth(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
@@ -34,9 +34,20 @@ export function calculateDoseCorrection(
 
   if (delta < 0) {
     const correction = existingTopUpGrind ?? null;
+    // Carl's original formula: when the top-up overshoots the target dose, the
+    // excess beyond target is recorded as Over Grind Removed and the basket
+    // dose is held at target. The primary action was still a top-up, so
+    // doseCorrectionType / doseCorrection / topUpGrind / timeAdj are unchanged.
+    // Only set overGrindRemoved when it rounds to a positive tenth — otherwise
+    // an explicit null (never undefined), including when no top-up was entered
+    // or the top-up did not reach the gap.
+    const excess =
+      existingTopUpGrind != null
+        ? roundToTenth(initialGrindWeight + existingTopUpGrind - targetDose)
+        : 0;
     return {
       topUpGrind: correction,
-      overGrindRemoved: null,
+      overGrindRemoved: excess > 0 ? excess : null,
       doseCorrectionType: "Under → Top-Up",
       doseCorrection: correction,
       timeAdj: existingTimeAdj ?? minimumTopUpTime,

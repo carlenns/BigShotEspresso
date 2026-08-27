@@ -1918,3 +1918,61 @@ test("Catalog delete routes have a graceful error contract: 409 on blocked, 404 
   );
   assert.doesNotMatch(importCsvHandler, /validateRatings/);
 });
+
+test("Dose correction restores over-grind removal when a top-up overshoots the target", async () => {
+  const [doseCorrection, shotForm, dictionary] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/lib/dose-correction.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../docs/csv-data-dictionary.md", import.meta.url)), "utf8"),
+  ]);
+
+  // roundToTenth is exported so ShotForm's preview rounds identically to the
+  // persisted values.
+  assert.match(doseCorrection, /export function roundToTenth\(value: number\): number/);
+
+  // --- delta < 0 ("Under → Top-Up") branch: the restored formula ---
+  const underBranch = doseCorrection.slice(
+    doseCorrection.indexOf("if (delta < 0) {"),
+    doseCorrection.indexOf('doseCorrectionType: "None"'),
+  );
+  // Excess = initialGrindWeight + existingTopUpGrind - targetDose, rounded to a
+  // tenth; only when a top-up was actually entered.
+  assert.match(underBranch, /existingTopUpGrind != null\s*\n\s*\? roundToTenth\(initialGrindWeight \+ existingTopUpGrind - targetDose\)\s*\n\s*: 0;/);
+  // Recorded only when it rounds to a positive tenth; otherwise explicit null
+  // (never undefined) — covers exact top-up, insufficient top-up, and no top-up.
+  assert.match(underBranch, /overGrindRemoved: excess > 0 \? excess : null,/);
+  // The primary action is still a top-up: type / doseCorrection / topUpGrind
+  // are unchanged in this branch.
+  assert.match(underBranch, /doseCorrectionType: "Under → Top-Up",/);
+  assert.match(underBranch, /topUpGrind: correction,/);
+  assert.match(underBranch, /doseCorrection: correction,/);
+  assert.match(underBranch, /timeAdj: existingTimeAdj \?\? minimumTopUpTime,/);
+
+  // --- delta > 0 ("Over → Trim") branch: untouched ---
+  const overBranch = doseCorrection.slice(doseCorrection.indexOf("if (delta > 0) {"), doseCorrection.indexOf("if (delta < 0) {"));
+  assert.match(overBranch, /topUpGrind: null,\s*\n\s*overGrindRemoved: delta,\s*\n\s*doseCorrectionType: "Over → Trim",\s*\n\s*doseCorrection: delta,/);
+
+  // --- delta === 0 branch: untouched ---
+  assert.match(doseCorrection, /return \{\s*\n\s*topUpGrind: null,\s*\n\s*overGrindRemoved: null,\s*\n\s*doseCorrectionType: "None",\s*\n\s*doseCorrection: null,\s*\n\s*\};/);
+
+  // Carl explicitly chose NOT to persist a total-output field.
+  assert.doesNotMatch(doseCorrection, /totalOutput/);
+
+  // --- ShotForm preview box, Under → Top-Up case ---
+  assert.match(shotForm, /import \{ calculateDoseCorrection, roundToTenth \} from "@\/lib\/dose-correction"/);
+  assert.match(shotForm, /correctionPreview\.doseCorrectionType === "Under → Top-Up" && correctionInitialGrind != null && correctionDose != null/);
+  assert.match(shotForm, /roundToTenth\(Number\(correctionDose\) - Number\(correctionInitialGrind\)\)\} g to reach target/);
+  assert.match(shotForm, /You added \{correctionPreview\.topUpGrind\} g top-up using \{correctionPreview\.timeAdj\} s/);
+  assert.match(shotForm, /Recorded: \{correctionPreview\.overGrindRemoved\} g Over Grind Removed/);
+  assert.match(shotForm, /Total Output \{roundToTenth\(Number\(correctionInitialGrind\) \+ Number\(correctionPreview\.topUpGrind\)\)\} g → Basket Dose \{Number\(correctionDose\)\} g/);
+  // The misleading "Top up {topUpGrind}g to reach target dose" line is gone.
+  assert.doesNotMatch(shotForm, /Top up \{correctionPreview\.topUpGrind\}g to reach target dose/);
+  // Over → Trim message is now scoped to that type only.
+  assert.match(shotForm, /correctionPreview\.doseCorrectionType === "Over → Trim" && correctionPreview\.overGrindRemoved != null/);
+
+  // --- Top-Up Time Adj floor ---
+  assert.match(shotForm, /name="timeAdj"[\s\S]{0,200}<NumberStepper field=\{field\} step=\{0\.1\} min=\{defaultTopUpTime\}/);
+
+  // --- data dictionary keeps the Over Grind Removed nuance ---
+  assert.match(dictionary, /Over Grind Removed/);
+});

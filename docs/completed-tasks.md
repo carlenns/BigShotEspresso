@@ -2,6 +2,58 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Restore over-grind removal when a top-up overshoots the target dose — 2026-08-27
+
+### Problem
+
+Carl's original dose-correction formula recorded the excess as **Over Grind Removed** whenever a top-up pushed total ground past the target dose. That path had been lost: `calculateDoseCorrection` saw "under-dose", echoed `topUpGrind` unchanged, and left `overGrindRemoved` null. Scenario: Initial Grinder Output 17.8, Dose 18, Top-Up Grind 0.6 (0.2 was the real gap) → total 18.4 → the 0.4 excess vanished, and the preview said "Top up 0.6g to reach target dose" (implying 0.6 hits target).
+
+This restores original intended behaviour — not a new invention. No schema / migration / API-field change.
+
+### Change
+
+**`artifacts/coffee-log/src/lib/dose-correction.ts`** — in the `delta < 0` ("Under → Top-Up") branch only:
+
+```
+excess = existingTopUpGrind != null
+  ? roundToTenth(initialGrindWeight + existingTopUpGrind - targetDose)
+  : 0
+overGrindRemoved: excess > 0 ? excess : null
+```
+
+- `overGrindRemoved` is set only when the excess rounds to a positive tenth; otherwise **explicit `null`, never `undefined`** (covers exact top-up, insufficient top-up, and no top-up entered).
+- `doseCorrectionType` stays `"Under → Top-Up"` (dictionary allows only `Over → Trim` / `Under → Top-Up`; the primary action was a top-up). `topUpGrind`, `doseCorrection`, `timeAdj` unchanged.
+- `delta > 0` ("Over → Trim") and `delta === 0` branches untouched.
+- No `totalOutput` computed or returned (Carl explicitly chose not to persist it).
+- `roundToTenth` is now exported so ShotForm rounds identically to the persisted values.
+
+**`artifacts/coffee-log/src/pages/ShotForm.tsx`**
+
+- Both `calculateDoseCorrection` call sites (`correctionPreview` and the submit payload) use the same function, so persistence follows automatically. Hoisted `correctionInitialGrind` / `correctionDose` / `correctionTopUp` from the `form.watch(...)` args so the preview can use the raw values.
+- Rewrote the Dose Correction preview box for the `Under → Top-Up` case (muted-text style, replacing the misleading "Top up {topUpGrind}g to reach target dose"):
+  - `{roundToTenth(dose − initialGrindWeight)} g to reach target` — the real gap.
+  - `You added {topUpGrind} g top-up using {timeAdj} s`.
+  - When `overGrindRemoved` is set: `Recorded: {overGrindRemoved} g Over Grind Removed`.
+  - Informational (display only, not persisted): `Total Output {initialGrindWeight + topUpGrind} g → Basket Dose {dose} g`.
+  - No-top-up hint ("Enter Top-Up Grind grams if used…") kept. `Over → Trim` message now scoped to that type only.
+- `name="timeAdj"` NumberStepper gained `min={defaultTopUpTime}` so it can't step below the 0.2 s global minimum (per-grinder min/increment stays deferred).
+
+**`docs/csv-data-dictionary.md`** — expanded the `Over Grind Removed` row: it is also set when an under-dose `Top-Up Grind` overshoots, with `Dose Correction Type` staying `Under → Top-Up` and only the excess beyond target recorded.
+
+### Edit-mode check — verified correct
+
+`onSubmit` spreads `...calculateDoseCorrection(values.…)` into `payload`, so an edit recomputes from the current field values. Because the branch always returns `overGrindRemoved` explicitly (`0.4` on overshoot, `null` otherwise — never `undefined`), the existing `if (payload.overGrindRemoved === undefined) payload.overGrindRemoved = null` line does not fire for this path and does not need changing. It still does real work when `calculateDoseCorrection` returns `{}` (e.g. the user clears Initial Grinder Output on an edit) → `overGrindRemoved` becomes `undefined` → forced to `null`, clearing any stale value. Clearing is not broken.
+
+### Tests
+
+New source-scan block at EOF of `api-contract.test.ts`: **"Dose correction restores over-grind removal when a top-up overshoots the target"** — asserts the exported `roundToTenth`; the `Under → Top-Up` excess formula and `excess > 0 ? excess : null` (covering the five cases: under+exact top-up → no removal, under+over-top-up → 0.4 recorded, under+insufficient top-up → still short/no removal, `Over → Trim` unchanged, `None` unchanged); the absence of `totalOutput`; the ShotForm preview copy and the `roundToTenth` import; the `timeAdj` `min={defaultTopUpTime}`; the dictionary nuance. (coffee-log has no test runner and a cross-package `import` would break the api-server `rootDir` typecheck, so this is source-scan per the fallback in the task brief.)
+
+### Verification
+
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass (77/77)
+- `CI=true pnpm run build:render` — pass
+
 ## Consolidated launch-readiness roadmap — 2026-08-27
 
 Docs / planning only. No code, no verification run. Not committed, not pushed.

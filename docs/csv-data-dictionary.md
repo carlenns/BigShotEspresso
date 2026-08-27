@@ -26,7 +26,7 @@ UI codes: text, long text, number, currency, date/time, checkbox, dropdown, chip
 | Dose (g) | Number | E | number | Final dose that ends up in the basket after any top-up/trim (app label: `Target / Basket Dose`); actual basket dose used for extraction; OSI/DCI/GSP. |
 | Time Adj (sec) | Number | E | number | Additional/subtracted grind time used for a top-up correction (app label: `Top-Up Time Adj`); DCI/HMI. If left blank during an under-dose top-up, the app falls back to the grinder minimum time setting or 0.2s. |
 | Top-Up Grind (g) | Number | E | number | Extra grounds added after under-dose (app label: `Top-Up Grind Added`) — the incremental grams added, not the final basket dose; DCI/HMI/OSI. |
-| Over Grind Removed (g) | Number | E | number | Grounds removed from the basket to reach target dose after over-dose; DCI/HMI/OSI. |
+| Over Grind Removed (g) | Number | E | number | Grounds removed to hold the basket at target dose. Set when Initial Output already exceeds Dose (`Dose Correction Type` = `Over → Trim`), and also when an under-dose `Top-Up Grind` overshoots the target — in that case `Dose Correction Type` stays `Under → Top-Up` (the primary action was a top-up) and this records only the excess beyond target, rounded to a tenth; DCI/HMI/OSI. |
 | Bean Delta | Formula/Ledger | R | read-only | Inventory change caused by shot/event; Hopper state workflow. |
 | Grind Waste (g) | Number | E | number | Purge/setup/grind-change waste, entered separately from any dose correction; not part of the basket dose. Counts against bag/hopper remaining; Hopper ledger and operational cost. |
 | Beans Added (g) | Number | E | number | Hopper fill/top-up event amount; Hopper state workflow/HMI. |

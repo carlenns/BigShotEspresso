@@ -27,7 +27,7 @@ import { Label } from "@/components/ui/label";
 import { DateTimeInput } from "@/components/ui/date-time-input";
 import { cn } from "@/lib/utils";
 import { TASTE_ZONE_OPTIONS, curatedOptions, curatedScalarOptions, describeAnalysisEligibility, drinkTypeOptionsFromSettings } from "@/lib/selector-options";
-import { calculateDoseCorrection } from "@/lib/dose-correction";
+import { calculateDoseCorrection, roundToTenth } from "@/lib/dose-correction";
 
 interface Bag {
   id: number; beanName: string | null; bagNumber: string | null; bagName: string | null; isActive: boolean;
@@ -694,12 +694,15 @@ export default function ShotForm() {
 
   const ratingVal = form.watch("rating") ?? 7;
   const activeBagId = form.watch("bagId");
+  const correctionInitialGrind = form.watch("initialGrindWeight");
+  const correctionDose = form.watch("dose");
+  const correctionTopUp = form.watch("topUpGrind");
   const correctionPreview = calculateDoseCorrection(
-    form.watch("initialGrindWeight"),
-    form.watch("dose"),
+    correctionInitialGrind,
+    correctionDose,
     form.watch("timeAdj"),
     settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2,
-    form.watch("topUpGrind"),
+    correctionTopUp,
   );
   const activeBags = bags.filter((b) => b.isActive);
   const previousBags = bags.filter((b) => !b.isActive);
@@ -948,7 +951,7 @@ export default function ShotForm() {
                   <FormField control={form.control} name="timeAdj" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Top-Up Time Adj (s)</FormLabel>
-                      <FormControl><NumberStepper field={field} step={0.1} placeholder={String(defaultTopUpTime)} suggestedValue={defaultTopUpTime} /></FormControl>
+                      <FormControl><NumberStepper field={field} step={0.1} min={defaultTopUpTime} placeholder={String(defaultTopUpTime)} suggestedValue={defaultTopUpTime} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -970,21 +973,39 @@ export default function ShotForm() {
                   {correctionPreview.doseCorrectionType && (
                     <div className="rounded-md border bg-muted/40 p-3 text-sm sm:col-span-3">
                       <p className="font-medium">Dose correction: {correctionPreview.doseCorrectionType}</p>
-                      {correctionPreview.overGrindRemoved != null && (
+
+                      {correctionPreview.doseCorrectionType === "Over → Trim" && correctionPreview.overGrindRemoved != null && (
                         <p className="text-muted-foreground">Remove {correctionPreview.overGrindRemoved}g to reach target dose (calculated from Initial Grinder Output over Target Dose).</p>
                       )}
-                      {correctionPreview.topUpGrind != null && (
-                        <p className="text-muted-foreground">
-                          Top up {correctionPreview.topUpGrind}g to reach target dose
-                          {correctionPreview.timeAdj != null ? ` using ${correctionPreview.timeAdj}s.` : "."}
-                        </p>
+
+                      {correctionPreview.doseCorrectionType === "Under → Top-Up" && correctionInitialGrind != null && correctionDose != null && (
+                        <>
+                          <p className="text-muted-foreground">
+                            {roundToTenth(Number(correctionDose) - Number(correctionInitialGrind))} g to reach target
+                          </p>
+                          {correctionPreview.topUpGrind != null ? (
+                            <>
+                              <p className="text-muted-foreground">
+                                You added {correctionPreview.topUpGrind} g top-up using {correctionPreview.timeAdj} s
+                              </p>
+                              {correctionPreview.overGrindRemoved != null && (
+                                <p className="text-muted-foreground">
+                                  Recorded: {correctionPreview.overGrindRemoved} g Over Grind Removed
+                                </p>
+                              )}
+                              <p className="text-muted-foreground">
+                                Total Output {roundToTenth(Number(correctionInitialGrind) + Number(correctionPreview.topUpGrind))} g → Basket Dose {Number(correctionDose)} g
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-muted-foreground">
+                              Enter Top-Up Grind grams if used
+                              {correctionPreview.timeAdj != null ? `; time defaults to ${correctionPreview.timeAdj}s if blank.` : "."}
+                            </p>
+                          )}
+                        </>
                       )}
-                      {correctionPreview.doseCorrectionType === "Under → Top-Up" && correctionPreview.topUpGrind == null && (
-                        <p className="text-muted-foreground">
-                          Enter Top-Up Grind grams if used
-                          {correctionPreview.timeAdj != null ? `; time defaults to ${correctionPreview.timeAdj}s if blank.` : "."}
-                        </p>
-                      )}
+
                       {correctionPreview.doseCorrectionType === "None" && (
                         <p className="text-muted-foreground">Initial output matches target dose.</p>
                       )}
