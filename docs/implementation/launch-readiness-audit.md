@@ -338,3 +338,42 @@ Fixes #6 and #7 resolved once done. Add a dated docs/completed-tasks.md entry.
 ## Handoff
 End with HANDOFF SUMMARY FOR CODEX. Do not commit. Do not push.
 ```
+
+## Owner-Alpha Smoke Review — 2026-08-27
+
+Static source-level pass over Dashboard, Log Shot, Edit Shot, Shot Detail, Beans, Bags (+ Change Bag / Close Bag / Start Hopper Phase), Equipment, Settings, mobile nav, and `/shots/quick`. No live browser or Render pass (Critical Blockers #2/#3 unchanged). Documentation-only addendum; one tiny code fix landed separately (see below).
+
+### New findings
+
+- **Owner-alpha — unconfirmed one-tap delete on catalog records.** `Beans.tsx`, `Equipment.tsx` (grinders + machines), `Accessories.tsx`, and `TasteSelectors.tsx` each delete on a single trash-icon tap with no confirmation dialog. Only `ShotDetail.tsx` gates its delete behind an `AlertDialog`. These records are referenced by bags/shots; a mis-tap is silent data loss (the API error toast only fires if the server *rejects* the delete). Recommend one slice adding the existing `AlertDialog` confirm pattern to all four, matching `ShotDetail`. Not a launch blocker for owner-only, but a real first-impression / data-safety gap for any outside tester.
+- **Polish — `ReferenceShots.tsx` blank screen on fetch error.** `shots?.map(...)` with only `isLoading` and `length === 0` branches: if the query errors, `shots` is `undefined` and the page renders nothing with no message. The same optional-chaining-without-error-branch pattern appears on other list pages that lean on `data = []` defaults; worth a consistency pass, low severity.
+- **Polish — nav dual active-highlight on `/shots/new`.** The mobile bottom nav's inline active check ignores each item's `exact` flag, and the desktop sidebar's `isNavActive` matches `/shots/` as a prefix, so on `/shots/new` both the "Log" (Log Shot) and "Shots" / "Shot Log" tabs read as active. Cosmetic, pre-existing, both navs.
+
+### Fixed this pass (tiny)
+
+- `ReferenceShots.tsx`: In / Out / Time / ratio now use the `!= null ? … : "—"` fallback used elsewhere, instead of rendering a bare "g" / "s" for a reference shot missing a value. Regression test added to `api-contract.test.ts`. See `docs/completed-tasks.md`, "Owner-alpha smoke review + Reference Shots blank-unit guard — 2026-08-27."
+
+### Confirmed still good
+
+`/shots/quick` redirects to `/shots/new` and `QuickLog` is unimported (High-Priority Fix #6 holds). All 10 mobile destinations reachable incl. Settings; hamburger covers Setup & System; edge-fade scroll hint + non-color active cue present (#12 "dense" note stands as future work). Dashboard / Shot List / Bag Detail null-handling is clean. Grinder Setting precision (#8) still hardcoded — in Agent 1's current equipment-consistency bundle, not touched here.
+
+## Standing-Rule Enforcement Audit — 2026-08-27
+
+Source-level check of five standing rules against actual code. Findings only — nothing fixed. Files read: `artifacts/api-server/src/routes/shots.ts`, `artifacts/api-server/src/lib/shot-analysis-eligibility.ts`, `artifacts/api-server/src/lib/shot-eligibility.ts`, `artifacts/api-server/src/routes/hopper.ts`, `artifacts/api-server/src/routes/dashboard.ts`, `artifacts/api-server/src/routes/bags.ts`, `artifacts/coffee-log/src/lib/selector-options.ts`, `artifacts/coffee-log/src/pages/Bags.tsx`, `lib/api-zod/src/generated/api.ts`.
+
+| Rule | Status | Evidence |
+|---|---|---|
+| **Include-in-Analysis** = Status ∈ {Good, Dialed In} AND Fault Status is exactly `["Good"]`, else excluded but preserved | **Enforced (server)** | `shot-analysis-eligibility.ts` `computeIncludeInAnalysis()`; recomputed unconditionally in `routes/shots.ts` POST (L334) and PATCH (L418–420, merges effective status/faultStatus with existing row). Client value never trusted. Row is still stored; only the flag flips. Client mirror in `selector-options.ts` `describeAnalysisEligibility` matches. |
+| **Signature ⇒ Reference** (Reference ⇏ Signature) | **Enforced (server)** | `routes/shots.ts` `normalizeShotInput` L42–43: `signatureShot === true ⇒ isReference = true`; `isReference === false ⇒ signatureShot = false`. Applied in both POST (L326) and PATCH (L403). No reverse implication. |
+| **Sour ⇏ Reference/Signature**; Sour still analytically valid if Status/Fault Good | **GAP (client-only) for the exclusion; the "still valid" half is correct** | `normalizeShotInput` has **no `sourShot` handling** — a direct `POST/PATCH /shots` with `{sourShot:true, isReference:true, signatureShot:true}` is stored as-is. Enforcement exists only in `ShotForm.tsx` checkbox handlers. Separately correct: `computeIncludeInAnalysis` ignores `sourShot`, so a Sour shot with Status/Fault Good is still included — not over-excluded. |
+| **Daily Driver lives in Bean Achievement, not Shot Classification** | **Consistent** | Every counter reads `beanAchievement`: `dashboard.ts` L181, `bags.ts` L56 & L150. Curated lists in `selector-options.ts`: `beanAchievement` contains "Daily Driver" (L73); `shotClassification` does not. Note: "Daily Driver" also exists as a *taste selector* (`routes/taste-selectors.ts` L31, category "character") — a distinct concept; no analytics path conflates them. No server-side write validation of selector membership (by design — historical values preserved). |
+| **Hopper phase labels** limited to Phase 1/2/3, End of Bag, Single Bag Phase, Custom | **GAP (client-only)** | `Bags.tsx` `HOPPER_PHASE_OPTIONS` (L18) constrains the UI dropdowns in both the Start Hopper Phase dialog and the Change Bag flow. But the API contract is `phase: zod.string().nullish()` (`lib/api-zod/src/generated/api.ts` L1056/1068/1082/1095) and `routes/hopper.ts` POST (L47) / PATCH (L103) apply **no allow-list** — any string is accepted. `docs/table-relationships.md` L70 ("values observed or approved") suggests import tolerance is intentional, but the rule as written is not server-enforced. |
+
+### Assessment
+
+- Rules 1, 2, 4: enforced/consistent where it matters (server for 1–2; analytics for 4). No action needed for owner-alpha.
+- Rules 3 (Sour exclusion) and 5 (phase labels): **client-only**. Both are consistent with this project's general "curate in the UI, keep the API permissive so historical/imported values survive" posture, so neither is a launch blocker for owner-only use. They become worth closing before Tier 2 (outside testers, who could hit the API directly or via a future integration). If closed, do it in `normalizeShotInput` (Sour) and a shared phase allow-list checked on `POST/PATCH /hoppers` (phase) — both small, both preserve import behaviour if the allow-list is applied only to interactive writes, not the CSV import path.
+
+### Bonus finding (adjacent, while reading `routes/dashboard.ts`)
+
+- **`Dashboard.tsx` "Puck Screen" equipment line is now dead.** `routes/dashboard.ts` L510 sets `activeBag.usePuckScreen = settings.usePuckScreen === "true"`, but the global `usePuckScreen` Settings key was removed in Launch Readiness Audit Slice 2 (Critical Blocker #4) and the route was not updated — so `usePuckScreen` is always `false` and `Dashboard.tsx` L273 (`{bag.usePuckScreen && …}`) never renders. Low severity (no wrong data shown, just a missing line), but it is a stale read left behind by the Settings cleanup. See also the equipment-default source-of-truth decision doc, which recommends moving this whole summary block onto per-record `isDefault`.

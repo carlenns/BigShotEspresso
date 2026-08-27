@@ -1,6 +1,6 @@
 # Equipment Capability and Shared Library Model
 
-Last updated: 2026-08-24
+Last updated: 2026-08-27
 
 ## Purpose
 
@@ -106,6 +106,34 @@ Personal scale/accessory records should eventually include:
 - paper filter workflow,
 - tamper type,
 - accessory notes.
+
+## V0 status: captured, surfaced, and deferred (2026-08-27)
+
+This section records the *current* implementation against the "eventually include"
+lists above. It is descriptive, not a spec change. No schema or API work is
+authorized by this section.
+
+### Captured today (persisted, editable)
+
+- Grinder (`Equipment.tsx` → `/api/equipment/grinders`, `lib/db/src/schema/equipment.ts`): name, short label, source URL/ASIN, brand, model, type (Espresso / Decaf / Pour-over / Hand / Multi-use), burr size, burr type, **adjustment type** (Stepless / Stepped / Indexed / Unknown), **setting precision** (`grindSettingPrecision`, decimals to display), **marker increment** (`grindStepIncrement`, approx spacing between visible marks), default flag, notes.
+- Machine (`/api/equipment/machines`): name, short label, source URL/model evidence, brand, model, brew method, **stock basket** (free text, used when the basket is the machine's included basket rather than a separate accessory), default flag, notes.
+- Accessories (`/accessories` page — outside this cycle's files): typed records (basket, scale, tamper, puck_screen, …) with short labels and a `specs` blob; puck screen thickness lives in `specs`. `equipmentLabel()` prefers the short label.
+
+### Surfaced in Log Shot today
+
+- Machine and Grinder are selectable on every shot (`shots.machineId` / `shots.grinderId`); the pre-selected value on a *new* shot is the Equipment record whose **`isDefault`** flag is set (`machines.find(m => m.isDefault)` / `grinders.find(g => g.isDefault)`). Edit mode never overwrites the saved value.
+- A Machine's own `brewMethod` seeds the shot Brew Method default (falls back to the Settings `brewMethod`), only when the field is still blank.
+- Shot Detail shows Machine / Grinder / Brew Method only when the shot recorded them.
+
+### Deferred (not implemented; do not build without a decision + approval)
+
+1. **Equipment-aware grind-setting precision in Log Shot.** `grindSettingPrecision` and `grindStepIncrement` are stored and shown on the Equipment page but the Log Shot Grind Setting input uses a fixed `step={0.01}` for all grinders. Wiring this needs product decisions first: how to display/round historical shots logged at 0.01, which grinder resolves when a shot has none selected, and how the regular / decaf / pour-over grinder split interacts with the single Grind Setting field. No schema change and no auth dependency — only rules.
+2. **Per-grinder minimum timed pulse / timed pulse increment / default top-up pulse.** No such columns exist. The only timing default today is the global `grindMinTime` setting (default 0.2), read by Log Shot as the Top-Up Time default; `grindTimerMode` is a reserved, unwired stub. The dead global keys `grindTimeIncrement` / `grindStepIncrement` were removed (nothing read them). Adding per-grinder timing fields is new-schema work and is out of scope until the single-dose / timed-dosing workflow is designed.
+3. **Settings "Equipment Defaults" vs Equipment `isDefault` are two mechanisms.** The Settings → Equipment Defaults dropdowns write string keys (`defaultMachine`, `defaultRegularGrinder`, `defaultGrinder`, `defaultBasket`, `defaultPuckScreen`, …) that feed the **Dashboard** setup summary (`routes/dashboard.ts`) and accessory pre-fills. They do **not** drive the Log Shot Machine/Grinder default — that is the Equipment page's per-record Default badge. The Settings copy was updated (2026-08-27) to state this. Reconciling the two (single source of truth for "my default machine/grinder") is a follow-up for the orchestrator to schedule; it is a behavior change, not a copy fix.
+
+### Not planned for V0
+
+- Shared/verified equipment library, admin review, community verification, AI evidence drafting — all gated on accounts/auth/moderation (see below).
 
 ## Shared equipment library
 

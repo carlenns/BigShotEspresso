@@ -556,6 +556,21 @@ test("Shot Detail shows Sour Shot and hides blank Shot Classification/Bean Achie
   assert.match(source, /Grinder \/ Workflow Event/);
 });
 
+test("Reference Shots card guards missing dose/yield/pour/ratio instead of rendering a bare unit", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/ReferenceShots.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // A reference shot with a null dose/yield/pourTime previously rendered "g",
+  // "g", "s" with no number — the same misleading-blank class fixed elsewhere
+  // in Shot Detail / Shot List / Bag Detail (all use a "—" fallback).
+  assert.match(source, /shot\.dose != null \? `\$\{shot\.dose\}g` : "—"/);
+  assert.match(source, /shot\.yield != null \? `\$\{shot\.yield\}g` : "—"/);
+  assert.match(source, /shot\.pourTime != null \? `\$\{shot\.pourTime\}s` : "—"/);
+  assert.match(source, /\{shot\.ratio \?\? "—"\}/);
+});
+
 test("Machine/profile-level drink defaults are documented as deferred, not implemented", async () => {
   const [checklistSource, dictionarySource, equipmentSchemaSource, shotFormSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../../docs/implementation/release-candidate-checklist.md", import.meta.url)), "utf8"),
@@ -1140,6 +1155,79 @@ test("Machine records can provide stock basket defaults", async () => {
   assert.match(settingsSource, /stockBasketOptions/);
 });
 
+test("Log Shot / Shot Detail equipment consistency: preserved on edit, hidden when absent, precision deferral documented", async () => {
+  const [shotFormSource, shotDetailSource, settingsSource, equipmentModelDoc] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Settings.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../docs/architecture/equipment-capability-library-model.md", import.meta.url)), "utf8"),
+  ]);
+
+  // Edit mode preserves the shot's saved Machine/Grinder: reset seeds both from
+  // existingShot, and the default-fill effects early-return while editing.
+  assert.match(shotFormSource, /machineId: existingShot\.machineId \?\? undefined/);
+  assert.match(shotFormSource, /grinderId: existingShot\.grinderId \?\? undefined/);
+  assert.match(shotFormSource, /const defaultMachine = machines\.find\(\(m\) => m\.isDefault\)/);
+  assert.match(shotFormSource, /const defaultGrinder = grinders\.find\(\(g\) => g\.isDefault\)/);
+
+  // Grind Setting step is not yet equipment-aware — stated in the UI, not hidden.
+  assert.match(shotFormSource, /step=\{0\.01\}/);
+  assert.match(shotFormSource, /don't drive this yet/);
+
+  // Shot Detail shows Machine/Grinder only when the shot recorded them.
+  assert.match(shotDetailSource, /\{machine && <DetailItem label="Machine" value=\{equipmentLabel\(machine\)\} \/>\}/);
+  assert.match(shotDetailSource, /\{grinder && <DetailItem label="Grinder" value=\{equipmentLabel\(grinder\)\} \/>\}/);
+
+  // Settings equipment-defaults no longer implies it drives the Log Shot default.
+  assert.match(settingsSource, /marked <span className="font-medium">Default<\/span> on the Equipment page, not from here/);
+
+  // The V0 status + deferrals are written down.
+  assert.match(equipmentModelDoc, /## V0 status: captured, surfaced, and deferred/);
+  assert.match(equipmentModelDoc, /Equipment-aware grind-setting precision in Log Shot/);
+  assert.match(equipmentModelDoc, /Per-grinder minimum timed pulse \/ timed pulse increment/);
+});
+
+test("Catalog deletes are confirmation-gated like Shot delete", async () => {
+  const [shotDetail, equipment, accessories, beans, tasteSelectors] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Equipment.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Accessories.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Beans.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/TasteSelectors.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  // Reference behaviour: Shot delete routes the destructive mutation through an
+  // AlertDialog action, never a bare onClick.
+  assert.match(shotDetail, /<AlertDialogAction onClick=\{handleDelete\}/);
+
+  // Every catalog page that can delete a record now does the same: the mutate
+  // call lives on an AlertDialogAction, and the row's trash Button/button is
+  // only an AlertDialogTrigger (no onClick that deletes directly).
+  for (const [name, source, mutateCalls] of [
+    ["Equipment", equipment, ['deleteG.mutate(g.id)', 'deleteM.mutate(m.id)']],
+    ["Accessories", accessories, ['deleteMutation.mutate(a.id)']],
+    ["Beans", beans, ['onDelete(b.id)']],
+    ["TasteSelectors", tasteSelectors, ['deleteMutation.mutate(s.id)']],
+  ] as const) {
+    assert.match(source, /from "@\/components\/ui\/alert-dialog"/, `${name} imports AlertDialog`);
+    assert.match(source, /<AlertDialogTitle>Delete /, `${name} has a Delete confirmation title`);
+    assert.match(source, /This action cannot be undone\./, `${name} warns the action is irreversible`);
+    for (const call of mutateCalls) {
+      const escaped = call.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      assert.match(
+        source,
+        new RegExp(`<AlertDialogAction onClick=\\{\\(\\) => ${escaped}\\}`),
+        `${name}: ${call} runs from an AlertDialogAction`,
+      );
+      assert.doesNotMatch(
+        source,
+        new RegExp(`onClick=\\{\\(\\) => ${escaped}\\}[\\s\\S]{0,80}<Trash2`),
+        `${name}: ${call} is not still wired to a bare trash button`,
+      );
+    }
+  }
+});
+
 test("Equipment and accessories preserve personal short labels and source evidence separately from full names", async () => {
   const [equipmentSchema, accessorySchema, equipmentRoute, accessoryRoute, equipmentPage, accessoriesPage, dashboardRoute, shortLabelMigrationSource, sourceUrlMigrationSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../../lib/db/src/schema/equipment.ts", import.meta.url)), "utf8"),
@@ -1624,3 +1712,43 @@ function setOptionalEnv(key: string, value: string | undefined) {
   if (value === undefined) delete process.env[key];
   else process.env[key] = value;
 }
+
+test("Standing rules: server enforces include-in-analysis + signature/reference; sour + hopper-phase are UI-only", async () => {
+  const [shotsRoute, eligibilityLib, hopperRoute, apiZod, bagsPage] = await Promise.all([
+    readFile(fileURLToPath(new URL("./routes/shots.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./lib/shot-analysis-eligibility.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/hopper.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/api-zod/src/generated/api.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  // Rule 1 — Include-in-Analysis is derived server-side from Status + Fault
+  // Status, never trusted from the client, on BOTH create and update.
+  assert.match(eligibilityLib, /export function computeIncludeInAnalysis\(/);
+  assert.match(eligibilityLib, /INCLUDED_STATUSES = new Set\(\["Good", "Dialed In"\]\)/);
+  assert.match(eligibilityLib, /faults\.length === 1 && faults\[0\] === "Good"/);
+  assert.match(shotsRoute, /data\.includeInAnalysis = computeIncludeInAnalysis\(data\.status, data\.faultStatus\)/);
+  assert.match(shotsRoute, /data\.includeInAnalysis = computeIncludeInAnalysis\(effectiveStatus, effectiveFaultStatus\)/);
+
+  // Rule 2 — Signature implies Reference; Reference does not imply Signature.
+  assert.match(shotsRoute, /if \(normalized\.signatureShot === true\) normalized\.isReference = true;/);
+  assert.match(shotsRoute, /if \(normalized\.isReference === false\) normalized\.signatureShot = false;/);
+
+  // Rule 3 — GAP (documented in launch-readiness-audit.md "Standing-Rule
+  // Enforcement Audit — 2026-08-27"): the Sour -/-> Reference/Signature
+  // exclusion is enforced only in ShotForm.tsx, not on the server. If this
+  // assertion starts failing because normalizeShotInput learned about
+  // sourShot, that is good — update the audit finding to "enforced".
+  const normalizeFn = shotsRoute.slice(
+    shotsRoute.indexOf("function normalizeShotInput"),
+    shotsRoute.indexOf("function validateRatings"),
+  );
+  assert.doesNotMatch(normalizeFn, /sourShot/);
+
+  // Rule 5 — GAP (same audit section): hopper phase labels are constrained
+  // only by the Bags.tsx dropdown constant; the API contract accepts any
+  // string and the route applies no allow-list.
+  assert.match(bagsPage, /HOPPER_PHASE_OPTIONS = \["Phase 1", "Phase 2", "Phase 3", "End of Bag", "Single Bag Phase", "Custom"\]/);
+  assert.match(apiZod, /"phase": zod\.string\(\)\.nullish\(\)/);
+  assert.doesNotMatch(hopperRoute, /"Phase 1",\s*"Phase 2"/);
+});

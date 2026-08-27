@@ -492,7 +492,7 @@ function EquipmentDefaultsSection({
           <CardTitle>Equipment Defaults</CardTitle>
         </div>
         <CardDescription>
-          Choose from equipment and active accessories you have already entered. These labels pre-fill future shot workflows.
+          Choose from equipment and active accessories you have already entered. These feed the Dashboard setup summary and pre-fill accessory/basket workflows. The Machine and Grinder that Log Shot pre-selects come from whichever record is marked <span className="font-medium">Default</span> on the Equipment page, not from here.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

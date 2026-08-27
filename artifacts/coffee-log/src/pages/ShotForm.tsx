@@ -869,6 +869,7 @@ export default function ShotForm() {
                     <FormItem>
                       <FormLabel>Grind Setting</FormLabel>
                       <FormControl><NumberStepper field={field} step={0.01} placeholder={defaultGrindSetting.toString()} suggestedValue={defaultGrindSetting} /></FormControl>
+                      <p className="text-xs text-muted-foreground">Steps by 0.01 for every grinder — a grinder's own precision and marker spacing from Equipment don't drive this yet.</p>
                       <FormMessage />
                     </FormItem>
                   )} />

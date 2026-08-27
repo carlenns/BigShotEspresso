@@ -47,21 +47,21 @@ export default function ReferenceShots() {
                   <div className="grid grid-cols-3 gap-2 border-y border-primary/10 py-3 my-2">
                     <div className="text-center">
                       <div className="text-xs text-muted-foreground uppercase tracking-wider">In</div>
-                      <div className="font-mono font-medium">{shot.dose}g</div>
+                      <div className="font-mono font-medium">{shot.dose != null ? `${shot.dose}g` : "—"}</div>
                     </div>
                     <div className="text-center border-x border-primary/10">
                       <div className="text-xs text-muted-foreground uppercase tracking-wider">Out</div>
-                      <div className="font-mono font-medium">{shot.yield}g</div>
+                      <div className="font-mono font-medium">{shot.yield != null ? `${shot.yield}g` : "—"}</div>
                     </div>
                     <div className="text-center">
                       <div className="text-xs text-muted-foreground uppercase tracking-wider">Time</div>
-                      <div className="font-mono font-medium">{shot.pourTime}s</div>
+                      <div className="font-mono font-medium">{shot.pourTime != null ? `${shot.pourTime}s` : "—"}</div>
                     </div>
                   </div>
-                  
+
                   <div className="text-xs text-muted-foreground flex justify-between items-center mt-auto">
                     <span>{format(new Date(shot.shotDate), "MMM d, yyyy")}</span>
-                    <span className="text-primary font-medium">{shot.ratio}</span>
+                    <span className="text-primary font-medium">{shot.ratio ?? "—"}</span>
                   </div>
                 </CardContent>
               </Card>

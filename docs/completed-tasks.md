@@ -2,6 +2,133 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Equipment default source-of-truth decision + standing-rule enforcement audit — 2026-08-27
+
+Review/docs only. No app code, schema, API, or migration changed.
+
+### Part 1 — decision proposal
+
+New file `docs/architecture/equipment-default-source-of-truth-decision.md` documenting the
+split between Settings "Equipment Defaults" string keys (`defaultMachine`,
+`defaultRegularGrinder`/`defaultGrinder`, `defaultBasket`, `defaultPuckScreen`, plus the
+write-only `defaultScale`/`defaultTamper`/`defaultDecafGrinder`/`defaultPourOverGrinder`/
+`defaultBasketSize`) — read only by `routes/dashboard.ts` L507–511 — versus the Equipment
+page per-record `isDefault` flag read by `ShotForm.tsx` L549/L576 to pre-select
+machine/grinder on a new shot. Documents current behaviour of each, five divergence points,
+three reconciliation options (A: `isDefault` authoritative + Dashboard reads it; B: Settings
+keys authoritative + Log Shot reads them; C: keep both, sync on write), and a phased
+recommendation of Option A with best-effort backfill and no shot/bag/hopper data impact.
+**Pending Carl/Codex approval — not implemented.**
+
+### Part 2 — standing-rule enforcement audit
+
+Added to `docs/implementation/launch-readiness-audit.md` (new section
+"Standing-Rule Enforcement Audit — 2026-08-27" at end):
+
+- **Include-in-Analysis** — enforced server-side (`computeIncludeInAnalysis`, POST + PATCH).
+- **Signature ⇒ Reference** — enforced server-side (`normalizeShotInput`).
+- **Sour ⇏ Reference/Signature** — GAP: client-only; `normalizeShotInput` has no `sourShot`
+  handling. ("Sour still analytically valid if Status/Fault Good" — correctly holds.)
+- **Daily Driver in Bean Achievement not Shot Classification** — consistent; all counters
+  read `beanAchievement`, curated lists correct.
+- **Hopper phase labels** — GAP: client-only (`HOPPER_PHASE_OPTIONS`); API contract is
+  `z.string().nullish()`, hopper route applies no allow-list.
+- Bonus: `Dashboard.tsx` "Puck Screen" line is dead — `routes/dashboard.ts` L510 still reads
+  the removed global `usePuckScreen` Settings key.
+
+Both gaps are consistent with the project's "curate in UI, keep API permissive for imports"
+posture — not owner-alpha blockers, worth closing before Tier 2.
+
+### Test
+
+Added one block at end of `artifacts/api-server/src/api-contract.test.ts`:
+`"Standing rules: server enforces include-in-analysis + signature/reference; sour + hopper-phase are UI-only"`.
+
+### Verification
+
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass
+- `CI=true pnpm run build:render` — pass
+
+## Catalog deletes are confirmation-gated like Shot delete — 2026-08-27
+
+### Completed
+
+Destructive delete buttons on the catalog / reference-data pages had no confirmation — a single stray tap permanently removed a grinder, machine, accessory, bean, or taste selector. Shot delete (`ShotDetail.tsx`) already routes through a shadcn `AlertDialog` (trigger → "Delete this shot?" → "This action cannot be undone." → Cancel / Delete). This pass brings the catalog deletes to the same bar.
+
+- **Equipment.tsx** — grinder and machine trash buttons are now `AlertDialogTrigger`s; the `deleteG.mutate` / `deleteM.mutate` calls moved onto the `AlertDialogAction` ("Delete grinder?" / "Delete machine?").
+- **Accessories.tsx** — accessory trash button gated ("Delete accessory?"), name resolved from `shortLabel` / brand+model / type.
+- **Beans.tsx** — `BeanCard` trash button gated ("Delete bean?"); the `onDelete(b.id)` callback now fires from the dialog action.
+- **TasteSelectors.tsx** — the custom-selector trash button (only shown for non-default selectors) gated ("Delete selector?").
+- No API, route, schema, or mutation-logic change — only the click path now passes through a confirm step. Each dialog uses the same "&quot;<name>&quot; will be removed. This action cannot be undone." description and the destructive-styled action button, matching Shot delete.
+
+### Verified
+
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass
+- `CI=true pnpm run build:render` — pass
+
+### Tests
+
+- New source-scan block in `artifacts/api-server/src/api-contract.test.ts`: **"Catalog deletes are confirmation-gated like Shot delete"** — asserts each of the four pages imports `alert-dialog`, has a `Delete …?` title and the irreversibility warning, runs its delete mutation from an `AlertDialogAction`, and no longer wires that mutation to a bare trash button.
+
+### Notes / unresolved
+
+- Bags has no hard delete (its lifecycle uses "Close Out Bag"); Dashboard has none. Neither was touched.
+- Pre-existing and out of scope: `shots.grinderId` / `shots.machineId` are plain FK references with no `onDelete` rule, so deleting equipment that a shot recorded currently fails at the DB with a generic error toast rather than being blocked with a clear message. Worth a follow-up.
+
+## Equipment defaults / Log Shot equipment consistency — V0 pass — 2026-08-27
+
+### Completed
+
+Small display/copy + docs pass. No schema, API, migration, or defaulting-behavior change.
+
+- **ShotForm.tsx**: added one helper line under Grind Setting stating the step is a fixed 0.01 for every grinder and that a grinder's own precision / marker spacing from Equipment don't drive it yet (Q6 — clear copy instead of a half-baked equipment-aware step).
+- **Settings.tsx**: rewrote the Equipment Defaults section description. It previously implied these dropdowns "pre-fill future shot workflows"; it now says they feed the Dashboard setup summary + accessory/basket pre-fills, and that the Machine/Grinder Log Shot pre-selects comes from the record marked **Default** on the Equipment page, not from Settings (Q4 — removes a misleading implication; the two mechanisms are real and separate).
+- **docs/architecture/equipment-capability-library-model.md**: new "## V0 status: captured, surfaced, and deferred (2026-08-27)" section documenting what equipment metadata is persisted/editable today (grinder adjustment type, setting precision, marker increment; machine stock basket; short labels; accessory specs incl. puck screen thickness), what Log Shot / Shot Detail surface today, and three explicit deferrals: (1) equipment-aware grind-setting precision in Log Shot, (2) per-grinder minimum timed pulse / pulse increment (no columns exist; only global `grindMinTime`), (3) Settings Equipment Defaults vs Equipment `isDefault` are two mechanisms and need reconciliation. Bumped "Last updated".
+- **api-contract.test.ts**: new test "Log Shot / Shot Detail equipment consistency…" — edit-mode preservation of `machineId`/`grinderId`, `isDefault`-driven new-shot default, the fixed-0.01 grind step + its disclosure copy, Shot Detail's conditional Machine/Grinder rows, the clarified Settings copy, and the doc deferrals.
+
+### Verified
+
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass
+- `CI=true pnpm run build:render` — pass
+
+### Findings (answers to the task questions)
+
+1. Log Shot shows selected Machine/Grinder — yes, plain labelled selects; value visible.
+2. Edit mode preserves Machine/Grinder — yes (reset seeds from `existingShot`, default effects guard `isEditing`); now test-locked.
+3. Shot Detail — shows Machine/Grinder/Brew Method only when recorded; no noise when absent; now test-locked.
+4. Settings equipment-defaults — reflected, but drove only the Dashboard summary while implying more; copy clarified.
+5. Equipment entry supports adjustment type (Stepless), setting precision, marker increment, machine stock basket, accessory short labels — all already present and test-covered. Grinder minimum time / time increment is **not** a field — deferred in docs (no new schema per boundary #7).
+6. Equipment-aware grind precision in Log Shot — deferred with copy + docs, not implemented.
+
+### Deferred / unresolved
+
+- Equipment-aware grind-setting precision/step in Log Shot (needs rounding/display + grinder-resolution rules first).
+- Per-grinder timed-dosing fields (new schema; wait for single-dose workflow design).
+- Single source of truth for "default machine/grinder" (Settings keys vs Equipment `isDefault`) — behavior change, for Agent 3 / Codex to schedule.
+
+## Owner-alpha smoke review + Reference Shots blank-unit guard — 2026-08-27
+
+### Reviewed (static, source-level)
+
+Dashboard, Log Shot, Edit Shot, Shot Detail, Beans, Bags (Change Bag / Close Bag / Start Hopper Phase), Equipment, Settings, mobile nav / hamburger / bottom nav, `/shots/quick` redirect, plus `App.tsx` routes, `Beans.tsx`, `ReferenceShots.tsx`, `ShotList.tsx`, `BagDetail.tsx`, and delete patterns in `Equipment.tsx` / `Accessories.tsx` / `TasteSelectors.tsx`. No live browser / Render pass (still open — audit Critical Blocker #2/#3).
+
+### Fixed (tiny)
+
+- `ReferenceShots.tsx`: the In / Out / Time grid rendered `{shot.dose}g` / `{shot.yield}g` / `{shot.pourTime}s` and `{shot.ratio}` with no null guard, so a reference shot missing any of those showed a bare unit ("g", "s") or nothing. Now uses the same `!= null ? … : "—"` fallback as Shot Detail / Shot List / Bag Detail. Added a regression test to `api-contract.test.ts`.
+
+### Findings logged to the audit (not fixed here)
+
+See `docs/implementation/launch-readiness-audit.md` addendum "Owner-Alpha Smoke Review — 2026-08-27": unconfirmed one-tap delete on Beans / Equipment / Accessories / Taste Selectors (owner-alpha, data-loss risk); ReferenceShots blank screen on fetch error; bottom-nav + sidebar dual active-highlight on `/shots/new` (polish).
+
+### Verified
+
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass (70/70; +1)
+- `CI=true pnpm run build:render` — pass
+
 ## Mobile bottom-nav label disambiguation ("Log" vs "Shots") — 2026-08-27
 
 ### Completed
