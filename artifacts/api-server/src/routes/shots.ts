@@ -61,8 +61,14 @@ function normalizeShotInput<T extends Partial<InsertShot>>(data: T): T {
 }
 
 function validateRatings(data: Partial<InsertShot>): string | null {
+  if (data.rating != null && Number(data.rating) < 0) {
+    return "Technical rating cannot be negative.";
+  }
   if (data.rating != null && Number(data.rating) > 10) {
     return "Technical rating cannot exceed 10.";
+  }
+  if (data.preferenceRating != null && Number(data.preferenceRating) < 0) {
+    return "Preference rating cannot be negative.";
   }
   if (data.preferenceRating != null && Number(data.preferenceRating) > 11) {
     return "Preference rating cannot exceed 11.";

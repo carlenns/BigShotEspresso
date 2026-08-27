@@ -2,6 +2,78 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Consolidated launch-readiness roadmap — 2026-08-27
+
+Docs / planning only. No code, no verification run. Not committed, not pushed.
+
+New file `docs/implementation/launch-readiness-roadmap.md` — a single dependency-ordered
+view of every open item and "flagged for Carl" decision, previously scattered across
+`launch-readiness-audit.md` (Parts 1 + 2 + pre-fill review), the equipment-default and
+taste-selector decision docs, the "Deferred / Unresolved" tails of `completed-tasks.md`,
+and ADR-0009. Reconciled against `release-candidate-checklist.md` and
+`launch-readiness-audit.md`: kept as a **new sequencing layer**, not merged into the
+checklist (the checklist is gate/verification-structured and carries no dependency edges or
+approval/decision dimension) and not a fourth overlapping findings doc.
+
+Every open item is captured with source, blocking-vs-polish, a category
+(A = safe now / B = needs Carl's approval / C = needs a product decision / D = blocked on
+ADR-0009 accounts), a rough S/M/L size, and its dependencies. Items swept in: standing-rule
+audit (closed: sour, hopper-phase; open: delete-409 UX, accessory no-FK, rating lower
+bound, import-corpus rule-consistency), equipment-default Option A (6 phases), taste-selector
+archive slice, deferred equipment items (grind precision, per-grinder timing), ShotForm
+bag-switch re-seed limitation, the two never-done smoke tests (audit Critical Blockers
+#2/#3), ADR-0009 and everything gated on it, and the nav / ReferenceShots polish items.
+
+Ends with a dependency-ordered sequence (6 tracks) and a recommended next 3–4 slices:
+(1) run SMK-1 + SMK-2 — the continuous browser lifecycle pass and the Render deploy smoke
+test — since they gate the release decision and have never been done end-to-end;
+(2) land Agent 1's in-flight delete-409 + rating-bounds work;
+(3) the no-approval equipment pieces (backfill `isDefault`, fix accessory POST per-type,
+fix the dead `usePuckScreen` read);
+(4) a single decision-gathering pass with Carl to unblock the B/C queue (equipment Option A
++ decaf/pour-over, taste-selector archive column choice, import backfill yes/no, confirm
+magic-link auth).
+
+Note: Agent 1 also added a `completed-tasks.md` section this cycle ("Catalog delete +
+rating-bound error contract hardening", = roadmap items DI-1 + DI-2); whoever commits
+reconciles the two.
+
+## Catalog delete + rating-bound error contract hardening — 2026-08-27
+
+### Problem (Standing-Rule Enforcement Audit Part 2, two gaps)
+
+- The four catalog delete routes (`DELETE /beans/:id`, `/bags/:id`, `/equipment/grinders/:id`, `/equipment/machines/:id`) each did a bare `db.delete(...)` then `204`. A delete blocked by a foreign key surfaced as an opaque **HTTP 500**; a delete of a non-existent id **silently returned 204**.
+- `shots.ts validateRatings` only bounded ratings on the high side (`> 10` / `> 11`). Negative ratings passed the server (the client already blocks them via `optionalRating` `min(0)`).
+
+### Change (server-side only — no schema / migration / API-field change)
+
+**1. Graceful delete error contract.** Each of the four routes now, in order:
+- `if (isNaN(id))` → `400 { error: "Invalid id" }` (added to the two equipment routes; beans/bags already had it).
+- Row-existence check → `404 { error: "Not found" }` when the id doesn't exist.
+- Reference pre-check → `409 { error: "<counted message>" }`:
+  - **Bean** — counts `bags` where `bean_id = :id`: `"<n> bag(s) use(s) this bean — reassign or delete it/them first."`
+  - **Bag** — counts `shots.bag_id` and `hoppers.bag_id` **separately**, builds a parts list: `"This bag still has <n shots> and <m hoppers> — remove it/them first."`
+  - **Grinder** — counts `shots.grinder_id`: `"<n> shot(s) use(s) this grinder — reassign or delete it/them first."`
+  - **Machine** — counts `shots.machine_id`: `"<n> shot(s) use(s) this machine — reassign or delete it/them first."`
+  - Counts use `sql<number>\`count(*)::int\``; singular/plural and it/them are switched on the count.
+- FK-violation safety net — `try { db.delete(...) } catch (err)`: a Postgres `23503` (`isForeignKeyViolation` helper, defined once per route file) returns the same `409` with a generic "still referenced … remove those first." message, in case a reference slips past the pre-check.
+
+**2. Rating lower bound.** `validateRatings` now also returns `400` for `rating < 0` (`"Technical rating cannot be negative."`) and `preferenceRating < 0` (`"Preference rating cannot be negative."`), applied on both `POST /shots` and `PATCH /shots/:id`.
+
+**Not touched:** `taste-selectors.ts` (separate archive slice). CSV/Airtable import paths — they deliberately skip these rules (`/shots/import-csv` does not call `validateRatings`); unchanged.
+
+### Deliberate error-contract change
+
+Delete responses now return **409** (blocked by references) or **404** (missing id) where they previously returned **500** or **204**. Callers that treated any non-204 as a hard failure will now see a structured, user-showable message instead.
+
+### Tests / verification
+
+New EOF block in `api-contract.test.ts`: **"Catalog delete routes have a graceful error contract: 409 on blocked, 404 on missing"** — asserts each delete route's reference pre-check query + counted 409 message + 404 handling + `23503` safety net + (equipment) the `isNaN` guard; asserts the `isForeignKeyViolation` helper shape in all three route files; asserts the negative-rating checks; asserts the `/shots/import-csv` handler still doesn't call `validateRatings`.
+
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass (76/76)
+- `CI=true pnpm run build:render` — pass
+
 ## Log Shot WYSIWYG defaults: shown default is now the saved default — 2026-08-27
 
 ### Problem

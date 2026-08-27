@@ -1,10 +1,16 @@
 import { Router, type IRouter } from "express";
 import { and, eq, sql, desc, isNotNull } from "drizzle-orm";
-import { db, bagsTable, beansTable, shotsTable, settingsTable } from "@workspace/db";
+import { db, bagsTable, beansTable, shotsTable, hoppersTable, settingsTable } from "@workspace/db";
 import { eligibleShotConditions, ratingEligibleShotConditions } from "../lib/shot-eligibility";
 import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weighting";
 
 const router: IRouter = Router();
+
+// Postgres foreign-key violation (23503): a delete blocked because another row
+// still references this record. Safety net behind the explicit pre-check below.
+function isForeignKeyViolation(err: unknown): boolean {
+  return typeof err === "object" && err !== null && (err as { code?: unknown }).code === "23503";
+}
 
 router.get("/bags", async (_req, res): Promise<void> => {
   const settingRows = await db.select().from(settingsTable);
@@ -237,7 +243,35 @@ router.patch("/bags/:id", async (req, res): Promise<void> => {
 router.delete("/bags/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  await db.delete(bagsTable).where(eq(bagsTable.id, id));
+  const [existing] = await db.select({ id: bagsTable.id }).from(bagsTable).where(eq(bagsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+  const [{ shotCount }] = await db
+    .select({ shotCount: sql<number>`count(*)::int` })
+    .from(shotsTable)
+    .where(eq(shotsTable.bagId, id));
+  const [{ hopperCount }] = await db
+    .select({ hopperCount: sql<number>`count(*)::int` })
+    .from(hoppersTable)
+    .where(eq(hoppersTable.bagId, id));
+  if (shotCount > 0 || hopperCount > 0) {
+    const parts: string[] = [];
+    if (shotCount > 0) parts.push(`${shotCount} shot${shotCount === 1 ? "" : "s"}`);
+    if (hopperCount > 0) parts.push(`${hopperCount} hopper${hopperCount === 1 ? "" : "s"}`);
+    const only = shotCount + hopperCount === 1;
+    res.status(409).json({
+      error: `This bag still has ${parts.join(" and ")} — remove ${only ? "it" : "them"} first.`,
+    });
+    return;
+  }
+  try {
+    await db.delete(bagsTable).where(eq(bagsTable.id, id));
+  } catch (err) {
+    if (isForeignKeyViolation(err)) {
+      res.status(409).json({ error: "This bag is still referenced by shots or hoppers — remove those first." });
+      return;
+    }
+    throw err;
+  }
   res.status(204).end();
 });
 

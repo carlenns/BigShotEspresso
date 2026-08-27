@@ -1,8 +1,14 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
-import { db, grindersTable, machinesTable } from "@workspace/db";
+import { eq, sql } from "drizzle-orm";
+import { db, grindersTable, machinesTable, shotsTable } from "@workspace/db";
 
 const router: IRouter = Router();
+
+// Postgres foreign-key violation (23503): a delete blocked because a shot still
+// references this equipment. Safety net behind the explicit pre-checks below.
+function isForeignKeyViolation(err: unknown): boolean {
+  return typeof err === "object" && err !== null && (err as { code?: unknown }).code === "23503";
+}
 
 // ---- GRINDERS ----
 
@@ -60,7 +66,28 @@ router.patch("/equipment/grinders/:id", async (req, res): Promise<void> => {
 
 router.delete("/equipment/grinders/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  await db.delete(grindersTable).where(eq(grindersTable.id, id));
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [existing] = await db.select({ id: grindersTable.id }).from(grindersTable).where(eq(grindersTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+  const [{ shotCount }] = await db
+    .select({ shotCount: sql<number>`count(*)::int` })
+    .from(shotsTable)
+    .where(eq(shotsTable.grinderId, id));
+  if (shotCount > 0) {
+    res.status(409).json({
+      error: `${shotCount} shot${shotCount === 1 ? "" : "s"} use${shotCount === 1 ? "s" : ""} this grinder — reassign or delete ${shotCount === 1 ? "it" : "them"} first.`,
+    });
+    return;
+  }
+  try {
+    await db.delete(grindersTable).where(eq(grindersTable.id, id));
+  } catch (err) {
+    if (isForeignKeyViolation(err)) {
+      res.status(409).json({ error: "This grinder is still referenced by shots — remove those first." });
+      return;
+    }
+    throw err;
+  }
   res.status(204).end();
 });
 
@@ -111,7 +138,28 @@ router.patch("/equipment/machines/:id", async (req, res): Promise<void> => {
 
 router.delete("/equipment/machines/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  await db.delete(machinesTable).where(eq(machinesTable.id, id));
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [existing] = await db.select({ id: machinesTable.id }).from(machinesTable).where(eq(machinesTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+  const [{ shotCount }] = await db
+    .select({ shotCount: sql<number>`count(*)::int` })
+    .from(shotsTable)
+    .where(eq(shotsTable.machineId, id));
+  if (shotCount > 0) {
+    res.status(409).json({
+      error: `${shotCount} shot${shotCount === 1 ? "" : "s"} use${shotCount === 1 ? "s" : ""} this machine — reassign or delete ${shotCount === 1 ? "it" : "them"} first.`,
+    });
+    return;
+  }
+  try {
+    await db.delete(machinesTable).where(eq(machinesTable.id, id));
+  } catch (err) {
+    if (isForeignKeyViolation(err)) {
+      res.status(409).json({ error: "This machine is still referenced by shots — remove those first." });
+      return;
+    }
+    throw err;
+  }
   res.status(204).end();
 });
 

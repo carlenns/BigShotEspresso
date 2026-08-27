@@ -6,6 +6,12 @@ import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weight
 
 const router: IRouter = Router();
 
+// Postgres foreign-key violation (23503): a delete blocked because another row
+// still references this record. Safety net behind the explicit pre-check below.
+function isForeignKeyViolation(err: unknown): boolean {
+  return typeof err === "object" && err !== null && (err as { code?: unknown }).code === "23503";
+}
+
 router.get("/beans", async (_req, res): Promise<void> => {
   const settingRows = await db.select().from(settingsTable);
   const settings = Object.fromEntries(settingRows.map((row) => [row.key, row.value]));
@@ -109,7 +115,27 @@ router.patch("/beans/:id", async (req, res): Promise<void> => {
 router.delete("/beans/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  await db.delete(beansTable).where(eq(beansTable.id, id));
+  const [existing] = await db.select({ id: beansTable.id }).from(beansTable).where(eq(beansTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+  const [{ bagCount }] = await db
+    .select({ bagCount: sql<number>`count(*)::int` })
+    .from(bagsTable)
+    .where(eq(bagsTable.beanId, id));
+  if (bagCount > 0) {
+    res.status(409).json({
+      error: `${bagCount} bag${bagCount === 1 ? "" : "s"} use${bagCount === 1 ? "s" : ""} this bean — reassign or delete ${bagCount === 1 ? "it" : "them"} first.`,
+    });
+    return;
+  }
+  try {
+    await db.delete(beansTable).where(eq(beansTable.id, id));
+  } catch (err) {
+    if (isForeignKeyViolation(err)) {
+      res.status(409).json({ error: "This bean is still referenced by other records — remove those first." });
+      return;
+    }
+    throw err;
+  }
   res.status(204).end();
 });
 

@@ -1854,3 +1854,67 @@ test("Log Shot number fields are WYSIWYG: shown default is the saved default", a
     /Fields are pre-filled with your default values — leave them to log the default, or change any to match this shot\./,
   );
 });
+
+test("Catalog delete routes have a graceful error contract: 409 on blocked, 404 on missing", async () => {
+  const [beans, bags, equipment, shots] = await Promise.all([
+    readFile(fileURLToPath(new URL("./routes/beans.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/bags.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/equipment.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/shots.ts", import.meta.url)), "utf8"),
+  ]);
+
+  // Each of the four delete routes: existence check -> 404; reference pre-check
+  // -> 409 with a counted message; FK-violation (23503) safety net -> same 409;
+  // NaN id -> 400.
+  const beansDelete = beans.slice(beans.indexOf('router.delete("/beans/:id"'));
+  assert.match(beansDelete, /from\(bagsTable\)\s*\n\s*\.where\(eq\(bagsTable\.beanId, id\)\)/);
+  assert.match(beansDelete, /bag\$\{bagCount === 1 \? "" : "s"\}.*this bean — reassign or delete/);
+  assert.match(beansDelete, /res\.status\(404\)\.json\(\{ error: "Not found" \}\)/);
+  assert.match(beansDelete, /isForeignKeyViolation\(err\)/);
+  assert.match(beansDelete, /res\.status\(409\)/);
+
+  const bagsDelete = bags.slice(bags.indexOf('router.delete("/bags/:id"'));
+  assert.match(bagsDelete, /from\(shotsTable\)\s*\n\s*\.where\(eq\(shotsTable\.bagId, id\)\)/);
+  assert.match(bagsDelete, /from\(hoppersTable\)\s*\n\s*\.where\(eq\(hoppersTable\.bagId, id\)\)/);
+  assert.match(bagsDelete, /This bag still has \$\{parts\.join\(" and "\)\} — remove/);
+  assert.match(bagsDelete, /res\.status\(404\)\.json\(\{ error: "Not found" \}\)/);
+  assert.match(bagsDelete, /isForeignKeyViolation\(err\)/);
+  assert.match(bags, /import \{ .*hoppersTable.* \} from "@workspace\/db"/);
+
+  const grinderDelete = equipment.slice(
+    equipment.indexOf('router.delete("/equipment/grinders/:id"'),
+    equipment.indexOf('// ---- MACHINES ----'),
+  );
+  assert.match(grinderDelete, /if \(isNaN\(id\)\) \{ res\.status\(400\)/);
+  assert.match(grinderDelete, /from\(shotsTable\)\s*\n\s*\.where\(eq\(shotsTable\.grinderId, id\)\)/);
+  assert.match(grinderDelete, /this grinder — reassign or delete/);
+  assert.match(grinderDelete, /res\.status\(404\)\.json\(\{ error: "Not found" \}\)/);
+  assert.match(grinderDelete, /isForeignKeyViolation\(err\)/);
+
+  const machineDelete = equipment.slice(equipment.indexOf('router.delete("/equipment/machines/:id"'));
+  assert.match(machineDelete, /if \(isNaN\(id\)\) \{ res\.status\(400\)/);
+  assert.match(machineDelete, /from\(shotsTable\)\s*\n\s*\.where\(eq\(shotsTable\.machineId, id\)\)/);
+  assert.match(machineDelete, /this machine — reassign or delete/);
+  assert.match(machineDelete, /res\.status\(404\)\.json\(\{ error: "Not found" \}\)/);
+  assert.match(machineDelete, /isForeignKeyViolation\(err\)/);
+
+  // The FK safety-net helper is defined once per route file that needs it.
+  for (const src of [beans, bags, equipment]) {
+    assert.match(src, /function isForeignKeyViolation\(err: unknown\): boolean \{\s*\n\s*return typeof err === "object" && err !== null && \(err as \{ code\?: unknown \}\)\.code === "23503";/);
+  }
+
+  // Rating lower bound is now enforced server-side (client already blocks it).
+  const validateRatings = shots.slice(shots.indexOf("function validateRatings"), shots.indexOf("return null;", shots.indexOf("function validateRatings")));
+  assert.match(validateRatings, /Number\(data\.rating\) < 0/);
+  assert.match(validateRatings, /"Technical rating cannot be negative\."/);
+  assert.match(validateRatings, /Number\(data\.preferenceRating\) < 0/);
+  assert.match(validateRatings, /"Preference rating cannot be negative\."/);
+
+  // CSV/Airtable import path deliberately skips these rules — no validateRatings
+  // wired into the /shots/import-csv handler.
+  const importCsvHandler = shots.slice(
+    shots.indexOf('router.post("/shots/import-csv"'),
+    shots.indexOf('router.get("/shots"', shots.indexOf('router.post("/shots/import-csv"')),
+  );
+  assert.doesNotMatch(importCsvHandler, /validateRatings/);
+});
