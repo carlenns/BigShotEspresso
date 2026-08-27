@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -577,6 +577,24 @@ export default function ShotForm() {
     if (defaultGrinder) form.setValue("grinderId", defaultGrinder.id);
   }, [grinders, isEditing, form]);
 
+  // On a new shot, default the Bag selector to the sole active bag so the
+  // grind-defaults auto-fill below has something to work from. Mirrors the
+  // default-machine / default-grinder effects above: create-only, runs once
+  // after the bags list loads, only fills a blank field, and never fights a
+  // manual choice afterwards (including a deliberate "No bag" — the ref stops
+  // it re-firing). When more than one bag is active we can't know which one
+  // was pulled from, so we leave the field unselected and show a visible cue
+  // by the Bag label (below) rather than guess.
+  const didAutoSelectBag = useRef(false);
+  useEffect(() => {
+    if (isEditing || didAutoSelectBag.current) return;
+    if (bags.length === 0) return;
+    didAutoSelectBag.current = true;
+    if (form.getValues("bagId") != null) return;
+    const active = bags.filter((b) => b.isActive);
+    if (active.length === 1) form.setValue("bagId", active[0].id);
+  }, [bags, isEditing, form]);
+
   useEffect(() => {
     if (!isEditing) return;
     setSelectedTastes(existingTasteSelectors.map((selector) => selector.id));
@@ -741,6 +759,11 @@ export default function ShotForm() {
                     </button>
                   ))}
                 </div>
+                {!isEditing && !activeBagId && activeBags.length > 1 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-500">
+                    Multiple bags are active — pick the one you pulled this shot from.
+                  </p>
+                )}
                 {previousBags.length > 0 && (
                   <Button
                     type="button"

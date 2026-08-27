@@ -2,6 +2,32 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Log Shot Bag selector default fix — 2026-08-27
+
+### Completed
+
+- Log Shot (`/shots/new`) now defaults the Bag selector to the single active bag when exactly one bag is active.
+- When more than one bag is active, the form does not guess: the Bag field stays unselected and a visible amber cue ("Multiple bags are active — pick the one you pulled this shot from.") appears by the Bag label.
+- When no bag is active, "No bag" stays selected as before.
+- Editing an existing shot never overrides the shot's saved `bagId` (the new effect is create-only, guarded by `isEditing`).
+- A manual bag choice — including a deliberate "No bag" — is never re-overridden: the auto-select effect runs once via a `didAutoSelectBag` ref after the bags list loads.
+- Added regression assertions to `artifacts/api-server/src/api-contract.test.ts` under the "active-bag-first entry" test.
+
+### Verified
+
+- `CI=true pnpm run typecheck`
+- `CI=true pnpm --filter @workspace/api-server test`
+- `CI=true pnpm run build:render`
+
+### Assumptions
+
+- Active bag = `bag.isActive === true` from `/api/bags` (same predicate already used for `activeBags`/`visibleBags` in the form).
+- No schema or API contract change; the effect mirrors the existing default-machine / default-grinder effects.
+
+### Unresolved
+
+- Database-level one-active-bag enforcement remains future work; this fix only handles the multi-active-bag case in the UI.
+
 ## Bag/Hopper Lifecycle Plan Reconciliation — 2026-08-25
 
 ### Completed

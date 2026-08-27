@@ -1355,6 +1355,16 @@ test("Shot form supports editing, active-bag-first entry, and Taste Zone selecti
   assert.match(formSource, /const activeBags = bags\.filter\(\(b\) => b\.isActive\)/);
   assert.match(formSource, /const visibleBags = showPreviousBags \? bags : activeBags/);
   assert.match(formSource, /Show previous bags/);
+
+  // New-shot Bag default: exactly one active bag preselects; multiple active
+  // bags never silently guess (visible cue instead); edit and manual choices
+  // are never overridden (create-only effect, guarded by a run-once ref).
+  assert.match(formSource, /const didAutoSelectBag = useRef\(false\)/);
+  assert.match(formSource, /if \(isEditing \|\| didAutoSelectBag\.current\) return;/);
+  assert.match(formSource, /const active = bags\.filter\(\(b\) => b\.isActive\);/);
+  assert.match(formSource, /if \(active\.length === 1\) form\.setValue\("bagId", active\[0\]\.id\);/);
+  assert.match(formSource, /!isEditing && !activeBagId && activeBags\.length > 1 &&/);
+  assert.match(formSource, /Multiple bags are active/);
   assert.match(formSource, /fetchShotTasteSelectors/);
   assert.match(formSource, /const NO_TASTE_SELECTORS: TasteSelector\[\] = \[\]/);
   assert.match(formSource, /const savedStatus = existingShot\.status \?\? ""/);
