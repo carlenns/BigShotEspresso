@@ -111,6 +111,9 @@ export const ListShotsResponse = zod.object({
   "grindAdjusted": zod.string().nullish(),
   "shotsLeftEst": zod.number().nullish(),
   "finishedShot": zod.boolean().nullish(),
+  "systemPhase": zod.number().nullish().describe('Machine\/workflow learning era this shot belongs to (1 = setup, 2 = baseline, 3 = timed-dose optimization, ...). Distinct from hopperPhase, which is a bean\/hopper operating window.'),
+  "systemPhaseName": zod.string().nullish().describe('User-defined name for the System Phase, e.g. \"Timed Dose Optimization\".'),
+  "experimentName": zod.string().nullish().describe('Optional named test running inside the current System Phase, e.g. \"Hopper Overfill \/ Timed Dose Stability\".'),
   "hopperPhase": zod.string().nullish(),
   "hopperFullness": zod.number().nullish(),
   "hopperPercent": zod.number().nullish(),
@@ -211,7 +214,10 @@ export const CreateShotBody = zod.object({
   "faultNotes": zod.string().optional(),
   "grindAdjusted": zod.string().nullish(),
   "finishedShot": zod.boolean().nullish(),
-  "shotsLeftEst": zod.number().nullish()
+  "shotsLeftEst": zod.number().nullish(),
+  "systemPhase": zod.number().nullish(),
+  "systemPhaseName": zod.string().nullish(),
+  "experimentName": zod.string().nullish()
 })
 
 
@@ -303,6 +309,9 @@ export const GetShotResponse = zod.object({
   "grindAdjusted": zod.string().nullish(),
   "shotsLeftEst": zod.number().nullish(),
   "finishedShot": zod.boolean().nullish(),
+  "systemPhase": zod.number().nullish().describe('Machine\/workflow learning era this shot belongs to (1 = setup, 2 = baseline, 3 = timed-dose optimization, ...). Distinct from hopperPhase, which is a bean\/hopper operating window.'),
+  "systemPhaseName": zod.string().nullish().describe('User-defined name for the System Phase, e.g. \"Timed Dose Optimization\".'),
+  "experimentName": zod.string().nullish().describe('Optional named test running inside the current System Phase, e.g. \"Hopper Overfill \/ Timed Dose Stability\".'),
   "hopperPhase": zod.string().nullish(),
   "hopperFullness": zod.number().nullish(),
   "hopperPercent": zod.number().nullish(),
@@ -405,7 +414,10 @@ export const UpdateShotBody = zod.object({
   "faultNotes": zod.string().optional(),
   "grindAdjusted": zod.string().nullish(),
   "finishedShot": zod.boolean().nullish(),
-  "shotsLeftEst": zod.number().nullish()
+  "shotsLeftEst": zod.number().nullish(),
+  "systemPhase": zod.number().nullish(),
+  "systemPhaseName": zod.string().nullish(),
+  "experimentName": zod.string().nullish()
 })
 
 export const updateShotResponseRatingMax = 10;
@@ -475,6 +487,9 @@ export const UpdateShotResponse = zod.object({
   "grindAdjusted": zod.string().nullish(),
   "shotsLeftEst": zod.number().nullish(),
   "finishedShot": zod.boolean().nullish(),
+  "systemPhase": zod.number().nullish().describe('Machine\/workflow learning era this shot belongs to (1 = setup, 2 = baseline, 3 = timed-dose optimization, ...). Distinct from hopperPhase, which is a bean\/hopper operating window.'),
+  "systemPhaseName": zod.string().nullish().describe('User-defined name for the System Phase, e.g. \"Timed Dose Optimization\".'),
+  "experimentName": zod.string().nullish().describe('Optional named test running inside the current System Phase, e.g. \"Hopper Overfill \/ Timed Dose Stability\".'),
   "hopperPhase": zod.string().nullish(),
   "hopperFullness": zod.number().nullish(),
   "hopperPercent": zod.number().nullish(),
@@ -600,6 +615,9 @@ export const GetSimilarShotsResponseItem = zod.object({
   "grindAdjusted": zod.string().nullish(),
   "shotsLeftEst": zod.number().nullish(),
   "finishedShot": zod.boolean().nullish(),
+  "systemPhase": zod.number().nullish().describe('Machine\/workflow learning era this shot belongs to (1 = setup, 2 = baseline, 3 = timed-dose optimization, ...). Distinct from hopperPhase, which is a bean\/hopper operating window.'),
+  "systemPhaseName": zod.string().nullish().describe('User-defined name for the System Phase, e.g. \"Timed Dose Optimization\".'),
+  "experimentName": zod.string().nullish().describe('Optional named test running inside the current System Phase, e.g. \"Hopper Overfill \/ Timed Dose Stability\".'),
   "hopperPhase": zod.string().nullish(),
   "hopperFullness": zod.number().nullish(),
   "hopperPercent": zod.number().nullish(),
@@ -726,6 +744,9 @@ export const ListReferenceShotsResponseItem = zod.object({
   "grindAdjusted": zod.string().nullish(),
   "shotsLeftEst": zod.number().nullish(),
   "finishedShot": zod.boolean().nullish(),
+  "systemPhase": zod.number().nullish().describe('Machine\/workflow learning era this shot belongs to (1 = setup, 2 = baseline, 3 = timed-dose optimization, ...). Distinct from hopperPhase, which is a bean\/hopper operating window.'),
+  "systemPhaseName": zod.string().nullish().describe('User-defined name for the System Phase, e.g. \"Timed Dose Optimization\".'),
+  "experimentName": zod.string().nullish().describe('Optional named test running inside the current System Phase, e.g. \"Hopper Overfill \/ Timed Dose Stability\".'),
   "hopperPhase": zod.string().nullish(),
   "hopperFullness": zod.number().nullish(),
   "hopperPercent": zod.number().nullish(),
@@ -865,6 +886,9 @@ export const GetRecentShotsResponseItem = zod.object({
   "grindAdjusted": zod.string().nullish(),
   "shotsLeftEst": zod.number().nullish(),
   "finishedShot": zod.boolean().nullish(),
+  "systemPhase": zod.number().nullish().describe('Machine\/workflow learning era this shot belongs to (1 = setup, 2 = baseline, 3 = timed-dose optimization, ...). Distinct from hopperPhase, which is a bean\/hopper operating window.'),
+  "systemPhaseName": zod.string().nullish().describe('User-defined name for the System Phase, e.g. \"Timed Dose Optimization\".'),
+  "experimentName": zod.string().nullish().describe('Optional named test running inside the current System Phase, e.g. \"Hopper Overfill \/ Timed Dose Stability\".'),
   "hopperPhase": zod.string().nullish(),
   "hopperFullness": zod.number().nullish(),
   "hopperPercent": zod.number().nullish(),
@@ -983,6 +1007,9 @@ export const GetBestRatedShotsResponseItem = zod.object({
   "grindAdjusted": zod.string().nullish(),
   "shotsLeftEst": zod.number().nullish(),
   "finishedShot": zod.boolean().nullish(),
+  "systemPhase": zod.number().nullish().describe('Machine\/workflow learning era this shot belongs to (1 = setup, 2 = baseline, 3 = timed-dose optimization, ...). Distinct from hopperPhase, which is a bean\/hopper operating window.'),
+  "systemPhaseName": zod.string().nullish().describe('User-defined name for the System Phase, e.g. \"Timed Dose Optimization\".'),
+  "experimentName": zod.string().nullish().describe('Optional named test running inside the current System Phase, e.g. \"Hopper Overfill \/ Timed Dose Stability\".'),
   "hopperPhase": zod.string().nullish(),
   "hopperFullness": zod.number().nullish(),
   "hopperPercent": zod.number().nullish(),

@@ -602,6 +602,8 @@ Implementation note:
 
 This should not be implemented as free-text shot notes only. Free-text notes are useful evidence, but future analytics need a structured phase relationship from Shots and lifecycle events to a System Phase.
 
+**Shot-level foundation landed (2026-08-27):** three additive nullable shot columns — `system_phase` (integer era number), `system_phase_name` (text), `experiment_name` (text) — plus compact Log Shot / Edit Shot fields (a "Workflow Context" card) and a conditional Shot Detail "Workflow Context" section shown only when a value is present. This is a deliberate minimal foundation, **not** the full structured model above: no `system_phases` table, no lifecycle-event relationship, no started/ended dates, no analytics. It is more structured than free-text notes (dedicated typed, filterable columns) and does not preclude migrating `system_phase` to a foreign key into a future `system_phases` record. **No historical backfill** — no `System Phase` field exists in any Airtable base or CSV export (verified 2026-08-27; independently re-verified the same day), so shots logged before this stay blank rather than being inferred from `hopper_phase` (`Phase 3` there is the 3rd hopper refill within a bag, not a system era) or shot order. The primary metric for `System Phase 3` is `Initial Output (g)` / `initial_grind_weight` — how consistently the *natural* timed grinder output lands at 18.0g — never `Dose`, which is routinely corrected to 18g and so cannot judge natural grinder-output success.
+
 ## Maintenance Workflow Model
 
 Maintenance is its own workflow, not a subset of Shot Classification or Fault Status, and not implementable as a maintenance table yet — this section is the plan for that model, not the model itself.

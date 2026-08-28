@@ -60,6 +60,11 @@ export default function ShotDetail() {
     shot.rated === false ||
     shot.finishedShot === false;
 
+  const hasWorkflowContext =
+    shot.systemPhase != null ||
+    Boolean(shot.systemPhaseName) ||
+    Boolean(shot.experimentName);
+
   const handleDelete = () => {
     deleteShot.mutate({ id }, {
       onSuccess: () => {
@@ -150,6 +155,22 @@ export default function ShotDetail() {
                   {shot.isForOthers && <DetailItem label="For Others" value="Yes" />}
                   {shot.rated === false && <DetailItem label="Not Rated" value="Yes" />}
                   {shot.finishedShot === false && <DetailItem label="Did Not Finish" value="Yes" />}
+                </div>
+              </div>
+            )}
+
+            {hasWorkflowContext && (
+              <div className="rounded-lg border p-4">
+                <div className="mb-3">
+                  <p className="text-sm font-semibold text-muted-foreground">Workflow Context</p>
+                  <p className="text-xs text-muted-foreground/80">
+                    The machine/workflow learning era this shot belongs to — separate from Hopper Phase.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                  {shot.systemPhase != null && <DetailItem label="System Phase" value={shot.systemPhase} />}
+                  {shot.systemPhaseName && <DetailItem label="Phase Name" value={shot.systemPhaseName} />}
+                  {shot.experimentName && <DetailItem label="Experiment" value={shot.experimentName} />}
                 </div>
               </div>
             )}

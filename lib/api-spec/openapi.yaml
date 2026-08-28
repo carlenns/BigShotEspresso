@@ -533,6 +533,9 @@ components:
         grindAdjusted: { type: ["string", "null"] }
         shotsLeftEst: { type: ["number", "null"] }
         finishedShot: { type: ["boolean", "null"] }
+        systemPhase: { type: ["integer", "null"], description: "Machine/workflow learning era this shot belongs to (1 = setup, 2 = baseline, 3 = timed-dose optimization, ...). Distinct from hopperPhase, which is a bean/hopper operating window." }
+        systemPhaseName: { type: ["string", "null"], description: "User-defined name for the System Phase, e.g. \"Timed Dose Optimization\"." }
+        experimentName: { type: ["string", "null"], description: "Optional named test running inside the current System Phase, e.g. \"Hopper Overfill / Timed Dose Stability\"." }
         hopperPhase: { type: ["string", "null"] }
         hopperFullness: { type: ["number", "null"] }
         hopperPercent: { type: ["number", "null"], readOnly: true }
@@ -646,6 +649,9 @@ components:
         grindAdjusted: { type: ["string", "null"] }
         finishedShot: { type: ["boolean", "null"] }
         shotsLeftEst: { type: ["number", "null"] }
+        systemPhase: { type: ["integer", "null"] }
+        systemPhaseName: { type: ["string", "null"] }
+        experimentName: { type: ["string", "null"] }
 
     ShotInput:
       type: object

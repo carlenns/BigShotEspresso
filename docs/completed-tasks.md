@@ -2,6 +2,46 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Shot-level System Phase / Experiment foundation — 2026-08-27
+
+### Goal
+
+Recover the missing **System Phase** concept from Carl's Airtable-era workflow — the machine/workflow *learning era* a shot belongs to — without confusing it with **Hopper Phase** (a bean/hopper operating window). System Phase 1 = setup/learning, 2 = scientific process / baseline, 3 = timed dose optimization (improving how consistently `Initial Grinder Output` naturally lands at 18.0g ±0.2g — the target/tolerance are from Carl's brief), 4 = active experimentation era (per the decided model in `bag-hopper-lifecycle-plan.md`), and onward. An **Experiment** is an optional named test nested inside one phase.
+
+Smallest safe additive foundation only. No `system_phases` table, no lifecycle-event relationship, no analytics/dashboard/predictive logic — those remain the future structured model in `docs/implementation/bag-hopper-lifecycle-plan.md`.
+
+### Evidence — no historical backfill
+
+Searched every available export (`CSV Files/Shots-Shots Entering-7.csv` — 93 columns; `attached_assets/Shots-Shots_Entering-3_*.csv` — 87 columns; `Project Notes` CSV; `artifacts/api-server/src/lib/airtable-mapping.ts` — 60+ `field()` calls) and all docs. **No `System Phase` or `Experiment` field exists anywhere.** The concept appears only as forward-looking planning text and as one `Shot Classification` dropdown *value* (`experiment`). Closest actual field is `Hopper Phase` (live DB, 250 rows: `Phase 1` 71 · `Phase 2` 78 · `Phase 3` 46 · `End of Bag` 36 · `Grinder Cleanout` 4 · null 15) — `Phase 3` there is the 3rd hopper refill within a bag, **not** a system era, so it is a rough proxy and not equivalent. Conclusion independently re-verified the same day by a second read. Existing shots therefore stay **NULL** — not inferred from `hopper_phase` or shot order.
+
+Natural-18g baseline (on `initial_grind_weight`, the canonical field — never `dose`, which is corrected to 18g): of 201 shots with a value, exact 18.0 = 9 (4.5%), within ±0.2g = 34 (16.9%), within ±0.3g = 101 (50.2%); avg 17.88g, sd 0.66. Eligible-only (189): ±0.2 = 32, ±0.3 = 96. Bag 3 (avg 17.05, ~12% within ±0.3) is an outlier dragging the global mean below 18; the other five bags average 17.9–18.5. `grinder_initial_output_for_charts` (removed in migration 0009) was a chart y-axis scaling helper derived from `initial_grind_weight`, never independent dose evidence.
+
+### Change
+
+**Schema** — `lib/db/src/schema/shots.ts`: `systemPhase: integer("system_phase")`, `systemPhaseName: text("system_phase_name")`, `experimentName: text("experiment_name")`, all nullable, placed next to `bagOpenedDate`/`hopperPhase` with a comment spelling out the System-Phase-vs-Hopper-Phase distinction and the no-backfill rule.
+
+**Migration** — `lib/db/migrations/0011_shot_system_phase.sql` / `.down.sql`: `ADD COLUMN IF NOT EXISTS` × 3 in a `BEGIN/COMMIT`; down drops all three. No `UPDATE`/backfill. Mirrored into `artifacts/api-server/src/lib/runtime-schema.ts` `SHOTS_SCHEMA_SQL` (the runtime guard, not the migration file, is what actually syncs the deployed DB).
+
+**API contract** — `lib/api-spec/openapi.yaml`: added to the `Shot` read schema (with descriptions) and the `ShotWriteFields` anchor (covers create + update bodies). Regenerated via `pnpm --filter @workspace/api-spec run codegen` — `lib/api-zod/src/generated/` and `lib/api-client-react/src/generated/` now carry the fields. `toShotApi` passes them through automatically; the shot POST/PATCH handlers spread parsed body, so no route code change.
+
+**Log Shot / Edit Shot** — `artifacts/coffee-log/src/pages/ShotForm.tsx`: added the three fields to `formSchema` (`systemPhase` via `optionalNumber`), `defaultValues`, the edit-mode `form.reset`, and `NULLABLE_ON_EDIT_FIELDS` (so clearing a field on edit persists as `null`). New compact "Workflow Context" card before Notes: a `NumberStepper` for System Phase + two `Input`s for Phase Name / Experiment, with helper copy stating it is separate from Hopper Phase. No default seeding — blank stays blank.
+
+**Shot Detail** — `artifacts/coffee-log/src/pages/ShotDetail.tsx`: `hasWorkflowContext` guard; a "Workflow Context" section (mirroring "Serving Context") rendered **only** when `systemPhase`, `systemPhaseName`, or `experimentName` is present.
+
+**Docs** — `docs/csv-data-dictionary.md` (three new Shots rows + a clarifying note on the existing `Hopper Phase` row); `docs/implementation/bag-hopper-lifecycle-plan.md` (the "System Phase / Experiment Phase model" implementation note now records the shot-level foundation, its scope limits, the no-backfill evidence, and the `Initial Output`-not-`Dose` metric rule).
+
+**Tests** — `artifacts/api-server/src/api-contract.test.ts`: new source-scan block mirroring the Brew Method one — schema columns, migration up/down, runtime-guard parity, OpenAPI on both shapes, generated types, ShotForm wiring (schema/defaults/reset/nullable-on-edit/field render), ShotDetail conditional render, and the no-backfill assertions (`doesNotMatch` any `UPDATE shots SET system_phase`).
+
+### Not done (out of scope, deliberately)
+
+`system_phases` table · phase/experiment lifecycle events · started/ended dates · phase-scoped analytics, dashboards, filtering, or comparison · predictive logic · any historical backfill · any change to `hopper_phase` semantics or Quick Log.
+
+### Verification
+
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass
+- `CI=true pnpm run build:render` — pass
+
 ## Restore over-grind removal when a top-up overshoots the target dose — 2026-08-27
 
 ### Problem
