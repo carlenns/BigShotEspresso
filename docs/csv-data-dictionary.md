@@ -65,7 +65,10 @@ UI codes: text, long text, number, currency, date/time, checkbox, dropdown, chip
 | Rating ( Valid Only ) | Formula | R | read-only | Rating filtered by analysis validity. |
 | Fault Notes | Long Text | E | long text | Free-form mechanical/fault explanation. |
 | Bag Opened Date | Lookup/Date | R | read-only | Bag open date propagated to shot; BLI. |
-| Hopper Phase | Single Select | S | dropdown/read-only | State phase assigned by Hopper workflow; HMI/BLI. |
+| System Phase | Number | E | number | The machine/workflow *learning era* this shot belongs to (Carl's Airtable-era workflow concept): `1` = initial setup, `2` = scientific process / baseline, `3` = timed dose optimization (improving how consistently `Initial Output` naturally lands at 18.0g), `4` = active experimentation era, and onward. Deliberately **distinct from `Hopper Phase`**, which is a bean/hopper operating window. Optional; no historical values — no `System Phase` field exists in any Airtable base or CSV export, so shots logged before this field stay blank rather than being guessed from `Hopper Phase` or shot order. `Hopper Phase = Phase 3` is only a loose proxy and is not equivalent. |
+| Phase Name | Text | E | text | User-defined name for the `System Phase`, e.g. `Timed Dose Optimization`. Optional free text. |
+| Experiment | Text | E | text | Optional named test running *inside* the current `System Phase`, e.g. `Hopper Overfill / Timed Dose Stability`. A phase can have no experiment; an experiment always belongs to exactly one phase. Free text; the structured phase/experiment record model in `docs/implementation/bag-hopper-lifecycle-plan.md` remains a future step. |
+| Hopper Phase | Single Select | S | dropdown/read-only | State phase assigned by Hopper workflow; HMI/BLI. Bean/hopper operating window — not the same as `System Phase`. |
 | Hopper Fullness | Number/Percent | S | percent | Hopper fullness at shot time; HMI/DCI/OSI. |
 | Hopper % | Formula/Percent | R | read-only | Hopper ledger percentage/change value; exact formula unresolved. |
 | Hopper Range | Single Select | R | read-only | Fullness bucket; HMI baseline grouping. |

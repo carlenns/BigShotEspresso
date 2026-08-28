@@ -133,6 +133,11 @@ const formSchema = z.object({
   shotClassification: z.array(z.string()).optional(),
   tasteZone: z.string().optional(),
   includeInAnalysis: z.boolean().default(true),
+  // Workflow Context — the machine/workflow learning era, distinct from
+  // Hopper Phase. All optional; blank stays blank (no default seeding).
+  systemPhase: optionalNumber,
+  systemPhaseName: z.string().optional(),
+  experimentName: z.string().optional(),
   notes: z.string().optional(),
   sensoryNotes: z.string().optional(),
 });
@@ -156,6 +161,7 @@ const NULLABLE_ON_EDIT_FIELDS: (keyof FormValues)[] = [
   "tasteZone", "shotClassification", "beanAchievement", "expressionStyle",
   "sensoryNotes", "notes", "drinkType", "brewMethod", "finishedShot",
   "isForOthers", "rated", "sourShot", "signatureShot",
+  "systemPhase", "systemPhaseName", "experimentName",
 ];
 
 function ScalarSelect({
@@ -440,6 +446,9 @@ export default function ShotForm() {
       shotClassification: [],
       tasteZone: undefined,
       includeInAnalysis: true,
+      systemPhase: undefined,
+      systemPhaseName: undefined,
+      experimentName: undefined,
     },
   });
 
@@ -519,6 +528,9 @@ export default function ShotForm() {
       shotClassification: existingShot.shotClassification ?? [],
       tasteZone: savedTasteZone,
       includeInAnalysis: existingShot.includeInAnalysis ?? true,
+      systemPhase: existingShot.systemPhase ?? undefined,
+      systemPhaseName: existingShot.systemPhaseName ?? undefined,
+      experimentName: existingShot.experimentName ?? undefined,
       notes: existingShot.notes ?? undefined,
       sensoryNotes: existingShot.sensoryNotes ?? undefined,
     });
@@ -1463,6 +1475,42 @@ export default function ShotForm() {
                 )}
               </div>
 
+            </CardContent>
+          </Card>
+
+          {/* Workflow Context — the machine/workflow learning era this shot
+              belongs to. Separate from Hopper Phase (a bean/hopper window):
+              System Phase is the broader era, an Experiment is a named test
+              running inside it. All optional; leave blank if not tracking phases. */}
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Workflow Context</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs text-muted-foreground">
+                The machine/workflow learning era this shot belongs to — separate from Hopper Phase. Optional.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <FormField control={form.control} name="systemPhase" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>System Phase <span className="text-muted-foreground text-xs font-normal">optional</span></FormLabel>
+                    <FormControl><NumberStepper field={field} step={1} min={1} placeholder="e.g. 3" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="systemPhaseName" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phase Name <span className="text-muted-foreground text-xs font-normal">optional</span></FormLabel>
+                    <FormControl><Input placeholder="e.g. Timed Dose Optimization" {...field} value={field.value ?? ""} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="experimentName" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Experiment <span className="text-muted-foreground text-xs font-normal">optional</span></FormLabel>
+                    <FormControl><Input placeholder="e.g. Hopper Overfill / Timed Dose Stability" {...field} value={field.value ?? ""} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
             </CardContent>
           </Card>
 

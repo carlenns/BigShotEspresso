@@ -445,6 +445,92 @@ test("Shot-level Brew Method is durable evidence, independent of Drink Type", as
   assert.match(shotDetailSource, /shot\.brewMethod && <DetailItem label="Brew Method" value=\{shot\.brewMethod\} \/>/);
 });
 
+test("Shot-level System Phase / Experiment is an additive foundation, distinct from Hopper Phase, with no historical backfill", async () => {
+  const [schemaSource, migrationSource, migrationRollbackSource, runtimeSchemaSource, openApiSource, shotFormSource, shotDetailSource, csvDictSource, lifecyclePlanSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../../lib/db/src/schema/shots.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/migrations/0011_shot_system_phase.sql", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/migrations/0011_shot_system_phase.down.sql", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./lib/runtime-schema.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/api-spec/openapi.yaml", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../docs/csv-data-dictionary.md", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../docs/implementation/bag-hopper-lifecycle-plan.md", import.meta.url)), "utf8"),
+  ]);
+
+  // Schema: three real, separate, nullable columns — not reusing hopperPhase.
+  assert.match(schemaSource, /systemPhase: integer\("system_phase"\)/);
+  assert.match(schemaSource, /systemPhaseName: text\("system_phase_name"\)/);
+  assert.match(schemaSource, /experimentName: text\("experiment_name"\)/);
+
+  // Migration: additive only, and — unlike brew_method — NO backfill. Existing
+  // shots stay NULL because no historical System Phase field exists anywhere.
+  assert.match(migrationSource, /ADD COLUMN IF NOT EXISTS system_phase integer/);
+  assert.match(migrationSource, /ADD COLUMN IF NOT EXISTS system_phase_name text/);
+  assert.match(migrationSource, /ADD COLUMN IF NOT EXISTS experiment_name text/);
+  assert.doesNotMatch(migrationSource, /UPDATE\s+shots/i);
+  assert.match(migrationRollbackSource, /DROP COLUMN IF EXISTS system_phase\b/);
+  assert.match(migrationRollbackSource, /DROP COLUMN IF EXISTS system_phase_name/);
+  assert.match(migrationRollbackSource, /DROP COLUMN IF EXISTS experiment_name/);
+
+  // Runtime guard (ensureRuntimeSchema) carries the identical additive columns
+  // and likewise performs no System Phase backfill.
+  assert.match(runtimeSchemaSource, /ADD COLUMN IF NOT EXISTS system_phase integer/);
+  assert.match(runtimeSchemaSource, /ADD COLUMN IF NOT EXISTS system_phase_name text/);
+  assert.match(runtimeSchemaSource, /ADD COLUMN IF NOT EXISTS experiment_name text/);
+  assert.doesNotMatch(runtimeSchemaSource, /SET system_phase/);
+
+  // OpenAPI: present on both the read shape and the shared write-fields shape.
+  const shotSchemaBlock = openApiSource.slice(openApiSource.indexOf("    Shot:"), openApiSource.indexOf("    ShotList:"));
+  assert.match(shotSchemaBlock, /systemPhase: \{ type: \["integer", "null"\]/);
+  assert.match(shotSchemaBlock, /systemPhaseName: \{ type: \["string", "null"\]/);
+  assert.match(shotSchemaBlock, /experimentName: \{ type: \["string", "null"\]/);
+  const shotWriteFieldsBlock = openApiSource.slice(openApiSource.indexOf("    ShotWriteFields:"), openApiSource.indexOf("    ShotInput:"));
+  assert.match(shotWriteFieldsBlock, /systemPhase: \{ type: \["integer", "null"\] \}/);
+  assert.match(shotWriteFieldsBlock, /experimentName: \{ type: \["string", "null"\] \}/);
+
+  // Generated API types actually picked up the spec change.
+  const [shotType, shotWriteFieldsType] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../../lib/api-zod/src/generated/types/shot.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/api-zod/src/generated/types/shotWriteFields.ts", import.meta.url)), "utf8"),
+  ]);
+  assert.match(shotType, /systemPhase\?: number \| null/);
+  assert.match(shotType, /experimentName\?: string \| null/);
+  assert.match(shotWriteFieldsType, /systemPhase\?: number \| null/);
+
+  // ShotForm: fields exist, are clearable to null on edit, seeded from
+  // existingShot on edit-reset, and NEVER default-seeded (blank stays blank —
+  // no setValue, no effect writing them).
+  assert.match(shotFormSource, /systemPhase: optionalNumber/);
+  assert.match(shotFormSource, /systemPhaseName: z\.string\(\)\.optional\(\)/);
+  assert.match(shotFormSource, /"systemPhase", "systemPhaseName", "experimentName"/);
+  assert.match(shotFormSource, /systemPhase: existingShot\.systemPhase \?\? undefined/);
+  assert.match(shotFormSource, /experimentName: existingShot\.experimentName \?\? undefined/);
+  assert.match(shotFormSource, /name="systemPhase"/);
+  assert.match(shotFormSource, /<CardTitle className="text-base">Workflow Context<\/CardTitle>/);
+  assert.doesNotMatch(shotFormSource, /setValue\("systemPhase"/);
+  assert.doesNotMatch(shotFormSource, /setValue\("experimentName"/);
+
+  // User-visible copy names the distinction from Hopper Phase.
+  assert.match(shotFormSource, /machine\/workflow learning era this shot belongs to — separate from Hopper Phase/);
+
+  // Shot Detail: a conditional section rendered only when a value is present.
+  assert.match(shotDetailSource, /const hasWorkflowContext =/);
+  assert.match(shotDetailSource, /Boolean\(shot\.systemPhaseName\)/);
+  assert.match(shotDetailSource, /Boolean\(shot\.experimentName\)/);
+  assert.match(shotDetailSource, /shot\.systemPhase != null && <DetailItem label="System Phase" value=\{shot\.systemPhase\} \/>/);
+  assert.match(shotDetailSource, /shot\.experimentName && <DetailItem label="Experiment" value=\{shot\.experimentName\} \/>/);
+
+  // Docs: dictionary rows exist and spell out the distinction + no history;
+  // the lifecycle plan records the foundation and its scope limits.
+  assert.match(csvDictSource, /\| System Phase \| Number \| E \| number \|/);
+  assert.match(csvDictSource, /\| Phase Name \| Text \| E \| text \|/);
+  assert.match(csvDictSource, /\| Experiment \| Text \| E \| text \|/);
+  assert.match(csvDictSource, /distinct from `Hopper Phase`/);
+  assert.match(lifecyclePlanSource, /Shot-level foundation landed \(2026-08-27\)/);
+  assert.match(lifecyclePlanSource, /No historical backfill/);
+});
+
 test("Drink Type is user-extensible: Affogato is curated and custom values merge without dropping saved shots", async () => {
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/lib/selector-options.ts", import.meta.url)),

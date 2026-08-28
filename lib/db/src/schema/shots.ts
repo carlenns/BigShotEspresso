@@ -63,6 +63,16 @@ export const shotsTable = pgTable("shots", {
   notes: text("notes"),
   faultNotes: text("fault_notes"),
   bagOpenedDate: text("bag_opened_date"),
+  // System Phase / Experiment — the machine/workflow *learning era* a shot
+  // belongs to (Carl's Airtable-era concept). Deliberately distinct from
+  // hopperPhase, which is a bean/hopper operating window. systemPhase is the
+  // era number (1 = setup, 2 = baseline, 3 = timed-dose optimization, ...);
+  // systemPhaseName is its user-defined name; experimentName is an optional
+  // named test running *inside* that phase. All nullable, no backfill: no
+  // historical System Phase field exists in any Airtable/CSV export.
+  systemPhase: integer("system_phase"),
+  systemPhaseName: text("system_phase_name"),
+  experimentName: text("experiment_name"),
   hopperPhase: text("hopper_phase"),
   hopperFullness: real("hopper_fullness"),
   hopperPercent: real("hopper_percent"),

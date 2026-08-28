@@ -25,6 +25,11 @@ ALTER TABLE accessories
 // and is a no-op on every boot after the first (see 0010_shot_brew_method.sql
 // for the same guard, kept in sync since this runtime guard — not the
 // migration file — is what actually applies to the deployed database).
+//
+// System Phase / Experiment (0011_shot_system_phase.sql): the machine/workflow
+// learning era a shot belongs to, distinct from hopper_phase. Purely additive,
+// NO backfill — no historical System Phase field exists in any export, so
+// existing shots stay NULL rather than being guessed.
 const SHOTS_SCHEMA_SQL = `
 ALTER TABLE shots
   ADD COLUMN IF NOT EXISTS brew_method text;
@@ -32,6 +37,11 @@ ALTER TABLE shots
 UPDATE shots
 SET brew_method = 'Espresso'
 WHERE brew_method IS NULL;
+
+ALTER TABLE shots
+  ADD COLUMN IF NOT EXISTS system_phase integer,
+  ADD COLUMN IF NOT EXISTS system_phase_name text,
+  ADD COLUMN IF NOT EXISTS experiment_name text;
 `;
 
 export async function ensureRuntimeSchema(): Promise<void> {

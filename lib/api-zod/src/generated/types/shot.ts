@@ -131,6 +131,21 @@ export interface Shot {
   shotsLeftEst?: number | null;
   /** @nullable */
   finishedShot?: boolean | null;
+  /**
+     * Machine/workflow learning era this shot belongs to (1 = setup, 2 = baseline, 3 = timed-dose optimization, ...). Distinct from hopperPhase, which is a bean/hopper operating window.
+     * @nullable
+     */
+  systemPhase?: number | null;
+  /**
+     * User-defined name for the System Phase, e.g. "Timed Dose Optimization".
+     * @nullable
+     */
+  systemPhaseName?: string | null;
+  /**
+     * Optional named test running inside the current System Phase, e.g. "Hopper Overfill / Timed Dose Stability".
+     * @nullable
+     */
+  experimentName?: string | null;
   /** @nullable */
   hopperPhase?: string | null;
   /** @nullable */

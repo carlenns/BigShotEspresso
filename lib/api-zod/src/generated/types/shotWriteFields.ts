@@ -102,4 +102,10 @@ export interface ShotWriteFields {
   finishedShot?: boolean | null;
   /** @nullable */
   shotsLeftEst?: number | null;
+  /** @nullable */
+  systemPhase?: number | null;
+  /** @nullable */
+  systemPhaseName?: string | null;
+  /** @nullable */
+  experimentName?: string | null;
 }
