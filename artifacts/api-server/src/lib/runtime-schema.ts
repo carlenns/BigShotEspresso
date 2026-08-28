@@ -30,6 +30,12 @@ ALTER TABLE accessories
 // learning era a shot belongs to, distinct from hopper_phase. Purely additive,
 // NO backfill — no historical System Phase field exists in any export, so
 // existing shots stay NULL rather than being guessed.
+//
+// Days Since Open (0012_shot_days_since_open_backfill.sql): a derived integer
+// (shot_date − bag opened_date). The column already exists and was only ever
+// filled by CSV/Airtable import; the route now computes it on every POST/PATCH
+// and this backfills the pre-existing in-app rows. Guarded on
+// `days_since_open IS NULL` so it is a no-op on every boot after the first.
 const SHOTS_SCHEMA_SQL = `
 ALTER TABLE shots
   ADD COLUMN IF NOT EXISTS brew_method text;
@@ -42,6 +48,18 @@ ALTER TABLE shots
   ADD COLUMN IF NOT EXISTS system_phase integer,
   ADD COLUMN IF NOT EXISTS system_phase_name text,
   ADD COLUMN IF NOT EXISTS experiment_name text;
+
+ALTER TABLE shots
+  ADD COLUMN IF NOT EXISTS days_since_open integer;
+
+UPDATE shots s
+SET days_since_open = (s.shot_date::date - b.opened_date::date)
+FROM bags b
+WHERE s.bag_id = b.id
+  AND s.days_since_open IS NULL
+  AND b.opened_date IS NOT NULL
+  AND s.shot_date IS NOT NULL
+  AND s.shot_date ~ '^\\d{4}-\\d{2}-\\d{2}';
 `;
 
 export async function ensureRuntimeSchema(): Promise<void> {

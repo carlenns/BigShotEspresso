@@ -2,6 +2,75 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## owner-alpha cleanup: currency, System Phase wording, Taste Selectors triage, Days Since Open reinstated — 2026-08-28
+
+Five small items. No schema-system, auth, payments, predictive, or Quick Log work.
+
+### 1. Currency `$` consistency (copy/display only)
+The only user-facing money value is bag cost. `Bags.tsx` already labels the field
+`Cost ($)` and renders `Cost: $X.XX` on the card (PR #5). Added the same
+`Cost: $X.XX` (2 dp) readout to `BagDetail.tsx`'s header line (`cost` added to its
+local bag interface; the `/api/bags/:id` payload already returns it). No other
+bare dollar amounts exist — Dashboard, brief, and intelligence surfaces carry no
+cost figures.
+
+### 2. System Phase vs Hopper Phase wording (copy only)
+- `ShotForm.tsx` "Workflow Context" helper: now states plainly "This is **not**
+  Hopper Phase — Hopper Phase tracks a bean/hopper operating window; System Phase
+  tracks where you are in dialing the whole setup." (was "— separate from Hopper
+  Phase").
+- `ShotDetail.tsx` "Workflow Context" section: "— not Hopper Phase, which tracks a
+  bean/hopper operating window." No table, no backfill.
+- `api-contract.test.ts`: the one assertion locking the old phrase updated to the
+  new copy, same stated purpose (names the distinction from Hopper Phase).
+
+### 3. Taste Selectors page triage
+Page was already sound (clear title, empty state, seed action, per-row
+edit/delete with confirm) — not admin-like. Only the intro line over-promised
+("Filter and compare by tag" — no such filter exists). Rewrote it to say what the
+page is for: "the quick-pick tags you apply on the shot form when recording how a
+shot tasted, grouped into the categories below." Empty-state line reworded to set
+expectations ("rename, remove, or add your own afterwards"). No new
+selector-management features.
+
+### 4. Reinstate `days_since_open` (computed field, broken since the Neon move)
+`shots.days_since_open` (integer, pre-existing column) was only ever populated by
+CSV/Airtable import; every in-app shot since the Neon move had it NULL.
+- **Forward fill** — `routes/shots.ts`: new `computeDaysSinceOpen(bagId, shotDate)`
+  helper (`db.select` of `bags.opened_date`, same pattern as
+  `carryForwardActiveBagGrindDefaults`) returns `(shot_date − opened_date)` in
+  whole days, or `null` when bag / opened_date / shot_date is missing or
+  unparseable. Called on **POST** (`data.bagId`, `data.shotDate`) and **PATCH**
+  (recomputed from the merged effective bagId/shotDate — covers a changed bag or
+  date and forward-fills historical NULLs on any edit). Server-derived, never
+  trusts a client value — merged into the insert/update values, not `data`.
+- **Backfill** — new `lib/db/migrations/0012_shot_days_since_open_backfill.sql`
+  (+ `.down.sql`, a documented no-op) and the mirrored block in
+  `artifacts/api-server/src/lib/runtime-schema.ts` `SHOTS_SCHEMA_SQL` (the runtime
+  guard is what actually applies to the deployed DB). `UPDATE shots s SET
+  days_since_open = (s.shot_date::date − b.opened_date::date) FROM bags b WHERE
+  s.bag_id = b.id AND s.days_since_open IS NULL AND b.opened_date IS NOT NULL AND
+  s.shot_date ~ '^\d{4}-\d{2}-\d{2}'`. Guarded on `IS NULL` → idempotent no-op
+  after the first run.
+- **Docs** — `docs/csv-data-dictionary.md` "Days Since Open" row now states it is
+  computed on every app save and carried through on import.
+- **Tests** — `api-contract.test.ts`: new block asserting the route helper +
+  POST/PATCH calls, the identical idempotent backfill in migration and runtime
+  guard, the no-op down migration, and the doc row.
+
+### 5. Cosmetic fixes folded in (Agent 2 review)
+- Analysis-eligibility banner: `Shot is {included in / excluded from} analysis`
+  (was the ungrammatical "excluded in analysis") in both `ShotForm.tsx` and
+  `QuickLog.tsx`. No banner in `ShotDetail.tsx`.
+- `ShotDetail.tsx` Similar Shots row: guard the pour-time so a null renders
+  nothing rather than "… out • s".
+- `api-contract.test.ts`: one source-scan block covering both.
+
+### Verification (from the `owner-alpha-cleanup` worktree)
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass, 83/83 (was 81)
+- `CI=true pnpm run build:render` — pass
+
 ## SMK-1 mutating lifecycle + SMK-2 live Render smoke — 2026-08-28
 
 Ran by Codex after PR #6 merged. No app code changed. Test records were labelled

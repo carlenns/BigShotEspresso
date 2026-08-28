@@ -16,7 +16,7 @@ UI codes: text, long text, number, currency, date/time, checkbox, dropdown, chip
 | Date | DateTime | E | date/time | Shot/event timestamp; ordering input for all engines. |
 | Bag | Link | L | link/dropdown | Parent bag relationship; active-bag isolation for BLI/GSP/MSI/OSI. |
 | Bag Label | Lookup | R | read-only | Human-readable bag label from Bags. |
-| Days Since Open | Formula | R | read-only | Shot date minus bag opened date; BLI/HMI context. |
+| Days Since Open | Formula | R | read-only | Shot date minus bag opened date (whole days); BLI/HMI context. Computed on every app save (Log Shot / Edit Shot) from `shot_date − bag.opened_date`, and carried through from the exported column on CSV/Airtable import. NULL when the shot has no bag or the bag has no opened date. |
 | Shots Left (est) | Formula/Number | R | read-only | Estimated remaining shots; bag/hopper progress. |
 | Grinder Setting | Number | E | number | Mechanical setting; GSP, DCI, BLI, HMI. |
 | Grind Adjusted | Checkbox | E | checkbox | Marks a setting change; GSP and drift analysis. |

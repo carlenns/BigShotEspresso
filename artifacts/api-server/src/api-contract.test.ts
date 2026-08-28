@@ -514,7 +514,10 @@ test("Shot-level System Phase / Experiment is an additive foundation, distinct f
   // User-visible copy names the distinction from Hopper Phase, spells out the
   // System Phase / Experiment nesting, and states the Natural-18g metric is
   // Initial Grinder Output, not the corrected Dose.
-  assert.match(shotFormSource, /machine\/workflow learning era this shot belongs to — separate from Hopper Phase/);
+  assert.match(shotFormSource, /machine\/workflow learning era this shot belongs to/);
+  assert.match(shotFormSource, /This is <strong>not<\/strong> Hopper Phase/);
+  assert.match(shotFormSource, /Hopper Phase tracks a bean\/hopper operating window/);
+  assert.match(shotDetailSource, /not Hopper Phase, which tracks a\s+bean\/hopper operating window/);
   assert.match(shotFormSource, /<strong>System Phase<\/strong> is the broad era/);
   assert.match(shotFormSource, /An <strong>Experiment<\/strong> is an optional named test running inside that phase/);
   assert.match(shotFormSource, /<em>Initial Grinder Output<\/em> — not the corrected Dose — lands near 18/);
@@ -534,6 +537,65 @@ test("Shot-level System Phase / Experiment is an additive foundation, distinct f
   assert.match(csvDictSource, /distinct from `Hopper Phase`/);
   assert.match(lifecyclePlanSource, /Shot-level foundation landed \(2026-08-27\)/);
   assert.match(lifecyclePlanSource, /No historical backfill/);
+});
+
+test("Days Since Open is recomputed on every shot write and backfilled by the migration + runtime guard", async () => {
+  const [routeSource, migrationSource, migrationDownSource, runtimeSchemaSource, csvDictSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("./routes/shots.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/migrations/0012_shot_days_since_open_backfill.sql", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/migrations/0012_shot_days_since_open_backfill.down.sql", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./lib/runtime-schema.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../docs/csv-data-dictionary.md", import.meta.url)), "utf8"),
+  ]);
+
+  // Route: a single server-side helper derives it from bag.opened_date, and both
+  // POST and PATCH call it (never trusting a client value — like includeInAnalysis).
+  assert.match(routeSource, /async function computeDaysSinceOpen\(/);
+  assert.match(routeSource, /\.select\(\{ openedDate: bagsTable\.openedDate \}\)/);
+  assert.match(routeSource, /const daysSinceOpen = await computeDaysSinceOpen\(data\.bagId, data\.shotDate\);/);
+  assert.match(routeSource, /const daysSinceOpen = await computeDaysSinceOpen\(effectiveBagId, effectiveShotDate\);/);
+  assert.match(routeSource, /\.values\(\{ \.\.\.data, daysSinceOpen \}\)/);
+  assert.match(routeSource, /\.set\(\{ \.\.\.data, daysSinceOpen \}\)/);
+  // PATCH recomputes from the merged bag/date, not just a supplied one.
+  assert.match(routeSource, /const effectiveBagId = data\.bagId !== undefined \? data\.bagId : existing\[0\]\.bagId;/);
+  assert.match(routeSource, /const effectiveShotDate = data\.shotDate !== undefined \? data\.shotDate : existing\[0\]\.shotDate;/);
+  // Never hard-coded from a client field.
+  assert.doesNotMatch(routeSource, /daysSinceOpen: (?:body|req|parsed|data)\./);
+
+  // Migration + runtime guard carry the identical idempotent backfill (guarded
+  // on days_since_open IS NULL so it is a no-op after the first run).
+  for (const src of [migrationSource, runtimeSchemaSource]) {
+    assert.match(src, /SET days_since_open = \(s\.shot_date::date - b\.opened_date::date\)/);
+    assert.match(src, /FROM bags b/);
+    assert.match(src, /s\.days_since_open IS NULL/);
+    assert.match(src, /b\.opened_date IS NOT NULL/);
+  }
+  // The deployed DB is kept in sync by the runtime guard, not the migration file.
+  assert.match(runtimeSchemaSource, /ADD COLUMN IF NOT EXISTS days_since_open integer/);
+  // Down migration is a documented no-op (a derived value can't be safely un-filled).
+  assert.match(migrationDownSource, /No-op/);
+
+  // Doc row updated: computed on app save, from shot date − bag opened date.
+  assert.match(csvDictSource, /Computed on every app save \(Log Shot \/ Edit Shot\) from `shot_date − bag\.opened_date`/);
+});
+
+test("analysis-eligibility banner is grammatical and Similar Shots tolerates a null pour time", async () => {
+  const [shotFormSource, quickLogSource, shotDetailSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/QuickLog.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  // "excluded in analysis" was ungrammatical — both entry forms now read
+  // "included in" / "excluded from".
+  for (const src of [shotFormSource, quickLogSource]) {
+    assert.match(src, /analysisEligibility\.included \? "included in" : "excluded from"} analysis/);
+    assert.doesNotMatch(src, /\? "included" : "excluded"} in analysis/);
+  }
+
+  // Similar Shots pour time is guarded so a null never renders "… out • s".
+  assert.match(shotDetailSource, /similar\.pourTime != null \? ` • \$\{similar\.pourTime\}s` : ""/);
+  assert.doesNotMatch(shotDetailSource, /g out • \{similar\.pourTime\}s/);
 });
 
 test("Drink Type is user-extensible: Affogato is curated and custom values merge without dropping saved shots", async () => {

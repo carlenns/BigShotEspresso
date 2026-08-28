@@ -594,7 +594,7 @@ export default function QuickLog() {
                   : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
               )}>
                 <p className="font-medium">
-                  Shot is {analysisEligibility.included ? "included" : "excluded"} in analysis
+                  Shot is {analysisEligibility.included ? "included in" : "excluded from"} analysis
                 </p>
                 <p className="mt-1 text-xs opacity-80">{analysisEligibility.reason}</p>
               </div>
