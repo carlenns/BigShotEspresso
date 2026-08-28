@@ -928,6 +928,11 @@ test("Bag closeout makes measured-vs-unmeasured leftover explicit and guides tow
   // Previous (inactive) bags must show a reconciled-remaining figure when
   // present, without cluttering active bags.
   assert.match(bagsPageSource, /!bag\.isActive && bag\.remainingEstimate != null && <span>Reconciled remaining: \{bag\.remainingEstimate\}g<\/span>/);
+
+  // Bag cost must read as currency, not a bare number: the editable field is
+  // labelled "Cost ($)" and the bag-card display is a "$"-prefixed 2-dp value.
+  assert.match(bagsPageSource, /<Label>Cost \(\$\)<\/Label>/);
+  assert.match(bagsPageSource, /bag\.cost != null && <span>Cost: <strong className="text-foreground">\$\{Number\(bag\.cost\)\.toFixed\(2\)\}<\/strong><\/span>/);
 });
 
 test("Change Bag guided flow reuses existing endpoints and never forces hopper phase creation", async () => {

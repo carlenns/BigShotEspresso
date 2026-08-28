@@ -375,7 +375,7 @@ export default function Bags() {
             <div className="space-y-1.5"><Label>Closed Out Date</Label><Input type="date" value={form.closedOutDate} onChange={(e) => set("closedOutDate", e.target.value)} placeholder="2026-08-17" /></div>
             <div className="space-y-1.5"><Label>Bag Weight (g)</Label><Input type="number" value={form.bagWeight} onChange={(e) => set("bagWeight", e.target.value)} placeholder="250" /></div>
             <div className="space-y-1.5"><Label>Remaining Est. (g)</Label><Input type="number" value={form.remainingEstimate} onChange={(e) => set("remainingEstimate", e.target.value)} /></div>
-            <div className="space-y-1.5"><Label>Cost</Label><Input type="number" step="0.01" value={form.cost} onChange={(e) => set("cost", e.target.value)} placeholder="25.00" /></div>
+            <div className="space-y-1.5"><Label>Cost ($)</Label><Input type="number" step="0.01" value={form.cost} onChange={(e) => set("cost", e.target.value)} placeholder="25.00" /></div>
             <div className="col-span-2"><hr className="border-border" /></div>
             <div className="space-y-1.5"><Label>Start Grind Setting</Label><Input type="number" step="0.01" value={form.startGrindSetting} onChange={(e) => set("startGrindSetting", e.target.value)} /></div>
             <div className="space-y-1.5"><Label>Current Grind Setting</Label><Input type="number" step="0.01" value={form.currentGrindSetting} onChange={(e) => set("currentGrindSetting", e.target.value)} /></div>
@@ -646,7 +646,7 @@ function BagRow({ bag, onEdit, onCloseout, onStartPhase, hopperPhase }: { bag: B
               {bag.defaultDose != null && <span>Dose: <strong className="text-foreground">{bag.defaultDose}g</strong></span>}
               {bag.defaultYield != null && <span>Yield: <strong className="text-foreground">{bag.defaultYield}g</strong></span>}
               {bag.bagWeight != null && <span>{bag.bagWeight}g bag</span>}
-              {bag.cost != null && <span>${Number(bag.cost).toFixed(2)}</span>}
+              {bag.cost != null && <span>Cost: <strong className="text-foreground">${Number(bag.cost).toFixed(2)}</strong></span>}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3 shrink-0">

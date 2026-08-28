@@ -2,6 +2,21 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Bag cost reads as currency (cleanup) — 2026-08-28
+
+Copy only. No schema, API, or multi-currency change; stored value stays a plain
+numeric.
+
+- `artifacts/coffee-log/src/pages/Bags.tsx` — Add/Edit Bag form field label
+  `Cost` → `Cost ($)`; the bag-card read-only display, which already rendered
+  `$40.00`, now carries a `Cost:` prefix to match the sibling `Grind:` / `Dose:` /
+  `Yield:` stats instead of a lone `$40.00`.
+- `artifacts/api-server/src/api-contract.test.ts` — two assertions added to the
+  existing bag-closeout/display test locking both.
+
+Verification: `CI=true pnpm run typecheck` pass · `CI=true pnpm --filter
+@workspace/api-server test` pass (80/80) · `CI=true pnpm run build:render` pass.
+
 ## Catalog pages render the graceful 400/404/409 delete-error contract (cleanup) — 2026-08-28
 
 Reconciliation of stranded work — this slice was started on an old branch
