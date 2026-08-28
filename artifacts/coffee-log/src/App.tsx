@@ -17,6 +17,7 @@ import BagDetail from "@/pages/BagDetail";
 import Equipment from "@/pages/Equipment";
 import Accessories from "@/pages/Accessories";
 import TasteSelectors from "@/pages/TasteSelectors";
+import DataHealth from "@/pages/ImportAudit";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ function Router() {
         <Route path="/equipment" component={Equipment} />
         <Route path="/accessories" component={Accessories} />
         <Route path="/taste-selectors" component={TasteSelectors} />
+        <Route path="/data-health" component={DataHealth} />
         <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
 import {
-  BookOpen, Coffee, LayoutDashboard,
+  Activity, BookOpen, Coffee, LayoutDashboard,
   Menu, Package, Settings, Sprout, Wrench, Tag, Layers
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -61,6 +61,7 @@ const tasteNav: NavItem[] = [
 ];
 
 const systemNav: NavItem[] = [
+  { title: "Data Health", href: "/data-health", icon: Activity },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -68,6 +69,7 @@ const mobileMoreNav: NavItem[] = [
   { title: "Equipment", href: "/equipment", icon: Wrench },
   { title: "Accessories", href: "/accessories", icon: Layers },
   { title: "Taste Selectors", href: "/taste-selectors", icon: Tag },
+  { title: "Data Health", href: "/data-health", icon: Activity },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
 

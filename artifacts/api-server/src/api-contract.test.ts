@@ -1693,6 +1693,44 @@ test("/shots/quick is hard-blocked (redirects), not just unlinked from navigatio
   await readFile(fileURLToPath(new URL("../../coffee-log/src/pages/QuickLog.tsx", import.meta.url)), "utf8");
 });
 
+test("Data Health is a routed, read-only owner-diagnostics page (RC Gate 9)", async () => {
+  const [appSource, dataHealthSource, shellSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ImportAudit.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/components/layout/Shell.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  // Routed and reachable from nav — the whole point of Gate 9 is that the
+  // page is no longer an orphan.
+  assert.match(appSource, /path="\/data-health"/);
+  assert.match(appSource, /from "@\/pages\/ImportAudit"/);
+  assert.match(shellSource, /href: "\/data-health"/);
+
+  // Strictly read-only: no path to the sync or clear write endpoints, and no
+  // trace of the removed destructive flow.
+  assert.doesNotMatch(dataHealthSource, /\/api\/airtable\/sync/);
+  assert.doesNotMatch(dataHealthSource, /\/api\/airtable\/clear/);
+  assert.doesNotMatch(dataHealthSource, /handleSync|handleClear|Clear All Coffee Data/);
+  assert.doesNotMatch(dataHealthSource, /useQueryClient/);
+  assert.doesNotMatch(dataHealthSource, /useState/);
+
+  // The read-only status/count views are still there.
+  assert.match(dataHealthSource, /\/api\/airtable\/status/);
+  assert.match(dataHealthSource, /\/api\/airtable\/counts/);
+  assert.match(dataHealthSource, /Database Contents/);
+  assert.match(dataHealthSource, /Last Sync/);
+  assert.match(dataHealthSource, /Last Clear Event/);
+
+  // Copy must not imply Airtable is live or the source of truth.
+  assert.match(dataHealthSource, /Data Health/);
+  assert.doesNotMatch(dataHealthSource, /Airtable is the prototype source of truth/);
+  assert.doesNotMatch(dataHealthSource, /before syncing/);
+
+  // Quick Log stays shelved — this change must not wire it back anywhere.
+  assert.doesNotMatch(appSource, /component=\{QuickLog\}/);
+  assert.doesNotMatch(shellSource, /href="\/shots\/quick"/);
+});
+
 test("Shot form supports editing, active-bag-first entry, and Taste Zone selection", async () => {
   const [appSource, formSource, detailSource, selectorSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/App.tsx", import.meta.url)), "utf8"),
