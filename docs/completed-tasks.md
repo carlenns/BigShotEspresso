@@ -2,6 +2,24 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## System Phase usability polish (launch-hardening cycle 1) — 2026-08-27
+
+Copy-only follow-up to the merged System Phase foundation (PR #2). No schema, no
+behaviour change, no analytics.
+
+- `artifacts/coffee-log/src/pages/ShotForm.tsx` — the Log Shot / Edit Shot
+  "Workflow Context" card helper text now spells out the nesting explicitly:
+  **System Phase** is the broad era (e.g. 3 = dialing in a timed dose), an
+  **Experiment** is an optional named test running inside that phase, and Phase 3
+  tracks how consistently *Initial Grinder Output* — not the corrected Dose —
+  lands near 18 g. The existing "separate from Hopper Phase" line is kept.
+- `artifacts/api-server/src/api-contract.test.ts` — three added source-scan
+  assertions locking the new copy (nesting sentence, Experiment sentence,
+  Initial-Grinder-Output-not-Dose sentence).
+
+Verification: `CI=true pnpm run typecheck` pass · `CI=true pnpm --filter
+@workspace/api-server test` pass (78/78) · `CI=true pnpm run build:render` pass.
+
 ## Shot-level System Phase / Experiment foundation — 2026-08-27
 
 ### Goal

@@ -1487,6 +1487,12 @@ export default function ShotForm() {
             <CardContent className="space-y-4">
               <p className="text-xs text-muted-foreground">
                 The machine/workflow learning era this shot belongs to — separate from Hopper Phase. Optional.
+                <br />
+                <span className="text-muted-foreground/80">
+                  <strong>System Phase</strong> is the broad era you're working in (e.g. 3 = dialing in a timed dose).
+                  An <strong>Experiment</strong> is an optional named test running inside that phase.
+                  Phase 3 tracks how consistently your <em>Initial Grinder Output</em> — not the corrected Dose — lands near 18&nbsp;g.
+                </span>
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <FormField control={form.control} name="systemPhase" render={({ field }) => (
