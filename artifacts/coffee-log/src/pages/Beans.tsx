@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { errorMessageFrom } from "@/lib/http";
 import { Plus, Star, Pencil, Trash2, Sprout } from "lucide-react";
 
 interface Bean {
@@ -46,13 +47,13 @@ export default function Beans() {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/beans/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) throw new Error(await errorMessageFrom(response));
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["beans"] });
       toast({ title: "Bean deleted" });
     },
-    onError: (e) => toast({ title: "Error", description: String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const active = beans.filter((b) => b.isActive);

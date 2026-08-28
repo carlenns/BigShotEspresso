@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { errorMessageFrom } from "@/lib/http";
 import { Plus, Pencil, Trash2, Tag, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -65,16 +66,20 @@ export default function TasteSelectors() {
       const url = editing ? `/api/taste-selectors/${editing.id}` : "/api/taste-selectors";
       const method = editing ? "PATCH" : "POST";
       const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
-      if (!r.ok) throw new Error(await r.text());
+      if (!r.ok) throw new Error(await errorMessageFrom(r));
       return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["taste-selectors"] }); setOpen(false); toast({ title: editing ? "Updated" : "Added" }); },
-    onError: (e) => toast({ title: "Error", description: String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => fetch(`/api/taste-selectors/${id}`, { method: "DELETE" }),
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/taste-selectors/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error(await errorMessageFrom(response));
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["taste-selectors"] }); toast({ title: "Removed" }); },
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));

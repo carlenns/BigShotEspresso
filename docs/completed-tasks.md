@@ -2,6 +2,56 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Catalog pages render the graceful 400/404/409 delete-error contract (cleanup) — 2026-08-28
+
+Reconciliation of stranded work — this slice was started on an old branch
+(`wt/frontend-409`, based on `78a658a`) and left uncommitted; replayed onto current
+`main` (`3c5beee`) during the launch-hardening cleanup pass. Frontend rendering only:
+no schema / migration / API-field / error-contract change.
+
+### Problem
+
+`56888d3` gave the catalog DELETE routes a graceful error contract (400/404/409 with a
+JSON body `{"error":"<human message>"}`, e.g. `"2 bags use this bean — reassign or delete
+them first."`). The frontend was never wired to it:
+
+- **Beans.tsx** delete did `throw new Error(await response.text())` then
+  `toast({ description: String(e) })`, so a blocked delete rendered as the raw string
+  `Error: {"error":"2 bags use this bean …"}`.
+- **Equipment.tsx** (`deleteG`, `deleteM`), **Accessories.tsx**, **TasteSelectors.tsx**
+  (`deleteMutation`) had bare-`fetch` mutationFns with **no `response.ok` check and no
+  `onError`** — a blocked 409 delete failed silently and still fired the success toast.
+
+### Change
+
+- **`artifacts/coffee-log/src/lib/http.ts`** (new) — `errorMessageFrom(response): Promise<string>`.
+  Reads the body once (try/catch → `""`), `JSON.parse`, returns `body.error` when it is a
+  non-empty trimmed string, else raw text, else `response.statusText || \`Request failed
+  (${response.status})\``. Never throws.
+- **`Beans.tsx` / `Equipment.tsx` / `Accessories.tsx` / `TasteSelectors.tsx`** — delete
+  mutationFns converted to `async` with `if (!response.ok) throw new Error(await
+  errorMessageFrom(response))` and a destructive `onError` toast; save mutations swapped
+  `r.text()` → `errorMessageFrom(r)` and `onError` → `e instanceof Error ? e.message :
+  String(e)`. `TasteSelectors` `seedMutation` left alone (out of scope).
+- **`artifacts/api-server/src/api-contract.test.ts`** — one source-scan block, *"Catalog
+  pages render the API's graceful 400/404/409 delete-error contract"*: the helper's
+  signature + JSON-unwrap/fallback shape; every page imports and uses `errorMessageFrom`
+  in its delete path and no longer throws raw response text or `String(e)`; the
+  previously-silent delete mutations now carry a `!response.ok` check and an `onError`.
+
+### Verification
+
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass (79 → **80**, +1)
+- `CI=true pnpm run build:render` — pass
+
+### Deferred / unresolved
+
+- Real-browser confirmation that a blocked delete shows the human message is folded into
+  SMK-1 (the never-completed lifecycle smoke pass).
+- `save*` PATCH/POST responses now route through the same helper but were not audited
+  field-by-field for the `{error}` shape.
+
 ## Serving Context / Drink Type — deferred analysis + community items documented — 2026-08-28
 
 Docs only. Captures the Phase 2 / Phase 3 direction from the Serving Context work

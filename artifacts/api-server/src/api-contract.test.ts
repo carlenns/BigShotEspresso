@@ -2047,6 +2047,64 @@ test("Catalog delete routes have a graceful error contract: 409 on blocked, 404 
   assert.doesNotMatch(importCsvHandler, /validateRatings/);
 });
 
+test("Catalog pages render the API's graceful 400/404/409 delete-error contract", async () => {
+  const [http, beans, equipment, accessories, tasteSelectors] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/lib/http.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Beans.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Equipment.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Accessories.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/TasteSelectors.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  // --- shared helper: reads the body once, unwraps { error }, never throws ---
+  assert.match(http, /export async function errorMessageFrom\(response: Response\): Promise<string>/);
+  // Parses the JSON body and returns a non-empty string `error` field.
+  assert.match(http, /JSON\.parse\(text\)/);
+  assert.match(http, /\.error === "string"/);
+  assert.match(http, /\.error\.trim\(\) !== ""/);
+  // Falls back to raw text, then statusText, then a synthetic message.
+  assert.match(http, /response\.statusText \|\| `Request failed \(\$\{response\.status\}\)`/);
+
+  // --- every catalog page imports the helper and uses it in its delete path ---
+  for (const [name, src] of [
+    ["Beans", beans],
+    ["Equipment", equipment],
+    ["Accessories", accessories],
+    ["TasteSelectors", tasteSelectors],
+  ] as const) {
+    assert.match(src, /import \{ errorMessageFrom \} from "@\/lib\/http"/, `${name} imports errorMessageFrom`);
+    // No page still surfaces a raw response body or `String(e)` in a delete/save error.
+    assert.doesNotMatch(src, /throw new Error\(await (response|r)\.text\(\)\)/, `${name} no longer throws raw response text`);
+    assert.match(src, /description: e instanceof Error \? e\.message : String\(e\)/, `${name} onError renders e.message`);
+  }
+
+  // --- the previously-silent delete mutations now check .ok and have onError ---
+  // Equipment: deleteG + deleteM
+  for (const marker of ["/api/equipment/grinders/${id}", "/api/equipment/machines/${id}"]) {
+    const del = equipment.slice(equipment.indexOf(marker));
+    assert.match(del, /if \(!response\.ok\) throw new Error\(await errorMessageFrom\(response\)\)/, `${marker} checks response.ok`);
+  }
+  const deleteG = equipment.slice(equipment.indexOf("const deleteG = useMutation"), equipment.indexOf("const saveM = useMutation"));
+  assert.match(deleteG, /onError: \(e\) => toast\(\{ title: "Error", description: e instanceof Error \? e\.message : String\(e\), variant: "destructive" \}\)/);
+  const deleteM = equipment.slice(equipment.indexOf("const deleteM = useMutation"));
+  assert.match(deleteM, /onError: \(e\) => toast\(\{ title: "Error", description: e instanceof Error \? e\.message : String\(e\), variant: "destructive" \}\)/);
+
+  // Accessories + TasteSelectors: deleteMutation
+  for (const [name, src, route] of [
+    ["Accessories", accessories, "/api/accessories/${id}"],
+    ["TasteSelectors", tasteSelectors, "/api/taste-selectors/${id}"],
+  ] as const) {
+    const del = src.slice(src.indexOf("const deleteMutation = useMutation"));
+    assert.match(del, new RegExp(`fetch\\(\`${route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\`, \\{ method: "DELETE" \\}\\)`), `${name} delete route`);
+    assert.match(del, /if \(!response\.ok\) throw new Error\(await errorMessageFrom\(response\)\)/, `${name} delete checks response.ok`);
+    assert.match(del, /onError: \(e\) => toast\(\{ title: "Error", description: e instanceof Error \? e\.message : String\(e\), variant: "destructive" \}\)/, `${name} delete has onError`);
+  }
+
+  // Beans delete keeps its .ok check, now routed through the helper.
+  const beansDelete = beans.slice(beans.indexOf("const deleteMutation = useMutation"));
+  assert.match(beansDelete, /if \(!response\.ok\) throw new Error\(await errorMessageFrom\(response\)\)/);
+});
+
 test("Dose correction restores over-grind removal when a top-up overshoots the target", async () => {
   const [doseCorrection, shotForm, dictionary] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/lib/dose-correction.ts", import.meta.url)), "utf8"),
