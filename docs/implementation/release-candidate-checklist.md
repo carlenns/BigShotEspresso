@@ -310,6 +310,30 @@ Minimum release rule:
 
 - There must be some way to diagnose bad data without editing the database directly.
 
+Evidence (2026-08-28, Option A — route the existing page read-only):
+
+- `/data-health` (`artifacts/coffee-log/src/pages/ImportAudit.tsx`, default export
+  `DataHealth`) is now routed in `App.tsx` and linked from the desktop "System"
+  nav group and the mobile "Setup & System" menu. Previously the component
+  existed but was unreachable.
+- The page is strictly read-only: it reads `GET /api/airtable/status` and
+  `GET /api/airtable/counts` and shows credential presence, per-table record
+  counts with the `fromAirtable` provenance split, the last sync summary
+  (inserted/updated/skipped/errors per table), and the last clear event. The
+  former "Sync from Airtable" and "Clear All Coffee Data" write actions were
+  removed entirely — no component in the app calls `/api/airtable/sync` or
+  `/api/airtable/clear` any more.
+- Covers the minimum rule (diagnose without touching the DB) and several
+  "strongly recommended" points: import/sync status, provenance per record type,
+  and — via the counts card border cues — which records look like CSV vs Airtable
+  data. Excluded-vs-analytical shot counts and unresolved-relationship views are
+  still served by the existing `/api/shots/audit` endpoint, not surfaced on this
+  page (left for a later pass).
+- Locked by `api-contract.test.ts` → "Data Health is a routed, read-only
+  owner-diagnostics page (RC Gate 9)".
+- Verified: `CI=true pnpm run typecheck` · `CI=true pnpm --filter
+  @workspace/api-server test` (89) · `CI=true pnpm run build:render` — all pass.
+
 ## Gate 10 — Backup and Recovery
 
 Required:

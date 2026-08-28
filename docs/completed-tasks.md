@@ -2,6 +2,47 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## RC Gate 9 (admin/debug visibility) — Option A: route the existing page read-only — 2026-08-28
+
+Gate 9's rule: "there must be some way to diagnose bad data without editing the
+database directly." Closed the smallest useful way — the existing but unrouted
+`ImportAudit.tsx` is now a reachable, strictly read-only diagnostics page. No new
+API endpoints, no schema change, no Quick Log revival.
+
+- `artifacts/coffee-log/src/pages/ImportAudit.tsx` — default export renamed
+  `SyncAudit` → `DataHealth`. Removed every write path: `handleSync`,
+  `handleClear`, all their `useState` (syncing / syncResult / syncError /
+  clearPhase / clearResult / clearError), the "Sync from Airtable" section, the
+  "Clear Coffee Data" destructive flow, and the post-clear inline sync UI. Also
+  dropped `useQueryClient`, `useState`, `Button`, `RefreshCw`, `Loader2`,
+  `AlertTriangle`, `CardDescription`, `Badge`. Kept (all read-only): credential
+  badges, "Database Contents" counts + `fromAirtable` breakdown, "Last Sync"
+  summary, "Last Clear Event" summary — these read `/api/airtable/status` and
+  `/api/airtable/counts` (both GET). H1 "Sync Audit" → "Data Health"; subtitle
+  rewritten to "Read-only view of what's in the database — record counts, import
+  provenance, and the last sync/clear events. For owner diagnostics."; the
+  creds-missing block is now a neutral status note (no "before syncing", nothing
+  implying Airtable is live or the source of truth).
+- `artifacts/coffee-log/src/App.tsx` — `import DataHealth from "@/pages/ImportAudit"`
+  and `<Route path="/data-health" component={DataHealth} />` (before `/settings`).
+  The `/shots/quick` redirect block is untouched.
+- `artifacts/coffee-log/src/components/layout/Shell.tsx` — `Activity` icon added;
+  `{ title: "Data Health", href: "/data-health", icon: Activity }` added to both
+  `systemNav` (desktop "System" group) and `mobileMoreNav` ("Setup & System"
+  dropdown). Not added to `mobileBottomNav` (already 10 items); the `pr-14` /
+  mask-image nav code is untouched.
+- `artifacts/api-server/src/api-contract.test.ts` — new block "Data Health is a
+  routed, read-only owner-diagnostics page (RC Gate 9)": route + import + nav
+  present; no `/api/airtable/sync` or `/api/airtable/clear`, no `handleSync` /
+  `handleClear` / `useState` / `useQueryClient`; status/count views + section
+  headings still present; copy no longer implies Airtable is live; Quick Log
+  still not wired.
+
+### Verification (from the `gate9-syncaudit` worktree)
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass, 89/89 (was 88)
+- `CI=true pnpm run build:render` — pass
+
 ## RC Gate 2.5 — mobile bottom-nav: last item clears the edge fade — 2026-08-28
 
 From Agent 2's Gate 2.5 review at a real 390px viewport (headless Chrome + CDP,
