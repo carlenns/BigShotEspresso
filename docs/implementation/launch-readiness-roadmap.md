@@ -53,13 +53,14 @@ Size: **S** ≈ hours / one small PR · **M** ≈ a day / a few PRs · **L** ≈
 | Dead Settings fields removed | audit Critical Blocker #4 | earlier |
 | Quick Log hard-block; Bags action-path copy; Dashboard hopper blank-stat labels | audit HPF #5/#6/#7 | earlier |
 | Catalog deletes are confirm-gated in the UI | audit "Owner-Alpha Smoke Review" | `a0fc7ba` |
+| DI-1 — blocked deletes return a graceful 409 `{error}` (server) and the catalog pages render it (frontend) | audit Part 2 §3 | server `56888d3`, frontend `aea45dd` (cleanup pass 2026-08-28) |
+| DI-6 — Dashboard `usePuckScreen` rewired off the removed global Settings key to `defaultPuckScreen` | audit Part 2 "Bonus finding" | `3230e02` |
 
 ### Open — data integrity / standing rules
 
 | # | Item | Source | Blocking? | Cat | Size | Depends on |
 |---|---|---|---|---|---|---|
-| DI-1 | Blocked deletes (bean/bag/grinder/machine in use) return opaque **HTTP 500**, not a graceful **409** with a reason/count | audit Part 2 §3 | Tier-2 correctness; owner-alpha polish | **B** (error-contract) | S | — (Agent 1 in progress this cycle) |
-| DI-2 | Rating bounds are route-only (`validateRatings`), not in the zod contract, and there is **no lower bound** (negative ratings accepted server-side) | audit Part 2 §1 | Tier-2 correctness | **A** | S | — (Agent 1 in progress this cycle) |
+| DI-2 | Negative ratings are **rejected server-side** (`validateRatings`, `56888d3`); remaining gap is cosmetic — the zod/OpenAPI contract still has no `minimum: 0`, only `maximum` | audit Part 2 §1 | Tier-2 correctness (core done) | **A** | XS | — |
 | DI-3 | Accessories have **no FK anywhere** — deleting a "used" accessory succeeds and leaves a dangling Settings string | audit Part 2 §3 | Polish now; real once Option A lands | **B** | S | EQ-4 (Option A Phase 4) makes this load-bearing |
 | DI-4 | Imported corpus is **not rule-consistent** with app-created shots — CSV/Airtable import deliberately skips include-in-analysis recompute, signature⇒reference, sour exclusivity, rating bounds | audit Part 2 §4 | Only if whole-corpus analytics consistency is required | **C** → then A/M | M | all enforcement rules final (DI-2 landing) |
 | DI-5 | `shot_taste_selectors.taste_selector_id` is `ON DELETE CASCADE` — deleting a selector silently strips the tag from every historical shot | audit Part 2 §3 | "preserve historical data" violation | **B** | — | folded into TS-1 (taste-selector archive slice) |
@@ -142,7 +143,9 @@ analysis change) landed on branch `serving-context-ux`. The rest is deferred:
 1. **SMK-1 + SMK-2** — the two never-done smoke tests. Highest priority: they gate the
    release decision (Gate 12) and may surface bugs that reorder everything below. Do these
    before declaring anything.
-2. **DI-1 + DI-2** — land Agent 1's in-flight delete-409 + rating-bounds work.
+2. ~~DI-1 + DI-2~~ — **done.** DI-1 (graceful 409 + frontend rendering) closed by
+   `56888d3` + `aea45dd`; DI-2 negative-rating rejection closed by `56888d3` (only the
+   cosmetic zod `minimum: 0` remains).
 3. **PL-1, PL-2, PL-4, PL-8** — cheap polish, good to clear while the smoke tests run.
 4. Re-run SMK-1 after any fix from steps 2–3.
 5. **Gate 12 release-candidate decision** — owner-alpha only, per ADR-0008. Known items
@@ -185,9 +188,8 @@ unblocks TS-3 and everything public-launch.
    lifecycle pass plus a Render deployment smoke test. These are the actual gate on calling
    anything a release candidate, and neither has ever been done end-to-end. Do this first
    because it can surface bugs that reorder the rest.
-2. **Land DI-1 + DI-2 (A/B, S).** Finish and commit Agent 1's in-flight delete-409 +
-   rating-lower-bound work. Small, already underway, closes two audit Part 2 findings.
-3. **EQ-0 + EQ-3 + DI-6 (A, S).** The no-approval-needed pieces of the equipment track:
+2. ~~Land DI-1 + DI-2~~ — **done** (`56888d3`, `aea45dd`). DI-6 also done (`3230e02`).
+3. **EQ-0 + EQ-3 (A, S).** The no-approval-needed pieces of the equipment track:
    backfill `isDefault` from the Settings label strings, fix the accessory POST per-type
    bug, and fix the dead `usePuckScreen` read. De-risks the EQ-1 decision and is safe to do
    regardless of what Carl decides about Option A.
@@ -201,8 +203,9 @@ unblocks TS-3 and everything public-launch.
 
 | Category | Open items |
 |---|---|
-| **A** — safe now | DI-2, DI-6, EQ-0, EQ-3, EQ-5, SMK-1, PL-1..PL-8 (11) → **16** |
-| **B** — needs Carl's approval | DI-1, DI-3, EQ-1, EQ-4, TS-1, GRD-1, (SMK-2 partly) → **6–7** |
+| **A** — safe now | DI-2 (cosmetic remnant), EQ-0, EQ-3, EQ-5, SMK-1, PL-1..PL-8 (11) → **~15** |
+| **B** — needs Carl's approval | DI-3, EQ-1, EQ-4, TS-1, GRD-1, (SMK-2 partly) → **5–6** |
+| _closed since_ | DI-1, DI-6 (2026-08-28 cleanup); DI-2 core |
 | **C** — needs a product decision | DI-4, EQ-2, TS-2, GRD-2, AUTH-0 → **5** |
 | **D** — blocked on ADR-0009 | TS-3, AUTH-1..9 → **2 lines (a program)** |
 

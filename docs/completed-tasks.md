@@ -2,6 +2,22 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Roadmap reconcile: DI-1 / DI-2 / DI-6 closed — 2026-08-28
+
+Docs only. `docs/implementation/launch-readiness-roadmap.md` disagreed with shipped
+behaviour:
+
+- **DI-1** (blocked deletes → graceful 409 with a reason) — server side landed in
+  `56888d3`; frontend rendering landed this cleanup pass (`aea45dd`). Moved to
+  "Already closed".
+- **DI-2** (negative ratings accepted server-side) — `validateRatings` rejects them
+  since `56888d3`. Only the cosmetic zod/OpenAPI `minimum: 0` remains; downgraded to
+  an XS remnant.
+- **DI-6** (`usePuckScreen` read a removed Settings key) — rewired to
+  `defaultPuckScreen` in `3230e02`. Moved to "Already closed".
+
+The "recommended next slices" and category-count sections updated to match.
+
 ## Bag cost reads as currency (cleanup) — 2026-08-28
 
 Copy only. No schema, API, or multi-currency change; stored value stays a plain
