@@ -271,6 +271,23 @@ A normal owner workflow commonly combines both without conflict: Brew Method Esp
 
 The shot is BSE's durable evidence record, so Brew Method should eventually be captured at the shot level, not only assumed from a machine or Settings default. A selected machine may suggest a likely default Brew Method, but the machine alone is not the shot's evidence — the actual extraction method used for that specific shot is. This is future scope (no shot-level Brew Method field exists yet); see `docs/implementation/bag-hopper-lifecycle-plan.md`'s Future Development Notes for the implementation-side status.
 
+### 4.1.2 Future: Analysis Drink Type and drink-type-scoped analysis
+
+**Not implemented. Documented here so the intent is not lost.** As of 2026-08-28 the Log Shot Serving Context UI collapses the Drink Type picker so the daily flow does not have to touch it (the shot inherits the Settings `Default Drink Type`), and it shows a gentle note when a shot's drink differs from that default — but this is copy only. **`Include in Analysis` is still derived from Shot Status + Fault Status alone**; Drink Type does not affect analytical eligibility today.
+
+The future feature: an optional user-controlled **`Analysis Drink Type`** setting.
+
+- Default would be the user's regular drink (e.g. Americano), likely the same value as `Default Drink Type`.
+- When enabled, personal espresso-process analysis (dial-in comparisons, natural-dose hit-rate, drift, reference comparisons) would consider only shots whose Drink Type matches — so an Affogato, Cappuccino, or Latte logged "for fun" is preserved as a full record and can still be rated, but does not distort the user's core Americano/espresso process view.
+
+Why it is deferred:
+
+- It changes analysis semantics, not just presentation. `Include in Analysis` today has one rule; adding a drink-type gate is a second, independent eligibility axis and needs its own design + tests.
+- Historical data needs careful treatment. Existing shots have Drink Type populated inconsistently (many inherit a default, some are blank); a drink-type filter must define how it treats blank/legacy values rather than silently dropping them.
+- It must be explicitly user-controlled and clearly explained — off by default, with copy that says what it does and does not exclude — so users never wonder why a shot "disappeared" from their numbers.
+
+Related: **personal labels vs BSE standard categories.** A user's private Drink Type value ("Sunday treat", "kids' hot chocolate run") should not have to match a BSE canonical list. The standard categories (Americano, Espresso, Latte, Affogato, …) are for cross-user comparison and future community features; personal free-text values stay valid locally and are never rejected. Any global/community rollup maps personal values onto the standard set (or leaves them unmapped) rather than forcing the user to rename.
+
 ### 4.2 Teach Daily Driver semantics
 
 `Daily Driver` is a personal bean achievement, not a generic synonym for “good.” It marks a shot or coffee expression that the user would genuinely want to drink every day: repeatable, enjoyable, comfortable, and aligned with that user’s own taste preferences.
@@ -278,6 +295,22 @@ The shot is BSE's durable evidence record, so Brew Method should eventually be c
 Onboarding and Coffee AI should explain that Daily Driver is intentionally subjective. A technically excellent reference shot may or may not be a Daily Driver. A Daily Driver may be less dramatic than a Signature Shot, but it is highly valuable because it identifies the coffees and recipes that fit the user’s normal life.
 
 Daily Driver must be recorded through `Bean Achievement`, not `Shot Classification`. It should support bag and bean rollups, personal achievements, and future opt-in leaderboards that compare repeatable user-preferred results rather than only highest technical ratings.
+
+### 4.2.1 Future: drink-type "for fun" achievements and community categories
+
+**Not implemented. Future / community scope, not a launch feature and not a launch blocker.** Recorded so the direction is captured.
+
+Once Drink Type is reliable evidence and opt-in community features exist, drink-type-scoped recognition becomes possible — celebrating the enjoyable, sociable side of the hobby separately from core espresso-process rigor:
+
+- personal and (opt-in) community categories such as **Best Affogato**, **Best Milk Drink**, **Guest Favorite**, **Most Reliable Party Drink**, **Best Dessert Coffee**
+- drink-type-specific leaderboards and achievements (e.g. "most consistent Cappuccino", "top-rated Latte this month")
+- these rank *fun/preference* ratings, not technical extraction scores — the same way Daily Driver ranks fit-for-life over raw technical rating
+
+Guardrails for whenever this is built:
+
+- **Fun ratings stay separate from core espresso-process analysis.** A highly-rated Affogato must never pull the user's Americano/espresso dial-in numbers around. This depends on the deferred `Analysis Drink Type` gate (§4.1.2).
+- Opt-in only, and subject to the same community-research consent model as any other shared dataset (see the citizen-science section).
+- Personal free-text drink values still count locally; community categories map onto the BSE standard set rather than forcing a rename.
 
 ### 5. Teach the minimum viable logging protocol
 

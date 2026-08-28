@@ -109,6 +109,17 @@ Gated on **Carl approving the decision doc + choosing the archive column** (a **
 | AUTH-0 | Confirm the auth mechanism (plan recommends email + magic-link over passwords) | **C** | S | not itself an implementation authorization |
 | AUTH-1..9 | `users` table + session model → per-table `user_id` migrations → `settings` compound-unique migration → route-scoping helper → per-route scoping → login UI → owner bootstrap → Tier-2 invite → Tier-3 signup/billing | **D** | L | ADR-0009 is still **Proposed**. Tier 2 (outside testers) needs at least minimal isolation; Tier 3 (public) needs the whole program + billing + ToS/privacy. |
 
+### Open — Serving Context / Drink Type (from the 2026-08-28 Serving Context work)
+
+Phase 1 (collapse the Log Shot Drink Type picker for the daily flow, copy only, no
+analysis change) landed on branch `serving-context-ux`. The rest is deferred:
+
+| # | Item | Cat | Size | Notes |
+|---|---|---|---|---|
+| SC-1 | **`Analysis Drink Type`** setting — optional, user-controlled, off by default; when on, personal espresso-process analysis considers only shots whose Drink Type matches (e.g. Americano), so "for fun" drinks stay full records but don't distort dial-in numbers | **C** → then **B** | M | changes analysis semantics (a 2nd eligibility axis beside `Include in Analysis`); must define treatment of blank/legacy Drink Type; see onboarding doc §4.1.2 |
+| SC-2 | Personal free-text Drink Type values vs BSE standard categories — personal values always valid locally; community/global rollups map onto the standard set, never force a rename | **C** | S (decision) | folds into any community-dataset design |
+| SC-3 | Drink-type "for fun" achievements / leaderboards — Best Affogato, Best Milk Drink, Guest Favorite, Most Reliable Party Drink, Best Dessert Coffee; drink-type-specific leaderboards; ranks preference not technical score; opt-in, consent-gated; **not a launch blocker** | **D** (community) | L | onboarding doc §4.2.1; depends on SC-1 keeping fun ratings out of core analysis |
+
 ### Open — polish (none blocking)
 
 | # | Item | Source | Cat | Size |

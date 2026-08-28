@@ -2,6 +2,81 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Serving Context / Drink Type — deferred analysis + community items documented — 2026-08-28
+
+Docs only. Captures the Phase 2 / Phase 3 direction from the Serving Context work
+so it is not lost; **nothing implemented, no launch blockers introduced.**
+
+- `docs/product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md`
+  - **§4.1.2 (new)** — future optional **`Analysis Drink Type`** setting: user-controlled,
+    off by default; when on, personal espresso-process analysis considers only shots
+    whose Drink Type matches the user's regular drink, so "for fun" drinks stay full
+    rated records but don't distort dial-in numbers. Deferred because it changes
+    analysis semantics (a second eligibility axis beside `Include in Analysis`),
+    historical Drink Type is inconsistently populated and needs explicit blank/legacy
+    handling, and it must be clearly user-explained. Also documents personal free-text
+    Drink Type values vs BSE standard categories (personal values always valid locally;
+    global rollups map, never force a rename).
+  - **§4.2.1 (new)** — future/community drink-type "for fun" achievements: Best Affogato,
+    Best Milk Drink, Guest Favorite, Most Reliable Party Drink, Best Dessert Coffee;
+    drink-type-specific leaderboards/achievements ranking preference not technical score;
+    opt-in + consent-gated; explicitly **not a launch feature or blocker**. Guardrail:
+    fun ratings must stay out of core espresso-process analysis (depends on §4.1.2).
+- `docs/implementation/launch-readiness-roadmap.md` — new "Open — Serving Context /
+  Drink Type" section with SC-1 (`Analysis Drink Type`, C→B, M), SC-2 (personal vs
+  standard categories, C), SC-3 (fun achievements/leaderboards, D/community, not a
+  blocker).
+
+Current behaviour is unchanged from Phase 1: `Include in Analysis` = Shot Status +
+Fault Status only; Drink Type does not affect analytical eligibility.
+
+## Serving Context — collapse the Drink Type picker for the daily flow — 2026-08-28
+
+Client-only UX change to the Log Shot / Edit Shot **Serving Context** card. No
+schema, no server-side change, no change to **Include in Analysis** (still Shot
+Status + Fault Status only, via `describeAnalysisEligibility`).
+
+### What changed
+
+- `artifacts/coffee-log/src/pages/ShotForm.tsx`
+  - New local state `const [showDrinkPicker, setShowDrinkPicker] = useState(false)`.
+  - New derived reveal condition `revealDrinkPicker = showDrinkPicker || isEditing
+    || servingForOthers || drinkDiffersFromDefault`. The Drink Type `<ScalarSelect>`
+    `FormField` is now **gated** on this — hidden in the normal daily flow.
+  - Reveal happens when **(a)** the user clicks the new plain `type="button"`
+    **Change Drink** control, **(b)** the shot's `drinkType` differs from
+    `settings.defaultDrinkType` (and a default is set), **(c)** **For Others** is
+    checked, or **(d)** edit mode (the saved value stays visible/editable).
+  - New collapsed readout line: `Serving: Drink: <drinkTypeReadout> · Brew:
+    <brewMethodReadout>` — both read from the form (`form.watch`), never a
+    hardcoded drink; falls back to the Settings default then `"Not set"`. The
+    readout is itself gated on `!revealDrinkPicker`, so the drink is never named
+    twice (readout XOR selector).
+  - New gentle copy shown next to the selector when `drinkDiffersFromDefault`:
+    "Different from your default drink — you can still rate it, but keep it
+    separate from your core espresso comparisons."
+  - Unchanged: the `if (forOthers) form.setValue("rated", false)` suggestion (For
+    Others is still the *only* Not-Rated suggester and does not force a drink type
+    or block rating); `drinkType`'s `onChange={field.onChange}` stays a plain field
+    update with no side effects; the create-only prefill effect
+    (`if (isEditing || !settings?.defaultDrinkType) return;`); edit-reset
+    (`drinkType: existingShot.drinkType ?? undefined`); `NULLABLE_ON_EDIT_FIELDS`.
+    Label stays **"For Others"** (not "For Guest").
+
+- `artifacts/api-server/src/api-contract.test.ts` — one new source-scan test,
+  *"Serving Context collapses the Drink Type picker for the daily flow but reveals
+  it when it matters"*: asserts the single boolean + Change Drink button, the
+  gated `FormField`, the four reveal conditions, the text readout (not hardcoded),
+  the "Different from your default drink" copy, and that exactly one place
+  (`if (forOthers)`) suggests Not Rated. Existing Drink Type / Brew Method /
+  serving-context tests kept green unchanged.
+
+### Verification (from the `serving-context-ux` worktree)
+
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass, 79/79 (was 78/78)
+- `CI=true pnpm run build:render` — pass
+
 ## Hopper phase carryover clarity (launch-hardening cycle 3) — 2026-08-27
 
 Copy-only. No schema, no behaviour change, no hopper semantics change.
