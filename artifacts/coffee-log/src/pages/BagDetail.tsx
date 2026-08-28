@@ -26,7 +26,7 @@ interface BagDetailResponse {
   bag: {
     id: number; beanId: number | null; beanName: string | null; beanOrigin: string | null;
     beanRoaster: string | null; beanRoastLevel: string | null; beanProcess: string | null;
-    bagNumber: string | null; openedDate: string | null; isActive: boolean;
+    bagNumber: string | null; openedDate: string | null; isActive: boolean; cost: number | null;
     startGrindSetting: number | null; currentGrindSetting: number | null;
     startGrindTime: number | null; currentGrindTime: number | null;
     defaultDose: number | null; defaultYield: number | null; defaultTemp: number | null;
@@ -131,6 +131,7 @@ export default function BagDetail() {
             {bag.beanRoastLevel && <Badge variant="secondary" className="text-xs">{bag.beanRoastLevel}</Badge>}
             {bag.beanProcess && <Badge variant="secondary" className="text-xs">{bag.beanProcess}</Badge>}
             {bag.openedDate && <span>Opened {bag.openedDate}</span>}
+            {bag.cost != null && <span>· Cost: ${Number(bag.cost).toFixed(2)}</span>}
           </div>
         </div>
       </div>

@@ -1465,7 +1465,7 @@ export default function ShotForm() {
                   : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
               )}>
                 <p className="font-medium">
-                  Shot is {analysisEligibility.included ? "included" : "excluded"} in analysis
+                  Shot is {analysisEligibility.included ? "included in" : "excluded from"} analysis
                 </p>
                 <p className="mt-1 text-xs opacity-80">{analysisEligibility.reason}</p>
               </div>
@@ -1532,7 +1532,9 @@ export default function ShotForm() {
             <CardHeader className="pb-3"><CardTitle className="text-base">Workflow Context</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <p className="text-xs text-muted-foreground">
-                The machine/workflow learning era this shot belongs to — separate from Hopper Phase. Optional.
+                The machine/workflow learning era this shot belongs to. This is <strong>not</strong> Hopper Phase —
+                Hopper Phase tracks a bean/hopper operating window; System Phase tracks where you are in dialing the
+                whole setup. Optional.
                 <br />
                 <span className="text-muted-foreground/80">
                   <strong>System Phase</strong> is the broad era you're working in (e.g. 3 = dialing in a timed dose).

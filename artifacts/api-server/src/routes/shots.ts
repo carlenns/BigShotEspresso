@@ -94,6 +94,31 @@ async function carryForwardActiveBagGrindDefaults(
     .where(and(eq(bagsTable.id, bagId), eq(bagsTable.isActive, true)));
 }
 
+// Days Since Open — a derived integer: (shot_date − bag.opened_date) in whole
+// days. Historically populated only by CSV/Airtable import; app-created shots
+// were left NULL after the Neon move. Recompute it unconditionally on every
+// write (the includeInAnalysis pattern) so a stale client-supplied value can
+// never stick. Null whenever the shot has no bag, the bag has no opened_date,
+// or either date string is unparseable.
+async function computeDaysSinceOpen(
+  bagId: number | null | undefined,
+  shotDate: string | null | undefined,
+): Promise<number | null> {
+  if (bagId == null || !shotDate) return null;
+  const shotDay = /^\d{4}-\d{2}-\d{2}/.exec(shotDate)?.[0];
+  if (!shotDay) return null;
+  const bag = await db
+    .select({ openedDate: bagsTable.openedDate })
+    .from(bagsTable)
+    .where(eq(bagsTable.id, bagId));
+  const openedDay = /^\d{4}-\d{2}-\d{2}/.exec(bag[0]?.openedDate ?? "")?.[0];
+  if (!openedDay) return null;
+  const shotMs = Date.parse(`${shotDay}T00:00:00Z`);
+  const openedMs = Date.parse(`${openedDay}T00:00:00Z`);
+  if (Number.isNaN(shotMs) || Number.isNaN(openedMs)) return null;
+  return Math.round((shotMs - openedMs) / 86_400_000);
+}
+
 // --- GET /shots/reference (must be before /:id) ---
 router.get("/shots/reference", async (req, res): Promise<void> => {
   const params = ListReferenceShotsQueryParams.safeParse(req.query);
@@ -348,7 +373,10 @@ router.post("/shots", async (req, res): Promise<void> => {
   // Never trust a client-supplied includeInAnalysis — always recompute it
   // from the submitted Status/Fault Status, the single approved rule.
   data.includeInAnalysis = computeIncludeInAnalysis(data.status, data.faultStatus);
-  const shot = await db.insert(shotsTable).values(data).returning();
+  // days_since_open is server-derived (not part of the write contract), so it is
+  // merged into the insert values rather than onto `data`.
+  const daysSinceOpen = await computeDaysSinceOpen(data.bagId, data.shotDate);
+  const shot = await db.insert(shotsTable).values({ ...data, daysSinceOpen }).returning();
   await carryForwardActiveBagGrindDefaults(shot[0]?.bagId, data);
   res.status(201).json(toShotApi(shot[0]!));
 });
@@ -434,7 +462,13 @@ router.patch("/shots/:id", async (req, res): Promise<void> => {
   const effectiveStatus = data.status !== undefined ? data.status : existing[0].status;
   const effectiveFaultStatus = data.faultStatus !== undefined ? data.faultStatus : existing[0].faultStatus;
   data.includeInAnalysis = computeIncludeInAnalysis(effectiveStatus, effectiveFaultStatus);
-  const shot = await db.update(shotsTable).set(data).where(eq(shotsTable.id, id)).returning();
+  // Recompute Days Since Open from whatever bag/date this shot ends up with —
+  // covers a changed bagId or shotDate and also forward-fills the historical
+  // NULLs left by the Neon move on any edit.
+  const effectiveBagId = data.bagId !== undefined ? data.bagId : existing[0].bagId;
+  const effectiveShotDate = data.shotDate !== undefined ? data.shotDate : existing[0].shotDate;
+  const daysSinceOpen = await computeDaysSinceOpen(effectiveBagId, effectiveShotDate);
+  const shot = await db.update(shotsTable).set({ ...data, daysSinceOpen }).where(eq(shotsTable.id, id)).returning();
   if (!shot[0]) { res.status(404).json({ error: "Shot not found" }); return; }
   await carryForwardActiveBagGrindDefaults(shot[0].bagId, data);
   res.json(toShotApi(shot[0]));

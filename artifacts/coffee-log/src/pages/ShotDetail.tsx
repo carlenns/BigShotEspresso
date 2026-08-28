@@ -164,7 +164,8 @@ export default function ShotDetail() {
                 <div className="mb-3">
                   <p className="text-sm font-semibold text-muted-foreground">Workflow Context</p>
                   <p className="text-xs text-muted-foreground/80">
-                    The machine/workflow learning era this shot belongs to — separate from Hopper Phase.
+                    The machine/workflow learning era this shot belongs to — not Hopper Phase, which tracks a
+                    bean/hopper operating window.
                   </p>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
@@ -275,7 +276,7 @@ export default function ShotDetail() {
                     <div>
                       <div className="font-medium text-sm">{similar.bean}</div>
                       <div className="text-xs text-muted-foreground font-mono">
-                        {similar.dose}g in → {similar.yield}g out • {similar.pourTime}s
+                        {similar.dose}g in → {similar.yield}g out{similar.pourTime != null ? ` • ${similar.pourTime}s` : ""}
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground">

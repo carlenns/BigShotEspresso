@@ -91,7 +91,10 @@ export default function TasteSelectors() {
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Tag className="h-7 w-7 text-primary" /> Taste Selectors
           </h1>
-          <p className="text-muted-foreground mt-1">Tag shots with flavour notes and characteristics. Filter and compare by tag.</p>
+          <p className="text-muted-foreground mt-1">
+            Your tasting vocabulary — the quick-pick tags you apply on the shot form when recording how a shot tasted,
+            grouped into the categories below. Standard ones are marked <span className="font-medium">(std)</span>; add your own anytime.
+          </p>
         </div>
         <div className="flex gap-2">
           {selectors.length === 0 && (
@@ -110,7 +113,7 @@ export default function TasteSelectors() {
         <div className="text-center py-16 text-muted-foreground border rounded-xl">
           <Tag className="h-10 w-10 mx-auto mb-3 opacity-30" />
           <p className="font-medium">No taste selectors yet.</p>
-          <p className="text-sm mt-1">Seed the 25 standard selectors or add your own.</p>
+          <p className="text-sm mt-1">Load the 25 standard selectors to get started — you can rename, remove, or add your own afterwards.</p>
           <Button className="mt-4 gap-2" onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending}>
             <RefreshCw className={cn("h-4 w-4", seedMutation.isPending && "animate-spin")} />
             Load Standard Selectors
