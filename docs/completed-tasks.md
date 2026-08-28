@@ -2,6 +2,41 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Hopper phase carryover clarity (launch-hardening cycle 3) — 2026-08-27
+
+Copy-only. No schema, no behaviour change, no hopper semantics change.
+
+`artifacts/coffee-log/src/pages/Bags.tsx` — the Start Hopper Phase dialog now
+states plainly that starting a phase records the beans you're *adding now*, that
+you don't have to empty the hopper first, and that unmeasured carryover from the
+previous phase can be intentionally left out of the baseline and just stays in
+the hopper. The two locked phrases the source-scan tests check
+(`measured operating window`, `intentionally … left out of this baseline`, and
+the whole-bag-vs-phase-baseline sentence) are preserved verbatim; the
+`Starting Beans / Phase Baseline` helper text now says "the measured beans
+you're adding now — not the total in the hopper".
+
+Verification: `CI=true pnpm run typecheck` pass · `CI=true pnpm --filter
+@workspace/api-server test` pass (78/78) · `CI=true pnpm run build:render` pass.
+
+## System Phase usability polish (launch-hardening cycle 1) — 2026-08-27
+
+Copy-only follow-up to the merged System Phase foundation (PR #2). No schema, no
+behaviour change, no analytics.
+
+- `artifacts/coffee-log/src/pages/ShotForm.tsx` — the Log Shot / Edit Shot
+  "Workflow Context" card helper text now spells out the nesting explicitly:
+  **System Phase** is the broad era (e.g. 3 = dialing in a timed dose), an
+  **Experiment** is an optional named test running inside that phase, and Phase 3
+  tracks how consistently *Initial Grinder Output* — not the corrected Dose —
+  lands near 18 g. The existing "separate from Hopper Phase" line is kept.
+- `artifacts/api-server/src/api-contract.test.ts` — three added source-scan
+  assertions locking the new copy (nesting sentence, Experiment sentence,
+  Initial-Grinder-Output-not-Dose sentence).
+
+Verification: `CI=true pnpm run typecheck` pass · `CI=true pnpm --filter
+@workspace/api-server test` pass (78/78) · `CI=true pnpm run build:render` pass.
+
 ## Shot-level System Phase / Experiment foundation — 2026-08-27
 
 ### Goal

@@ -511,8 +511,13 @@ test("Shot-level System Phase / Experiment is an additive foundation, distinct f
   assert.doesNotMatch(shotFormSource, /setValue\("systemPhase"/);
   assert.doesNotMatch(shotFormSource, /setValue\("experimentName"/);
 
-  // User-visible copy names the distinction from Hopper Phase.
+  // User-visible copy names the distinction from Hopper Phase, spells out the
+  // System Phase / Experiment nesting, and states the Natural-18g metric is
+  // Initial Grinder Output, not the corrected Dose.
   assert.match(shotFormSource, /machine\/workflow learning era this shot belongs to — separate from Hopper Phase/);
+  assert.match(shotFormSource, /<strong>System Phase<\/strong> is the broad era/);
+  assert.match(shotFormSource, /An <strong>Experiment<\/strong> is an optional named test running inside that phase/);
+  assert.match(shotFormSource, /<em>Initial Grinder Output<\/em> — not the corrected Dose — lands near 18/);
 
   // Shot Detail: a conditional section rendered only when a value is present.
   assert.match(shotDetailSource, /const hasWorkflowContext =/);

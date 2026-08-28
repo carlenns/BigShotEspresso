@@ -509,9 +509,10 @@ export default function Bags() {
 
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
               A hopper phase is a measured operating window you choose to track from this point forward — not a
-              count of every bean physically left in the hopper or bag. Unmeasured leftover beans can be
-              intentionally left out of this baseline. The Dashboard's Bag Progress still tracks whole-bag
-              consumed and remaining separately from this phase baseline.
+              count of every bean physically left in the hopper or bag. Starting a new phase means recording the
+              beans you're <em>adding now</em> — you don't have to empty the hopper first. Unmeasured carryover
+              from the previous phase can be intentionally left out of this baseline and just stays in the hopper.
+              The Dashboard's Bag Progress still tracks whole-bag consumed and remaining separately from this phase baseline.
             </div>
 
             {activeBags.length > 1 && (
@@ -569,7 +570,7 @@ export default function Bags() {
               <p className="text-xs text-muted-foreground">
                 {startingBeansPrefilled
                   ? "Pre-filled from this bag's recorded weight, since this is its first hopper phase. Adjust if you're loading less."
-                  : "Enter what you're loading now. BSE doesn't track exact bean depletion between hopper phases, so this isn't auto-filled."}
+                  : "Enter the measured beans you're adding now — not the total in the hopper. Any unmeasured carryover from the previous phase isn't counted here. BSE doesn't track exact bean depletion between phases, so this isn't auto-filled."}
               </p>
             </div>
 
