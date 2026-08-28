@@ -928,6 +928,11 @@ test("Bag closeout makes measured-vs-unmeasured leftover explicit and guides tow
   // Previous (inactive) bags must show a reconciled-remaining figure when
   // present, without cluttering active bags.
   assert.match(bagsPageSource, /!bag\.isActive && bag\.remainingEstimate != null && <span>Reconciled remaining: \{bag\.remainingEstimate\}g<\/span>/);
+
+  // Bag cost must read as currency, not a bare number: the editable field is
+  // labelled "Cost ($)" and the bag-card display is a "$"-prefixed 2-dp value.
+  assert.match(bagsPageSource, /<Label>Cost \(\$\)<\/Label>/);
+  assert.match(bagsPageSource, /bag\.cost != null && <span>Cost: <strong className="text-foreground">\$\{Number\(bag\.cost\)\.toFixed\(2\)\}<\/strong><\/span>/);
 });
 
 test("Change Bag guided flow reuses existing endpoints and never forces hopper phase creation", async () => {
@@ -2045,6 +2050,89 @@ test("Catalog delete routes have a graceful error contract: 409 on blocked, 404 
     shots.indexOf('router.get("/shots"', shots.indexOf('router.post("/shots/import-csv"')),
   );
   assert.doesNotMatch(importCsvHandler, /validateRatings/);
+});
+
+test("Catalog pages render the API's graceful 400/404/409 delete-error contract", async () => {
+  const [http, beans, equipment, accessories, tasteSelectors] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/lib/http.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Beans.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Equipment.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Accessories.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/TasteSelectors.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  // --- shared helper: reads the body once, unwraps { error }, never throws ---
+  assert.match(http, /export async function errorMessageFrom\(response: Response\): Promise<string>/);
+  // Parses the JSON body and returns a non-empty string `error` field.
+  assert.match(http, /JSON\.parse\(text\)/);
+  assert.match(http, /\.error === "string"/);
+  assert.match(http, /\.error\.trim\(\) !== ""/);
+  // Falls back to raw text, then statusText, then a synthetic message.
+  assert.match(http, /response\.statusText \|\| `Request failed \(\$\{response\.status\}\)`/);
+
+  // --- every catalog page imports the helper and uses it in its delete path ---
+  for (const [name, src] of [
+    ["Beans", beans],
+    ["Equipment", equipment],
+    ["Accessories", accessories],
+    ["TasteSelectors", tasteSelectors],
+  ] as const) {
+    assert.match(src, /import \{ errorMessageFrom \} from "@\/lib\/http"/, `${name} imports errorMessageFrom`);
+    // No page still surfaces a raw response body or `String(e)` in a delete/save error.
+    assert.doesNotMatch(src, /throw new Error\(await (response|r)\.text\(\)\)/, `${name} no longer throws raw response text`);
+    assert.match(src, /description: e instanceof Error \? e\.message : String\(e\)/, `${name} onError renders e.message`);
+  }
+
+  // --- the previously-silent delete mutations now check .ok and have onError ---
+  // Equipment: deleteG + deleteM
+  for (const marker of ["/api/equipment/grinders/${id}", "/api/equipment/machines/${id}"]) {
+    const del = equipment.slice(equipment.indexOf(marker));
+    assert.match(del, /if \(!response\.ok\) throw new Error\(await errorMessageFrom\(response\)\)/, `${marker} checks response.ok`);
+  }
+  const deleteG = equipment.slice(equipment.indexOf("const deleteG = useMutation"), equipment.indexOf("const saveM = useMutation"));
+  assert.match(deleteG, /onError: \(e\) => toast\(\{ title: "Error", description: e instanceof Error \? e\.message : String\(e\), variant: "destructive" \}\)/);
+  const deleteM = equipment.slice(equipment.indexOf("const deleteM = useMutation"));
+  assert.match(deleteM, /onError: \(e\) => toast\(\{ title: "Error", description: e instanceof Error \? e\.message : String\(e\), variant: "destructive" \}\)/);
+
+  // Accessories + TasteSelectors: deleteMutation
+  for (const [name, src, route] of [
+    ["Accessories", accessories, "/api/accessories/${id}"],
+    ["TasteSelectors", tasteSelectors, "/api/taste-selectors/${id}"],
+  ] as const) {
+    const del = src.slice(src.indexOf("const deleteMutation = useMutation"));
+    assert.match(del, new RegExp(`fetch\\(\`${route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\`, \\{ method: "DELETE" \\}\\)`), `${name} delete route`);
+    assert.match(del, /if \(!response\.ok\) throw new Error\(await errorMessageFrom\(response\)\)/, `${name} delete checks response.ok`);
+    assert.match(del, /onError: \(e\) => toast\(\{ title: "Error", description: e instanceof Error \? e\.message : String\(e\), variant: "destructive" \}\)/, `${name} delete has onError`);
+  }
+
+  // Beans delete keeps its .ok check, now routed through the helper.
+  const beansDelete = beans.slice(beans.indexOf("const deleteMutation = useMutation"));
+  assert.match(beansDelete, /if \(!response\.ok\) throw new Error\(await errorMessageFrom\(response\)\)/);
+});
+
+test("BeanForm / BagDetail / Bags render the same graceful {error} contract (no split-brain)", async () => {
+  const [beanForm, bagDetail, bags] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/BeanForm.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/BagDetail.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  for (const [name, src] of [
+    ["BeanForm", beanForm],
+    ["BagDetail", bagDetail],
+    ["Bags", bags],
+  ] as const) {
+    assert.match(src, /import \{ errorMessageFrom \} from "@\/lib\/http"/, `${name} imports errorMessageFrom`);
+    // No mutation/query still surfaces a raw response body or bare String(e).
+    assert.doesNotMatch(src, /throw new Error\(await (r|response|res)\.text\(\)\)/, `${name} no raw response.text() throw`);
+    assert.doesNotMatch(src, /description: String\(e\), variant: "destructive"/, `${name} onError renders e.message`);
+  }
+
+  // The Change Bag orchestrator's compound error messages unwrap {error} too,
+  // rather than interpolating a raw JSON body mid-sentence.
+  assert.doesNotMatch(bags, /\$\{await \w+Res\.text\(\)\}/);
+  assert.match(bags, /could not be closed: \$\{await errorMessageFrom\(closeRes\)\}/);
+  assert.match(bags, /could not be started: \$\{await errorMessageFrom\(hopperRes\)\}/);
 });
 
 test("Dose correction restores over-grind removal when a top-up overshoots the target", async () => {

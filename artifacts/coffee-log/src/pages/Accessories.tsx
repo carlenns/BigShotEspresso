@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { errorMessageFrom } from "@/lib/http";
 import { Plus, Pencil, Trash2, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ACCESSORY_SUGGESTIONS, matchingSuggestions } from "@/lib/equipment-suggestions";
@@ -89,16 +90,20 @@ export default function Accessories() {
       if (form.type === "wdt_tool") { if (form.needleCount) specs.needleCount = form.needleCount; if (form.needleThickness) specs.needleThickness = form.needleThickness; }
       const body = { type: form.type, shortLabel: form.shortLabel || undefined, sourceUrl: form.sourceUrl || undefined, brand: form.brand || undefined, model: form.model || undefined, size: form.size || undefined, notes: form.notes || undefined, isActive: form.isActive === "true", isDefault: form.isDefault === "true", specs: Object.keys(specs).length ? specs : undefined };
       const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (!r.ok) throw new Error(await r.text());
+      if (!r.ok) throw new Error(await errorMessageFrom(r));
       return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["accessories"] }); setOpen(false); toast({ title: editing ? "Updated" : "Added" }); },
-    onError: (e) => toast({ title: "Error", description: String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => fetch(`/api/accessories/${id}`, { method: "DELETE" }),
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/accessories/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error(await errorMessageFrom(response));
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["accessories"] }); toast({ title: "Removed" }); },
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));

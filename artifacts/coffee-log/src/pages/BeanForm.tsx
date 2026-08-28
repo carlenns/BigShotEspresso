@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { errorMessageFrom } from "@/lib/http";
 import { useToast } from "@/hooks/use-toast";
 
 interface Bean {
@@ -66,7 +67,7 @@ const PROCESSES = ["Washed", "Natural", "Honey", "Anaerobic", "Wet-Hulled", "Oth
 
 function fetchBean(id: number): Promise<Bean> {
   return fetch(`/api/beans/${id}`).then(async (r) => {
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) throw new Error(await errorMessageFrom(r));
     return r.json();
   });
 }
@@ -114,7 +115,7 @@ export default function BeanForm() {
           .filter(([, value]) => value !== "")
       );
       const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (!r.ok) throw new Error(await r.text());
+      if (!r.ok) throw new Error(await errorMessageFrom(r));
       return r.json() as Promise<Bean>;
     },
     onSuccess: (saved) => {
@@ -123,7 +124,7 @@ export default function BeanForm() {
       toast({ title: isEditing ? "Bean updated" : "Bean added" });
       setLocation("/beans");
     },
-    onError: (e) => toast({ title: "Error", description: String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const set = (key: keyof BeanFormState, value: string) => setForm((current) => ({ ...current, [key]: value }));

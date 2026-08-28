@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { errorMessageFrom } from "@/lib/http";
 import { Plus, Pencil, Trash2, Wrench } from "lucide-react";
 import {
   GRINDER_SUGGESTIONS,
@@ -69,16 +70,20 @@ export default function Equipment() {
       const url = editingG ? `/api/equipment/grinders/${editingG.id}` : "/api/equipment/grinders";
       const body = { ...gForm, isDefault: gForm.isDefault === "true" };
       const r = await fetch(url, { method: editingG ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (!r.ok) throw new Error(await r.text());
+      if (!r.ok) throw new Error(await errorMessageFrom(r));
       return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["grinders"] }); setGOpen(false); toast({ title: editingG ? "Grinder updated" : "Grinder added" }); },
-    onError: (e) => toast({ title: "Error", description: String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const deleteG = useMutation({
-    mutationFn: (id: number) => fetch(`/api/equipment/grinders/${id}`, { method: "DELETE" }),
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/equipment/grinders/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error(await errorMessageFrom(response));
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["grinders"] }); toast({ title: "Grinder removed" }); },
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const saveM = useMutation({
@@ -86,16 +91,20 @@ export default function Equipment() {
       const url = editingM ? `/api/equipment/machines/${editingM.id}` : "/api/equipment/machines";
       const body = { ...mForm, isDefault: mForm.isDefault === "true" };
       const r = await fetch(url, { method: editingM ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (!r.ok) throw new Error(await r.text());
+      if (!r.ok) throw new Error(await errorMessageFrom(r));
       return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["machines"] }); setMOpen(false); toast({ title: editingM ? "Machine updated" : "Machine added" }); },
-    onError: (e) => toast({ title: "Error", description: String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const deleteM = useMutation({
-    mutationFn: (id: number) => fetch(`/api/equipment/machines/${id}`, { method: "DELETE" }),
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/equipment/machines/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error(await errorMessageFrom(response));
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["machines"] }); toast({ title: "Machine removed" }); },
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const setG = (k: string, v: string) => setGForm((f) => ({ ...f, [k]: v }));
