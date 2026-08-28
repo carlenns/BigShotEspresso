@@ -2,6 +2,27 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Graceful {error} contract extended to BeanForm / BagDetail / Bags (cleanup) — 2026-08-28
+
+Follow-up to the catalog-pages 409 fix (`aea45dd`). Agent 2's cleanup review found a
+split-brain: the four catalog pages rendered the API's `{error}` contract but the
+bean/bag form + orchestration flows still did `throw new Error(await r.text())` +
+`description: String(e)`, so a 400/404/409 there still showed the raw
+`Error: {"error":"…"}` string. Frontend rendering only — no schema/API change.
+
+- `artifacts/coffee-log/src/pages/BeanForm.tsx` — `fetchBean` query fn + `saveMutation`
+  route through `errorMessageFrom`; `onError` renders `e.message`.
+- `artifacts/coffee-log/src/pages/BagDetail.tsx` — `saveDefaultsMutation` same two swaps.
+- `artifacts/coffee-log/src/pages/Bags.tsx` — the bag save / closeout / start-hopper-phase
+  mutations, plus the Change Bag orchestrator's four compound error messages
+  (`${await …Res.text()}` → `${await errorMessageFrom(…Res)}`), plus every `String(e)`
+  `onError`.
+- `artifacts/api-server/src/api-contract.test.ts` — new source-scan block *"BeanForm /
+  BagDetail / Bags render the same graceful {error} contract (no split-brain)"*.
+
+Verification: `CI=true pnpm run typecheck` pass · `CI=true pnpm --filter
+@workspace/api-server test` pass (80 → **81**) · `CI=true pnpm run build:render` pass.
+
 ## Roadmap reconcile: DI-1 / DI-2 / DI-6 closed — 2026-08-28
 
 Docs only. `docs/implementation/launch-readiness-roadmap.md` disagreed with shipped

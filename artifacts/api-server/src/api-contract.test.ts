@@ -2110,6 +2110,31 @@ test("Catalog pages render the API's graceful 400/404/409 delete-error contract"
   assert.match(beansDelete, /if \(!response\.ok\) throw new Error\(await errorMessageFrom\(response\)\)/);
 });
 
+test("BeanForm / BagDetail / Bags render the same graceful {error} contract (no split-brain)", async () => {
+  const [beanForm, bagDetail, bags] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/BeanForm.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/BagDetail.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  for (const [name, src] of [
+    ["BeanForm", beanForm],
+    ["BagDetail", bagDetail],
+    ["Bags", bags],
+  ] as const) {
+    assert.match(src, /import \{ errorMessageFrom \} from "@\/lib\/http"/, `${name} imports errorMessageFrom`);
+    // No mutation/query still surfaces a raw response body or bare String(e).
+    assert.doesNotMatch(src, /throw new Error\(await (r|response|res)\.text\(\)\)/, `${name} no raw response.text() throw`);
+    assert.doesNotMatch(src, /description: String\(e\), variant: "destructive"/, `${name} onError renders e.message`);
+  }
+
+  // The Change Bag orchestrator's compound error messages unwrap {error} too,
+  // rather than interpolating a raw JSON body mid-sentence.
+  assert.doesNotMatch(bags, /\$\{await \w+Res\.text\(\)\}/);
+  assert.match(bags, /could not be closed: \$\{await errorMessageFrom\(closeRes\)\}/);
+  assert.match(bags, /could not be started: \$\{await errorMessageFrom\(hopperRes\)\}/);
+});
+
 test("Dose correction restores over-grind removal when a top-up overshoots the target", async () => {
   const [doseCorrection, shotForm, dictionary] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/lib/dose-correction.ts", import.meta.url)), "utf8"),

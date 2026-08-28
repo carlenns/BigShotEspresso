@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { errorMessageFrom } from "@/lib/http";
 import { Archive, Plus, Star, Package, Pencil, ChevronRight, ClipboardCheck, RefreshCw, AlertTriangle, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useListHoppers, getListHoppersQueryKey } from "@workspace/api-client-react";
@@ -115,11 +116,11 @@ export default function Bags() {
         else body[k] = v;
       }
       const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (!r.ok) throw new Error(await r.text());
+      if (!r.ok) throw new Error(await errorMessageFrom(r));
       return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["bags"] }); setOpen(false); toast({ title: editing ? "Bag updated" : "Bag added" }); },
-    onError: (e) => toast({ title: "Error", description: String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const closeBagMutation = useMutation({
@@ -154,7 +155,7 @@ export default function Bags() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!r.ok) throw new Error(await r.text());
+      if (!r.ok) throw new Error(await errorMessageFrom(r));
       return r.json();
     },
     onSuccess: () => {
@@ -164,7 +165,7 @@ export default function Bags() {
       setCloseoutBag(null);
       toast({ title: "Bag closed out", description: "Closeout evidence was saved. Next: start a new bag and hopper phase when ready." });
     },
-    onError: (e) => toast({ title: "Closeout failed", description: String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Closeout failed", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const startPhaseMutation = useMutation({
@@ -192,7 +193,7 @@ export default function Bags() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!r.ok) throw new Error(await r.text());
+      if (!r.ok) throw new Error(await errorMessageFrom(r));
       return r.json();
     },
     onSuccess: () => {
@@ -201,7 +202,7 @@ export default function Bags() {
       setStartPhaseBag(null);
       toast({ title: "Hopper phase started", description: "The new phase is now active for this bag." });
     },
-    onError: (e) => toast({ title: "Could not start phase", description: String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Could not start phase", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -775,7 +776,7 @@ function ChangeBagDialog({
             origin: form.newBeanOrigin.trim() || undefined,
           }),
         });
-        if (!beanRes.ok) throw new Error(`Could not create the new bean: ${await beanRes.text()}`);
+        if (!beanRes.ok) throw new Error(`Could not create the new bean: ${await errorMessageFrom(beanRes)}`);
         beanId = (await beanRes.json()).id;
       }
 
@@ -794,7 +795,7 @@ function ChangeBagDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(bagBody),
       });
-      if (!bagRes.ok) throw new Error(`Could not create the new bag: ${await bagRes.text()}`);
+      if (!bagRes.ok) throw new Error(`Could not create the new bag: ${await errorMessageFrom(bagRes)}`);
       const newBag = await bagRes.json();
 
       // 3. Optionally close the old bag now that the new one exists.
@@ -825,7 +826,7 @@ function ChangeBagDialog({
           body: JSON.stringify(closeBody),
         });
         if (!closeRes.ok) {
-          throw new Error(`New bag "${newBag.bagName ?? newBag.bagNumber ?? newBag.id}" was created and is active, but the old bag could not be closed: ${await closeRes.text()}. Close it manually from the Bags list.`);
+          throw new Error(`New bag "${newBag.bagName ?? newBag.bagNumber ?? newBag.id}" was created and is active, but the old bag could not be closed: ${await errorMessageFrom(closeRes)}. Close it manually from the Bags list.`);
         }
       }
 
@@ -848,7 +849,7 @@ function ChangeBagDialog({
           body: JSON.stringify(hopperBody),
         });
         if (!hopperRes.ok) {
-          throw new Error(`New bag "${newBag.bagName ?? newBag.bagNumber ?? newBag.id}" was created and is active, but the hopper phase could not be started: ${await hopperRes.text()}. Start it separately from the Bags list.`);
+          throw new Error(`New bag "${newBag.bagName ?? newBag.bagNumber ?? newBag.id}" was created and is active, but the hopper phase could not be started: ${await errorMessageFrom(hopperRes)}. Start it separately from the Bags list.`);
         }
       }
 
@@ -873,7 +874,7 @@ function ChangeBagDialog({
       qc.invalidateQueries({ queryKey: getListHoppersQueryKey() });
       qc.invalidateQueries({ queryKey: ["intelligence"] });
       qc.invalidateQueries({ queryKey: ["dashboard-intelligence"] });
-      toast({ title: "Change Bag did not fully complete", description: String(e), variant: "destructive" });
+      toast({ title: "Change Bag did not fully complete", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
     },
   });
 

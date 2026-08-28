@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { errorMessageFrom } from "@/lib/http";
 import { ArrowLeft, Star, Save, Coffee } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { displaySelectorValue } from "@/lib/selector-options";
@@ -87,11 +88,11 @@ export default function BagDetail() {
         else body[k] = parseFloat(v);
       }
       const r = await fetch(`/api/bags/${params.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (!r.ok) throw new Error(await r.text());
+      if (!r.ok) throw new Error(await errorMessageFrom(r));
       return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["bag-detail", params.id] }); qc.invalidateQueries({ queryKey: ["bags"] }); setEditingDefaults(false); toast({ title: "Defaults updated" }); },
-    onError: (e) => toast({ title: "Error", description: String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const set = (k: string, v: string) => setDefaults((d) => ({ ...d, [k]: v }));
