@@ -402,6 +402,11 @@ export default function ShotForm() {
   const [showAdvancedEvaluation, setShowAdvancedEvaluation] = useState(false);
   const [recordGrindWaste, setRecordGrindWaste] = useState(false);
   const [showTasteLater, setShowTasteLater] = useState(false);
+  // Serving Context: the daily flow never has to open the Drink Type picker.
+  // "Change Drink" flips this true; the reveal condition below also opens it
+  // automatically on edit, for For Others, or when this shot's drink already
+  // differs from the Settings default.
+  const [showDrinkPicker, setShowDrinkPicker] = useState(false);
 
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
@@ -463,6 +468,18 @@ export default function ShotForm() {
     ? [...TASTE_ZONE_OPTIONS, form.watch("tasteZone")!]
     : TASTE_ZONE_OPTIONS;
   const analysisEligibility = describeAnalysisEligibility(form.watch("status"), form.watch("faultStatus") ?? []);
+
+  // Serving Context readout + reveal logic. drinkDiffersFromDefault also drives
+  // the gentle "keep it separate" copy next to the selector.
+  const currentDrinkType = form.watch("drinkType");
+  const currentBrewMethod = form.watch("brewMethod");
+  const servingForOthers = form.watch("isForOthers") === true;
+  const drinkDiffersFromDefault =
+    !!settings?.defaultDrinkType && !!currentDrinkType && currentDrinkType !== settings.defaultDrinkType;
+  const revealDrinkPicker =
+    showDrinkPicker || isEditing || servingForOthers || drinkDiffersFromDefault;
+  const drinkTypeReadout = currentDrinkType || settings?.defaultDrinkType || "Not set";
+  const brewMethodReadout = currentBrewMethod || "Not set";
 
   const selectedBagId = form.watch("bagId");
   const selectedMachineId = form.watch("machineId");
@@ -1338,6 +1355,28 @@ export default function ShotForm() {
                   </p>
                 </div>
 
+                {/* Collapsed readout — the daily flow reads Drink + Brew as plain
+                    text and never has to open the picker. "Change Drink" reveals
+                    the selector; it also opens on its own on edit, for For Others,
+                    or when this shot's drink already differs from the default.
+                    Hidden once the picker is open so the drink isn't named twice. */}
+                {!revealDrinkPicker && (
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                    <span className="text-muted-foreground">Serving:</span>
+                    <span>Drink: <span className="font-medium">{drinkTypeReadout}</span></span>
+                    <span className="text-muted-foreground">·</span>
+                    <span>Brew: <span className="font-medium">{brewMethodReadout}</span></span>
+                    <button
+                      type="button"
+                      onClick={() => setShowDrinkPicker(true)}
+                      className="text-xs font-medium text-primary underline underline-offset-2 hover:no-underline"
+                    >
+                      Change Drink
+                    </button>
+                  </div>
+                )}
+
+                {revealDrinkPicker && (
                 <FormField control={form.control} name="drinkType" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Drink Type</FormLabel>
@@ -1358,9 +1397,16 @@ export default function ShotForm() {
                               : ` Your Settings default is ${settings.defaultDrinkType}.`)
                         : " Set a Default Drink Type in Settings to prefill this on new shots.")}
                     </p>
+                    {drinkDiffersFromDefault && (
+                      <p className="rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
+                        Different from your default drink — you can still rate it, but keep it separate from
+                        your core espresso comparisons.
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )} />
+                )}
 
                 <div className="grid gap-3 sm:grid-cols-3">
                   <FormField control={form.control} name="isForOthers" render={({ field }) => (

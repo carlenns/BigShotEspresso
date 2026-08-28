@@ -608,6 +608,43 @@ test("Drink Type never forces Not Rated; For Others may suggest it but stays ove
   assert.match(source, /name="rated"[\s\S]{0,300}onCheckedChange=\{\(checked\) => field\.onChange\(checked === true \? false : true\)\}/);
 });
 
+test("Serving Context collapses the Drink Type picker for the daily flow but reveals it when it matters", async () => {
+  const source = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // A single local boolean drives the manual reveal — "Change Drink" sets it —
+  // and it must be a plain button with no side effect on any form value.
+  assert.match(source, /const \[showDrinkPicker, setShowDrinkPicker\] = useState\(false\)/);
+  assert.match(source, /onClick=\{\(\) => setShowDrinkPicker\(true\)\}/);
+  assert.match(source, /Change Drink/);
+
+  // The picker is gated, not always rendered.
+  assert.match(source, /\{revealDrinkPicker && \(\s*<FormField control=\{form\.control\} name="drinkType"/);
+
+  // Reveal covers: manual toggle, edit mode, For Others, and a drink that
+  // already differs from the Settings default.
+  assert.match(source, /const revealDrinkPicker =\s*\n?\s*showDrinkPicker \|\| isEditing \|\| servingForOthers \|\| drinkDiffersFromDefault/);
+  assert.match(source, /drinkDiffersFromDefault =\s*\n?\s*!!settings\?\.defaultDrinkType && !!currentDrinkType && currentDrinkType !== settings\.defaultDrinkType/);
+
+  // Collapsed readout shows Drink + Brew as plain text (read from the form,
+  // never a hardcoded drink).
+  assert.match(source, /Drink: <span className="font-medium">\{drinkTypeReadout\}<\/span>/);
+  assert.match(source, /Brew: <span className="font-medium">\{brewMethodReadout\}<\/span>/);
+  assert.match(source, /const brewMethodReadout = currentBrewMethod \|\| "Not set"/);
+  assert.doesNotMatch(source, /drinkTypeReadout = "Americano"/);
+
+  // Gentle "keep it separate" copy appears when the drink differs from default.
+  assert.match(source, /Different from your default drink — you can still rate it, but keep it separate from\s+your core espresso comparisons/);
+
+  // For Others is still the only control that suggests Not Rated — revealing
+  // the picker must not touch `rated`.
+  const matches = source.match(/form\.setValue\("rated", false\)/g) ?? [];
+  assert.equal(matches.length, 1, "exactly one place may suggest Not Rated (For Others)");
+  assert.match(source, /if \(forOthers\) form\.setValue\("rated", false\)/);
+});
+
 test("Shot Detail groups serving-context fields and shows them only when meaningful", async () => {
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)),
