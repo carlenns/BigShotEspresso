@@ -4,6 +4,7 @@ import { db, shotsTable, bagsTable, beansTable, settingsTable, grindersTable, ma
 import { GetRecentShotsQueryParams, GetBestRatedShotsQueryParams } from "@workspace/api-zod";
 import { eligibleShotConditions, ratingEligibleShotConditions } from "../lib/shot-eligibility";
 import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weighting";
+import { selectComparisonReferences } from "../lib/dashboard-comparison";
 
 const router: IRouter = Router();
 
@@ -456,12 +457,11 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   };
 
   // ── Shot comparison ─────────────────────────────────────────────────────────
-  // Reuse already-fetched data — no new DB queries required.
-  const latestAnalysisShot = activeBagShots[0] ?? null;
-  const bagRefShots = activeBagShots.filter((s) => s.isReference);
-
-  const compRefPool = bagRefShots;
-  const compSource = "Active bag reference shots";
+  // Reuse already-fetched data — no new DB queries required. activeBagShots is
+  // already scoped to this bag + include_in_analysis = true and ordered
+  // newest-first; selectComparisonReferences applies only the manual isReference
+  // filter (see lib/dashboard-comparison.ts for the Gate 7 properties it locks).
+  const { latestAnalysisShot, compRefPool, compSource } = selectComparisonReferences(activeBagShots);
 
   const nAvg1 = (vals: number[]) => vals.length
     ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10 : null;

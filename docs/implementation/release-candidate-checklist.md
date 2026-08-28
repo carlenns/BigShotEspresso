@@ -239,6 +239,36 @@ Verification:
 - No-reference scenario.
 - Excluded-reference scenario.
 
+Evidence (2026-08-28):
+
+- The Current-Shot-vs-Reference selection was extracted from `routes/dashboard.ts`
+  into a pure helper, `artifacts/api-server/src/lib/dashboard-comparison.ts`
+  (`selectComparisonReferences(activeBagShots)`). The route's output is unchanged
+  — it still passes the same active-bag, `include_in_analysis = true`,
+  newest-first array and shapes the same `shotComparison` response.
+- `artifacts/api-server/src/dashboard-comparison.test.ts` — behavioural unit
+  tests on fixture shot arrays, one per property:
+  - **7.1 active-Bag isolation** — a fixture with Bag A and Bag B reference shots;
+    the pool for Bag A is `[A]` only, and switching the active bag switches the
+    pool wholesale (no carryover). The route feeds the helper only bag-scoped rows
+    (`where(eq(shotsTable.bagId, activeBagRow.id), ...eligibleShotConditions)`),
+    locked by a source-scan in `analytics.integration.test.ts`; the existing
+    "Current Shot vs Reference is strictly isolated to the active Bag" PGlite test
+    still covers the SQL layer.
+  - **7.2 excluded shots** — an excluded reference (`include_in_analysis = false`)
+    never reaches the pool, and an excluded shot that is newest by date is never
+    the "current" shot.
+  - **7.3 manual references** — a rating-10 non-reference is absent from the pool;
+    a rating-5 reference and a reference with no rating at all are present. The
+    helper filters on `isReference === true` and reads no rating/score field
+    (source-scan asserts the helper body contains no `rating|score`).
+  - **7.4 insufficient-reference-data** — an empty pool yields
+    `hasSufficientReferences: false`, which the route renders as
+    `bagReference: null`; `Dashboard.tsx` shows the labelled card "No reference
+    data — log reference shots to enable comparison." (not zeros).
+- Verified: `CI=true pnpm run typecheck` · `CI=true pnpm --filter
+  @workspace/api-server test` (88, +5) · `CI=true pnpm run build:render` — all pass.
+
 ## Gate 8 — Shot Entry and Review Workflow
 
 Required:

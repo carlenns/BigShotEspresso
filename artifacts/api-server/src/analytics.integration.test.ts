@@ -128,9 +128,22 @@ test("analytical route inventory uses the shared eligibility condition", async (
   }
 
   const dashboardSource = source[4]!;
-  assert.match(dashboardSource, /const latestAnalysisShot = activeBagShots\[0\]/);
-  assert.match(dashboardSource, /const bagRefShots = activeBagShots\.filter\(\(s\) => s\.isReference\)/);
-  assert.match(dashboardSource, /const compRefPool = bagRefShots/);
+  // Current Shot vs Reference selection is delegated to the pure, unit-tested
+  // helper (see dashboard-comparison.test.ts for the Gate 7 property tests). The
+  // route must feed it the active-bag, analysis-eligible, newest-first array.
+  assert.match(dashboardSource, /import \{ selectComparisonReferences \} from "\.\.\/lib\/dashboard-comparison"/);
+  assert.match(
+    dashboardSource,
+    /const \{ latestAnalysisShot, compRefPool, compSource \} = selectComparisonReferences\(activeBagShots\)/,
+  );
+  assert.match(
+    dashboardSource,
+    /const activeBagShots = await db\.select\(\)\.from\(shotsTable\)[\s\S]{0,120}?eq\(shotsTable\.bagId, activeBagRow\.id\),[\s\S]{0,40}?\.\.\.eligibleShotConditions,/,
+    "activeBagShots must be scoped to the active bag AND the shared eligibility condition before comparison",
+  );
+  // The insufficient-reference state is a labelled null, never a zeroed object.
+  assert.match(dashboardSource, /bagReference: compRefPool\.length > 0 \? \{/);
+  assert.match(dashboardSource, /\} : null,/);
   assert.match(
     dashboardSource,
     /const currentSetting = grindCurrent \?\? activeBagRow\.currentGrindSetting/,
@@ -176,11 +189,20 @@ test("analytical route inventory uses the shared eligibility condition", async (
     /max\(case when \$\{bagsTable\.id\} = \$\{activeBagRow\.id\} then 1 else 0 end\)/,
     "Bag History must pin the active bag even when a new bag has fewer shots than historical bags",
   );
-  assert.doesNotMatch(
-    dashboardSource,
-    /const compRefPool = bagRefShots\.length/,
-    "Current Shot vs Reference must not use a fallback pool",
+  // compRefPool comes only from the destructured helper result — it is never
+  // reassigned to a cross-bag or rating-derived fallback pool.
+  assert.doesNotMatch(dashboardSource, /compRefPool\s*=\s*[^=]/);
+
+  // The helper itself: pool is the manual isReference flag, empty pool => a
+  // distinct insufficient-data flag (unit-tested in dashboard-comparison.test.ts).
+  const comparisonSource = await readFile(
+    fileURLToPath(new URL("./lib/dashboard-comparison.ts", import.meta.url)),
+    "utf8",
   );
+  const comparisonBody = comparisonSource.slice(comparisonSource.indexOf("export function selectComparisonReferences"));
+  assert.match(comparisonBody, /const compRefPool = activeBagShots\.filter\(\(s\) => s\.isReference === true\);/);
+  assert.match(comparisonBody, /hasSufficientReferences: compRefPool\.length > 0,/);
+  assert.doesNotMatch(comparisonBody, /rating|score|db\.|shotsTable/);
 });
 
 test("CSV-seeded Beans and Bags are visible without Airtable record IDs", async () => {
