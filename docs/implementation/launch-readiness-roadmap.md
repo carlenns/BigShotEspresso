@@ -147,10 +147,14 @@ analysis change) landed on branch `serving-context-ux`. The rest is deferred:
 2. ~~DI-1 + DI-2~~ — **done.** DI-1 (graceful 409 + frontend rendering) closed by
    `56888d3` + `aea45dd`; DI-2 negative-rating rejection closed by `56888d3` (only the
    cosmetic zod `minimum: 0` remains).
-3. **PL-1, PL-2, PL-4, PL-8** — cheap polish, good to clear while the smoke tests run.
-4. Re-run SMK-1 after any fix from steps 2–3.
-5. **Gate 12 release-candidate decision** — owner-alpha only, per ADR-0008. Known items
-   still open (GRD-1, the whole B/C queue) are "explicitly accepted" here, not fixed first.
+3. **PL-1, PL-2, PL-4, PL-8** — accepted-open polish for the owner-alpha RC, not
+   release blockers.
+4. ~~Re-run SMK-1 after any fix from steps 2–3.~~ Covered by the 2026-08-28
+   mutating lifecycle pass and later focused gate verification.
+5. ~~**Gate 12 release-candidate decision**~~ — **declared 2026-08-28** at
+   `e0ff6cf`; see `owner-alpha-rc-report-2026-08-28.md`. Known items still open
+   (GRD-1, the B/C queue, auth/public launch work) are explicitly accepted into
+   owner-alpha rather than fixed first.
 
 ### Track 2 — Equipment default consolidation (parallel, gated on a decision)
 
@@ -185,20 +189,23 @@ unblocks TS-3 and everything public-launch.
 
 ## Recommended next 3–4 slices
 
-1. **SMK-1 + SMK-2 — run the two smoke tests (A, M).** One continuous real-browser
-   lifecycle pass plus a Render deployment smoke test. These are the actual gate on calling
-   anything a release candidate, and neither has ever been done end-to-end. Do this first
-   because it can surface bugs that reorder the rest.
-2. ~~Land DI-1 + DI-2~~ — **done** (`56888d3`, `aea45dd`). DI-6 also done (`3230e02`).
-3. **EQ-0 + EQ-3 (A, S).** The no-approval-needed pieces of the equipment track:
-   backfill `isDefault` from the Settings label strings, fix the accessory POST per-type
-   bug, and fix the dead `usePuckScreen` read. De-risks the EQ-1 decision and is safe to do
-   regardless of what Carl decides about Option A.
-4. **Decision-gathering pass with Carl (unblocks the B/C queue).** One session to settle:
-   (a) approve/adjust equipment-default Option A and the decaf/pour-over model (EQ-*, EQ-2);
-   (b) approve the taste-selector archive slice and pick `archived_at` vs `is_active`
-   (TS-1); (c) import-corpus rule-backfill yes/no (DI-4); (d) confirm the magic-link auth
-   mechanism (AUTH-0). Each is a small answer that releases a queued track.
+1. **Use the owner-alpha RC in daily life.** Log real shots, close/open bags,
+   use `/data-health` when data looks suspicious, and collect friction notes
+   before starting another feature push.
+2. **Decision-gathering pass with Carl (unblocks the B/C queue).** One session
+   to settle: (a) approve/adjust equipment-default Option A and the
+   decaf/pour-over model (EQ-*, EQ-2); (b) approve the taste-selector archive
+   slice and pick `archived_at` vs `is_active` (TS-1); (c) import-corpus
+   rule-backfill yes/no (DI-4); (d) confirm the magic-link auth mechanism
+   (AUTH-0). Each is a small answer that releases a queued track.
+3. **EQ-0 + EQ-3 (A, S), if development resumes before Tier 2.** The
+   no-approval-needed pieces of the equipment track: backfill `isDefault` from
+   Settings label strings, fix the accessory POST per-type bug, and fix the dead
+   `usePuckScreen` read. De-risks EQ-1 and is safe regardless of the final
+   Option A decision.
+4. **Post-RC polish/a11y pass.** Tackle the accepted-open non-blockers that
+   daily use makes most annoying: nav dual active-highlight, list-page error
+   states, dashboard delta shapes, toast icons, and any wording drift.
 
 ## Item count by category
 

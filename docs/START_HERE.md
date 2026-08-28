@@ -84,9 +84,10 @@ CSV exports define current research data evidence. Airtable metadata and formula
 
 ## Current gate
 
-Phase 1.5 passes locally and CI is green. The first owner-only release candidate remains blocked until:
+Phase 1.5 has reached the first owner-alpha release candidate. See the
+[Owner-Alpha RC Report — 2026-08-28](implementation/owner-alpha-rc-report-2026-08-28.md)
+and [Release Candidate Checklist](implementation/release-candidate-checklist.md).
 
-- Render deployment smoke test passes.
-- Manual UI shot-entry smoke test passes.
-- The owner-only release decision is accepted or revised.
-- Live Airtable synchronization is reconciled only if Airtable sync is included in release scope.
+The release remains owner-only under ADR-0008. Public users, payments,
+accounts/auth, intelligence engines, live Airtable sync, and community features
+remain out of scope until separately approved.

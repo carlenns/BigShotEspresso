@@ -2,6 +2,34 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Owner-Alpha Release Candidate declared — 2026-08-28
+
+Declared the first owner-alpha release candidate at `main` commit `e0ff6cf`
+(`feat(gate9): route ImportAudit as a read-only /data-health diagnostics page
+(#10)`). This is an owner-only release under ADR-0008, not a public/user-account
+launch.
+
+- Added `docs/implementation/owner-alpha-rc-report-2026-08-28.md` with release
+  identity, gate results, verification snapshot, accepted-open items, non-goals,
+  deployment target, next-stage decision queue, backup pointer, and suggested tag.
+- Updated `docs/implementation/release-candidate-checklist.md` so Gate 12 records
+  the declaration and links the RC report.
+- Updated `docs/implementation/owner-alpha-rc-readiness-2026-08-28.md` so Gates
+  2.5, 7, 9, and 12 reflect landed/declared status after PRs #8, #9, and #10.
+- Updated `docs/implementation/launch-readiness-roadmap.md` so Track 1 records
+  Gate 12 as declared rather than pending.
+- Updated `docs/START_HERE.md` so the current gate points to the RC report.
+
+Accepted-open items include GRD-1/GRD-2, DI-2 cosmetic annotation, DI-3/DI-4/DI-5,
+EQ-0..EQ-5/EQ-2, TS-1..TS-3, SC-1..SC-3, AUTH-0..AUTH-9, PL-1..PL-8, the Bag #5
+and shot #20 empty-string data artifacts, the `days_since_open` timezone edge,
+and optional Render-dashboard SHA/build-log evidence. These gate later polish,
+Tier 2 auth, or public launch — not owner-only daily use.
+
+Verification snapshot: GitHub CI on `main` at `e0ff6cf` passed (secret scan,
+typecheck, API tests, API build, frontend build). SMK-1 mutating lifecycle and
+SMK-2 Render URL/API smoke were already documented as passed on 2026-08-28.
+
 ## RC Gate 9 (admin/debug visibility) — Option A: route the existing page read-only — 2026-08-28
 
 Gate 9's rule: "there must be some way to diagnose bad data without editing the

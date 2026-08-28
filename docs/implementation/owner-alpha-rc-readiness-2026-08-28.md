@@ -1,6 +1,6 @@
 # Owner-Alpha RC — readiness + decision queue (2026-08-28)
 
-Planning layer. Authorizes nothing. Base: `main` @ `d90ce8d` (PRs #2–#7 merged).
+Planning layer. Base: `main` @ `e0ff6cf` (PRs #2–#10 merged).
 Cross-refs `release-candidate-checklist.md`, `launch-readiness-roadmap.md`,
 `where-next-assessment-2026-08-28.md`, ADR-0008.
 
@@ -12,25 +12,26 @@ The first release is **owner-only** (ADR-0008). Intelligence engines are out of 
 
 | Gate | State | Owner |
 |---|---|---|
-| 1 Repo / CI | ✅ CI green through `d90ce8d` (83 tests) | — |
+| 1 Repo / CI | ✅ CI green through `e0ff6cf` | — |
 | 2 Security baseline | ✅ mostly ready; `ADMIN_API_TOKEN`-gated admin routes; no secrets in source | — |
-| 2.5 Color-blind / color-only | 🔄 **in review** — real ~390px viewport pass + color-only audit (Agent 2, 2026-08-28) | Agent 2 |
+| 2.5 Color-blind / color-only | ✅ passed — real ~390px viewport pass + color-only audit landed in PR #8 | — |
 | 3 Neon rehearsal | ✅ passed | — |
 | 4 CSV import verification | ✅ mostly ready | — |
 | 5 Airtable | ⏸ blocked — **not a blocker**; first release is CSV-only | — |
 | 6 Runtime API contract | ✅ read-only + mutating (SMK-1) smoke passed | — |
-| 7 Dashboard correctness | 🔄 **in progress** — behavioural test for active-Bag isolation / exclusion / manual-reference / no-reference state (Agent 1, 2026-08-28) | Agent 1 |
+| 7 Dashboard correctness | ✅ passed — behavioural active-Bag/reference tests landed in PR #8 | — |
 | 8 Shot entry / edit | ✅ SMK-1 mutating lifecycle recorded 2026-08-28 | — |
-| 9 Admin / debug visibility | ❓ **decision needed** — see §2 | Carl |
+| 9 Admin / debug visibility | ✅ Option A shipped — `/data-health` read-only diagnostics landed in PR #10 | — |
 | 10 Backup / recovery | ✅ documented + disposable-Neon rehearsal | — |
 | 11 Deployment prep | ✅ SMK-2 Render URL/API smoke recorded; optional dashboard SHA/build-log confirm remains | — |
-| 12 Release decision | pending 2.5 + 7 + 9 | Carl |
+| 12 Release decision | ✅ declared — see `owner-alpha-rc-report-2026-08-28.md` | Carl |
 
-Everything else code-side is green. The path to an RC is **2.5, 7, 9, then a Gate-12 sign-off**.
+Everything required for the owner-alpha RC is green. Remaining decisions in §3
+gate the next stage, not this owner-only RC.
 
 ---
 
-## 2. Gate 9 — Admin / debug visibility (DECISION NEEDED)
+## 2. Gate 9 — Admin / debug visibility (DECISION TAKEN)
 
 Gate 9's minimum rule: *"there must be some way to diagnose bad data without editing the
 database directly."*
@@ -54,10 +55,10 @@ database directly."*
 | **B** | **New read-only "Data Health" page.** Shows: active Bag + active Hopper; shot counts (total / analysis-eligible / excluded / reference / signature); `fromAirtable` vs app-created per table; unresolved relationships (orphan `bagId`/`hopperId`, references outside the active bag); the `/shots/audit` summary. No write actions. | M | Cleanest for owner-alpha; hits every Gate-9 bullet. Reuses the existing endpoints + one new count query. |
 | **C** | **Defer the UI; accept API-only.** Document that `/api/shots/audit` + `/api/airtable/counts` (curl / browser) satisfy the *minimum* rule, and a Data Health page is a fast follow. | XS | Gate 9 is "strongly recommended," not "required." Defensible for an owner-only release where the owner can hit an API. |
 
-**Recommendation: A now, B as a fast follow.** Routing the page that already exists is a
-few lines and gives the owner a real screen; the excluded-shot-count and orphan-FK
-additions from B can land in the same slice or right after. C is acceptable if the RC needs
-to ship this week, but leaves the owner on curl.
+**Decision taken:** Option A shipped in PR #10. The existing page is routed as
+`/data-health`, renamed/reframed as read-only owner diagnostics, linked from
+navigation, and stripped of client-side Airtable sync/clear actions. Option B
+remains a fast follow for excluded-shot counts and orphan-FK views.
 
 ---
 
@@ -83,16 +84,16 @@ None of these block the **owner-alpha RC** — that only needs Gates 2.5, 7, 9. 
 
 Declare the owner-alpha release candidate when:
 
-- [ ] Gate 2.5 pass recorded (real phone-width + color-only audit, any fixes landed).
-- [ ] Gate 7 pass recorded (dashboard-correctness test green in CI).
-- [ ] Gate 9 decision taken (A / B / C) and, if A or B, the page shipped.
-- [ ] CI green on the RC commit; typecheck + api-server tests + build:render all pass.
-- [ ] `smk-2-render-deploy-smoke.md` Part 2 either fully run or its remaining items
+- [x] Gate 2.5 pass recorded (real phone-width + color-only audit, any fixes landed).
+- [x] Gate 7 pass recorded (dashboard-correctness test green in CI).
+- [x] Gate 9 decision taken (A) and the page shipped.
+- [x] CI green on the RC commit; typecheck + api-server tests + build:render all pass.
+- [x] `smk-2-render-deploy-smoke.md` Part 2 either fully run or its remaining items
       (dashboard SHA / build-log confirmation) explicitly accepted.
-- [ ] Known open items **explicitly listed and accepted, not fixed** (per ADR-0008):
+- [x] Known open items **explicitly listed and accepted, not fixed** (per ADR-0008):
       EQ-1/EQ-2, GRD-1 (grind-precision display), DI-3/DI-4, GRD-2, the whole B/C queue,
       the `""` data artifacts in Bag #5 / shot #20, and the `days_since_open` timezone
       truncation edge.
-- [ ] A release-candidate report written (what's in, what's accepted-open, deploy target).
+- [x] A release-candidate report written (what's in, what's accepted-open, deploy target).
 
 Then tag / release per ADR-0008 (owner-only) — no public access, no Airtable dependency.

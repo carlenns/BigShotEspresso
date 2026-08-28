@@ -1,6 +1,6 @@
 # Release Candidate Checklist
 
-> **Status:** Draft release-readiness checklist  
+> **Status:** Owner-alpha release candidate declared  
 > **Created:** 2026-08-17  
 > **Release target:** Coffee Log / BigShotEspresso first useful Postgres-backed release  
 > **Boundary:** This checklist does not implement code, schemas, APIs, migrations, deployment, or intelligence engines.
@@ -46,20 +46,20 @@ Current access assumption:
 
 | Gate | Status | Required before first release candidate? |
 | --- | --- | --- |
-| Repository baseline and CI | Mostly ready | Yes |
-| Secret/security baseline | Mostly ready | Yes |
+| Repository baseline and CI | Passed | Yes |
+| Secret/security baseline | Passed for owner-alpha | Yes |
 | Neon Postgres rehearsal | Migration/bootstrap/API smoke/full import passed | Yes |
 | Migration and rollback verification | Passed for Phase 1 legacy upgrade path | Yes |
-| CSV fixture import verification | Mostly ready | Yes |
+| CSV fixture import verification | Passed for owner-alpha | Yes |
 | Full local export rehearsal | Passed against disposable Neon | Strongly recommended |
 | Airtable metadata verification | Blocked | Required before Airtable sync certification |
 | Airtable live sync dry run | Blocked | Required if release depends on live sync |
-| Core runtime API checks | Read-only smoke passed against Neon | Yes |
-| Dashboard correctness | Partially ready | Yes |
+| Core runtime API checks | Read-only + mutating smoke passed against Neon | Yes |
+| Dashboard correctness | Passed | Yes |
 | Shot entry/edit workflow | Mutating lifecycle smoke passed against Neon | Yes |
-| Color-blind friendly UI cues | Required for important indicators | Yes |
-| Access-control/public-launch decision | Proposed owner-only | Yes |
-| Admin/debug visibility | Needs scope decision | Strongly recommended |
+| Color-blind friendly UI cues | Passed for important indicators | Yes |
+| Access-control/public-launch decision | Owner-only accepted per ADR-0008 | Yes |
+| Admin/debug visibility | Passed via read-only `/data-health` | Strongly recommended |
 | Render deployment prep | Render URL/API smoke passed; optional dashboard SHA/build-log confirmation remains | Yes |
 | Domain setup prep | Planned | Yes |
 | Replit deployment prep | Deferred | No, unless Replit is selected later |
@@ -73,7 +73,7 @@ The existing Quick Log code may remain in the repository as a parked prototype, 
 
 Drink Type defaults are single-level for the first release candidate: there is one user-level `Default Drink Type` in Settings, plus user-extensible custom drink types. Machine-level and grinder/profile-level drink type defaults (for example, a specific machine+grinder setup implying Americano, or a decaf/pour-over/guest setup implying a different default) are shelved for now and should not be implemented. `Log Shot` now exposes Machine and Grinder selectors (added 2026-08-25), but they are not yet wired into any drink-type-default logic — that remains shelved on its own until it's specifically scoped, not automatically unblocked by the selectors existing. Reconsider machine/profile-level drink defaults only after users/OAuth exist (see ADR-0009).
 
-**Brew Method is a separate, distinct concept from Drink Type** — see `docs/product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md` §4.1.1. Brew Method (how it was extracted, e.g. Espresso) is not the same question as Drink Type (what was served, e.g. Americano), and this Gate 0.5 decision about Drink Type defaults does not extend to Brew Method, which has no shot-level field at all yet and is unrelated launch scope.
+**Brew Method is a separate, distinct concept from Drink Type** — see `docs/product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md` §4.1.1. Brew Method (how it was extracted, e.g. Espresso) is not the same question as Drink Type (what was served, e.g. Americano). Brew Method is now a nullable shot-level field; this Gate 0.5 decision about Drink Type defaults does not extend to Brew Method defaults or machine/profile-level drink behaviour.
 
 ## Gate 1 — Repository and CI
 
@@ -389,6 +389,15 @@ Release candidate can be declared only when:
 - Deployment smoke test passes.
 - Known blockers are either fixed or explicitly accepted.
 
+Evidence (2026-08-28):
+
+- Owner-alpha RC declared at `main` commit `e0ff6cf`; see
+  [Owner-Alpha RC Report — 2026-08-28](owner-alpha-rc-report-2026-08-28.md).
+- GitHub CI passed on `e0ff6cf` after PR #10 merged.
+- Remaining known items are accepted-open for owner-alpha and listed in the RC
+  report. They gate later polish, equipment/taste cleanup, Tier 2 auth, or public
+  launch, not owner-only daily use.
+
 ## Recommended Release Order
 
 1. Finish Neon rehearsal.
@@ -399,11 +408,11 @@ Release candidate can be declared only when:
 6. Decide whether release includes Airtable sync or CSV-only import.
 7. Prepare Render deployment.
 8. Smoke-test deployed app.
-9. Produce release candidate report.
+9. ~~Produce release candidate report.~~ Done 2026-08-28.
 10. Tag/release only after approval.
 
 ## Current Recommendation
 
-Proceed toward a first Coffee Log release candidate before intelligence engines.
+Use the owner-alpha release candidate before intelligence engines.
 
 The first release should be Postgres/Neon-backed, secure, testable, and useful for logging/reviewing Coffee Log data. Intelligence engines should start only after this operational foundation is stable.
