@@ -306,6 +306,7 @@ Do not:
 
 Evidence:
 
+- [SMK-2 — Render Deploy Smoke](smk-2-render-deploy-smoke.md) — runbook + local artifact-boot PASS (2026-08-28, `main` @ `c792c8b`); live-URL half blocked on Carl's Render access
 - [Render Deployment Prep](render-deployment-prep.md)
 - [Render Environment Checklist](render-environment-checklist.md)
 - [Domain Setup Checklist](domain-setup-checklist.md)

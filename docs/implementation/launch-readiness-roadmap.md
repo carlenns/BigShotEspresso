@@ -55,6 +55,7 @@ Size: **S** ≈ hours / one small PR · **M** ≈ a day / a few PRs · **L** ≈
 | Catalog deletes are confirm-gated in the UI | audit "Owner-Alpha Smoke Review" | `a0fc7ba` |
 | DI-1 — blocked deletes return a graceful 409 `{error}` (server) and the catalog pages render it (frontend) | audit Part 2 §3 | server `56888d3`, frontend `aea45dd` (cleanup pass 2026-08-28) |
 | DI-6 — Dashboard `usePuckScreen` rewired off the removed global Settings key to `defaultPuckScreen` | audit Part 2 "Bonus finding" | `3230e02` |
+| System Phase historical corpus **backfilled by Carl** (manual, via Codex, from first-hand phase knowledge) — supersedes the "stays NULL / no backfill" note below; all 251 shots now carry `system_phase` 1/2/3 | owner data-entry decision | live DB 2026-08-28; `completed-tasks.md` "owner backfill of the historical corpus" |
 
 ### Open — data integrity / standing rules
 
@@ -100,8 +101,8 @@ Gated on **Carl approving the decision doc + choosing the archive column** (a **
 
 | # | Item | Source | Blocking? | Cat | Size |
 |---|---|---|---|---|---|
-| SMK-1 | One continuous real-browser lifecycle pass: bean → bag → dial-in → log shot → edit shot → Shot Detail → close bag → Change Bag → Start Hopper Phase → Dashboard. Individual pieces verified; the whole chain never has been. | audit Critical Blocker #2; Gate 8 | **YES** — gates the release decision | **A** (verification task, no code) | M |
-| SMK-2 | Render deployment smoke test — never touched | audit Critical Blocker #3; Gate 11 | **YES** — gates the release decision | **A/B** (deploy task; needs Render env) | M |
+| SMK-1 | One continuous real-browser lifecycle pass: bean → bag → dial-in → log shot → edit shot → Shot Detail → close bag → Change Bag → Start Hopper Phase → Dashboard. **Partial (2026-08-28):** the read-only half passes — every page renders clean, new Serving Context / edit-mode picker / `/shots/quick` redirect all work. The **mutating chain is still unverified** (3rd time usage-limited): create bean/bag, Start Phase submit, Log Shot submit, **edit→clear→reload persistence**, Change Bag. | audit Critical Blocker #2; Gate 8 | **YES** — gates the release decision | **A** (verification task, no code) | M (mutating half remains) |
+| SMK-2 | Render deployment smoke test. **Prep done (2026-08-28):** production-artifact boot verified twice — see `smk-2-render-deploy-smoke.md`. The live Render deploy + URL smoke is **blocked on Carl** (Render dashboard + prod Neon URL + `ADMIN_API_TOKEN`); the runbook is the checklist. | audit Critical Blocker #3; Gate 11 | **YES** — gates the release decision | **A/B** (deploy task; needs Render env) | M (Carl's half remains) |
 
 ### Open — accounts / auth (ADR-0009, `auth-data-ownership-implementation-plan.md`)
 

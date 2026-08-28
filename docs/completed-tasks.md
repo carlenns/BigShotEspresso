@@ -2,6 +2,83 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## SMK-1 (read-only) + SMK-2 (prep) smoke pass — 2026-08-28
+
+Ran against a shared production build of `main` @ `c792c8b` (all of PRs #2–#5),
+live Neon DB. Two agents, read-only. No code change.
+
+### SMK-1 — read-only lifecycle walkthrough (partial)
+
+PASS on everything read-only can cover: every page (Dashboard, Shot Log, Shot
+Detail, Reference, Beans, Bag Detail, Equipment, Accessories, Taste Selectors,
+Settings, Log Shot, Edit Shot) renders with no error and no raw null/undefined;
+missing extraction values show `-`/`—`; Machine/Grinder rows hidden when absent.
+The new collapsed Serving Context works: readout + "Change Drink", readout hides
+when the picker opens, edit mode reveals the picker with the saved value.
+`/shots/quick` → `/shots/new` confirmed in-browser. `Cost ($)` field label and
+`Cost: $X.XX` card display confirmed.
+
+**Still NOT verified (needs a future full pass with test-data authorization):**
+create bean, create bag, Start Hopper Phase submit, Log Shot happy-path submit,
+**edit → clear an optional field → save → reload persistence (the key
+regression target)**, Change Bag close/reopen, and the human `{error}` message
+on deleting an in-use bean. This is the third time the mutating chain has been
+usage-limited. It remains the one open item for a clean Gate-8 / Gate-12 call.
+
+Incident (disclosed, resolved): a keyboard fallback while inspecting the drink
+selector submitted the Log Shot form and created real shot #259 on Bag #7. Carl
+authorized deletion; deleted via the in-app modal. Readback: `GET /api/shots/259`
+→ 404, Bag #7 shot count restored, active-bag pointer never moved. Net state
+unchanged.
+
+### SMK-2 — Render deploy smoke (prep only)
+
+New runbook: `docs/implementation/smk-2-render-deploy-smoke.md`. Part 1
+(production-artifact boot, verifiable now) **PASS** — `CI=true pnpm run
+build:render` then booting `dist/index.mjs` with `NODE_ENV=production` serves
+`/`, `/settings`, `/shots/new`, `/shots/quick` (SPA fallback), `/api/healthz` all
+`200`, and a real API read confirms API ↔ Neon from the built artifact. Verified
+twice independently. Part 2 (live Render deploy + URL smoke) is **blocked on
+Carl** — needs the Render dashboard, production Neon URL, and `ADMIN_API_TOKEN`;
+the runbook is the checklist. Not covered locally: Render's clean-container
+`frozen-lockfile` install and Node version.
+
+RC checklist Gate 11 "Evidence" now links the runbook.
+
+## System Phase / Experiment — owner backfill of the historical corpus — 2026-08-28
+
+**Supersedes the "existing shots stay NULL / no historical backfill" language in
+the 2026-08-27 foundation entry and in `launch-readiness-roadmap.md` /
+`bag-hopper-lifecycle-plan.md`.**
+
+The foundation slice (PR #2) deliberately shipped with no *automated* backfill
+because no `System Phase` field existed in any Airtable/CSV export. On 2026-08-28
+Carl backfilled the fields **manually, from his own first-hand knowledge of which
+period each bag belonged to**, via ChatGPT Codex writing directly to the live
+Neon DB. Carl's domain knowledge is the "verified source evidence" the standing
+rule required; this was a deliberate owner data-entry decision, not a script in
+the codebase.
+
+Result on the live DB (all 251 shots, contiguous by shot id ≈ chronological):
+
+| `system_phase` | `system_phase_name` | shots | id range |
+|---|---|---|---|
+| 1 | Initial Setup | 51 | 1–51 |
+| 2 | Scientific Foundation | 146 | 52–197 |
+| 3 | Timed Dose Optimization | 54 | 198–258 |
+
+The 54 phase-3 shots also carry `experiment_name` = "Natural 18g Target".
+
+Notes:
+- The label "Scientific Foundation" is Carl's chosen wording; the canonical list
+  in `csv-data-dictionary.md` / `bag-hopper-lifecycle-plan.md` still says
+  "scientific process / baseline". Cosmetic divergence — update the canonical
+  list to Carl's labels if/when convenient; no code depends on the exact string.
+- Consequence: Shot Detail's "Workflow Context" section now renders on **every**
+  shot (previously never, while the field was NULL). This is now expected.
+- No migration or codebase script performed this; the `0011` migration + the
+  `ensureRuntimeSchema` guard remain backfill-free and correct.
+
 ## Graceful {error} contract extended to BeanForm / BagDetail / Bags (cleanup) — 2026-08-28
 
 Follow-up to the catalog-pages 409 fix (`aea45dd`). Agent 2's cleanup review found a
