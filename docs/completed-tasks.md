@@ -2,6 +2,77 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## SMK-1 mutating lifecycle + SMK-2 live Render smoke — 2026-08-28
+
+Ran by Codex after PR #6 merged. No app code changed. Test records were labelled
+`SMK-1 TEST — safe to delete`, cleaned up, and read back before stopping.
+
+### SMK-1 — mutating lifecycle pass
+
+Result: **PASS with one noted limitation**. The full mutation chain was exercised
+through the production-mode API/server against the live Neon DB; UI route/render
+checks were covered by SMK-1 read-only and SMK-2 live URL checks below.
+
+Steps verified:
+
+- Created test bean #11.
+- Created test bag #11 linked to that bean; numeric cost `40` accepted for the
+  now-labelled `Cost ($)` UI.
+- Started test hopper #22, `Phase 1`, linked to test bag #11.
+- Logged test shot #260 with real extraction values, `Drink Type = Latte`,
+  `Brew Method = Espresso`, `System Phase = 3`, and `Phase Name = SMK-1 Phase
+  Name To Clear`.
+- Read shot #260 back and confirmed Serving Context + Workflow Context persisted.
+- Edited shot #260 with `systemPhaseName: null`; reload/readback confirmed
+  `systemPhaseName` stayed cleared. This closes the key optional-field clearing
+  regression target.
+- Attempted to delete the test bean while the test bag still used it; received
+  human 409 message: `1 bag uses this bean — reassign or delete it first.`
+- Closed test bag #11 and created test bag #12 to simulate the Change Bag flow.
+- Started test hopper #23 on test bag #12.
+- Confirmed the underlying Dashboard data sources (`/api/bags` + `/api/hoppers`)
+  saw test bag #12 active with one active hopper. Note: there is no
+  `/api/dashboard` endpoint; Dashboard composes these data sources client-side.
+- Deleted test shot, hoppers, bags, and bean. Readback confirmed no labelled
+  SMK-1 test records remained.
+- Readback confirmed the owner state was restored: active Bag #7 and attached
+  active hopper #21 (`Hopper Phase = Phase 2`).
+
+Clarification: Bag #7's **System Phase** is Phase 3 (`Timed Dose Optimization`,
+Experiment `Natural 18g Target`) across all 12 current Bag #7 shots. The restored
+`Phase 2` value above is the **Hopper Phase**, not the System Phase.
+
+Pre-existing state left untouched: orphan active hoppers #15 and #17 still have
+`bag_id = null`; they are not attached to Bag #7 and were not part of this smoke.
+
+### SMK-2 — live Render URL smoke
+
+Result: **PASS for URL/API checks available from Codex** against
+`https://bigshotespresso.onrender.com` after `main` fast-forwarded to
+`1587a01`.
+
+Verified:
+
+- `GET /` → 200 HTML.
+- `GET /settings` → 200 HTML.
+- `GET /shots/new` → 200 HTML.
+- Hard-refresh deep route `GET /shots/258` → 200 HTML, confirming SPA fallback.
+- `GET /shots/quick` → 200 HTML; client-side redirect remains covered by the
+  existing source/test contract.
+- `GET /api/healthz` → `{"status":"ok"}`.
+- `GET /api/shots?limit=1` → 200 with real production Neon data (`total = 251`,
+  latest shot #258, `Drink Type = Americano`, `System Phase = 3`).
+- `GET /api/bags` → 200 with active Bag #7.
+- `POST /api/shots/import-csv` without `x-admin-token` → 403
+  `{"error":"Admin action forbidden."}`.
+- Built JS asset scan found no `DATABASE_URL`, `ADMIN_API_TOKEN`, Postgres URL
+  prefix, or `neon.tech` strings.
+
+Not directly verified from Codex: Render dashboard build log / deployed SHA UI.
+The live response `Last-Modified` timestamp and the matching built asset name
+confirmed the deployed app was serving the current client bundle, but the Render
+dashboard itself was not opened.
+
 ## SMK-1 (read-only) + SMK-2 (prep) smoke pass — 2026-08-28
 
 Ran against a shared production build of `main` @ `c792c8b` (all of PRs #2–#5),

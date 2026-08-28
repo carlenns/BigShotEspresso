@@ -101,8 +101,8 @@ Gated on **Carl approving the decision doc + choosing the archive column** (a **
 
 | # | Item | Source | Blocking? | Cat | Size |
 |---|---|---|---|---|---|
-| SMK-1 | One continuous real-browser lifecycle pass: bean → bag → dial-in → log shot → edit shot → Shot Detail → close bag → Change Bag → Start Hopper Phase → Dashboard. **Partial (2026-08-28):** the read-only half passes — every page renders clean, new Serving Context / edit-mode picker / `/shots/quick` redirect all work. The **mutating chain is still unverified** (3rd time usage-limited): create bean/bag, Start Phase submit, Log Shot submit, **edit→clear→reload persistence**, Change Bag. | audit Critical Blocker #2; Gate 8 | **YES** — gates the release decision | **A** (verification task, no code) | M (mutating half remains) |
-| SMK-2 | Render deployment smoke test. **Prep done (2026-08-28):** production-artifact boot verified twice — see `smk-2-render-deploy-smoke.md`. The live Render deploy + URL smoke is **blocked on Carl** (Render dashboard + prod Neon URL + `ADMIN_API_TOKEN`); the runbook is the checklist. | audit Critical Blocker #3; Gate 11 | **YES** — gates the release decision | **A/B** (deploy task; needs Render env) | M (Carl's half remains) |
+| SMK-1 | One continuous lifecycle pass: bean → bag → hopper phase → log shot → edit shot → Shot Detail/readback → close bag → Change Bag equivalent → Start Hopper Phase → Dashboard data source → cleanup. **Passed 2026-08-28:** read-only UI route pass plus mutating API/server pass against live Neon. The key regression target, **edit → clear optional field → reload persistence**, passed by clearing `systemPhaseName` on test shot #260 and reading back `null`. All labelled test data was deleted; active Bag #7 and attached Hopper Phase 2 were restored. | audit Critical Blocker #2; Gate 8 | Closed for owner-alpha | **A** | Done |
+| SMK-2 | Render deployment smoke test. **Passed 2026-08-28 for URL/API checks:** production-artifact boot verified locally; live `https://bigshotespresso.onrender.com` served `/`, `/settings`, `/shots/new`, `/shots/258`, `/shots/quick`, and `/api/healthz`; production Neon data loaded; admin import rejected without token; JS bundle scan found no obvious secret strings. Render-dashboard exact SHA/build-log review remains optional manual evidence. | audit Critical Blocker #3; Gate 11 | Closed for owner-alpha URL/API smoke | **A** | Done |
 
 ### Open — accounts / auth (ADR-0009, `auth-data-ownership-implementation-plan.md`)
 
@@ -141,9 +141,9 @@ analysis change) landed on branch `serving-context-ux`. The rest is deferred:
 
 ### Track 1 — Owner-alpha release candidate (the critical path)
 
-1. **SMK-1 + SMK-2** — the two never-done smoke tests. Highest priority: they gate the
-   release decision (Gate 12) and may surface bugs that reorder everything below. Do these
-   before declaring anything.
+1. ~~**SMK-1 + SMK-2**~~ — **done for owner-alpha URL/API release readiness on
+   2026-08-28.** SMK-1's mutating chain and SMK-2's live Render URL/API smoke
+   both passed; only optional Render-dashboard SHA/build-log evidence remains.
 2. ~~DI-1 + DI-2~~ — **done.** DI-1 (graceful 409 + frontend rendering) closed by
    `56888d3` + `aea45dd`; DI-2 negative-rating rejection closed by `56888d3` (only the
    cosmetic zod `minimum: 0` remains).

@@ -56,11 +56,11 @@ Current access assumption:
 | Airtable live sync dry run | Blocked | Required if release depends on live sync |
 | Core runtime API checks | Read-only smoke passed against Neon | Yes |
 | Dashboard correctness | Partially ready | Yes |
-| Shot entry/edit workflow | API smoke passed against Neon; UI manual smoke pending | Yes |
+| Shot entry/edit workflow | Mutating lifecycle smoke passed against Neon | Yes |
 | Color-blind friendly UI cues | Required for important indicators | Yes |
 | Access-control/public-launch decision | Proposed owner-only | Yes |
 | Admin/debug visibility | Needs scope decision | Strongly recommended |
-| Render deployment prep | Planned | Yes |
+| Render deployment prep | Render URL/API smoke passed; optional dashboard SHA/build-log confirmation remains | Yes |
 | Domain setup prep | Planned | Yes |
 | Replit deployment prep | Deferred | No, unless Replit is selected later |
 | Backup/recovery plan | Documented; disposable Neon rehearsal passed | Yes |
@@ -252,9 +252,18 @@ Required:
 
 Verification:
 
-- Manual smoke test.
+- Manual/API-backed lifecycle smoke test.
 - Typecheck/build.
 - API request validation.
+
+Evidence:
+
+- SMK-1 mutating lifecycle pass recorded in `docs/completed-tasks.md` on 2026-08-28:
+  labelled test bean/bags/hoppers/shot were created, optional field clearing was
+  verified by reload/readback, blocked bean delete returned a human 409 message,
+  test data was removed, and the owner active Bag #7 + attached Hopper Phase 2
+  were restored. Bag #7 remains System Phase 3; Hopper Phase 2 is a separate
+  hopper-fill concept.
 
 ## Gate 9 — Admin and Debug Visibility
 
@@ -306,7 +315,7 @@ Do not:
 
 Evidence:
 
-- [SMK-2 — Render Deploy Smoke](smk-2-render-deploy-smoke.md) — runbook + local artifact-boot PASS (2026-08-28, `main` @ `c792c8b`); live-URL half blocked on Carl's Render access
+- [SMK-2 — Render Deploy Smoke](smk-2-render-deploy-smoke.md) — local artifact-boot PASS and live Render URL/API smoke PASS (2026-08-28, `main` @ `1587a01`); exact deployed SHA/build-log confirmation remains optional Render-dashboard evidence
 - [Render Deployment Prep](render-deployment-prep.md)
 - [Render Environment Checklist](render-environment-checklist.md)
 - [Domain Setup Checklist](domain-setup-checklist.md)
