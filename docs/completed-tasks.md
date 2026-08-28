@@ -2,6 +2,74 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## RC Gate 2.5 — mobile bottom-nav: last item clears the edge fade — 2026-08-28
+
+From Agent 2's Gate 2.5 review at a real 390px viewport (headless Chrome + CDP,
+deuteranopia/protanopia simulation): the right-edge fade mask that was added to
+signal the nav scrolls left the **last** item (Settings) permanently
+half-ghosted under it at max scroll — the exact item the fade exists to rescue.
+
+`artifacts/coffee-log/src/components/layout/Shell.tsx` — added `pr-14` trailing
+padding to the nav scroll track so the last item can scroll fully clear of the
+fade region. No behaviour change; the mask and the active-tab cues are unchanged.
+`api-contract.test.ts` — assertion added for the trailing padding.
+
+Gate 2.5 overall: **PASS** (Agent 2, 2026-08-28) — no app meaning conveyed by
+colour alone anywhere; every colour cue is text-backed. Two enhancements deferred
+to a future a11y pass (not blockers): the Dashboard Δ dots + legend swatches are
+shape-identical and only differ by hue (text backstops the meaning everywhere);
+toast success/error differ only by title text + colour (no ✓/⚠ icon).
+
+Verification: `CI=true pnpm run typecheck` pass · `CI=true pnpm --filter
+@workspace/api-server test` pass (88/88) · `CI=true pnpm run build:render` pass.
+
+## RC Gate 7 (Dashboard Correctness) — behavioural test for Current Shot vs Reference — 2026-08-28
+
+Closes Gate 7 in `docs/implementation/release-candidate-checklist.md` with a real
+behavioural test of the four required properties. No dashboard behaviour change —
+a pure refactor with identical output.
+
+### What moved
+`routes/dashboard.ts` "Shot comparison" block: the three lines
+
+```
+const latestAnalysisShot = activeBagShots[0] ?? null;
+const bagRefShots = activeBagShots.filter((s) => s.isReference);
+const compRefPool = bagRefShots;
+const compSource = "Active bag reference shots";
+```
+
+became one call to a new pure helper:
+
+```
+const { latestAnalysisShot, compRefPool, compSource } = selectComparisonReferences(activeBagShots);
+```
+
+- New `artifacts/api-server/src/lib/dashboard-comparison.ts` —
+  `selectComparisonReferences(activeBagShots)`. Same selection: newest shot as
+  "current", pool = `isReference === true` (was `filter(s => s.isReference)` —
+  identical for `boolean | null`), `compSource` string unchanged. Adds a
+  derived `hasSufficientReferences` (= `compRefPool.length > 0`) for clarity; the
+  route still gates on `compRefPool.length > 0` exactly as before, so the JSON
+  response is byte-for-byte identical.
+
+### Tests
+- `artifacts/api-server/src/dashboard-comparison.test.ts` — 5 unit tests on
+  fixture shot arrays: 7.1 active-bag isolation (Bag A pool excludes Bag B refs;
+  switching bag switches pool), 7.2 excluded shots absent from pool and from
+  "current", 7.3 pool is the manual flag not rating (rating-10 non-ref excluded,
+  rating-5 ref included), 7.4 empty pool → distinct `hasSufficientReferences:
+  false` not zeros, plus a no-mutation / newest-first check.
+- `analytics.integration.test.ts` source-scan updated: route imports and calls
+  the helper with the bag+eligibility-scoped `activeBagShots`; `bagReference` is
+  a labelled null; helper body filters on `isReference === true` and reads no
+  rating/score field. The existing PGlite isolation test is unchanged.
+
+### Verification (from the `gate7-dashboard-test` worktree)
+- `CI=true pnpm run typecheck` — pass
+- `CI=true pnpm --filter @workspace/api-server test` — pass, 88/88 (was 83)
+- `CI=true pnpm run build:render` — pass
+
 ## owner-alpha cleanup: currency, System Phase wording, Taste Selectors triage, Days Since Open reinstated — 2026-08-28
 
 Five small items. No schema-system, auth, payments, predictive, or Quick Log work.
