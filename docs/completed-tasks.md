@@ -2,6 +2,34 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## Serving Context / Drink Type — deferred analysis + community items documented — 2026-08-28
+
+Docs only. Captures the Phase 2 / Phase 3 direction from the Serving Context work
+so it is not lost; **nothing implemented, no launch blockers introduced.**
+
+- `docs/product/BSE_CHATGPT_INTEGRATION_AND_ONBOARDING.md`
+  - **§4.1.2 (new)** — future optional **`Analysis Drink Type`** setting: user-controlled,
+    off by default; when on, personal espresso-process analysis considers only shots
+    whose Drink Type matches the user's regular drink, so "for fun" drinks stay full
+    rated records but don't distort dial-in numbers. Deferred because it changes
+    analysis semantics (a second eligibility axis beside `Include in Analysis`),
+    historical Drink Type is inconsistently populated and needs explicit blank/legacy
+    handling, and it must be clearly user-explained. Also documents personal free-text
+    Drink Type values vs BSE standard categories (personal values always valid locally;
+    global rollups map, never force a rename).
+  - **§4.2.1 (new)** — future/community drink-type "for fun" achievements: Best Affogato,
+    Best Milk Drink, Guest Favorite, Most Reliable Party Drink, Best Dessert Coffee;
+    drink-type-specific leaderboards/achievements ranking preference not technical score;
+    opt-in + consent-gated; explicitly **not a launch feature or blocker**. Guardrail:
+    fun ratings must stay out of core espresso-process analysis (depends on §4.1.2).
+- `docs/implementation/launch-readiness-roadmap.md` — new "Open — Serving Context /
+  Drink Type" section with SC-1 (`Analysis Drink Type`, C→B, M), SC-2 (personal vs
+  standard categories, C), SC-3 (fun achievements/leaderboards, D/community, not a
+  blocker).
+
+Current behaviour is unchanged from Phase 1: `Include in Analysis` = Shot Status +
+Fault Status only; Drink Type does not affect analytical eligibility.
+
 ## Serving Context — collapse the Drink Type picker for the daily flow — 2026-08-28
 
 Client-only UX change to the Log Shot / Edit Shot **Serving Context** card. No
