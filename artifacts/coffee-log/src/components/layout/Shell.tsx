@@ -190,7 +190,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
         )}
         aria-label="Swipeable mobile navigation"
       >
-        <div className="flex h-full min-w-max snap-x snap-mandatory">
+        {/* Trailing padding so the last item (Settings) can scroll clear of the
+            right-edge fade — without it, at max scroll the very item the fade
+            exists to rescue stays permanently half-ghosted under it. */}
+        <div className="flex h-full min-w-max snap-x snap-mandatory pr-14">
         {mobileBottomNav.map((item) => {
           const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
           return (

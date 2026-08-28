@@ -1624,6 +1624,11 @@ test("Mobile bottom nav signals it scrolls and marks the active tab without rely
   // scrolled, which is what actually made Settings undiscoverable on phone.
   assert.match(source, /mask-image:linear-gradient\(to_right,black_85%,transparent_100%\)/);
 
+  // Trailing padding on the scroll track so the last item (Settings) can scroll
+  // fully clear of that fade — otherwise, at max scroll, the very item the fade
+  // exists to rescue stays permanently half-ghosted under it (Gate 2.5 review).
+  assert.match(source, /flex h-full min-w-max snap-x snap-mandatory pr-14/);
+
   // Active tab must be distinguishable without relying on color alone:
   // a shape cue (underline bar) and a label-weight cue (bold vs medium).
   assert.match(source, /isActive && <span aria-hidden="true"[\s\S]{0,80}bg-primary/);

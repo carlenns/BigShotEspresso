@@ -2,6 +2,27 @@
 
 This file records implementation evidence for Foundation Stabilization. It does not authorize or describe intelligence-engine implementation.
 
+## RC Gate 2.5 — mobile bottom-nav: last item clears the edge fade — 2026-08-28
+
+From Agent 2's Gate 2.5 review at a real 390px viewport (headless Chrome + CDP,
+deuteranopia/protanopia simulation): the right-edge fade mask that was added to
+signal the nav scrolls left the **last** item (Settings) permanently
+half-ghosted under it at max scroll — the exact item the fade exists to rescue.
+
+`artifacts/coffee-log/src/components/layout/Shell.tsx` — added `pr-14` trailing
+padding to the nav scroll track so the last item can scroll fully clear of the
+fade region. No behaviour change; the mask and the active-tab cues are unchanged.
+`api-contract.test.ts` — assertion added for the trailing padding.
+
+Gate 2.5 overall: **PASS** (Agent 2, 2026-08-28) — no app meaning conveyed by
+colour alone anywhere; every colour cue is text-backed. Two enhancements deferred
+to a future a11y pass (not blockers): the Dashboard Δ dots + legend swatches are
+shape-identical and only differ by hue (text backstops the meaning everywhere);
+toast success/error differ only by title text + colour (no ✓/⚠ icon).
+
+Verification: `CI=true pnpm run typecheck` pass · `CI=true pnpm --filter
+@workspace/api-server test` pass (88/88) · `CI=true pnpm run build:render` pass.
+
 ## RC Gate 7 (Dashboard Correctness) — behavioural test for Current Shot vs Reference — 2026-08-28
 
 Closes Gate 7 in `docs/implementation/release-candidate-checklist.md` with a real
