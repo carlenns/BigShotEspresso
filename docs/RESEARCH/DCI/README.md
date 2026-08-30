@@ -20,6 +20,20 @@ DCI measures dosing consistency. It does not decide whether weighing can be skip
 
 **Evidence-ready, not implementation-ready.** Phase 1.5 external verification remains pending, and approved formulas/confidence thresholds are not yet recorded.
 
+## Owner-alpha reminder layer
+
+The Dashboard may show a small **Next Shot Reminder** before any formal DCI engine exists. This is a transparent personal nudge, not a predictive recommendation engine:
+
+- it is scoped to the active Bag only;
+- it uses recent `Initial Grinder Output` against the target dose for grind-time nudges;
+- it uses the active Bag's own first-pour sweet spot window for grind-setting nudges;
+- it shows the evidence behind the nudge;
+- it never changes grinder settings or grind time automatically.
+
+This layer captures the owner's working intuition at the moment it is actionable. It is allowed as owner-alpha workflow support because it is rules-based, source-visible, and labelled as a reminder. It must not be marketed as DCI, GSP, forecasting, or generalized advice until the formal research protocol, formulas, confidence policy, and tests are approved.
+
+Future opt-in grinder experiments may use stricter protocols to compare timed-dose behaviour across users with the same or similar grinders. Those experiments must define hopper fullness, target dose, grind-time changes, inclusion rules, privacy/governance, and comparison methods before any cross-user conclusion is made.
+
 ## Governing evidence
 
 - [Intelligence Engine Map](../../intelligence-engine-map.md)

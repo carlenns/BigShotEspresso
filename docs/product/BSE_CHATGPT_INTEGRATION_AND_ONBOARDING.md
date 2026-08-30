@@ -120,6 +120,8 @@ The product should teach that imperfections such as small over-doses, top-ups, o
 
 System phases should eventually be first-class analysis context. A System Phase is a broad operating era (e.g. `System Phase 3 — Timed Dose Optimization`); an Experiment is a specific, deliberate test nested inside a phase (e.g. `Bluetooth Brew Curve Scale Test` or `New Grinder Baseline` running inside a phase like `System Phase 4 — Active Experimentation Era`) — see `docs/implementation/bag-hopper-lifecycle-plan.md`'s "System Phase / Experiment Phase model" for the full decision and examples; this section intentionally does not repeat that full list. Starting a new piece of equipment, workflow, basket, scale, grinder, brew-curve capture method, or major technique change should allow the user to begin a new phase or a new experiment within the current one.
 
+Owner-alpha may include simple personal **Next Shot Reminder** cards. These are not an intelligence engine: they translate the user's recent evidence into a timely reminder, such as reducing grind time after repeated high natural Initial Grinder Output, or considering a finer grind after repeated first-pour delays below the Bag's own sweet spot window. The assistant should explain the evidence and preserve user authority. It should not say the system has learned a generalized model, should not auto-change settings, and should not treat the reminder as a formal recommendation result.
+
 Future analysis should support filtering and comparison by system phase. Examples:
 
 - exclude initial setup phases from serious analysis;

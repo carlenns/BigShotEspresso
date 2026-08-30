@@ -5,6 +5,7 @@ import { GetRecentShotsQueryParams, GetBestRatedShotsQueryParams } from "@worksp
 import { eligibleShotConditions, ratingEligibleShotConditions } from "../lib/shot-eligibility";
 import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weighting";
 import { selectComparisonReferences } from "../lib/dashboard-comparison";
+import { buildNextShotReminder } from "../lib/next-shot-reminder";
 
 const router: IRouter = Router();
 
@@ -141,6 +142,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     res.json({
       activeBag: null, bagIntelligence: null, bagProgress: null,
       grindDrift: null, timingWindows: null, todaysBrief: null,
+      nextShotReminder: null,
       watchlist: [{ type: "info", message: "No active bag — go to Bags and mark one active to get started.", suggestedChecks: [] }],
     });
     return;
@@ -297,6 +299,13 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   const bestYieldRange = robustRange(topYields);
   const topDelays = topRated.map((s) => Number(s.pourDelay)).filter((v) => v > 0);
   const bestPourDelayRange = robustRange(topDelays);
+  const nextShotReminder = buildNextShotReminder({
+    shotsNewestFirst: activeBagShots,
+    defaultTargetDose: activeBagRow.defaultDose ?? 18,
+    pourDelayRange: bestPourDelayRange,
+    bagNumber: activeBagRow.bagNumber,
+    beanName: activeBagRow.beanName,
+  });
 
   // ── Grind Drift ───────────────────────────────────────────────────────────
   const grindShots = activeBagShots.filter((s) => s.grindSetting != null);
@@ -587,6 +596,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
         : null,
     })),
     watchlist,
+    nextShotReminder,
     todaysBrief,
     shotComparison,
   });

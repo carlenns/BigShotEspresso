@@ -64,6 +64,8 @@ Implement in this constitutional order:
 
 No intelligence phase may begin without approved evidence, formulas, confidence policy, scope, and tests.
 
+Owner-alpha may ship transparent, bag-specific **Next Shot Reminder** cards before Phase 3 begins. These are workflow nudges, not intelligence-engine output: they must show their evidence, stay personal to the active Bag, never auto-change settings, and avoid generalized forecasting claims. Formal DCI/GSP work still requires the approval gates above.
+
 ### Future — Brew Curves and Bluetooth Device Compatibility
 
 Brew-curve capture, Bluetooth scale integration, machine/grinder/device compatibility, and live extraction telemetry are future research-and-development features. They are not required for first release and must not block manual logging, core workflows, or the Phase 2–8 intelligence roadmap.

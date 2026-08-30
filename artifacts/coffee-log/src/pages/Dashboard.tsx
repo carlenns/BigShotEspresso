@@ -43,6 +43,15 @@ interface WatchlistItem {
   suggestedChecks?: string[];
 }
 
+interface NextShotReminder {
+  type: "grind_time" | "grind_setting";
+  title: string;
+  message: string;
+  evidence: string;
+  action: string;
+  scope: string;
+}
+
 interface ShotComparison {
   latestShot: {
     id: number; shotDate: string;
@@ -120,6 +129,7 @@ interface Intelligence {
     isActive: boolean;
   }[];
   watchlist: WatchlistItem[];
+  nextShotReminder: NextShotReminder | null;
   todaysBrief: {
     beanName: string;
     openDays: number | null;
@@ -153,6 +163,7 @@ export default function Dashboard() {
   const gd = intel?.grindDrift;
   const bp = intel?.bagProgress;
   const tw = intel?.timingWindows;
+  const nextShotReminder = intel?.nextShotReminder ?? null;
 
   const hasBagProgress = bp && (bp.startingWeight || bp.consumed > 0);
   const activeHoppers = bag ? hoppers.filter((h) => h.isActive && h.bagId === bag.id) : [];
@@ -191,6 +202,28 @@ export default function Dashboard() {
           <Link href="/shots/new"><Plus className="h-4 w-4" /> Log Shot</Link>
         </Button>
       </div>
+
+      {nextShotReminder && (
+        <Card className="border-primary/25 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 rounded-full bg-primary/10 p-2 text-primary">
+                <Zap className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-semibold text-foreground">{nextShotReminder.title}</p>
+                  <Badge variant="outline" className="text-[10px]">Bag-specific</Badge>
+                </div>
+                <p className="text-sm text-foreground">{nextShotReminder.action}</p>
+                <p className="text-xs text-muted-foreground">{nextShotReminder.message}</p>
+                <p className="text-xs text-muted-foreground">{nextShotReminder.evidence}</p>
+                <p className="text-[11px] text-muted-foreground/80">{nextShotReminder.scope}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           SECTION 1 — CURRENT BAG

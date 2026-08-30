@@ -3264,3 +3264,21 @@ No commit — this task made no file changes.
 - No schema or migration changes.
 - The carry-forward only runs on create, not edit, and is on by default unless the existing Settings toggle is explicitly disabled.
 - Pretending to log a shot still changes nothing; the new default is inherited only after the shot is actually saved.
+
+# Dashboard Next Shot Reminder — 2026-08-30
+
+## Completed
+
+- Added a bag-specific `Next Shot Reminder` to the top of Dashboard.
+- Implemented it as a transparent rules-based reminder layer, not as DCI/GSP or a predictive intelligence engine.
+- Current rules:
+  - last two natural `Initial Grinder Output` values more than 0.3g high and up to 0.5g high → consider reducing grind time by 0.1s;
+  - last two natural outputs more than 0.5g high and up to 0.8g high → consider reducing grind time by 0.2s;
+  - same thresholds below target → consider increasing grind time by 0.1s or 0.2s;
+  - first-pour delay outside the active Bag's own sweet spot on 2 of the last 3 shots → consider grinding finer/coarser.
+- The reminder always includes the evidence it used and never changes settings automatically.
+- Documented the boundary: owner-alpha reminder now; strict opt-in grinder experiments and forecasting models later.
+
+## Verified
+
+- Pending in this session.
