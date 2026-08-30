@@ -40,6 +40,10 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 - [Replit Deployment Prep](implementation/replit-deployment-prep.md) — optional/deferred Replit hosting checklist with Neon as the database authority.
 - [Neon Setup Handoff](implementation/neon-setup-handoff.md) — owner-facing instructions for creating the disposable Neon rehearsal target safely.
 - [Neon Postgres Rehearsal Report](implementation/neon-postgres-rehearsal-report.md) — completed disposable Neon migration, bootstrap, read-only API runtime, full CSV import, Shot API workflow, and backup/restore rehearsal evidence with remaining deployment/UI blockers.
+- [R&D Master Plan](RESEARCH/RD_MASTER_PLAN.md) — separates normal product work from candidate experimental work and governs experiment IDs, evidence, baselines, raw data, time/cost records, and funding/IP boundaries.
+- [R&D Journal](RESEARCH/RD_JOURNAL.md) — contemporaneous experiment record; historical reconstructions must be labelled and evidence-linked.
+- [Development Time Log](RESEARCH/DEVELOPMENT_TIME_LOG.md) — contemporaneous session timestamps and category separation for R&D, supporting work, ordinary development, administration, commercialization, marketing, and governance.
+- [Development Effort Reconstruction — through 2026-08-28](HISTORY/2026/development-effort-reconstruction-2026-08-29.md) — retrospective Git-backed chronology and broad owner-effort/development-equivalent estimates; not an exact timesheet.
 
 ## Authority
 

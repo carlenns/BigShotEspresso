@@ -10,6 +10,7 @@
 | [`field-type-map.md`](../../field-type-map.md) | Access/type policy | Current architecture evidence |
 | [`table-relationships.md`](../../table-relationships.md) | Relationship and Hopper workflow evidence | Current architecture evidence |
 | [`intelligence-engine-map.md`](../../intelligence-engine-map.md) | Engine definitions and dependencies | Current research specification |
+| [Development Effort Reconstruction — through 2026-08-28](development-effort-reconstruction-2026-08-29.md) | Retrospective Git-backed chronology and broad effort estimate | Reconstructed; not a contemporaneous timesheet |
 
 ## External workspace sources preserved in place
 

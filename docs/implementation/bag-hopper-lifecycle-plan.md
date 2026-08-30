@@ -562,6 +562,8 @@ System Phase examples (broad era):
 - `System Phase 3 — Timed Dose Optimization`,
 - `System Phase 4 — Active Experimentation Era`.
 
+**Owner clarification recorded 2026-08-29:** System Phase 2 used Bags 3, 4 and 5. Its purpose was scientific-process/baseline observation, not active natural-18.0 g optimization. Grind time was set near the beginning of a Bag and generally left unchanged. The owner sometimes intentionally over-ground and removed excess because the grinder's minimum additional 0.2-second grind was reported to produce approximately 0.5–0.7 g, so correcting a 0.1–0.2 g under-dose could create additional waste. System Phase 3 uses Bags 6 and 7 and is the first phase explicitly chasing improved natural 18.0 g Initial Grinder Output. Reported Phase 3 improvements require data verification before they become research conclusions.
+
 Experiment examples (a specific test, nested inside a System Phase — e.g. all of these could sit inside `System Phase 4 — Active Experimentation Era`):
 
 - `Experiment: Hopper Overfill / Timed Dose Stability`,
