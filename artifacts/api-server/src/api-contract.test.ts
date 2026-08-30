@@ -1863,6 +1863,20 @@ test("Shot Detail never renders the literal word null for unrecorded extraction 
   assert.doesNotMatch(detailSource, /value=\{`\$\{shot\.pourTime\}s`\}/);
 });
 
+test("Shot Detail only shows top-up time when an actual top-up was recorded", async () => {
+  const detailSource = await readFile(
+    fileURLToPath(new URL("../../coffee-log/src/pages/ShotDetail.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  const doseCorrectionGuard = detailSource.slice(
+    detailSource.indexOf("const hasDoseCorrection ="),
+    detailSource.indexOf("const hasGrinderWorkflowEvent ="),
+  );
+  assert.doesNotMatch(doseCorrectionGuard, /shot\.timeAdj != null/);
+  assert.match(detailSource, /shot\.topUpGrind != null && shot\.timeAdj != null && <DetailItem label="Top-Up Time Adj"/);
+});
+
 test("API response shaping excludes internal evidence fields", () => {
   const response = toShotApi({
     id: 1,
@@ -2065,13 +2079,13 @@ test("Log Shot number fields are WYSIWYG: shown default is the saved default", a
   // Blank-only: never overwrites a value the user has typed in.
   assert.match(formSource, /if \(current == null \|\| \(current as unknown\) === ""\) form\.setValue\(name, value\);/);
 
-  // Every listed field is seeded from the exact defaultX its placeholder shows.
+  // Core recipe fields are seeded from the exact defaultX their placeholders
+  // show, so leaving the daily-flow fields untouched still saves the real
+  // recipe. Correction-only evidence fields are deliberately excluded below.
   for (const line of [
     'seed("grindSetting", defaultGrindSetting);',
     'seed("grindTime", defaultGrindTime);',
     'seed("initialGrindWeight", defaultDose);',
-    'seed("topUpGrind", 0.1);',
-    'seed("timeAdj", defaultTopUpTime);',
     'seed("temperature", defaultTemp);',
     'seed("dose", defaultDose);',
     'seed("yield", defaultYield);',
@@ -2081,6 +2095,8 @@ test("Log Shot number fields are WYSIWYG: shown default is the saved default", a
   ]) {
     assert.ok(formSource.includes(line), `missing seed call: ${line}`);
   }
+  assert.doesNotMatch(formSource, /seed\("topUpGrind", 0\.1\);/);
+  assert.doesNotMatch(formSource, /seed\("timeAdj", defaultTopUpTime\);/);
 
   // No-default case: seed() bails on a null/undefined value, so a first shot on
   // a bag (no latestShotDefaults) leaves the pour timings genuinely blank.
@@ -2267,14 +2283,14 @@ test("Dose correction restores over-grind removal when a top-up overshoots the t
   assert.match(underBranch, /doseCorrectionType: "Under → Top-Up",/);
   assert.match(underBranch, /topUpGrind: correction,/);
   assert.match(underBranch, /doseCorrection: correction,/);
-  assert.match(underBranch, /timeAdj: existingTimeAdj \?\? minimumTopUpTime,/);
+  assert.match(underBranch, /timeAdj: existingTopUpGrind != null \? existingTimeAdj \?\? minimumTopUpTime : null,/);
 
   // --- delta > 0 ("Over → Trim") branch: untouched ---
   const overBranch = doseCorrection.slice(doseCorrection.indexOf("if (delta > 0) {"), doseCorrection.indexOf("if (delta < 0) {"));
   assert.match(overBranch, /topUpGrind: null,\s*\n\s*overGrindRemoved: delta,\s*\n\s*doseCorrectionType: "Over → Trim",\s*\n\s*doseCorrection: delta,/);
 
   // --- delta === 0 branch: untouched ---
-  assert.match(doseCorrection, /return \{\s*\n\s*topUpGrind: null,\s*\n\s*overGrindRemoved: null,\s*\n\s*doseCorrectionType: "None",\s*\n\s*doseCorrection: null,\s*\n\s*\};/);
+  assert.match(doseCorrection, /return \{\s*\n\s*topUpGrind: null,\s*\n\s*overGrindRemoved: null,\s*\n\s*doseCorrectionType: "None",\s*\n\s*doseCorrection: null,\s*\n\s*timeAdj: null,\s*\n\s*\};/);
 
   // Carl explicitly chose NOT to persist a total-output field.
   assert.doesNotMatch(doseCorrection, /totalOutput/);
@@ -2296,4 +2312,39 @@ test("Dose correction restores over-grind removal when a top-up overshoots the t
 
   // --- data dictionary keeps the Over Grind Removed nuance ---
   assert.match(dictionary, /Over Grind Removed/);
+});
+
+test("Log Shot carries forward saved grind setting/time and dashboard ratio deltas stay visually clean", async () => {
+  const [shotForm, bagsRoute, settings, dashboard] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./routes/bags.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Settings.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Dashboard.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  // The visible Settings preference is the authority: when enabled, a saved
+  // create-shot carries the latest grind setting/time forward for the next shot.
+  assert.match(settings, /Carry forward changed grind setting\/time/);
+  assert.match(shotForm, /const carryForwardGrindDefaults = async \(values: FormValues\) =>/);
+  assert.match(shotForm, /settings\?\.rememberLastGrindSetting === "false"/);
+  assert.match(shotForm, /fetch\(`\/api\/bags\/\$\{values\.bagId\}`/);
+  assert.match(shotForm, /currentGrindSetting: grindSetting/);
+  assert.match(shotForm, /currentGrindTime: grindTime/);
+  assert.match(shotForm, /defaultGrindSetting: String\(grindSetting\)/);
+  assert.match(shotForm, /defaultGrindTime: String\(grindTime\)/);
+  assert.match(shotForm, /await carryForwardGrindDefaults\(values\);/);
+  assert.match(shotForm, /invalidateQueries\(\{ queryKey: \["bags"\] \}\)/);
+  assert.match(shotForm, /invalidateQueries\(\{ queryKey: \["settings"\] \}\)/);
+
+  // The bags API now exposes both current grind setting and current grind time
+  // from the latest eligible shot, so cache refreshes can show the carried pair.
+  assert.match(bagsRoute, /latestGrindTime/);
+  assert.match(bagsRoute, /currentGrindTime: bagStats\?\.latestGrindTime \?\? b\.currentGrindTime/);
+  assert.match(bagsRoute, /currentGrindTime: shots\.find\(\(s\) => s\.grindTime != null\)\?\.grindTime \?\? bag\.currentGrindTime/);
+
+  // Ratio is unitless in the Dashboard comparison table, and a delta of exactly
+  // zero should display "0.00", not "+0.00x".
+  assert.match(dashboard, /label: "Ratio"[\s\S]{0,120}unit: ""[\s\S]{0,80}decimals: 2/);
+  assert.match(dashboard, /\$\{delta > 0 \? "\+" : ""\}\$\{delta\.toFixed\(m\.decimals\)\}\$\{m\.unit\}/);
+  assert.doesNotMatch(dashboard, /\$\{delta >= 0 \? "\+" : ""\}\$\{delta\.toFixed\(m\.decimals\)\}\$\{m\.unit\}/);
 });

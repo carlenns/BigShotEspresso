@@ -49,6 +49,13 @@ function fetchShotTasteSelectors(id: number): Promise<TasteSelector[]> {
   return fetch(`/api/shots/${id}/taste-selectors`).then((r) => r.json());
 }
 function fetchSettings(): Promise<Record<string, string>> { return fetch("/api/settings").then((r) => r.json()); }
+function saveSettings(body: Record<string, string>): Promise<Record<string, string>> {
+  return fetch("/api/settings", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => r.json());
+}
 function fetchActiveBagIntelligence(): Promise<ActiveBagIntelligence> {
   return fetch("/api/dashboard/intelligence").then((r) => r.json());
 }
@@ -660,9 +667,35 @@ export default function ShotForm() {
 
   const toggleTaste = (id: number) => setSelectedTastes((prev) => prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]);
 
+  const carryForwardGrindDefaults = async (values: FormValues) => {
+    if (isEditing || settings?.rememberLastGrindSetting === "false") return;
+    const grindSetting = values.grindSetting;
+    const grindTime = values.grindTime;
+    if (grindSetting == null && grindTime == null) return;
+
+    const tasks: Promise<unknown>[] = [];
+    if (values.bagId != null) {
+      tasks.push(fetch(`/api/bags/${values.bagId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(grindSetting != null ? { currentGrindSetting: grindSetting } : {}),
+          ...(grindTime != null ? { currentGrindTime: grindTime } : {}),
+        }),
+      }));
+    }
+    tasks.push(saveSettings({
+      ...(settings ?? {}),
+      ...(grindSetting != null ? { defaultGrindSetting: String(grindSetting) } : {}),
+      ...(grindTime != null ? { defaultGrindTime: String(grindTime) } : {}),
+    }));
+    await Promise.allSettled(tasks);
+  };
+
   const onSubmit = async (values: FormValues) => {
     const handlers = {
       onSuccess: async (data: ShotMutationResult) => {
+        await carryForwardGrindDefaults(values);
         if (data.id && (isEditing || selectedTastes.length > 0)) {
           await fetch(`/api/shots/${data.id}/taste-selectors`, {
             method: "PUT",
@@ -673,6 +706,8 @@ export default function ShotForm() {
         toast({ title: isEditing ? "Shot updated" : "Shot logged" });
         queryClient.invalidateQueries({ queryKey: getListShotsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+        queryClient.invalidateQueries({ queryKey: ["bags"] });
+        queryClient.invalidateQueries({ queryKey: ["settings"] });
         if (data.id) queryClient.invalidateQueries({ queryKey: getGetShotQueryKey(data.id) });
         setLocation(`/shots/${data.id}`);
       },
@@ -745,10 +780,11 @@ export default function ShotForm() {
   const defaultGrindSetting = selectedBag?.currentGrindSetting ?? (settings?.defaultGrindSetting ? Number(settings.defaultGrindSetting) : 2.33);
   const defaultGrindTime = selectedBag?.currentGrindTime ?? (settings?.defaultGrindTime ? Number(settings.defaultGrindTime) : 8.1);
 
-  // WYSIWYG number defaults (Carl-reported, primary flow): every number field
+  // WYSIWYG number defaults (Carl-reported, primary flow): core recipe fields
   // whose placeholder shows a computed default must SAVE that default when the
-  // user leaves it untouched. This seeds each such field with the exact
-  // defaultX value its placeholder renders. Create-only, never in edit mode
+  // user leaves it untouched. This deliberately excludes correction-only
+  // evidence fields like Top-Up Grind Added and Top-Up Time Adj; those are saved
+  // only when an actual correction is entered. Create-only, never in edit mode
   // (existingShot reset already seeds these). Blank-only — a field the user has
   // typed into is never overwritten. Waits for `settings` so the seeded value
   // is the final placeholder value, not a mid-load fallback. Mirrors
@@ -774,8 +810,6 @@ export default function ShotForm() {
     seed("grindSetting", defaultGrindSetting);
     seed("grindTime", defaultGrindTime);
     seed("initialGrindWeight", defaultDose);
-    seed("topUpGrind", 0.1);
-    seed("timeAdj", defaultTopUpTime);
     seed("temperature", defaultTemp);
     seed("dose", defaultDose);
     seed("yield", defaultYield);

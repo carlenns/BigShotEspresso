@@ -1112,7 +1112,7 @@ function ShotComparisonCard({ data, beanName }: { data: ShotComparison; beanName
     { label: "Pour Time",        latestVal: s?.pourTime ?? null,  refVal: r?.avgPourTime ?? null,  unit: "s", decimals: 1 },
     { label: "Flow Time",        latestVal: s?.flowTime ?? null, refVal: r?.avgFlowTime ?? null, unit: "s", decimals: 1 },
     { label: "Yield",            latestVal: s?.yield ?? null,     refVal: r?.avgYield ?? null,     unit: "g", decimals: 1 },
-    { label: "Ratio",            latestVal: s?.ratio ?? null,     refVal: r?.avgRatio ?? null,     unit: "×", decimals: 2 },
+    { label: "Ratio",            latestVal: s?.ratio ?? null,     refVal: r?.avgRatio ?? null,     unit: "", decimals: 2 },
   ];
 
   const hasAnyLatest = metrics.some((m) => m.latestVal != null);
@@ -1209,7 +1209,7 @@ function ShotComparisonCard({ data, beanName }: { data: ShotComparison; beanName
                       </td>
                       <td className={cn("py-2 pr-2 text-right tabular-nums text-xs font-medium", deltaCls(status))}>
                         {delta != null
-                          ? `${delta >= 0 ? "+" : ""}${delta.toFixed(m.decimals)}${m.unit}`
+                          ? `${delta > 0 ? "+" : ""}${delta.toFixed(m.decimals)}${m.unit}`
                           : <span className="text-muted-foreground font-normal">—</span>}
                       </td>
                       <td className="py-2 text-center">

@@ -45,7 +45,6 @@ export default function ShotDetail() {
   const hasDoseCorrection =
     (shot.doseCorrectionType && shot.doseCorrectionType !== "None") ||
     shot.topUpGrind != null ||
-    shot.timeAdj != null ||
     shot.overGrindRemoved != null;
 
   const hasGrinderWorkflowEvent =
@@ -189,7 +188,7 @@ export default function ShotDetail() {
                     <DetailItem label="Correction Type" value={shot.doseCorrectionType} />
                   )}
                   {shot.topUpGrind != null && <DetailItem label="Top-Up Grind Added" value={`${shot.topUpGrind}g`} />}
-                  {shot.timeAdj != null && <DetailItem label="Top-Up Time Adj" value={`${shot.timeAdj}s`} />}
+                  {shot.topUpGrind != null && shot.timeAdj != null && <DetailItem label="Top-Up Time Adj" value={`${shot.timeAdj}s`} />}
                   {shot.overGrindRemoved != null && <DetailItem label="Over-Grind Removed" value={`${shot.overGrindRemoved}g`} />}
                 </div>
               </div>

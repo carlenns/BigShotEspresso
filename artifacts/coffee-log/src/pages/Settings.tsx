@@ -126,7 +126,7 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
     description: "Controls how the new-shot form behaves.",
     fields: [
       { key: "autoFillDefaults", label: "Auto-fill defaults on new shot", type: "toggle" },
-      { key: "rememberLastGrindSetting", label: "Remember last grind setting", type: "toggle" },
+      { key: "rememberLastGrindSetting", label: "Carry forward changed grind setting/time", type: "toggle" },
       { key: "rememberLastTemperature", label: "Remember last temperature", type: "toggle" },
       { key: "rememberLastActiveBag", label: "Remember last selected bag", type: "toggle" },
       { key: "grindChangePrompt", label: "Prompt when grind setting changes", type: "toggle" },

@@ -65,6 +65,7 @@ router.get("/bags", async (_req, res): Promise<void> => {
       minGrind: sql<number | null>`min(${shotsTable.grindSetting})`,
       maxGrind: sql<number | null>`max(${shotsTable.grindSetting})`,
       latestGrind: sql<number | null>`(array_agg(${shotsTable.grindSetting} ORDER BY ${shotsTable.shotDate} DESC NULLS LAST))[1]`,
+      latestGrindTime: sql<number | null>`(array_agg(${shotsTable.grindTime} ORDER BY ${shotsTable.shotDate} DESC NULLS LAST))[1]`,
       latestShotDate: sql<string | null>`max(${shotsTable.shotDate})`,
     })
     .from(shotsTable)
@@ -98,6 +99,7 @@ router.get("/bags", async (_req, res): Promise<void> => {
     return {
       ...b,
       currentGrindSetting: bagStats?.latestGrind ?? b.currentGrindSetting,
+      currentGrindTime: bagStats?.latestGrindTime ?? b.currentGrindTime,
       shotCount: bagStats?.shotCount ?? 0,
       referenceCount: bagStats?.referenceCount ?? 0,
       dailyDriverCount: bagStats?.dailyDriverCount ?? 0,
@@ -185,6 +187,7 @@ router.get("/bags/:id", async (req, res): Promise<void> => {
     bag: {
       ...bag,
       currentGrindSetting: shots.find((s) => s.grindSetting != null)?.grindSetting ?? bag.currentGrindSetting,
+      currentGrindTime: shots.find((s) => s.grindTime != null)?.grindTime ?? bag.currentGrindTime,
     },
     analysis,
     referenceShots: shots.filter((s) => s.isReference).slice(0, 20),

@@ -3226,3 +3226,41 @@ Hand the Bag-default bug to Agent 1 using the copyable prompt in the handoff blo
 ## Recommended commit command
 
 No commit — this task made no file changes.
+# Log Shot Grind Carry-Forward + Dashboard Ratio Delta Polish — 2026-08-30
+
+## Completed
+
+- Removed the Ratio suffix and the leading `+` from exact-zero dashboard comparison deltas, so Ratio now displays `0.00` instead of `+0.00x`.
+- Made the existing Settings preference `rememberLastGrindSetting` visibly mean "Carry forward changed grind setting/time".
+- When a new shot is saved and that preference is not explicitly disabled, Log Shot now carries the saved grind setting/time forward to:
+  - the selected bag's current grind setting/time; and
+  - the Settings default grind setting/time.
+- Updated the bags API read model so `currentGrindTime` mirrors `currentGrindSetting` and can be derived from the latest eligible shot instead of staying stale.
+
+## Verified
+
+- `CI=true pnpm run typecheck`
+- `CI=true pnpm --filter @workspace/api-server test`
+- `CI=true pnpm run build:render`
+
+# Top-Up Time Adj Correction-Only Save — 2026-08-30
+
+## Completed
+
+- Fixed Log Shot so `Top-Up Grind Added` and `Top-Up Time Adj` are no longer auto-seeded as saved evidence on every new shot.
+- Kept the suggested top-up time available in the stepper/helper path, but only persists it when a real top-up amount is entered.
+- Updated `calculateDoseCorrection` so an under-target shot with no entered top-up records `timeAdj: null` instead of inventing the minimum top-up time.
+- Preserved the natural-18g path cleanly: when Initial Grinder Output equals Target / Basket Dose, the helper clears all correction fields, including `timeAdj`.
+- Updated Shot Detail so older records with a stray `timeAdj` no longer show a false Dose Correction card; Top-Up Time Adj now displays only when Top-Up Grind Added is also present.
+
+## Verified
+
+- `CI=true pnpm run typecheck`
+- `CI=true pnpm --filter @workspace/api-server test`
+- `CI=true pnpm run build:render`
+
+## Notes
+
+- No schema or migration changes.
+- The carry-forward only runs on create, not edit, and is on by default unless the existing Settings toggle is explicitly disabled.
+- Pretending to log a shot still changes nothing; the new default is inherited only after the shot is actually saved.

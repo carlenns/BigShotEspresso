@@ -50,7 +50,7 @@ export function calculateDoseCorrection(
       overGrindRemoved: excess > 0 ? excess : null,
       doseCorrectionType: "Under → Top-Up",
       doseCorrection: correction,
-      timeAdj: existingTimeAdj ?? minimumTopUpTime,
+      timeAdj: existingTopUpGrind != null ? existingTimeAdj ?? minimumTopUpTime : null,
     };
   }
 
@@ -59,5 +59,6 @@ export function calculateDoseCorrection(
     overGrindRemoved: null,
     doseCorrectionType: "None",
     doseCorrection: null,
+    timeAdj: null,
   };
 }
