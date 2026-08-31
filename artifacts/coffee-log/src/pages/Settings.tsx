@@ -86,7 +86,7 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
       { key: "defaultDose", label: "Default Dose", type: "number", placeholder: "18", unit: "g" },
       { key: "defaultTargetYield", label: "Default Target Yield", type: "number", placeholder: "36", unit: "g" },
       { key: "defaultBrewTemp", label: "Default Brew Temperature", type: "number", placeholder: "94", unit: "°C" },
-      { key: "defaultBasketSize", label: "Default Basket Size", type: "text", placeholder: "18g VST" },
+      { key: "defaultBasketSize", label: "Default Basket Size", type: "select" },
     ],
   },
   {
@@ -170,6 +170,14 @@ export default function Settings() {
   const handleSave = () => mutation.mutate(values);
 
   const customDrinkTypes = parseCustomDrinkTypes(values[CUSTOM_DRINK_TYPES_SETTINGS_KEY]);
+  const basketOptions = [
+    ...machines
+      .map((machine) => machine.stockBasket)
+      .filter((stockBasket): stockBasket is string => Boolean(stockBasket)),
+    ...accessories
+      .filter((accessory) => accessory.isActive && accessory.type === "basket")
+      .map((accessory) => equipmentLabel(accessory)),
+  ];
   const addCustomDrinkType = (value: string) => {
     set(CUSTOM_DRINK_TYPES_SETTINGS_KEY, JSON.stringify([...customDrinkTypes, value]));
   };
@@ -244,6 +252,19 @@ export default function Settings() {
                       customDrinkTypes={customDrinkTypes}
                       onChangeValue={(v) => set("defaultDrinkType", v)}
                       onAddCustomType={addCustomDrinkType}
+                    />
+                  ) : field.key === "defaultBasketSize" ? (
+                    <SettingsSelect
+                      key={field.key}
+                      label={field.label}
+                      value={values.defaultBasketSize ?? values.defaultBasket ?? ""}
+                      options={basketOptions}
+                      onChange={(value) => {
+                        set("defaultBasketSize", value);
+                        set("defaultBasket", value);
+                      }}
+                      addHref="/accessories"
+                      addLabel="Add Basket"
                     />
                   ) : (
                     <FieldControl

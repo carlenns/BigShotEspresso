@@ -1260,6 +1260,16 @@ test("Settings equipment defaults use saved equipment and accessory selectors", 
   ]) {
     assert.match(source, new RegExp(requiredText));
   }
+
+  assert.doesNotMatch(
+    source,
+    /key: "defaultBasketSize", label: "Default Basket Size", type: "text"/,
+  );
+  assert.match(
+    source,
+    /field\.key === "defaultBasketSize"[\s\S]*?<SettingsSelect[\s\S]*?options=\{basketOptions\}/,
+  );
+  assert.match(source, /set\("defaultBasketSize", value\);[\s\S]*?set\("defaultBasket", value\);/);
 });
 
 test("Settings no longer offers controls that nothing in the app reads", async () => {
