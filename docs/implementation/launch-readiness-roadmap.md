@@ -108,8 +108,8 @@ Gated on **Carl approving the decision doc + choosing the archive column** (a **
 
 | # | Item | Cat | Size | Notes |
 |---|---|---|---|---|
-| AUTH-0 | Confirm the auth mechanism (plan recommends email + magic-link over passwords) | **C** | S | not itself an implementation authorization |
-| AUTH-1..9 | `users` table + session model → per-table `user_id` migrations → `settings` compound-unique migration → route-scoping helper → per-route scoping → login UI → owner bootstrap → Tier-2 invite → Tier-3 signup/billing | **D** | L | ADR-0009 is still **Proposed**. Tier 2 (outside testers) needs at least minimal isolation; Tier 3 (public) needs the whole program + billing + ToS/privacy. |
+| AUTH-0 | ~~Confirm the auth mechanism~~ **Decided 2026-09-08: Clerk**, embedded in Clickonomics as the primary customer/authentication/subscription control plane; BSE remains an independently deployed entitled application. See [clickonomics-platform-architecture.md](clickonomics-platform-architecture.md). Mechanism and platform direction only — not implementation authorization. | **C** | S | done |
+| AUTH-1..9 | Clickonomics Clerk account shell → product/feature entitlements → BSE Clerk user mirror → per-table `user_id` migrations → `settings` compound-unique migration → route-scoping helper → per-route scoping and entitlement enforcement → owner bootstrap → Tier-2 invite → Tier-3 signup/billing | **D** | L | ADR-0009 is still **Proposed**. Tier 2 (outside testers) needs complete identity, entitlement, and cross-user isolation; Tier 3 (public) also needs the full billing, recovery, ToS, and privacy program. |
 
 ### Open — Serving Context / Drink Type (from the 2026-08-28 Serving Context work)
 

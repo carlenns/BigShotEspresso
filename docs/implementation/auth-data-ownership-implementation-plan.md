@@ -12,6 +12,23 @@ ADR-0009 deliberately left the **authentication mechanism** open (Open Question 
 
 **Recommendation: start with email + magic-link sign-in, not password storage.** For BSE's actual near-term need (Tier 2: a handful of owner-invited testers) this is the lowest-friction, lowest-security-surface option — no password hashing/reset/breach exposure to manage, and it matches an audience (home espresso enthusiasts, not necessarily technical) that benefits from not having another password to remember. A third-party OAuth provider (Google, etc.) can be added later as an additional option for Tier 3 self-serve signup without redoing the ownership model — the `user_id` scoping work below is identical regardless of which mechanism ultimately attaches a `user_id` to a request. This recommendation should be confirmed or revised before Phase 1 starts; it is not itself an implementation authorization.
 
+> **Superseded in part (2026-09-08):** [clickonomics-clerk-integration-plan.md](clickonomics-clerk-integration-plan.md)
+> revises this recommendation from a *self-built* magic-link + `sessions` table to
+> **Clerk** as a managed provider (magic link / OTP / OAuth / hosted user store /
+> invitations / webhooks). The row-level `user_id` ownership model, per-table
+> migration ordering, scoping-helper requirement, and isolation-test gate in the
+> rest of this document are **unchanged** — with one adjustment: `user_id` becomes
+> `text` (the Clerk user id) rather than an integer FK to a local `serial`, and the
+> `users` table becomes a local mirror keyed by that id (no `sessions` /
+> `magic_link_tokens` / password columns). Carl approved Clerk as the mechanism
+> direction on 2026-09-08; implementation remains separately approval-gated.
+>
+> **Platform clarification (2026-09-08):** Clickonomics, not BSE, is the intended
+> primary customer/authentication/subscription control plane. BSE remains an
+> independently deployed application and enforces both Clickonomics/Clerk
+> entitlement and row ownership. See
+> [clickonomics-platform-architecture.md](clickonomics-platform-architecture.md).
+
 ## Tables needing user ownership (from direct schema inspection, restated concretely)
 
 | Table | `user_id` | Notes |
