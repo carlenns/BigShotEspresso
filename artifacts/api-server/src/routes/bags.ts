@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, sql, desc, isNotNull } from "drizzle-orm";
+import { and, eq, ne, sql, desc, isNotNull } from "drizzle-orm";
 import { db, bagsTable, beansTable, shotsTable, hoppersTable, settingsTable } from "@workspace/db";
 import { eligibleShotConditions, ratingEligibleShotConditions } from "../lib/shot-eligibility";
 import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weighting";
@@ -231,14 +231,29 @@ const parseBagBody = (body: Record<string, unknown>) => ({
 });
 
 router.post("/bags", async (req, res): Promise<void> => {
-  const [row] = await db.insert(bagsTable).values({ ...parseBagBody(req.body), isActive: Boolean(req.body.isActive) }).returning();
+  const isActive = Boolean(req.body.isActive);
+  const [row] = await db.transaction(async (tx) => {
+    // Exactly one bag can be active at a time — same single-active-row rule
+    // already enforced for grinders/machines (equipment.ts) and per-bag
+    // hoppers (hopper.ts). bagsTable.isActive has no DB-level exclusivity
+    // constraint, so this is the only thing preventing two active bags.
+    if (isActive) await tx.update(bagsTable).set({ isActive: false }).where(eq(bagsTable.isActive, true));
+    return tx.insert(bagsTable).values({ ...parseBagBody(req.body), isActive }).returning();
+  });
   res.status(201).json(row);
 });
 
 router.patch("/bags/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  const [row] = await db.update(bagsTable).set(parseBagBody(req.body)).where(eq(bagsTable.id, id)).returning();
+  const isActive = req.body.isActive === true;
+  const [row] = await db.transaction(async (tx) => {
+    if (isActive) {
+      await tx.update(bagsTable).set({ isActive: false })
+        .where(and(eq(bagsTable.isActive, true), ne(bagsTable.id, id)));
+    }
+    return tx.update(bagsTable).set(parseBagBody(req.body)).where(eq(bagsTable.id, id)).returning();
+  });
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(row);
 });
