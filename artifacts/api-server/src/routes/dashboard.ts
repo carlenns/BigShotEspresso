@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { sql, desc, isNotNull, eq, ne, and, lt } from "drizzle-orm";
+import { sql, desc, isNotNull, eq, ne, and, lt, inArray } from "drizzle-orm";
 import { db, shotsTable, bagsTable, beansTable, settingsTable, grindersTable, machinesTable, accessoriesTable } from "@workspace/db";
 import { GetRecentShotsQueryParams, GetBestRatedShotsQueryParams } from "@workspace/api-zod";
 import { eligibleShotConditions, ratingEligibleShotConditions } from "../lib/shot-eligibility";
@@ -273,7 +273,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     const sameBeanIds = sameBeanBags.map((b) => b.id);
     if (sameBeanIds.length > 1) {
       const sameBeanShots = await db.select().from(shotsTable)
-        .where(and(isNotNull(shotsTable.bagId), ...eligibleShotConditions, sql`${shotsTable.bagId} = ANY(${sameBeanIds})`))
+        .where(and(isNotNull(shotsTable.bagId), ...eligibleShotConditions, inArray(shotsTable.bagId, sameBeanIds)))
         .orderBy(desc(sql`${shotsTable.shotDate}`));
       timingPool = sameBeanShots.filter((s) => s.rating != null && s.rated !== false && Number(s.rating) >= 8);
       timingSource = "same_bean";
