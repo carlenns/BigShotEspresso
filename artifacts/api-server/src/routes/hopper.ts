@@ -18,6 +18,14 @@ import {
 
 const router: IRouter = Router();
 
+// Postgres unique_violation (23505): hoppers.name is unique, and the hopper-
+// start UI names new rows "<Bag Name> — <Phase> — <date>", so starting the
+// same phase on the same bag on the same day collides. Safety net that turns
+// the raw DB exception into a clean, human 409 instead of an unhandled 500.
+function isUniqueViolation(err: unknown): boolean {
+  return typeof err === "object" && err !== null && (err as { code?: unknown }).code === "23505";
+}
+
 // Same list the Log Shot / Bags UI offers (HOPPER_PHASE_OPTIONS in Bags.tsx).
 // `phase` is a free-text column, so the API is the only guard against a typo or
 // a stale client writing an unknown phase. null/undefined stays allowed.
@@ -52,20 +60,31 @@ router.post("/hoppers", async (req, res): Promise<void> => {
     res.status(400).json({ error: phaseError });
     return;
   }
-  const [row] = await db.transaction(async (tx) => {
-    const bagId = body.bagId != null ? Number(body.bagId) : undefined;
-    if (body.isActive && bagId != null) {
-      await tx.update(hoppersTable).set({ isActive: false }).where(eq(hoppersTable.bagId, bagId));
+  let row;
+  try {
+    [row] = await db.transaction(async (tx) => {
+      const bagId = body.bagId != null ? Number(body.bagId) : undefined;
+      if (body.isActive && bagId != null) {
+        await tx.update(hoppersTable).set({ isActive: false }).where(eq(hoppersTable.bagId, bagId));
+      }
+      return tx.insert(hoppersTable).values({
+        name: String(body.name),
+        bagId,
+        startingBeans: body.startingBeans != null ? Number(body.startingBeans) : undefined,
+        isActive: Boolean(body.isActive),
+        phase: body.phase as string | undefined,
+        notes: body.notes as string | undefined,
+      }).returning();
+    });
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      res.status(409).json({
+        error: "A hopper phase with this name already exists for today — try again in a moment, or edit the existing phase instead.",
+      });
+      return;
     }
-    return tx.insert(hoppersTable).values({
-      name: String(body.name),
-      bagId,
-      startingBeans: body.startingBeans != null ? Number(body.startingBeans) : undefined,
-      isActive: Boolean(body.isActive),
-      phase: body.phase as string | undefined,
-      notes: body.notes as string | undefined,
-    }).returning();
-  });
+    throw err;
+  }
   res.status(201).json(toHopperApi(row!));
 });
 

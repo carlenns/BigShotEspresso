@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type ErrorRequestHandler } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import path from "node:path";
@@ -76,5 +76,20 @@ if (process.env.NODE_ENV === "production") {
     logger.warn({ staticDir }, "Coffee Log frontend build was not found; serving API only");
   }
 }
+
+// Safety-net error handler — must be registered last (Express recognizes an
+// error middleware only by its 4-argument signature). Without this, an
+// unhandled exception anywhere in a route falls through to Express's default
+// handler: a raw "Internal Server Error" HTML page to the client, and the
+// *actual* error is never logged anywhere (pino-http's own request-complete
+// log only sees the status code, not the thrown error, when nothing upstream
+// attaches it) — the real cause is invisible until someone reproduces it by
+// hand. This logs the real error and returns clean JSON instead.
+const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+  (req.log ?? logger).error({ err }, "unhandled route error");
+  if (res.headersSent) return;
+  res.status(500).json({ error: "Internal server error" });
+};
+app.use(errorHandler);
 
 export default app;
