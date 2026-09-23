@@ -168,6 +168,16 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   const activeBagInventoryRecords = await db.select().from(shotsTable)
     .where(eq(shotsTable.bagId, activeBagRow.id));
 
+  // Drives the Log Shot dial-in guidance banner: has any shot on this bag
+  // ever been marked Status = "Dialed In"? Checked against every shot for
+  // the bag (activeBagInventoryRecords), not the analysis-eligible-only
+  // activeBagShots — a shot the user marked Dialed In should still count
+  // even if its Fault Status keeps it out of Include in Analysis. Not
+  // shot-count- or day-based: dial-in can take one attempt or many
+  // (grind change, purge, retry), so this only flips once the user says
+  // so, per bag-hopper-lifecycle-plan.md §4.
+  const hasDialedInShot = activeBagInventoryRecords.some((s) => s.status === "Dialed In");
+
   const ratedShots = activeBagShots.filter((s) => s.rating != null && s.rated !== false);
   const topRated = ratedShots.filter((s) => Number(s.rating) >= 8.0);
 
@@ -537,6 +547,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
       referenceRate,
       signatureShotCount,
       dialInSpeed,
+      hasDialedInShot,
       bagPhase,
       bagConfidence,
       bestYieldRange,

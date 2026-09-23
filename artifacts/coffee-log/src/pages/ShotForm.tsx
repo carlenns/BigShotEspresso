@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ChevronDown, ChevronUp, Minus, Plus, Save } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Info, Minus, Plus, Save } from "lucide-react";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import {
   useCreateShot,
@@ -77,6 +78,9 @@ interface LatestShotDefaults {
 interface ActiveBagIntelligence {
   shotComparison?: {
     latestShot?: LatestShotDefaults | null;
+  } | null;
+  bagIntelligence?: {
+    hasDialedInShot?: boolean | null;
   } | null;
 }
 
@@ -414,6 +418,8 @@ export default function ShotForm() {
   // automatically on edit, for For Others, or when this shot's drink already
   // differs from the Settings default.
   const [showDrinkPicker, setShowDrinkPicker] = useState(false);
+  const [dialInConfirmOpen, setDialInConfirmOpen] = useState(false);
+  const [showDialInInfo, setShowDialInInfo] = useState(false);
 
   const { data: bags = [] } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
@@ -464,7 +470,25 @@ export default function ShotForm() {
     },
   });
 
-  const statusOptions = curatedScalarOptions("status", form.watch("status"));
+  // "Dialed In" is a one-time transition marker (this bag is now dialed in,
+  // exit dial-in mode), not a recurring status for every later good shot —
+  // that's what "Good" is for. So it's hidden from the Status dropdown once
+  // the active bag already has a Dialed In shot, unless it's the value
+  // already saved on the shot being edited (curatedScalarOptions's existing
+  // preserve-selected-value behavior handles that once it's filtered out of
+  // the base list below). Computed live from hasDialedInShot, not a stored
+  // flag: editing the shot that was wrongly marked Dialed In back to another
+  // status un-hides the option again automatically.
+  const watchedStatus = form.watch("status");
+  const watchedBagId = form.watch("bagId");
+  const dialedInAlreadyForSelectedBag = (() => {
+    const bag = watchedBagId != null ? bags.find((b) => b.id === Number(watchedBagId)) : null;
+    return Boolean(bag?.isActive) && activeBagIntelligence?.bagIntelligence?.hasDialedInShot === true;
+  })();
+  const statusOptionsRaw = curatedScalarOptions("status", watchedStatus);
+  const statusOptions = dialedInAlreadyForSelectedBag
+    ? statusOptionsRaw.filter((opt) => opt !== "Dialed In" || opt === watchedStatus)
+    : statusOptionsRaw;
   const faultStatusOptions = curatedOptions("faultStatus", form.watch("faultStatus")?.slice(0, 1) ?? []);
   const expressionStyleOptions = curatedOptions("expressionStyle", form.watch("expressionStyle") ?? []);
   const beanAchievementOptions = curatedOptions("beanAchievement", form.watch("beanAchievement")?.slice(0, 1) ?? []);
@@ -664,6 +688,32 @@ export default function ShotForm() {
     if (bag.defaultYield != null) form.setValue("yield", bag.defaultYield);
     if (bag.defaultTemp != null) form.setValue("temperature", bag.defaultTemp);
   }, [selectedBagId, bags, isEditing, form]);
+
+  // Auto-tag "New Bag Dial-In" on Shot Classification while this bag has
+  // never had a shot marked Status = "Dialed In" (see hasDialedInShot on
+  // the intelligence query below). Runs once per distinct bag selection,
+  // same run-once-ref reasoning as appliedBagDefaultsFor above — without
+  // it, a background refetch of the intelligence query would re-fire this
+  // effect and silently re-add the tag after the user removed it. It does
+  // NOT depend on shot count or days open: dial-in can take one attempt or
+  // many (grind change, purge, retry), so the tag keeps applying to every
+  // attempt until the user actually marks one Dialed In, not after a fixed
+  // number of shots.
+  const appliedDialInTagFor = useRef<number | null>(null);
+  useEffect(() => {
+    if (isEditing) return;
+    if (!selectedBagId) return;
+    const bagId = Number(selectedBagId);
+    if (appliedDialInTagFor.current === bagId) return;
+    const bag = bags.find((b) => b.id === bagId);
+    if (!bag?.isActive) return;
+    if (activeBagIntelligence?.bagIntelligence?.hasDialedInShot !== false) return;
+    appliedDialInTagFor.current = bagId;
+    const current = form.getValues("shotClassification") ?? [];
+    if (!current.includes("New Bag Dial-In")) {
+      form.setValue("shotClassification", [...current, "New Bag Dial-In"]);
+    }
+  }, [selectedBagId, bags, activeBagIntelligence, isEditing, form]);
 
   const toggleTaste = (id: number) => setSelectedTastes((prev) => prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]);
 
@@ -883,11 +933,48 @@ export default function ShotForm() {
                   const b = bags.find((x) => x.id === activeBagId);
                   const label = b ? `${b.beanName ?? "Bag"} #${b.bagNumber ?? b.id}` : "this bag";
                   const soleActive = activeBags.length === 1 && activeBags[0]?.id === activeBagId;
+                  // Guided dial-in copy — reuses hasDialedInShot from the intelligence
+                  // query (no new field, no new API call beyond what's already fetched
+                  // in the effect above). Dialed In only means "this bag is dialed in,
+                  // exit dial-in mode" — it does not imply Reference Shot, which stays
+                  // fully manual per the standing rule (bag-hopper-lifecycle-plan.md §4:
+                  // "Reference Shot and Signature Shot remain manual-only flags, never
+                  // inferred"). Not shot-count- or day-based: dial-in can take one
+                  // attempt or many, so this shows on every attempt until the user
+                  // actually sets Dialed In, not after a fixed number of shots.
+                  const stillDialingIn = b?.isActive
+                    && activeBagIntelligence?.bagIntelligence?.hasDialedInShot === false;
                   return (
-                    <p className="text-xs text-muted-foreground">
-                      {soleActive && "Auto-selected as your only active bag. "}
-                      Grind, dose, yield and temperature are prefilled from {label}. Choosing a different bag refreshes them from that bag.
-                    </p>
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        {soleActive && "Auto-selected as your only active bag. "}
+                        Grind, dose, yield and temperature are prefilled from {label}. Choosing a different bag refreshes them from that bag.
+                      </p>
+                      {stillDialingIn && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                            ✓ New Bag Dial-In
+                          </span>
+                          <button
+                            type="button"
+                            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={() => setShowDialInInfo((v) => !v)}
+                          >
+                            <Info className="h-3.5 w-3.5 shrink-0" />
+                            <span>Still dialing in — how this works</span>
+                          </button>
+                        </div>
+                      )}
+                      {stillDialingIn && showDialInInfo && (
+                        <Card className="border-dashed">
+                          <CardContent className="p-3 space-y-2 text-xs text-muted-foreground">
+                            <p>This bag hasn't had a shot marked Dialed In yet, so every shot counts as a dial-in attempt — however many it takes. This shot has been tagged New Bag Dial-In automatically under Shot Classification below; untag it there if that's wrong.</p>
+                            <p>Not quite right yet? Adjust your grind, purge if needed, and log another shot — keep repeating the dial-in process until a shot is right.</p>
+                            <p>Once a shot tastes right, set its Status to <span className="font-medium text-foreground">Dialed In</span>: that marks the bag as dialed in and this guidance stops showing on future shots. It does not mark the shot as a Reference Shot — set that separately if it applies.</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </>
                   );
                 })()}
                 {!isEditing && !activeBagId && activeBags.length > 1 && (
@@ -1250,12 +1337,38 @@ export default function ShotForm() {
                       <ScalarSelect
                         options={statusOptions}
                         value={field.value}
-                        onChange={field.onChange}
+                        onChange={(value) => {
+                          // Dialed In exits the dial-in process for the bag, not just
+                          // this shot — confirm before applying rather than let a
+                          // one-tap select silently commit that. Any other value
+                          // (including switching away from Dialed In) applies directly.
+                          if (value === "Dialed In" && field.value !== "Dialed In") {
+                            setDialInConfirmOpen(true);
+                            return;
+                          }
+                          field.onChange(value);
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
+                <AlertDialog open={dialInConfirmOpen} onOpenChange={setDialInConfirmOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Mark this bag as dialed in?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Setting this shot's Status to Dialed In exits the dial-in process for this bag and marks it as dialed in. Future shots on this bag won't be tagged as dial-in attempts or show dial-in guidance, and Dialed In won't be offered as a Status option again — unless you edit this shot back to a different status.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => form.setValue("status", "Dialed In", { shouldDirty: true, shouldValidate: true })}>
+                        Mark Dialed In
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
 
                 {/* Fault Status */}
                 <FormField control={form.control} name="faultStatus" render={({ field }) => (
