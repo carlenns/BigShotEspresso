@@ -62,8 +62,23 @@ WHERE s.bag_id = b.id
   AND s.shot_date ~ '^\\d{4}-\\d{2}-\\d{2}';
 `;
 
+// Taste selector origin + archive (0013_taste_selector_origin_archive.sql,
+// kept in sync). Additive; the origin backfill only touches non-default rows
+// still marked 'standard', so it is a no-op on every boot after the first.
+const TASTE_SELECTORS_SCHEMA_SQL = `
+ALTER TABLE taste_selectors
+  ADD COLUMN IF NOT EXISTS archived_at timestamptz,
+  ADD COLUMN IF NOT EXISTS origin text NOT NULL DEFAULT 'standard';
+
+UPDATE taste_selectors
+SET origin = 'custom'
+WHERE is_default = false
+  AND origin = 'standard';
+`;
+
 export async function ensureRuntimeSchema(): Promise<void> {
   await pool.query(EQUIPMENT_SCHEMA_SQL);
   await pool.query(SHOTS_SCHEMA_SQL);
+  await pool.query(TASTE_SELECTORS_SCHEMA_SQL);
   logger.info("Runtime schema check complete");
 }

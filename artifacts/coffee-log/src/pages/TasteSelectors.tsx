@@ -12,11 +12,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { errorMessageFrom } from "@/lib/http";
-import { Plus, Pencil, Trash2, Tag, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, RefreshCw, Archive, ArchiveRestore, Check, BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TasteSelector {
   id: number; name: string; category: string; isDefault: boolean; sortOrder: number;
+  origin: "standard" | "custom"; archivedAt: string | null;
 }
 
 const CATEGORIES = [
@@ -38,18 +39,24 @@ const CAT_COLORS: Record<string, string> = {
   custom: "bg-muted border text-muted-foreground",
 };
 
-function fetchSelectors(): Promise<TasteSelector[]> { return fetch("/api/taste-selectors").then((r) => r.json()); }
+// The management page includes archived selectors; the shot-form picker
+// (queryKey ["taste-selectors"]) does not. Invalidating ["taste-selectors"]
+// refreshes both.
+function fetchSelectors(): Promise<TasteSelector[]> { return fetch("/api/taste-selectors?includeArchived=true").then((r) => r.json()); }
 
 export default function TasteSelectors() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { data: selectors = [], isLoading } = useQuery({ queryKey: ["taste-selectors"], queryFn: fetchSelectors });
+  const { data: selectors = [], isLoading } = useQuery({ queryKey: ["taste-selectors", "manage"], queryFn: fetchSelectors });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TasteSelector | null>(null);
   const [form, setForm] = useState({ name: "", category: "custom" });
+  const [editMode, setEditMode] = useState(false);
 
+  const active = selectors.filter((s) => !s.archivedAt);
+  const archived = selectors.filter((s) => s.archivedAt);
   const grouped = CATEGORIES.reduce<Record<string, TasteSelector[]>>((acc, c) => {
-    acc[c.value] = selectors.filter((s) => s.category === c.value);
+    acc[c.value] = active.filter((s) => s.category === c.value);
     return acc;
   }, {});
 
@@ -57,8 +64,34 @@ export default function TasteSelectors() {
   const openEdit = (s: TasteSelector) => { setEditing(s); setForm({ name: s.name, category: s.category }); setOpen(true); };
 
   const seedMutation = useMutation({
-    mutationFn: () => fetch("/api/taste-selectors/seed", { method: "POST" }).then((r) => r.json()),
-    onSuccess: (d) => { qc.invalidateQueries({ queryKey: ["taste-selectors"] }); toast({ title: `Seeded ${d.seeded} standard selectors` }); },
+    mutationFn: async () => {
+      const response = await fetch("/api/taste-selectors/seed", { method: "POST" });
+      if (!response.ok) throw new Error(await errorMessageFrom(response));
+      return response.json() as Promise<{ seeded: number }>;
+    },
+    onSuccess: (d) => {
+      qc.invalidateQueries({ queryKey: ["taste-selectors"] });
+      toast({ title: d.seeded > 0 ? `Loaded ${d.seeded} standard selectors` : "All standard selectors are already loaded" });
+    },
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async ({ id, restore }: { id: number; restore: boolean }) => {
+      const response = await fetch(`/api/taste-selectors/${id}/${restore ? "restore" : "archive"}`, { method: "POST" });
+      if (!response.ok) throw new Error(await errorMessageFrom(response));
+    },
+    onSuccess: (_d, { restore }) => { qc.invalidateQueries({ queryKey: ["taste-selectors"] }); toast({ title: restore ? "Restored" : "Archived" }); },
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+  });
+
+  const promoteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/taste-selectors/${id}/promote`, { method: "POST" });
+      if (!response.ok) throw new Error(await errorMessageFrom(response));
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["taste-selectors"] }); toast({ title: "Promoted to standard" }); },
+    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const saveMutation = useMutation({
@@ -95,12 +128,26 @@ export default function TasteSelectors() {
             Your tasting vocabulary — the quick-pick tags you apply on the shot form when recording how a shot tasted,
             grouped into the categories below. Standard ones are marked <span className="font-medium">(std)</span>; add your own anytime.
           </p>
+          {editMode && (
+            <p className="text-xs text-muted-foreground mt-2 max-w-2xl">
+              Archive hides a selector from the shot form but keeps it on shots you already tagged. Standard selectors keep
+              their name and category so they stay comparable for future community profiling — archive one you don't use and
+              add a custom version instead. Custom selectors stay personal and can be renamed, recategorized, or deleted — or
+              promoted to standard with the check-badge button once you're happy with the name and category.
+            </p>
+          )}
         </div>
-        <div className="flex gap-2">
-          {selectors.length === 0 && (
+        <div className="flex flex-wrap gap-2">
+          {selectors.length > 0 && (
+            <Button variant={editMode ? "default" : "outline"} onClick={() => setEditMode((v) => !v)} className="gap-2">
+              {editMode ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+              {editMode ? "Done" : "Edit"}
+            </Button>
+          )}
+          {selectors.length > 0 && (
             <Button variant="outline" onClick={() => seedMutation.mutate()} className="gap-2" disabled={seedMutation.isPending}>
               <RefreshCw className={cn("h-4 w-4", seedMutation.isPending && "animate-spin")} />
-              Seed Defaults
+              Load Standard Selectors
             </Button>
           )}
           <Button onClick={() => openNew()} className="gap-2"><Plus className="h-4 w-4" /> Add Selector</Button>
@@ -113,7 +160,7 @@ export default function TasteSelectors() {
         <div className="text-center py-16 text-muted-foreground border rounded-xl">
           <Tag className="h-10 w-10 mx-auto mb-3 opacity-30" />
           <p className="font-medium">No taste selectors yet.</p>
-          <p className="text-sm mt-1">Load the 25 standard selectors to get started — you can rename, remove, or add your own afterwards.</p>
+          <p className="text-sm mt-1">Load the 25 standard selectors to get started — you can archive ones you don't use or add your own afterwards.</p>
           <Button className="mt-4 gap-2" onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending}>
             <RefreshCw className={cn("h-4 w-4", seedMutation.isPending && "animate-spin")} />
             Load Standard Selectors
@@ -133,21 +180,50 @@ export default function TasteSelectors() {
                 {grouped[value].map((s) => (
                   <div key={s.id} className={cn("flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium", CAT_COLORS[value] || CAT_COLORS.custom)}>
                     <span>{s.name}</span>
-                    {s.isDefault && <span className="text-[10px] opacity-60">(std)</span>}
-                    <button onClick={() => openEdit(s)} className="ml-0.5 opacity-50 hover:opacity-100 transition-opacity">
-                      <Pencil className="h-3 w-3" />
-                    </button>
-                    {!s.isDefault && (
+                    {s.origin === "standard" && <span className="text-[10px] opacity-60">(std)</span>}
+                    {editMode && s.origin === "custom" && (
+                      <button onClick={() => openEdit(s)} aria-label={`Edit ${s.name}`} className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {editMode && (
+                      <button onClick={() => archiveMutation.mutate({ id: s.id, restore: false })} aria-label={`Archive ${s.name}`} className="opacity-60 hover:opacity-100 transition-opacity" disabled={archiveMutation.isPending}>
+                        <Archive className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {editMode && s.origin === "custom" && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <button className="opacity-50 hover:opacity-100 hover:text-destructive transition-colors">
-                            <Trash2 className="h-3 w-3" />
+                          <button aria-label={`Make ${s.name} standard`} className="opacity-60 hover:opacity-100 transition-opacity">
+                            <BadgeCheck className="h-3.5 w-3.5" />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Make "{s.name}" a standard selector?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              It joins the standard vocabulary used for future community profiling, filed under {CAT_LABEL[s.category] ?? s.category}.
+                              Its name and category will then be locked and it can only be archived, not deleted — check both before promoting.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => promoteMutation.mutate(s.id)}>Make Standard</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                    {editMode && s.origin === "custom" && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button aria-label={`Delete ${s.name}`} className="opacity-60 hover:opacity-100 hover:text-destructive transition-colors">
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete selector?</AlertDialogTitle>
-                            <AlertDialogDescription>"{s.name}" will be removed. This action cannot be undone.</AlertDialogDescription>
+                            <AlertDialogDescription>"{s.name}" will be removed, including from every shot already tagged with it. Archive it instead to keep those tags. This action cannot be undone.</AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -161,9 +237,26 @@ export default function TasteSelectors() {
               </div>
             </section>
           ))}
+          {archived.length > 0 && (
+            <section>
+              <h2 className="font-semibold text-base mb-1">Archived</h2>
+              <p className="text-xs text-muted-foreground mb-3">Hidden from the shot form; still shown on shots already tagged with them.</p>
+              <div className="flex flex-wrap gap-2">
+                {archived.map((s) => (
+                  <div key={s.id} className="flex items-center gap-1.5 rounded-full border border-dashed px-3 py-1.5 text-sm font-medium text-muted-foreground">
+                    <span>{s.name}</span>
+                    <span className="text-[10px] opacity-60">{CAT_LABEL[s.category] ?? s.category}</span>
+                    <button onClick={() => archiveMutation.mutate({ id: s.id, restore: true })} aria-label={`Restore ${s.name}`} className="opacity-60 hover:opacity-100 transition-opacity" disabled={archiveMutation.isPending}>
+                      <ArchiveRestore className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
           <Separator />
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">{selectors.length} selectors across {CATEGORIES.filter((c) => grouped[c.value]?.length > 0).length} categories</p>
+            <p className="text-sm text-muted-foreground">{active.length} selectors across {CATEGORIES.filter((c) => grouped[c.value]?.length > 0).length} categories</p>
             <Button variant="outline" size="sm" onClick={() => openNew()} className="gap-1.5"><Plus className="h-4 w-4" /> Add Custom</Button>
           </div>
         </div>

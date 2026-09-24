@@ -4,6 +4,9 @@ import { z } from "zod/v4";
 import { shotsTable } from "./shots";
 
 export const TASTE_SELECTOR_CATEGORIES = ["balance", "texture", "flavor", "finish", "character", "custom"] as const;
+// standard = canonical vocabulary (eligible for future cross-user profiling);
+// custom = personal, never aggregated globally unless promoted into the canon.
+export const TASTE_SELECTOR_ORIGINS = ["standard", "custom"] as const;
 
 export const tasteSelectorsTable = pgTable("taste_selectors", {
   id: serial("id").primaryKey(),
@@ -11,6 +14,8 @@ export const tasteSelectorsTable = pgTable("taste_selectors", {
   category: text("category").notNull().default("custom"),
   isDefault: boolean("is_default").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
+  origin: text("origin").notNull().default("standard"),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, inArray, sql } from "drizzle-orm";
-import { db, tasteSelectorsTable, shotTasteSelectorsTable } from "@workspace/db";
+import { eq, inArray, isNull } from "drizzle-orm";
+import { db, tasteSelectorsTable, shotTasteSelectorsTable, TASTE_SELECTOR_CATEGORIES } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -33,49 +33,117 @@ const STANDARD_SELECTORS = [
   { name: "Wine-like Acidity", category: "character", sortOrder: 250 },
 ];
 
+// Additive and idempotent: inserts only standard selectors whose name is not
+// already present (active or archived), so it never duplicates or un-archives.
 router.post("/taste-selectors/seed", async (_req, res): Promise<void> => {
   const existing = await db.select({ name: tasteSelectorsTable.name }).from(tasteSelectorsTable);
   const existingNames = new Set(existing.map((r) => r.name));
   const toInsert = STANDARD_SELECTORS.filter((s) => !existingNames.has(s.name));
   if (toInsert.length > 0) {
-    await db.insert(tasteSelectorsTable).values(toInsert.map((s) => ({ ...s, isDefault: true })));
+    await db.insert(tasteSelectorsTable).values(toInsert.map((s) => ({ ...s, isDefault: true, origin: "standard" })));
   }
   const all = await db.select().from(tasteSelectorsTable).orderBy(tasteSelectorsTable.sortOrder);
   res.json({ seeded: toInsert.length, total: all.length, selectors: all });
 });
 
-router.get("/taste-selectors", async (_req, res): Promise<void> => {
-  const rows = await db.select().from(tasteSelectorsTable).orderBy(tasteSelectorsTable.sortOrder, tasteSelectorsTable.name);
+// Archived selectors are excluded by default so the shot-form picker never
+// offers them; the management page passes includeArchived=true.
+router.get("/taste-selectors", async (req, res): Promise<void> => {
+  const includeArchived = req.query.includeArchived === "true";
+  const rows = await db.select().from(tasteSelectorsTable)
+    .where(includeArchived ? undefined : isNull(tasteSelectorsTable.archivedAt))
+    .orderBy(tasteSelectorsTable.sortOrder, tasteSelectorsTable.name);
   res.json(rows);
 });
+
+function isCategory(value: unknown): value is string {
+  return typeof value === "string" && (TASTE_SELECTOR_CATEGORIES as readonly string[]).includes(value);
+}
 
 router.post("/taste-selectors", async (req, res): Promise<void> => {
   const body = req.body as Record<string, unknown>;
   if (!body.name?.toString().trim()) { res.status(400).json({ error: "name is required" }); return; }
+  if (body.category != null && !isCategory(body.category)) { res.status(400).json({ error: "Invalid category" }); return; }
   const [row] = await db.insert(tasteSelectorsTable).values({
     name: String(body.name).trim(),
     category: (body.category as string) || "custom",
     isDefault: false,
+    origin: "custom",
     sortOrder: body.sortOrder != null ? Number(body.sortOrder) : 1000,
   }).returning();
   res.status(201).json(row);
 });
 
+// Standard selectors keep their name and category so they stay comparable
+// across profiles; only custom selectors can be renamed or recategorized.
 router.patch("/taste-selectors/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const body = req.body as Record<string, unknown>;
+  const [existing] = await db.select().from(tasteSelectorsTable).where(eq(tasteSelectorsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+  const name = body.name != null ? String(body.name).trim() : undefined;
+  if (name === "") { res.status(400).json({ error: "name is required" }); return; }
+  if (body.category != null && !isCategory(body.category)) { res.status(400).json({ error: "Invalid category" }); return; }
+  const category = body.category as string | undefined;
+  if (existing.origin === "standard" && ((name !== undefined && name !== existing.name) || (category !== undefined && category !== existing.category))) {
+    res.status(409).json({ error: "Standard selectors can't be renamed or recategorized. Archive it and add a custom selector instead." });
+    return;
+  }
   const [row] = await db.update(tasteSelectorsTable).set({
-    name: body.name as string | undefined,
-    category: body.category as string | undefined,
+    name,
+    category,
     sortOrder: body.sortOrder != null ? Number(body.sortOrder) : undefined,
   }).where(eq(tasteSelectorsTable.id, id)).returning();
+  res.json(row);
+});
+
+// Archive hides a selector from the picker for new shots; historical shot
+// tags are untouched. Restore clears it.
+router.post("/taste-selectors/:id/archive", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [row] = await db.update(tasteSelectorsTable).set({ archivedAt: new Date() })
+    .where(eq(tasteSelectorsTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(row);
 });
 
+router.post("/taste-selectors/:id/restore", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [row] = await db.update(tasteSelectorsTable).set({ archivedAt: null })
+    .where(eq(tasteSelectorsTable.id, id)).returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  res.json(row);
+});
+
+// Promote a custom selector into the standard (canonical) vocabulary. One-way:
+// once standard, its name and category are locked like the seeded ones.
+// Owner-only for now; becomes a curator/admin action once accounts exist
+// (docs/architecture/taste-selector-vocabulary-model.md, D3).
+router.post("/taste-selectors/:id/promote", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [existing] = await db.select({ origin: tasteSelectorsTable.origin }).from(tasteSelectorsTable).where(eq(tasteSelectorsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+  if (existing.origin === "standard") { res.status(409).json({ error: "Already a standard selector." }); return; }
+  const [row] = await db.update(tasteSelectorsTable).set({ origin: "standard" })
+    .where(eq(tasteSelectorsTable.id, id)).returning();
+  res.json(row);
+});
+
+// Hard delete removes the tag from every historical shot (join rows cascade),
+// so it is limited to custom selectors; standard ones are archived instead.
 router.delete("/taste-selectors/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [existing] = await db.select({ origin: tasteSelectorsTable.origin }).from(tasteSelectorsTable).where(eq(tasteSelectorsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+  if (existing.origin === "standard") {
+    res.status(409).json({ error: "Standard selectors can't be deleted. Archive it to hide it from the shot form." });
+    return;
+  }
   await db.delete(tasteSelectorsTable).where(eq(tasteSelectorsTable.id, id));
   res.status(204).end();
 });

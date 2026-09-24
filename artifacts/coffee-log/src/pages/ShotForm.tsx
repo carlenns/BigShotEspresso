@@ -43,6 +43,15 @@ interface Grinder { id: number; name: string; shortLabel: string | null; brand: 
 interface Machine { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; brewMethod: string | null; isDefault: boolean }
 
 const NO_TASTE_SELECTORS: TasteSelector[] = [];
+// Same category order and labels as the Taste Selectors page.
+const TASTE_SELECTOR_GROUPS = [
+  { value: "balance", label: "Balance & Structure" },
+  { value: "texture", label: "Texture & Body" },
+  { value: "flavor", label: "Flavour Notes" },
+  { value: "finish", label: "Finish & Aftertaste" },
+  { value: "character", label: "Character & Impression" },
+  { value: "custom", label: "Custom" },
+];
 
 function fetchBags(): Promise<Bag[]> { return fetch("/api/bags").then((r) => r.json()); }
 function fetchTasteSelectors(): Promise<TasteSelector[]> { return fetch("/api/taste-selectors").then((r) => r.json()); }
@@ -715,6 +724,19 @@ export default function ShotForm() {
     }
   }, [selectedBagId, bags, activeBagIntelligence, isEditing, form]);
 
+  // The picker lists active selectors only; on edit, a tag this shot already
+  // carries stays visible (and removable) even if it has since been archived.
+  const tastePickerOptions = [
+    ...tasteSelectors,
+    ...existingTasteSelectors.filter((ts) => !tasteSelectors.some((active) => active.id === ts.id)),
+  ];
+  const tasteSelectorGroups = TASTE_SELECTOR_GROUPS
+    .map((group) => ({
+      ...group,
+      selectors: tastePickerOptions.filter((ts) =>
+        ts.category === group.value || (group.value === "custom" && !TASTE_SELECTOR_GROUPS.some((g) => g.value === ts.category))),
+    }))
+    .filter((group) => group.selectors.length > 0);
   const toggleTaste = (id: number) => setSelectedTastes((prev) => prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]);
 
   const carryForwardGrindDefaults = async (values: FormValues) => {
@@ -1273,26 +1295,31 @@ export default function ShotForm() {
                 </FormItem>
               )} />
 
-              {tasteSelectors.length > 0 && (
+              {tasteSelectorGroups.length > 0 && (
                 <div className="space-y-2">
                   <Label>Taste Selectors <span className="text-muted-foreground text-xs font-normal">optional — tag this shot</span></Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {tasteSelectors.map((ts) => (
-                      <button
-                        key={ts.id}
-                        type="button"
-                        onClick={() => toggleTaste(ts.id)}
-                        className={cn(
-                          "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
-                          selectedTastes.includes(ts.id)
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "hover:border-primary/40 text-muted-foreground"
-                        )}
-                      >
-                        {ts.name}
-                      </button>
-                    ))}
-                  </div>
+                  {tasteSelectorGroups.map((group) => (
+                    <div key={group.value} className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground">{group.label}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {group.selectors.map((ts) => (
+                          <button
+                            key={ts.id}
+                            type="button"
+                            onClick={() => toggleTaste(ts.id)}
+                            className={cn(
+                              "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                              selectedTastes.includes(ts.id)
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "hover:border-primary/40 text-muted-foreground"
+                            )}
+                          >
+                            {ts.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 

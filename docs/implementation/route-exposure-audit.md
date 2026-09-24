@@ -27,7 +27,6 @@ Protected route prefixes:
 - `/api/shots/import-csv`
 - `/api/hoppers/import-csv`
 - `/api/hopper-range-baselines/import-csv`
-- `/api/taste-selectors/seed`
 
 Normal owner workflow create/edit/delete routes are not yet protected by a full login system. This is acceptable only for owner-only/private deployment, not public launch.
 
@@ -72,7 +71,6 @@ These routes are protected in production and should remain protected.
 | `/api/shots/import-csv` | POST | Bulk data import |
 | `/api/hoppers/import-csv` | POST | Bulk hopper import |
 | `/api/hopper-range-baselines/import-csv` | POST | Bulk baseline import |
-| `/api/taste-selectors/seed` | POST | Bulk selector mutation |
 
 ## Owner Workflow Write Routes
 
@@ -89,6 +87,9 @@ These routes support normal owner use but are not public-safe without authentica
 | `/api/hoppers` and `/api/hoppers/:id` | POST, PATCH | Owner-only workflow |
 | `/api/hopper-range-baselines` | POST | Owner-only workflow |
 | `/api/taste-selectors` and `/api/taste-selectors/:id` | POST, PATCH, DELETE | Owner-only workflow |
+| `/api/taste-selectors/:id/archive` and `/api/taste-selectors/:id/restore` | POST | Owner-only workflow |
+| `/api/taste-selectors/:id/promote` | POST | Owner-only workflow; must become a curator/admin action before multi-user launch (it edits the canonical vocabulary) |
+| `/api/taste-selectors/seed` | POST | Owner-only workflow. Ungated 2026-09-24: additive and idempotent (inserts only missing standard selectors, never overwrites or deletes), same risk as single-selector create; the admin gate made the page's Load Standard Selectors button fail in production |
 | `/api/shots/:id/taste-selectors` | PUT | Owner-only workflow |
 | `/api/settings` and `/api/settings/:key` | PUT, DELETE | Owner-only/admin workflow |
 | `/api/airtable/test` | POST | Owner/admin diagnostic; should not be public self-serve |

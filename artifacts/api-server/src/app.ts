@@ -53,7 +53,6 @@ app.use("/api/airtable/sync", requireAdminToken);
 app.use("/api/shots/import-csv", requireAdminToken);
 app.use("/api/hoppers/import-csv", requireAdminToken);
 app.use("/api/hopper-range-baselines/import-csv", requireAdminToken);
-app.use("/api/taste-selectors/seed", requireAdminToken);
 
 app.use("/api", router);
 
