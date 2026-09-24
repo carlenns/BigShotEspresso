@@ -17,7 +17,14 @@ import { cn } from "@/lib/utils";
 
 interface TasteSelector {
   id: number; name: string; category: string; isDefault: boolean; sortOrder: number;
-  origin: "standard" | "custom"; archivedAt: string | null;
+  origin: "standard" | "custom"; archivedAt: string | null; canonicalKey: string | null;
+}
+
+// Mirrors normalizeSelectorName on the server (which is authoritative):
+// each word capitalized, rest lower-case — "mInTy FreshNeSs" → "Minty Freshness".
+function normalizeSelectorName(raw: string): string {
+  return raw.trim().split(/\s+/).filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(" ");
 }
 
 const CATEGORIES = [
@@ -52,6 +59,7 @@ export default function TasteSelectors() {
   const [editing, setEditing] = useState<TasteSelector | null>(null);
   const [form, setForm] = useState({ name: "", category: "custom" });
   const [editMode, setEditMode] = useState(false);
+  const [promoteCategory, setPromoteCategory] = useState("");
 
   const active = selectors.filter((s) => !s.archivedAt);
   const archived = selectors.filter((s) => s.archivedAt);
@@ -86,8 +94,10 @@ export default function TasteSelectors() {
   });
 
   const promoteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await fetch(`/api/taste-selectors/${id}/promote`, { method: "POST" });
+    mutationFn: async ({ id, category }: { id: number; category: string }) => {
+      const response = await fetch(`/api/taste-selectors/${id}/promote`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ category }),
+      });
       if (!response.ok) throw new Error(await errorMessageFrom(response));
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["taste-selectors"] }); toast({ title: "Promoted to standard" }); },
@@ -180,7 +190,8 @@ export default function TasteSelectors() {
                 {grouped[value].map((s) => (
                   <div key={s.id} className={cn("flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium", CAT_COLORS[value] || CAT_COLORS.custom)}>
                     <span>{s.name}</span>
-                    {s.origin === "standard" && <span className="text-[10px] opacity-60">(std)</span>}
+                    {s.origin === "standard" && <span className="text-[10px] opacity-60" title={s.canonicalKey ?? undefined}>(std)</span>}
+                    {editMode && s.canonicalKey && <span className="text-[10px] font-mono opacity-60">{s.canonicalKey}</span>}
                     {editMode && s.origin === "custom" && (
                       <button onClick={() => openEdit(s)} aria-label={`Edit ${s.name}`} className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity">
                         <Pencil className="h-3.5 w-3.5" />
@@ -192,7 +203,7 @@ export default function TasteSelectors() {
                       </button>
                     )}
                     {editMode && s.origin === "custom" && (
-                      <AlertDialog>
+                      <AlertDialog onOpenChange={(isOpen) => { if (isOpen) setPromoteCategory(s.category === "custom" ? "" : s.category); }}>
                         <AlertDialogTrigger asChild>
                           <button aria-label={`Make ${s.name} standard`} className="opacity-60 hover:opacity-100 transition-opacity">
                             <BadgeCheck className="h-3.5 w-3.5" />
@@ -202,13 +213,22 @@ export default function TasteSelectors() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Make "{s.name}" a standard selector?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              It joins the standard vocabulary used for future community profiling, filed under {CAT_LABEL[s.category] ?? s.category}.
-                              Its name and category will then be locked and it can only be archived, not deleted — check both before promoting.
+                              It joins the standard vocabulary used for future community profiling. Its name and category will then be
+                              locked, it gets a permanent key, and it can only be archived, not deleted — check both before promoting.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
+                          <div className="space-y-1.5">
+                            <Label>Standard category</Label>
+                            <Select value={promoteCategory} onValueChange={setPromoteCategory}>
+                              <SelectTrigger><SelectValue placeholder="Choose a category" /></SelectTrigger>
+                              <SelectContent>
+                                {CATEGORIES.filter((c) => c.value !== "custom").map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => promoteMutation.mutate(s.id)}>Make Standard</AlertDialogAction>
+                            <AlertDialogAction disabled={!promoteCategory} onClick={() => promoteMutation.mutate({ id: s.id, category: promoteCategory })}>Make Standard</AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
@@ -269,6 +289,9 @@ export default function TasteSelectors() {
             <div className="space-y-1.5">
               <Label>Name *</Label>
               <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Cherry Finish" autoFocus />
+              {form.name.trim() && normalizeSelectorName(form.name) !== form.name && (
+                <p className="text-xs text-muted-foreground">Will be saved as <span className="font-medium text-foreground">{normalizeSelectorName(form.name)}</span></p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Category</Label>

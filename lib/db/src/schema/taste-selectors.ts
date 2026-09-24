@@ -1,4 +1,4 @@
-import { pgTable, serial, text, boolean, integer, timestamp, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, boolean, integer, timestamp, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { shotsTable } from "./shots";
@@ -16,8 +16,10 @@ export const tasteSelectorsTable = pgTable("taste_selectors", {
   sortOrder: integer("sort_order").notNull().default(0),
   origin: text("origin").notNull().default("standard"),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
+  // Permanent key for standard selectors ("finish.minty-freshness"); NULL for custom.
+  canonicalKey: text("canonical_key"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [uniqueIndex("taste_selectors_canonical_key_unique").on(t.canonicalKey)]);
 
 export const shotTasteSelectorsTable = pgTable(
   "shot_taste_selectors",
