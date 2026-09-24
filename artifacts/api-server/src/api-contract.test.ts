@@ -915,8 +915,24 @@ test("Taste selectors archive instead of deleting, and track standard vs custom 
   assert.match(routeSource, /router\.post\("\/taste-selectors\/:id\/restore"/);
   // Custom → standard promotion is one-way and confirmation-gated in the UI.
   assert.match(routeSource, /router\.post\("\/taste-selectors\/:id\/promote"/);
-  assert.match(routeSource, /\.set\(\{ origin: "standard" \}\)/);
-  assert.match(pageSource, /<AlertDialogAction onClick=\{\(\) => promoteMutation\.mutate\(s\.id\)\}>Make Standard<\/AlertDialogAction>/);
+  assert.match(pageSource, /<AlertDialogAction disabled=\{!promoteCategory\} onClick=\{\(\) => promoteMutation\.mutate\(\{ id: s\.id, category: promoteCategory \}\)\}>Make Standard<\/AlertDialogAction>/);
+  assert.match(routeSource, /Choose a category before making this a standard selector\./);
+  assert.match(routeSource, /set\(\{ origin: "standard", category, canonicalKey \}\)/);
+  // Canonical key: additive migration mirrored by the runtime guard; backfill never rewrites a key.
+  const [keyMigration, keyMigrationDown] = await Promise.all([
+    readFile(fileURLToPath(new URL("../../../lib/db/migrations/0014_taste_selector_canonical_key.sql", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/migrations/0014_taste_selector_canonical_key.down.sql", import.meta.url)), "utf8"),
+  ]);
+  for (const src of [keyMigration, runtimeSchemaSource]) {
+    assert.match(src, /ADD COLUMN IF NOT EXISTS canonical_key text/);
+    assert.match(src, /CREATE UNIQUE INDEX IF NOT EXISTS taste_selectors_canonical_key_unique/);
+    assert.match(src, /WHERE origin = 'standard'\s+AND canonical_key IS NULL/);
+  }
+  assert.match(keyMigrationDown, /DROP COLUMN IF EXISTS canonical_key/);
+  // Names are normalized and case-insensitively unique on create and rename.
+  assert.match(routeSource, /const name = normalizeSelectorName\(String\(body\.name \?\? ""\)\);/);
+  assert.match(routeSource, /normalizeSelectorName\(String\(body\.name\)\)/);
+  assert.match(routeSource, /lower\(\$\{tasteSelectorsTable\.name\}\)/);
 
   // Standard selectors stay canonical: no rename/recategorize, no hard delete.
   assert.match(routeSource, /Standard selectors can't be renamed or recategorized/);

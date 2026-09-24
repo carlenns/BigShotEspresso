@@ -1,44 +1,20 @@
 import { Router, type IRouter } from "express";
-import { eq, inArray, isNull } from "drizzle-orm";
+import { eq, inArray, isNull, sql } from "drizzle-orm";
 import { db, tasteSelectorsTable, shotTasteSelectorsTable, TASTE_SELECTOR_CATEGORIES } from "@workspace/db";
+import { STANDARD_SELECTORS, canonicalKeyFor, normalizeSelectorName } from "../lib/taste-selector-names";
 
 const router: IRouter = Router();
 
-// Seed standard taste selectors if none exist
-const STANDARD_SELECTORS = [
-  { name: "Balanced", category: "balance", sortOrder: 10 },
-  { name: "Acidity", category: "balance", sortOrder: 20 },
-  { name: "Sweetness", category: "balance", sortOrder: 30 },
-  { name: "Bitterness", category: "balance", sortOrder: 40 },
-  { name: "Sourness", category: "balance", sortOrder: 50 },
-  { name: "Body", category: "texture", sortOrder: 60 },
-  { name: "Texture", category: "texture", sortOrder: 70 },
-  { name: "Clarity", category: "texture", sortOrder: 80 },
-  { name: "Finish", category: "finish", sortOrder: 90 },
-  { name: "Aftertaste", category: "finish", sortOrder: 100 },
-  { name: "Dryness", category: "finish", sortOrder: 110 },
-  { name: "Astringency", category: "finish", sortOrder: 120 },
-  { name: "Brightness", category: "flavor", sortOrder: 130 },
-  { name: "Fruitiness", category: "flavor", sortOrder: 140 },
-  { name: "Chocolate", category: "flavor", sortOrder: 150 },
-  { name: "Caramel", category: "flavor", sortOrder: 160 },
-  { name: "Floral", category: "flavor", sortOrder: 170 },
-  { name: "Nutty", category: "flavor", sortOrder: 180 },
-  { name: "Earthy", category: "flavor", sortOrder: 190 },
-  { name: "Roastiness", category: "flavor", sortOrder: 200 },
-  { name: "Bright Expression", category: "character", sortOrder: 210 },
-  { name: "Guest Worthy", category: "character", sortOrder: 220 },
-  { name: "Daily Driver", category: "character", sortOrder: 230 },
-  { name: "Cooling Evolution", category: "character", sortOrder: 240 },
-  { name: "Wine-like Acidity", category: "character", sortOrder: 250 },
-];
-
-// Additive and idempotent: inserts only standard selectors whose name is not
-// already present (active or archived), so it never duplicates or un-archives.
+// Additive and idempotent: inserts only standard selectors whose name (case-
+// insensitive) or key is not already present, active or archived, so it never
+// duplicates or un-archives.
 router.post("/taste-selectors/seed", async (_req, res): Promise<void> => {
-  const existing = await db.select({ name: tasteSelectorsTable.name }).from(tasteSelectorsTable);
-  const existingNames = new Set(existing.map((r) => r.name));
-  const toInsert = STANDARD_SELECTORS.filter((s) => !existingNames.has(s.name));
+  const existing = await db.select({ name: tasteSelectorsTable.name, canonicalKey: tasteSelectorsTable.canonicalKey }).from(tasteSelectorsTable);
+  const existingNames = new Set(existing.map((r) => r.name.toLowerCase()));
+  const existingKeys = new Set(existing.map((r) => r.canonicalKey).filter(Boolean));
+  const toInsert = STANDARD_SELECTORS
+    .map((s) => ({ ...s, canonicalKey: canonicalKeyFor(s.category, s.name) }))
+    .filter((s) => !existingNames.has(s.name.toLowerCase()) && !existingKeys.has(s.canonicalKey));
   if (toInsert.length > 0) {
     await db.insert(tasteSelectorsTable).values(toInsert.map((s) => ({ ...s, isDefault: true, origin: "standard" })));
   }
@@ -60,12 +36,21 @@ function isCategory(value: unknown): value is string {
   return typeof value === "string" && (TASTE_SELECTOR_CATEGORIES as readonly string[]).includes(value);
 }
 
+// Names are unique ignoring case, across active and archived selectors.
+async function nameTaken(name: string, exceptId?: number): Promise<boolean> {
+  const rows = await db.select({ id: tasteSelectorsTable.id }).from(tasteSelectorsTable)
+    .where(sql`lower(${tasteSelectorsTable.name}) = ${name.toLowerCase()}`);
+  return rows.some((r) => r.id !== exceptId);
+}
+
 router.post("/taste-selectors", async (req, res): Promise<void> => {
   const body = req.body as Record<string, unknown>;
-  if (!body.name?.toString().trim()) { res.status(400).json({ error: "name is required" }); return; }
+  const name = normalizeSelectorName(String(body.name ?? ""));
+  if (!name) { res.status(400).json({ error: "name is required" }); return; }
   if (body.category != null && !isCategory(body.category)) { res.status(400).json({ error: "Invalid category" }); return; }
+  if (await nameTaken(name)) { res.status(409).json({ error: `A selector named "${name}" already exists (it may be archived).` }); return; }
   const [row] = await db.insert(tasteSelectorsTable).values({
-    name: String(body.name).trim(),
+    name,
     category: (body.category as string) || "custom",
     isDefault: false,
     origin: "custom",
@@ -82,7 +67,7 @@ router.patch("/taste-selectors/:id", async (req, res): Promise<void> => {
   const body = req.body as Record<string, unknown>;
   const [existing] = await db.select().from(tasteSelectorsTable).where(eq(tasteSelectorsTable.id, id));
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
-  const name = body.name != null ? String(body.name).trim() : undefined;
+  const name = body.name != null ? normalizeSelectorName(String(body.name)) : undefined;
   if (name === "") { res.status(400).json({ error: "name is required" }); return; }
   if (body.category != null && !isCategory(body.category)) { res.status(400).json({ error: "Invalid category" }); return; }
   const category = body.category as string | undefined;
@@ -90,6 +75,7 @@ router.patch("/taste-selectors/:id", async (req, res): Promise<void> => {
     res.status(409).json({ error: "Standard selectors can't be renamed or recategorized. Archive it and add a custom selector instead." });
     return;
   }
+  if (name !== undefined && await nameTaken(name, id)) { res.status(409).json({ error: `A selector named "${name}" already exists (it may be archived).` }); return; }
   const [row] = await db.update(tasteSelectorsTable).set({
     name,
     category,
@@ -119,16 +105,25 @@ router.post("/taste-selectors/:id/restore", async (req, res): Promise<void> => {
 });
 
 // Promote a custom selector into the standard (canonical) vocabulary. One-way:
-// once standard, its name and category are locked like the seeded ones.
+// once standard, its name and category are locked like the seeded ones and it
+// gets a permanent canonical key. It must land in a real category — "custom"
+// is not a standard category — so the request may supply one.
 // Owner-only for now; becomes a curator/admin action once accounts exist
 // (docs/architecture/taste-selector-vocabulary-model.md, D3).
 router.post("/taste-selectors/:id/promote", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  const [existing] = await db.select({ origin: tasteSelectorsTable.origin }).from(tasteSelectorsTable).where(eq(tasteSelectorsTable.id, id));
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  if (body.category != null && !isCategory(body.category)) { res.status(400).json({ error: "Invalid category" }); return; }
+  const [existing] = await db.select().from(tasteSelectorsTable).where(eq(tasteSelectorsTable.id, id));
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
   if (existing.origin === "standard") { res.status(409).json({ error: "Already a standard selector." }); return; }
-  const [row] = await db.update(tasteSelectorsTable).set({ origin: "standard" })
+  const category = (body.category as string | undefined) ?? existing.category;
+  if (category === "custom") { res.status(400).json({ error: "Choose a category before making this a standard selector." }); return; }
+  const canonicalKey = canonicalKeyFor(category, existing.name);
+  const [clash] = await db.select({ name: tasteSelectorsTable.name }).from(tasteSelectorsTable).where(eq(tasteSelectorsTable.canonicalKey, canonicalKey));
+  if (clash) { res.status(409).json({ error: `Standard key "${canonicalKey}" is already used by "${clash.name}".` }); return; }
+  const [row] = await db.update(tasteSelectorsTable).set({ origin: "standard", category, canonicalKey })
     .where(eq(tasteSelectorsTable.id, id)).returning();
   res.json(row);
 });

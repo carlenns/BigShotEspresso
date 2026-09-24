@@ -62,8 +62,9 @@ WHERE s.bag_id = b.id
   AND s.shot_date ~ '^\\d{4}-\\d{2}-\\d{2}';
 `;
 
-// Taste selector origin + archive (0013_taste_selector_origin_archive.sql,
-// kept in sync). Additive; the origin backfill only touches non-default rows
+// Taste selector origin + archive (0013_taste_selector_origin_archive.sql) and
+// canonical key (0014_taste_selector_canonical_key.sql), kept in sync. The key
+// backfill only fills standard rows with no key, so it never rewrites one. Additive; the origin backfill only touches non-default rows
 // still marked 'standard', so it is a no-op on every boot after the first.
 const TASTE_SELECTORS_SCHEMA_SQL = `
 ALTER TABLE taste_selectors
@@ -74,6 +75,17 @@ UPDATE taste_selectors
 SET origin = 'custom'
 WHERE is_default = false
   AND origin = 'standard';
+
+ALTER TABLE taste_selectors
+  ADD COLUMN IF NOT EXISTS canonical_key text;
+
+CREATE UNIQUE INDEX IF NOT EXISTS taste_selectors_canonical_key_unique
+  ON taste_selectors (canonical_key);
+
+UPDATE taste_selectors
+SET canonical_key = category || '.' || trim(both '-' from regexp_replace(lower(name), '[^a-z0-9]+', '-', 'g'))
+WHERE origin = 'standard'
+  AND canonical_key IS NULL;
 `;
 
 export async function ensureRuntimeSchema(): Promise<void> {
