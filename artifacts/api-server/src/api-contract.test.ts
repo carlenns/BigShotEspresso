@@ -881,6 +881,60 @@ test("equipment entry offers reviewable suggested setup details", async () => {
   assert.match(accessoriesSource, /30 lb/);
 });
 
+test("Taste selectors archive instead of deleting, and track standard vs custom origin", async () => {
+  const [routeSource, migrationSource, migrationDownSource, runtimeSchemaSource, schemaSource, pageSource, formSource] = await Promise.all([
+    readFile(fileURLToPath(new URL("./routes/taste-selectors.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/migrations/0013_taste_selector_origin_archive.sql", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/migrations/0013_taste_selector_origin_archive.down.sql", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("./lib/runtime-schema.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../../lib/db/src/schema/taste-selectors.ts", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/TasteSelectors.tsx", import.meta.url)), "utf8"),
+    readFile(fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)), "utf8"),
+  ]);
+
+  // Additive migration, mirrored by the runtime guard; backfill maps is_default → origin.
+  for (const src of [migrationSource, runtimeSchemaSource]) {
+    assert.match(src, /ADD COLUMN IF NOT EXISTS archived_at timestamptz/);
+    assert.match(src, /ADD COLUMN IF NOT EXISTS origin text NOT NULL DEFAULT 'standard'/);
+    assert.match(src, /SET origin = 'custom'\s+WHERE is_default = false\s+AND origin = 'standard'/);
+  }
+  assert.match(migrationDownSource, /DROP COLUMN IF EXISTS archived_at/);
+  assert.match(migrationDownSource, /DROP COLUMN IF EXISTS origin/);
+  assert.match(schemaSource, /origin: text\("origin"\)\.notNull\(\)\.default\("standard"\)/);
+  assert.match(schemaSource, /archivedAt: timestamp\("archived_at", \{ withTimezone: true \}\)/);
+
+  // Picker excludes archived by default; management page opts in.
+  assert.match(routeSource, /req\.query\.includeArchived === "true"/);
+  assert.match(routeSource, /isNull\(tasteSelectorsTable\.archivedAt\)/);
+  assert.match(pageSource, /\/api\/taste-selectors\?includeArchived=true/);
+
+  // Seed and create set origin explicitly; archive/restore endpoints exist.
+  assert.match(routeSource, /isDefault: true, origin: "standard"/);
+  assert.match(routeSource, /origin: "custom",/);
+  assert.match(routeSource, /router\.post\("\/taste-selectors\/:id\/archive"/);
+  assert.match(routeSource, /router\.post\("\/taste-selectors\/:id\/restore"/);
+  // Custom → standard promotion is one-way and confirmation-gated in the UI.
+  assert.match(routeSource, /router\.post\("\/taste-selectors\/:id\/promote"/);
+  assert.match(routeSource, /\.set\(\{ origin: "standard" \}\)/);
+  assert.match(pageSource, /<AlertDialogAction onClick=\{\(\) => promoteMutation\.mutate\(s\.id\)\}>Make Standard<\/AlertDialogAction>/);
+
+  // Standard selectors stay canonical: no rename/recategorize, no hard delete.
+  assert.match(routeSource, /Standard selectors can't be renamed or recategorized/);
+  assert.match(routeSource, /Standard selectors can't be deleted/);
+  assert.match(pageSource, /editMode && s\.origin === "custom"/);
+
+  // Load Standard Selectors is available even when selectors exist, and surfaces errors.
+  const seed = pageSource.slice(pageSource.indexOf("const seedMutation = useMutation"), pageSource.indexOf("const archiveMutation = useMutation"));
+  assert.match(seed, /if \(!response\.ok\) throw new Error\(await errorMessageFrom\(response\)\)/);
+  assert.match(pageSource, /selectors\.length > 0 && \(\s*<Button variant="outline" onClick=\{\(\) => seedMutation\.mutate\(\)\}/);
+
+  // Shot form groups chips by category and keeps an already-tagged archived selector visible.
+  assert.match(formSource, /const TASTE_SELECTOR_GROUPS = \[/);
+  assert.match(formSource, /\{ value: "finish", label: "Finish & Aftertaste" \}/);
+  assert.match(formSource, /\.\.\.existingTasteSelectors\.filter\(\(ts\) => !tasteSelectors\.some/);
+  assert.match(formSource, /tasteSelectorGroups\.map\(\(group\) =>/);
+});
+
 test("large setup dialogs stay scrollable inside small windows", async () => {
   const [equipmentSource, accessoriesSource, bagsSource, tasteSelectorsSource] = await Promise.all([
     readFile(fileURLToPath(new URL("../../coffee-log/src/pages/Equipment.tsx", import.meta.url)), "utf8"),
