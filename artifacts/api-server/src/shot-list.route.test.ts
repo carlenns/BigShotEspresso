@@ -83,3 +83,27 @@ test("GET /shots filters by exact bagId, reference, rating and inclusive day ran
   const bad = await api("GET", "/shots?bagId=x");
   assert.equal(bad.status, 400);
 });
+
+test("Shot Log filters by System Phase, Phase Name (mode) and Experiment", async () => {
+  const f = { ...EMPTY_SHOT_LIST_FILTERS, systemPhase: "3", phaseName: "Hopper Overfill Mode", experiment: "Timed Dose Stability" };
+  assert.deepEqual(parseShotListQuery(toShotListQuery(f)), f);
+  assert.deepEqual(parseShotListQuery("?phase=abc"), EMPTY_SHOT_LIST_FILTERS);
+  assert.equal(activeFilterCount(f), 3);
+  const params = toListShotsParams(f, 25);
+  assert.equal(params.systemPhase, "3");
+  assert.equal(params.systemPhaseName, "Hopper Overfill Mode");
+  assert.equal(params.experimentName, "Timed Dose Stability");
+
+  const mk = (systemPhase: number | null, systemPhaseName: string | null, experimentName: string | null) =>
+    api("POST", "/shots", { shotDate: "2026-09-27T08:00", status: "Good", faultStatus: ["Good"], systemPhase, systemPhaseName, experimentName });
+  await mk(3, "Hopper Overfill Mode", "Timed Dose Stability");
+  await mk(3, "Timed Dose Optimization", null);
+  await mk(2, "Scientific Process / Baseline", "Timed Dose Stability");
+  await mk(null, null, null);
+
+  assert.equal((await api("GET", "/shots?systemPhase=3")).json.total, 2);
+  assert.equal((await api("GET", "/shots?systemPhaseName=hopper%20overfill%20mode")).json.total, 1, "case-insensitive");
+  assert.equal((await api("GET", "/shots?experimentName=Timed%20Dose%20Stability")).json.total, 2);
+  assert.equal((await api("GET", "/shots?systemPhase=3&experimentName=Timed%20Dose%20Stability")).json.total, 1);
+  assert.equal((await api("GET", "/shots?systemPhase=x")).status, 400);
+});

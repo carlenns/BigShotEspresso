@@ -3542,3 +3542,156 @@ moves to Accessories.
   (machine's stock basket) and flags the unmatched old grinder string; Dashboard shows the
   machine, stock basket and the Normcore puck screen (previously never shown).
 - `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 131/131 ✓ · `pnpm run build` ✓
+
+# Phase 2B — Shot Log filters by System Phase / Phase Name / Experiment — 2026-09-28
+
+Next slice from the Phase 2A handoff §6 ("continue implementing", Carl, 2026-09-28).
+
+## Completed
+
+- `GET /shots` gains additive `systemPhase` (exact integer; 400 if invalid), `systemPhaseName`
+  and `experimentName` (exact, case-insensitive, trimmed) filters. OpenAPI + clients regenerated.
+- Shot Log Filters panel adds System Phase, Phase Name (mode) and Experiment selectors, using
+  the same saved labels / modes / experiments as Log Shot (narrowed to the chosen phase).
+  URL keys `phase`, `mode`, `exp`.
+
+## Verified
+
+- `shot-list.route.test.ts`: URL round-trip, junk handling, param mapping, and route filtering
+  (phase, case-insensitive mode, experiment across phases, combined, 400).
+- Browser (390 px): `?phase=3&exp=Timed Dose Stability` → 1 of 3 seeded shots.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 132/132 ✓ · `pnpm run build` ✓
+
+# Neon → Prisma Postgres migration — prepared and rehearsed (no cutover) — 2026-09-28
+
+Carl: "work on the migration to Prisma for now" (smoke test of Phase 2A first; cutover later).
+
+## Completed
+
+- Research, re-checked 2026-09-28:
+  - Free: 200k operations, 500 MB, no backups, 10/10 connections
+  - Starter: $10, 1M operations, $8 per extra million, daily backups kept 7 days
+  - Every query counts as an operation
+  - Duration and response size are listed as unlimited; pooled queries time out at 10 minutes
+  - Drizzle + node-postgres are supported (pooled URL at runtime, direct URL for dump/restore)
+- `docs/ADR/ADR-0010-prisma-postgres-operational-database.md` (Proposed).
+- `docs/implementation/prisma-postgres-migration-runbook.md`: steps, rollback, Free-plan backups,
+  operation-saving checklist.
+- `scripts/prisma-postgres-migration.mjs`:
+  - `check` is read-only and reports versions, fingerprints and warnings
+  - `copy --confirm-empty-target` refuses a non-empty target, uses `pg_dump`/`pg_restore` in a
+    single transaction, and skips the CREATE SCHEMA public entry
+  - `verify` compares row counts and order-independent content digests, and checks sequences
+  - never writes to the source, redacts URLs, and rejects a pooled target
+- `lib/db`: optional `DATABASE_POOL_MAX` (default unchanged). Render env checklist updated.
+- Query budget: a whole log-a-shot visit measures 39 statements, pinned at ≤ 45.
+
+## Verified
+
+- Local rehearsal on two PostgreSQL 16 databases: the source was seeded through the real app,
+  then copied and verified (12 tables identical, no sequence issues). A second copy was
+  refused. The app ran on the copy and inserted id 31. Drift was detected, the source was
+  untouched, and a pooled target was rejected.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 133/133 ✓ · `pnpm run build` ✓
+
+## Not done
+
+- Real Neon → Prisma copy (needs Carl's Mac: the cloud session cannot open Postgres
+  connections), the Render switch, and the choice between Free and Starter.
+
+# Prisma Postgres target database created — 2026-09-28
+
+- Created at Carl's request through the Prisma connector: workspace `BSE`, project/database
+  `bse-coffee-log` (`db_o4hvcnvas0n2cm1e58ckduh4`), region `us-west-1`, Postgres 17.2. Verified
+  empty (0 public tables). No data copied, and Render is unchanged.
+- Found: Neon runs Postgres 18. A read-only check found only plain tables (12 tables, no
+  generated columns or named NOT NULL constraints, `plpgsql` only). `check` now explains this
+  version gap instead of saying "stop". The runbook records the target and the pg_dump 18
+  requirement.
+- An older, empty `BSE` database (us-east-1, created 2026-09-24) also exists; it was left untouched.
+
+# Prisma plan decision: Free, with owner-run backups — 2026-09-28
+
+- Carl chose the **Free** plan. ADR-0010 and the runbook are updated. Upgrade path: Starter
+  ($10, daily backups) when usage nears 200k operations a month or subscribers start logging.
+- New `node scripts/prisma-postgres-migration.mjs backup`: read-only `pg_dump` of the Prisma
+  database to `~/BSE-backups/bse-YYYY-MM-DD.dump`; rejects the pooled URL.
+- Rehearsed locally: 12 tables in the dump; `pg_restore --exit-on-error` into an empty database
+  was clean, and all 31 shots were present.
+
+# UI polish: PL-5, PL-7, PL-8 — 2026-09-28
+
+Carl: "Polish the UI". These are the three remaining polish items from the launch roadmap.
+
+## Completed
+
+- **PL-7, mobile navigation:** the 10-item horizontally scrolling bottom bar is now five fixed
+  tabs: Dashboard, Log, Shots, Bags and **More**. More opens a menu with Reference Shots,
+  Beans, Equipment, Accessories, Taste Selectors, Data Health and Settings. More shows as
+  active when you're on one of its pages. The non-colour active cue is kept.
+- **PL-5, Bags copy:** each dialog now leads with one short line.
+  - Close Out Bag: "Marks this bag finished. Past shots are never changed." plus a visible
+    Next step. The full explanation sits under "What closing a bag does".
+  - Start Hopper Phase: "Record the beans you're adding now…". The full explanation sits
+    under "What is a hopper phase?", with shorter helper text.
+  - The Bag Lifecycle card collapses its six steps under "Show the 6 steps".
+  - No wording was lost; it is all still one tap away.
+- **PL-8, Log Shot bag switch:** switching bags now re-seeds fields that still hold the value
+  the form filled in for the previous bag, such as pour timings from that bag's last shot. A
+  field with no default for the new bag is cleared only if the form had filled it. Values you
+  typed are never overwritten.
+- Four older contract assertions superseded, with dated notes. Two new UI tests added.
+
+## Verified
+
+- Browser at 390 px: the bottom bar shows five tabs, and More lists all seven pages. The Start
+  Hopper Phase and Close Out Bag dialogs fit on screen with the explanations collapsed.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 135/135 ✓ · `pnpm run build` ✓
+
+# Prisma target changed to the existing `BSE` project — 2026-09-28
+
+- Carl will use the Prisma project `BSE` (`db_jrpn92jbuyw48gkdgvr5zpbl`, us-east-1, Postgres
+  17.2), which is empty (re-checked) and linked to the GitHub repo in the Prisma console.
+  Runbook updated. The `bse-coffee-log` project created earlier is unused.
+
+# Neon → Prisma Postgres cutover completed — 2026-09-28
+
+Executed from Carl's Mac per `docs/implementation/prisma-postgres-migration-runbook.md`, with
+Carl's explicit go-ahead at each of the three pause points (create/target, copy, Render switch).
+
+## Completed
+
+- Deleted the stray duplicate Prisma project `bse-coffee-log` (us-west-1, confirmed empty)
+  after Carl's confirmation, leaving only project `BSE` (us-east-1).
+- `check`: source (Neon) 12 tables, 279 shots; target (Prisma `BSE`) confirmed empty. Only the
+  expected "target Postgres 17 older than source 18" warning.
+- `copy --confirm-empty-target`: `"verified": true`, all 12 tables matched exactly, no
+  mismatches, no sequence issues.
+- Render `bigshotespresso` service: `DATABASE_URL` switched to the Prisma **pooled** connection
+  string (`pooled.db.prisma.io`), `DATABASE_POOL_MAX=5` added. Deploy went live 2026-09-28
+  15:57 UTC.
+- Post-switch smoke on `bigshotespresso.onrender.com`: `/api/healthz` ok, Dashboard showed the
+  active bag/defaults/recent shots, a test shot was logged then deleted.
+- `verify` run again: 11/12 tables matched exactly. `settings` had equal row counts (42/42) but
+  a digest mismatch — row-by-row comparison confirmed every value identical; only `updated_at`
+  differed, bulk-touched by the app's idempotent runtime schema guard on first boot against the
+  new database. Not a real divergence.
+- First backup: `~/BSE-backups/bse-2026-09-28.dump` (12 tables, 183,808 bytes).
+- ADR-0010 set to Accepted with a cutover record; ADR-0006 marked superseded by ADR-0010.
+
+## Found and fixed
+
+- `render.yaml` specified `region: oregon`, but the live Render service actually runs in Ohio
+  (confirmed via the Render API). Corrected to `region: ohio` at Carl's request. Prisma has no
+  Ohio-region option, so `us-east-1` — the region already chosen — remains the closest available
+  regardless; this edit only corrects the record and does not move the already-provisioned
+  service. Separately, `render.yaml`'s service `name` (`bigshotespresso-coffee-log`) does not
+  match the live service's name (`bigshotespresso`), suggesting this blueprint isn't actively
+  synced to the running service — left unchanged, flagged for Carl.
+
+## Not done / next
+
+- Neon (`small-tree-07649498`) is untouched and kept as the rollback target for two weeks per
+  the runbook, then retire or downgrade.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 135/135 ✓ · `pnpm run build` ✓ (verified
+  before the copy step, on `phase-2b/next`).

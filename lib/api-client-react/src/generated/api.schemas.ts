@@ -688,6 +688,18 @@ bag?: string | null;
  * Exact Bag id match (preferred over the substring `bag` name filter).
  */
 bagId?: string;
+/**
+ * Exact System Phase number.
+ */
+systemPhase?: string;
+/**
+ * Exact Phase Name (mode), case-insensitive.
+ */
+systemPhaseName?: string;
+/**
+ * Exact Experiment name, case-insensitive.
+ */
+experimentName?: string;
 status?: string;
 faultStatus?: string;
 isReference?: string;

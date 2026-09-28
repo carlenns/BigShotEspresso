@@ -101,3 +101,20 @@ test("Dashboard single-read still separates eligible shots from the whole-bag in
   assert.equal(after.json.bagIntelligence.shotCount, eligibleBefore, "excluded shot does not enter analytics");
   assert.equal(after.json.bagIntelligence.hasDialedInShot, true, "whole-bag inventory still sees it");
 });
+
+test("Budget: one 'log a shot' visit (Dashboard → Log Shot → save → Dashboard)", async () => {
+  // Mirrors the requests the UI makes (Dashboard.tsx, ShotForm.tsx) on a cold cache.
+  await api("GET", "/healthz");
+  queryCounter.reset();
+  for (const path of ["/dashboard/intelligence", "/hoppers"]) await api("GET", path); // Dashboard
+  for (const path of ["/bags", "/equipment/grinders", "/equipment/machines", "/settings", "/taste-selectors", "/dashboard/intelligence"]) await api("GET", path); // Log Shot
+  const shot = await api("POST", "/shots", { shotDate: "2026-09-26T09:00", bagId, status: "Good", faultStatus: ["Good"], rating: 8, grindSetting: 2.33, grindTime: 8.1 });
+  await api("PUT", `/shots/${shot.json.id}/taste-selectors`, { tasteSelectorIds: [] });
+  await api("PATCH", `/bags/${bagId}`, { currentGrindSetting: 2.33, currentGrindTime: 8.1 });
+  await api("PUT", "/settings", { defaultGrindSetting: "2.33", defaultGrindTime: "8.1" });
+  for (const path of ["/dashboard/intelligence", "/hoppers"]) await api("GET", path); // back to Dashboard
+  measured["log-a-shot visit"] = queryCounter.count;
+  // ~40 statements per logged shot. At 10 shots/day that is ~12k operations/month,
+  // well inside Prisma Postgres Free (200k). Raise deliberately if this grows.
+  assert.ok(queryCounter.count <= 45, `log-a-shot visit used ${queryCounter.count}`);
+});

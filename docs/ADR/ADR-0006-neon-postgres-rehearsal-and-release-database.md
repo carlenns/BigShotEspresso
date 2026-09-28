@@ -97,4 +97,6 @@ Rejected for release architecture because Airtable API limits, plan constraints,
 ## Supersedes / Superseded by
 
 - Supersedes: none
-- Superseded by: none
+- Superseded by: [ADR-0010](ADR-0010-prisma-postgres-operational-database.md) (2026-09-28) —
+  operational hosting moved from Neon to Prisma Postgres. Neon is kept as the rollback target
+  for two weeks post-cutover; this ADR's decision no longer governs the live database.

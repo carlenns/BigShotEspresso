@@ -1668,9 +1668,9 @@ test("Mobile shell exposes setup and system navigation", async () => {
   for (const requiredText of [
     "mobileMoreNav",
     "mobileBottomNav",
-    "Swipeable mobile navigation",
-    "overflow-x-auto",
-    "snap-x",
+    // PL-7 (2026-09-28): the swipeable 10-item bar became four tabs + "More".
+    "mobileBottomMoreNav",
+    "More pages",
     "Setup &amp; System",
     "Open setup menu",
     "/equipment",
@@ -1683,32 +1683,24 @@ test("Mobile shell exposes setup and system navigation", async () => {
 });
 
 test("Mobile bottom nav signals it scrolls and marks the active tab without relying on color alone", async () => {
+  // Superseded 2026-09-28 by PL-7: the bar no longer scrolls (four tabs + More in a
+  // 5-column grid), so the fade mask and scroll padding are gone. The non-color
+  // active cue (top underline + bolder label) and the short labels remain.
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/components/layout/Shell.tsx", import.meta.url)),
     "utf8",
   );
-
-  // A right-edge fade mask on the scrollable nav — the nav already included
-  // Settings and already scrolled correctly, but nothing signaled that it
-  // scrolled, which is what actually made Settings undiscoverable on phone.
-  assert.match(source, /mask-image:linear-gradient\(to_right,black_85%,transparent_100%\)/);
-
-  // Trailing padding on the scroll track so the last item (Settings) can scroll
-  // fully clear of that fade — otherwise, at max scroll, the very item the fade
-  // exists to rescue stays permanently half-ghosted under it (Gate 2.5 review).
-  assert.match(source, /flex h-full min-w-max snap-x snap-mandatory pr-14/);
-
-  // Active tab must be distinguishable without relying on color alone:
-  // a shape cue (underline bar) and a label-weight cue (bold vs medium).
+  assert.match(source, /<div className="grid h-full grid-cols-5">/);
+  assert.doesNotMatch(source, /overflow-x-auto border-t/);
   assert.match(source, /isActive && <span aria-hidden="true"[\s\S]{0,80}bg-primary/);
   assert.match(source, /isActive \? "text-primary font-semibold" : "text-muted-foreground font-medium/);
-
-  // The bar shows only the first word of each title, which would render the
-  // "Log Shot" and "Shot Log" tabs as the adjacent near-identical labels
-  // "Log" and "Shot". "Shot Log" carries a shortLabel so the pair reads as
-  // "Log" (create) vs "Shots" (browse).
+  assert.match(source, /moreActive \? "text-primary font-semibold" : "text-muted-foreground font-medium/);
   assert.match(source, /\{ title: "Shot Log",\s+href: "\/shots",\s+icon: BookOpen,\s+shortLabel: "Shots"(, exclude: \["\/shots\/new"\])? \}/);
   assert.match(source, /item\.shortLabel \?\? item\.title\.split\(" "\)\[0\]/);
+  // Everything that left the bar is reachable from More.
+  for (const href of ["/reference", "/beans", "/equipment", "/accessories", "/taste-selectors", "/data-health", "/settings"]) {
+    assert.match(source.slice(source.indexOf("const mobileBottomMoreNav")), new RegExp(`href: "${href}"`));
+  }
 });
 
 test("Primary logging UI uses the full shot form and keeps Quick Log shelved", async () => {
@@ -2148,7 +2140,9 @@ test("Log Shot number fields are WYSIWYG: shown default is the saved default", a
   assert.match(formSource, /if \(appliedRecipeDefaultsFor\.current === runKey\) return;/);
 
   // Blank-only: never overwrites a value the user has typed in.
-  assert.match(formSource, /if \(current == null \|\| \(current as unknown\) === ""\) form\.setValue\(name, value\);/);
+  // PL-8 (2026-09-28): blank fields, or fields still holding the value seeded for
+  // the previous bag, are (re-)seeded; a value the user typed is never overwritten.
+  assert.match(formSource, /if \(blank \|\| untouched\) \{\s*form\.setValue\(name, value\);/);
 
   // Core recipe fields are seeded from the exact defaultX their placeholders
   // show, so leaving the daily-flow fields untouched still saves the real
@@ -2171,7 +2165,8 @@ test("Log Shot number fields are WYSIWYG: shown default is the saved default", a
 
   // No-default case: seed() bails on a null/undefined value, so a first shot on
   // a bag (no latestShotDefaults) leaves the pour timings genuinely blank.
-  assert.match(formSource, /if \(value == null\) return;/);
+  // PL-8: with no default for the new bag, only a value this effect seeded is cleared.
+  assert.match(formSource, /if \(value == null\) \{\s*\/\/ New bag has no default for this field: clear it only if we seeded it\./);
 
   // Explanatory copy at the top of the shot-entry fields, create-only.
   assert.match(

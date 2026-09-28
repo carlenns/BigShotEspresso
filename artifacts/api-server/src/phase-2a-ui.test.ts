@@ -55,3 +55,16 @@ test("S6: React Query caches reference data but keeps dashboard intelligence liv
   // Equipment page shares cache keys with Log Shot / Settings, so an edit there invalidates them.
   assert.doesNotMatch(equipment, /queryKey: \["grinders"\]|queryKey: \["machines"\]/);
 });
+
+test("PL-5: Bags dialogs lead with one short line and tuck the long explanation into a collapsible", async () => {
+  const bags = await ui("pages/Bags.tsx");
+  assert.match(bags, /<summary[^>]*>What closing a bag does<\/summary>/);
+  assert.match(bags, /<summary[^>]*>What is a hopper phase\?<\/summary>/);
+  assert.match(bags, /Record the beans you're <strong>adding now<\/strong>\. You don't need to empty the hopper first\./);
+});
+
+test("PL-8: switching bags re-seeds only fields the form itself filled", async () => {
+  const form = await ui("pages/ShotForm.tsx");
+  assert.match(form, /const seededRecipeValues = useRef\(new Map<string, number>\(\)\);/);
+  assert.match(form, /const untouched = !blank && seededRecipeValues\.current\.has\(name\) && Number\(current\) === seededRecipeValues\.current\.get\(name\);/);
+});

@@ -63,7 +63,8 @@ Closed by Phase 2A ([scope](phase-2a-scope-authorization.md), [completed-tasks](
 
 - **Done:** DI-2 (contract), DI-6, EQ-0, EQ-1, EQ-3 (real gap was PATCH), EQ-4, GRD-1, PL-1, PL-2, PL-3, PL-4 (already done), PL-6, TS-1 (PR #11/#12).
 - **Decided / deferred:** EQ-2 decaf/pour-over defaults deferred (not a launch need). EQ-5 not done — old Settings rows left inert.
-- **Still open:** DI-3 (accessory FKs; less load-bearing now that defaults are flags), DI-4, DI-5 remainder, GRD-2, SC-1..3, PL-5, PL-7, PL-8, TS-2/TS-3, AUTH-1..9.
+- **Still open:** DI-3 (accessory FKs; less load-bearing now that defaults are flags), DI-4, DI-5 remainder, GRD-2, SC-1..3, TS-2/TS-3, AUTH-1..9.
+- **Done later the same day (branch `phase-2b/next`):** PL-5, PL-7, PL-8; Shot Log System Phase filters.
 
 ### Open — data integrity / standing rules
 

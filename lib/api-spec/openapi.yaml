@@ -50,6 +50,18 @@ paths:
           in: query
           description: Exact Bag id match (preferred over the substring `bag` name filter).
           schema: { type: string }
+        - name: systemPhase
+          in: query
+          description: Exact System Phase number.
+          schema: { type: string }
+        - name: systemPhaseName
+          in: query
+          description: Exact Phase Name (mode), case-insensitive.
+          schema: { type: string }
+        - name: experimentName
+          in: query
+          description: Exact Experiment name, case-insensitive.
+          schema: { type: string }
         - name: status
           in: query
           schema: { type: string }

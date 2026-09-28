@@ -317,6 +317,16 @@ router.get("/shots", async (req, res): Promise<void> => {
     }
     conditions.push(eq(shotsTable.bagId, bagId));
   }
+  if (p.systemPhase) {
+    const systemPhase = Number(p.systemPhase);
+    if (!Number.isInteger(systemPhase)) {
+      res.status(400).json({ error: "systemPhase must be an integer." });
+      return;
+    }
+    conditions.push(eq(shotsTable.systemPhase, systemPhase));
+  }
+  if (p.systemPhaseName) conditions.push(sql`lower(trim(${shotsTable.systemPhaseName})) = lower(trim(${p.systemPhaseName}))`);
+  if (p.experimentName) conditions.push(sql`lower(trim(${shotsTable.experimentName})) = lower(trim(${p.experimentName}))`);
   if (p.status) conditions.push(eq(shotsTable.status, p.status));
   if (p.faultStatus) conditions.push(sql`${shotsTable.faultStatus} @> ARRAY[${p.faultStatus}]::text[]`);
   if (p.isReference !== undefined && p.isReference !== "") conditions.push(eq(shotsTable.isReference, p.isReference === "true"));
