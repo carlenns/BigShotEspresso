@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { sql, desc, isNotNull, eq, ne, and, lt, inArray } from "drizzle-orm";
 import { db, shotsTable, bagsTable, beansTable, settingsTable, grindersTable, machinesTable, accessoriesTable } from "@workspace/db";
 import { GetRecentShotsQueryParams, GetBestRatedShotsQueryParams } from "@workspace/api-zod";
-import { eligibleShotConditions, ratingEligibleShotConditions } from "../lib/shot-eligibility";
+import { eligibleShotConditions, isEligibleShotRow, ratingEligibleShotConditions } from "../lib/shot-eligibility";
 import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weighting";
 import { selectComparisonReferences } from "../lib/dashboard-comparison";
 import { buildNextShotReminder } from "../lib/next-shot-reminder";
@@ -158,15 +158,13 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     : null;
 
   // ── Shots for active bag (analysis-eligible only) ─────────────────────────
-  const activeBagShots = await db.select().from(shotsTable)
-    .where(and(
-      eq(shotsTable.bagId, activeBagRow.id),
-      ...eligibleShotConditions,
-    ))
-    .orderBy(desc(sql`${shotsTable.shotDate}`));
-
+  // One read of every shot on the active bag (Phase 2A S6), newest first. The
+  // analysis-eligible subset uses isEligibleShotRow, the in-memory twin of
+  // eligibleShotConditions, instead of a second query.
   const activeBagInventoryRecords = await db.select().from(shotsTable)
-    .where(eq(shotsTable.bagId, activeBagRow.id));
+    .where(eq(shotsTable.bagId, activeBagRow.id))
+    .orderBy(desc(sql`${shotsTable.shotDate}`));
+  const activeBagShots = activeBagInventoryRecords.filter(isEligibleShotRow);
 
   // Drives the Log Shot dial-in guidance banner: has any shot on this bag
   // ever been marked Status = "Dialed In"? Checked against every shot for

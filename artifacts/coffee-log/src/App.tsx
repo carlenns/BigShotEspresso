@@ -1,5 +1,6 @@
 import { Switch, Route, Redirect, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createQueryClient } from "@/lib/query-client";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
@@ -19,7 +20,7 @@ import Accessories from "@/pages/Accessories";
 import TasteSelectors from "@/pages/TasteSelectors";
 import DataHealth from "@/pages/ImportAudit";
 
-const queryClient = new QueryClient();
+const queryClient = createQueryClient();
 
 function Router() {
   return (

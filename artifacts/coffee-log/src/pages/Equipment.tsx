@@ -50,8 +50,8 @@ function fetchMachines(): Promise<Machine[]> { return getJson<Machine[]>("/api/e
 export default function Equipment() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { data: grinders = [], isLoading: gLoading, isError: gError, error: gErr, refetch: gRefetch } = useQuery({ queryKey: ["grinders"], queryFn: fetchGrinders });
-  const { data: machines = [], isLoading: mLoading, isError: mError, error: mErr, refetch: mRefetch } = useQuery({ queryKey: ["machines"], queryFn: fetchMachines });
+  const { data: grinders = [], isLoading: gLoading, isError: gError, error: gErr, refetch: gRefetch } = useQuery({ queryKey: ["equipment", "grinders"], queryFn: fetchGrinders });
+  const { data: machines = [], isLoading: mLoading, isError: mError, error: mErr, refetch: mRefetch } = useQuery({ queryKey: ["equipment", "machines"], queryFn: fetchMachines });
 
   const [gOpen, setGOpen] = useState(false);
   const [mOpen, setMOpen] = useState(false);
@@ -74,7 +74,7 @@ export default function Equipment() {
       if (!r.ok) throw new Error(await errorMessageFrom(r));
       return r.json();
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["grinders"] }); setGOpen(false); toast({ title: editingG ? "Grinder updated" : "Grinder added" }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["equipment", "grinders"] }); setGOpen(false); toast({ title: editingG ? "Grinder updated" : "Grinder added" }); },
     onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
@@ -83,7 +83,7 @@ export default function Equipment() {
       const response = await fetch(`/api/equipment/grinders/${id}`, { method: "DELETE" });
       if (!response.ok) throw new Error(await errorMessageFrom(response));
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["grinders"] }); toast({ title: "Grinder removed" }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["equipment", "grinders"] }); toast({ title: "Grinder removed" }); },
     onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
@@ -95,7 +95,7 @@ export default function Equipment() {
       if (!r.ok) throw new Error(await errorMessageFrom(r));
       return r.json();
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["machines"] }); setMOpen(false); toast({ title: editingM ? "Machine updated" : "Machine added" }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["equipment", "machines"] }); setMOpen(false); toast({ title: editingM ? "Machine updated" : "Machine added" }); },
     onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
@@ -104,7 +104,7 @@ export default function Equipment() {
       const response = await fetch(`/api/equipment/machines/${id}`, { method: "DELETE" });
       if (!response.ok) throw new Error(await errorMessageFrom(response));
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["machines"] }); toast({ title: "Machine removed" }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["equipment", "machines"] }); toast({ title: "Machine removed" }); },
     onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 

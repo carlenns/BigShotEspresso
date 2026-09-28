@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { LIVE_QUERY_OPTIONS } from "@/lib/query-client";
 import { Link, useLocation, useRoute } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -442,7 +443,7 @@ export default function ShotForm() {
   const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
   const { data: grinders = [] } = useQuery({ queryKey: ["equipment", "grinders"], queryFn: fetchGrinders });
   const { data: machines = [], isLoading: isLoadingMachines } = useQuery({ queryKey: ["equipment", "machines"], queryFn: fetchMachines });
-  const { data: activeBagIntelligence } = useQuery({ queryKey: ["intelligence"], queryFn: fetchActiveBagIntelligence });
+  const { data: activeBagIntelligence } = useQuery({ queryKey: ["intelligence"], queryFn: fetchActiveBagIntelligence, ...LIVE_QUERY_OPTIONS });
   const { data: tasteSelectors = [] } = useQuery({ queryKey: ["taste-selectors"], queryFn: fetchTasteSelectors });
   const { data: existingTasteSelectors = NO_TASTE_SELECTORS } = useQuery({
     queryKey: ["shot-taste-selectors", editingId],

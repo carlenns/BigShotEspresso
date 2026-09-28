@@ -3444,3 +3444,23 @@ labels"); labels and default confirmed in the same session.
 
 - `grind-step.test.ts` (rule order, out-of-range precision, rounding, wiring).
 - `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 117/117 ✓ · `pnpm run build` ✓
+
+# Phase 2A — S6 Query-efficiency prep — 2026-09-28
+
+## Completed
+
+- Statement budgets pinned by `query-budget.route.test.ts`. Dashboard 9 → 8, shot edit 3 → 2,
+  settings save N → 1. See [query-efficiency-2026-09-28.md](implementation/query-efficiency-2026-09-28.md).
+- `isEligibleShotRow` added beside `eligibleShotConditions` as its in-memory twin; the dashboard
+  reads the active bag's shots once. Contract regexes updated with dated notes.
+- React Query client (`lib/query-client.ts`): 30 s stale time and no focus refetch for reference
+  data; dashboard intelligence stays live and is invalidated after every successful mutation.
+  Equipment page cache keys unified with Log Shot / Settings.
+- No database, host, or plan change.
+
+## Verified
+
+- Budget tests; a behaviour test that an excluded "Dialed In" shot stays out of analytics but
+  still sets `hasDialedInShot`; `PATCH` with a changed bag recomputes Days Since Open from the
+  new bag; settings upsert updates and inserts.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 125/125 ✓ · `pnpm run build` ✓

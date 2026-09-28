@@ -41,3 +41,17 @@ test("PL-3: hopper phase starting amount uses one wording everywhere", async () 
   assert.match(bags, /<Label>Starting beans \(phase baseline, g\)<\/Label>/);
   assert.doesNotMatch(dashboard + bags, /measured baseline|Starting Beans \/ Phase Baseline/);
 });
+
+test("S6: React Query caches reference data but keeps dashboard intelligence live", async () => {
+  const [client, app, equipment, dashboard, shotForm] = await Promise.all([
+    ui("lib/query-client.ts"), ui("App.tsx"), ui("pages/Equipment.tsx"), ui("pages/Dashboard.tsx"), ui("pages/ShotForm.tsx"),
+  ]);
+  assert.match(client, /staleTime: REFERENCE_STALE_TIME_MS,\s*refetchOnWindowFocus: false,/);
+  assert.match(client, /export const LIVE_QUERY_KEYS = \[\["dashboard-intelligence"\], \["intelligence"\]\] as const;/);
+  assert.match(client, /mutationCache: new MutationCache\(\{\s*onSuccess: \(\) => \{\s*for \(const queryKey of LIVE_QUERY_KEYS\)/);
+  assert.match(app, /const queryClient = createQueryClient\(\);/);
+  assert.match(dashboard, /queryKey: \["dashboard-intelligence"\],\s*queryFn: fetchIntelligence,\s*\.\.\.LIVE_QUERY_OPTIONS,/);
+  assert.match(shotForm, /queryKey: \["intelligence"\], queryFn: fetchActiveBagIntelligence, \.\.\.LIVE_QUERY_OPTIONS/);
+  // Equipment page shares cache keys with Log Shot / Settings, so an edit there invalidates them.
+  assert.doesNotMatch(equipment, /queryKey: \["grinders"\]|queryKey: \["machines"\]/);
+});

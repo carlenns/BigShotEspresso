@@ -1,4 +1,5 @@
 import React from "react";
+import { LIVE_QUERY_OPTIONS } from "@/lib/query-client";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -153,7 +154,7 @@ export default function Dashboard() {
   const { data: intel, isLoading } = useQuery({
     queryKey: ["dashboard-intelligence"],
     queryFn: fetchIntelligence,
-    refetchOnWindowFocus: true,
+    ...LIVE_QUERY_OPTIONS,
   });
 
   const { data: hoppers = [], isLoading: isLoadingHoppers } = useListHoppers();

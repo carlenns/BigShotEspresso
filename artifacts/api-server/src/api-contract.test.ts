@@ -167,7 +167,9 @@ test("Shot create/update recompute includeInAnalysis server-side and never trust
   const patchMatch = source.match(/router\.patch\("\/shots\/:id", async[\s\S]*?\n\}\);/);
   assert.ok(patchMatch, "PATCH /shots/:id handler not found");
   const patchBody = patchMatch![0];
-  assert.match(patchBody, /const existing = await db\.select\(\)\.from\(shotsTable\)\.where\(eq\(shotsTable\.id, id\)\);/);
+  // Phase 2A S6: the existing row is read with its bag's opened_date joined on.
+  assert.match(patchBody, /\.select\(\{ shot: shotsTable, bagOpenedDate: bagsTable\.openedDate \}\)[\s\S]{0,120}\.where\(eq\(shotsTable\.id, id\)\);/);
+  assert.match(patchBody, /const existing = existingRows\.map\(\(r\) => r\.shot\);/);
   assert.match(patchBody, /if \(!existing\[0\]\) \{ res\.status\(404\)\.json\(\{ error: "Shot not found" \}\); return; \}/);
   assert.match(patchBody, /const effectiveStatus = data\.status !== undefined \? data\.status : existing\[0\]\.status;/);
   assert.match(patchBody, /const effectiveFaultStatus = data\.faultStatus !== undefined \? data\.faultStatus : existing\[0\]\.faultStatus;/);
@@ -556,7 +558,8 @@ test("Days Since Open is recomputed on every shot write and backfilled by the mi
   assert.match(routeSource, /async function computeDaysSinceOpen\(/);
   assert.match(routeSource, /\.select\(\{ openedDate: bagsTable\.openedDate \}\)/);
   assert.match(routeSource, /const daysSinceOpen = await computeDaysSinceOpen\(data\.bagId, data\.shotDate\);/);
-  assert.match(routeSource, /const daysSinceOpen = await computeDaysSinceOpen\(effectiveBagId, effectiveShotDate\);/);
+  // Phase 2A S6: PATCH reuses the joined opened_date only when the bag is unchanged.
+  assert.match(routeSource, /const daysSinceOpen = await computeDaysSinceOpen\(\s*effectiveBagId,\s*effectiveShotDate,\s*effectiveBagId === existing\[0\]\.bagId \? \(existingRows\[0\]!\.bagOpenedDate \?\? null\) : undefined,\s*\);/);
   assert.match(routeSource, /\.values\(\{ \.\.\.data, daysSinceOpen \}\)/);
   assert.match(routeSource, /\.set\(\{ \.\.\.data, daysSinceOpen \}\)/);
   // PATCH recomputes from the merged bag/date, not just a supplied one.
