@@ -27,7 +27,7 @@ fields, target-model changes, or fixture policy.
 |---|---|---|
 | S0 | Governance catch-up: this doc, ROADMAP status, completed-tasks backfill, stale-doc fixes | docs |
 | S1 | DI-2 contract `minimum: 0`; EQ-3 accessory POST per-type default; PL-1, PL-2, PL-3, PL-4, PL-6 | A |
-| S2 | Shot List filter controls and paging over the **existing** `GET /shots` query params (no API change) | B (UI only) |
+| S2 | Shot List filter controls and paging over the existing `GET /shots` query params, plus one additive exact `bagId` param (the name filter is a substring match) | B |
 | S2b | System Phase labels + default (added mid-session at Carl's request, 2026-09-28): saved labels 1 Initial Setup / 2 Scientific Process / Baseline / 3 Timed Dose Optimization / 4 Active Experimentation Era; Current System Phase = 3 for new shots; Log Shot dropdown fills Phase Name. Settings rows only (migration 0015 + runtime seed, never overwrites); no schema change, no backfill of existing shots | B |
 | S3 | Hopper phase **edit** and **end** in the Bags UI via existing `PATCH /hoppers/:id`; no UI delete; no range-baseline UI | B (UI only) |
 | S4 | GRD-1: Log Shot grind stepper follows the selected grinder's stored increment/precision (display only; stored history unchanged) | B |

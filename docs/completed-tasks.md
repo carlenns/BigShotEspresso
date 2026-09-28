@@ -3408,3 +3408,21 @@ labels"); labels and default confirmed in the same session.
 - `system-phase.route.test.ts`: approved labels/default, malformed-input fallback, server seed
   present on first boot, and a second boot keeps edited labels and phase.
 - `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 112/112 ✓ · `pnpm run build` ✓
+
+# Phase 2A — S3 Hopper phase edit / end — 2026-09-28
+
+## Completed
+
+- Bags page: the active bag's "Hopper: <phase>" badge is now a button that opens a
+  **Hopper Phase** dialog: edit starting beans (phase baseline, g; blank clears it) and notes,
+  or **End phase…** with an inline confirm. Ending only sets `isActive=false`; the record and
+  its shots are kept. There is no delete from the UI. No range-baseline UI.
+- Uses the generated `useUpdateHopper` hook (existing `PATCH /hoppers/:id`). The existing Start
+  Phase create `fetch` was left as-is: it already has error handling and contract tests, so
+  swapping it had no user benefit.
+
+## Verified
+
+- `hopper-phase.route.test.ts`: edit keeps the phase active, explicit null clears the baseline,
+  end sets inactive, and the ended phase is still listed; source check that the UI never deletes.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 114/114 ✓ · `pnpm run build` ✓
