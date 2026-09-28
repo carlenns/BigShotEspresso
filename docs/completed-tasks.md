@@ -3542,3 +3542,22 @@ moves to Accessories.
   (machine's stock basket) and flags the unmatched old grinder string; Dashboard shows the
   machine, stock basket and the Normcore puck screen (previously never shown).
 - `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 131/131 ✓ · `pnpm run build` ✓
+
+# Phase 2B — Shot Log filters by System Phase / Phase Name / Experiment — 2026-09-28
+
+Next slice from the Phase 2A handoff §6 ("continue implementing", Carl, 2026-09-28).
+
+## Completed
+
+- `GET /shots` gains additive `systemPhase` (exact integer; 400 if invalid), `systemPhaseName`
+  and `experimentName` (exact, case-insensitive, trimmed) filters. OpenAPI + clients regenerated.
+- Shot Log Filters panel adds System Phase, Phase Name (mode) and Experiment selectors, using
+  the same saved labels / modes / experiments as Log Shot (narrowed to the chosen phase).
+  URL keys `phase`, `mode`, `exp`.
+
+## Verified
+
+- `shot-list.route.test.ts`: URL round-trip, junk handling, param mapping, and route filtering
+  (phase, case-insensitive mode, experiment across phases, combined, 400).
+- Browser (390 px): `?phase=3&exp=Timed Dose Stability` → 1 of 3 seeded shots.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 132/132 ✓ · `pnpm run build` ✓

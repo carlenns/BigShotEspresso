@@ -13,6 +13,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { CURATED_SELECTOR_OPTIONS, displaySelectorValue } from "@/lib/selector-options";
 import { getJson } from "@/lib/http";
+import {
+  SYSTEM_PHASE_EXPERIMENT_OPTIONS_SETTINGS_KEY,
+  SYSTEM_PHASE_NAME_OPTIONS_SETTINGS_KEY,
+  experimentOptions,
+  formatSystemPhase,
+  parsePhaseOptionMap,
+  parseSystemPhaseLabels,
+  phaseNameOptions,
+} from "@/lib/system-phases";
 import { QueryErrorState } from "@/components/QueryErrorState";
 import {
   EMPTY_SHOT_LIST_FILTERS,
@@ -115,6 +124,21 @@ export default function ShotList() {
     queryFn: () => getJson<BagOption[]>("/api/bags"),
   });
   const activeBag = bags.find((b) => b.isActive);
+
+  // System Phase filters use the same saved labels / modes / experiments as Log Shot.
+  const { data: settings } = useQuery({
+    queryKey: ["settings"],
+    queryFn: () => getJson<Record<string, string>>("/api/settings"),
+  });
+  const phaseLabels = parseSystemPhaseLabels(settings?.systemPhaseLabels);
+  const phaseNum = filters.systemPhase ? Number(filters.systemPhase) : null;
+  const modeOptions = phaseNum == null
+    ? [...new Set(Object.values(parsePhaseOptionMap(settings?.[SYSTEM_PHASE_NAME_OPTIONS_SETTINGS_KEY])).flat().concat(phaseLabels.map((l) => l.name)))].filter(Boolean).sort()
+    : phaseNameOptions(phaseLabels, parsePhaseOptionMap(settings?.[SYSTEM_PHASE_NAME_OPTIONS_SETTINGS_KEY]), phaseNum, filters.phaseName);
+  const savedExperiments = parsePhaseOptionMap(settings?.[SYSTEM_PHASE_EXPERIMENT_OPTIONS_SETTINGS_KEY]);
+  const experimentChoices = phaseNum == null
+    ? [...new Set(Object.values(savedExperiments).flat())].sort()
+    : experimentOptions(savedExperiments, phaseNum, filters.experiment);
 
   const { data, isLoading, isError, error, refetch } = useListShots(toListShotsParams(filters));
   const shots = data?.shots;
@@ -234,6 +258,39 @@ export default function ShotList() {
                 <SelectContent>
                   <SelectItem value={ANY}>Any rating</SelectItem>
                   {[5, 6, 7, 8, 9, 10].map((r) => <SelectItem key={r} value={String(r)}>{r}+ / 10</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>System Phase</Label>
+              <Select value={filters.systemPhase || ANY} onValueChange={(v) => { if (v === "") return; update({ systemPhase: v === ANY ? "" : v }); }}>
+                <SelectTrigger aria-label="System Phase filter"><SelectValue placeholder="Any phase" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ANY}>Any phase</SelectItem>
+                  {phaseLabels.map((l) => <SelectItem key={l.number} value={String(l.number)}>{formatSystemPhase(phaseLabels, l.number)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Phase Name (mode)</Label>
+              <Select value={filters.phaseName || ANY} onValueChange={(v) => { if (v === "") return; update({ phaseName: v === ANY ? "" : v }); }}>
+                <SelectTrigger aria-label="Phase Name filter"><SelectValue placeholder="Any mode" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ANY}>Any mode</SelectItem>
+                  {modeOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Experiment</Label>
+              <Select value={filters.experiment || ANY} onValueChange={(v) => { if (v === "") return; update({ experiment: v === ANY ? "" : v }); }}>
+                <SelectTrigger aria-label="Experiment filter"><SelectValue placeholder="Any experiment" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ANY}>Any experiment</SelectItem>
+                  {experimentChoices.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

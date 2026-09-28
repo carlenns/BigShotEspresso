@@ -12,6 +12,9 @@ export interface ShotListFilters {
   ratingMin: string;
   dateFrom: string; // YYYY-MM-DD
   dateTo: string; // YYYY-MM-DD
+  systemPhase: string; // "" = any
+  phaseName: string;
+  experiment: string;
   page: number; // 1-based
 }
 
@@ -24,6 +27,9 @@ export const EMPTY_SHOT_LIST_FILTERS: ShotListFilters = {
   ratingMin: "",
   dateFrom: "",
   dateTo: "",
+  systemPhase: "",
+  phaseName: "",
+  experiment: "",
   page: 1,
 };
 
@@ -45,6 +51,9 @@ export function parseShotListQuery(search: string): ShotListFilters {
     ratingMin: /^\d+(\.\d+)?$/.test(ratingMin) ? ratingMin : "",
     dateFrom: DATE_RE.test(get("from")) ? get("from") : "",
     dateTo: DATE_RE.test(get("to")) ? get("to") : "",
+    systemPhase: /^\d+$/.test(get("phase")) ? get("phase") : "",
+    phaseName: get("mode"),
+    experiment: get("exp"),
     page: Number.isFinite(page) && page > 1 ? page : 1,
   };
 }
@@ -60,6 +69,9 @@ export function toShotListQuery(f: ShotListFilters): string {
   if (f.ratingMin) q.set("ratingMin", f.ratingMin);
   if (f.dateFrom) q.set("from", f.dateFrom);
   if (f.dateTo) q.set("to", f.dateTo);
+  if (f.systemPhase) q.set("phase", f.systemPhase);
+  if (f.phaseName) q.set("mode", f.phaseName);
+  if (f.experiment) q.set("exp", f.experiment);
   if (f.page > 1) q.set("page", String(f.page));
   return q.toString();
 }
@@ -81,12 +93,15 @@ export function toListShotsParams(f: ShotListFilters, pageSize = SHOT_LIST_PAGE_
   // are "YYYY-MM-DD" (inclusive start) and "YYYY-MM-DDT23:59:59.999Z" (inclusive end).
   if (f.dateFrom) params.dateFrom = f.dateFrom;
   if (f.dateTo) params.dateTo = `${f.dateTo}T23:59:59.999Z`;
+  if (f.systemPhase) params.systemPhase = f.systemPhase;
+  if (f.phaseName) params.systemPhaseName = f.phaseName;
+  if (f.experiment) params.experimentName = f.experiment;
   return params;
 }
 
 /** Number of active filters, excluding free-text search and paging. */
 export function activeFilterCount(f: ShotListFilters): number {
-  return [f.bagId, f.status, f.faultStatus, f.reference, f.ratingMin, f.dateFrom, f.dateTo].filter(Boolean).length;
+  return [f.bagId, f.status, f.faultStatus, f.reference, f.ratingMin, f.dateFrom, f.dateTo, f.systemPhase, f.phaseName, f.experiment].filter(Boolean).length;
 }
 
 export function pageSummary(page: number, total: number, pageSize = SHOT_LIST_PAGE_SIZE): {
