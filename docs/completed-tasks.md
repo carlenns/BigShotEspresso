@@ -3653,3 +3653,45 @@ Carl: "Polish the UI". These are the three remaining polish items from the launc
 - Carl will use the Prisma project `BSE` (`db_jrpn92jbuyw48gkdgvr5zpbl`, us-east-1, Postgres
   17.2), which is empty (re-checked) and linked to the GitHub repo in the Prisma console.
   Runbook updated. The `bse-coffee-log` project created earlier is unused.
+
+# Neon → Prisma Postgres cutover completed — 2026-09-28
+
+Executed from Carl's Mac per `docs/implementation/prisma-postgres-migration-runbook.md`, with
+Carl's explicit go-ahead at each of the three pause points (create/target, copy, Render switch).
+
+## Completed
+
+- Deleted the stray duplicate Prisma project `bse-coffee-log` (us-west-1, confirmed empty)
+  after Carl's confirmation, leaving only project `BSE` (us-east-1).
+- `check`: source (Neon) 12 tables, 279 shots; target (Prisma `BSE`) confirmed empty. Only the
+  expected "target Postgres 17 older than source 18" warning.
+- `copy --confirm-empty-target`: `"verified": true`, all 12 tables matched exactly, no
+  mismatches, no sequence issues.
+- Render `bigshotespresso` service: `DATABASE_URL` switched to the Prisma **pooled** connection
+  string (`pooled.db.prisma.io`), `DATABASE_POOL_MAX=5` added. Deploy went live 2026-09-28
+  15:57 UTC.
+- Post-switch smoke on `bigshotespresso.onrender.com`: `/api/healthz` ok, Dashboard showed the
+  active bag/defaults/recent shots, a test shot was logged then deleted.
+- `verify` run again: 11/12 tables matched exactly. `settings` had equal row counts (42/42) but
+  a digest mismatch — row-by-row comparison confirmed every value identical; only `updated_at`
+  differed, bulk-touched by the app's idempotent runtime schema guard on first boot against the
+  new database. Not a real divergence.
+- First backup: `~/BSE-backups/bse-2026-09-28.dump` (12 tables, 183,808 bytes).
+- ADR-0010 set to Accepted with a cutover record; ADR-0006 marked superseded by ADR-0010.
+
+## Found and fixed
+
+- `render.yaml` specified `region: oregon`, but the live Render service actually runs in Ohio
+  (confirmed via the Render API). Corrected to `region: ohio` at Carl's request. Prisma has no
+  Ohio-region option, so `us-east-1` — the region already chosen — remains the closest available
+  regardless; this edit only corrects the record and does not move the already-provisioned
+  service. Separately, `render.yaml`'s service `name` (`bigshotespresso-coffee-log`) does not
+  match the live service's name (`bigshotespresso`), suggesting this blueprint isn't actively
+  synced to the running service — left unchanged, flagged for Carl.
+
+## Not done / next
+
+- Neon (`small-tree-07649498`) is untouched and kept as the rollback target for two weeks per
+  the runbook, then retire or downgrade.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 135/135 ✓ · `pnpm run build` ✓ (verified
+  before the copy step, on `phase-2b/next`).

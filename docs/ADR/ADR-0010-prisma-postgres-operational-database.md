@@ -1,9 +1,9 @@
 # ADR-0010: Prisma Postgres as the Operational Database (supersedes the Neon part of ADR-0006)
 
 - Date: 2026-09-28
-- Status: Proposed
+- Status: **Accepted** (cutover completed 2026-09-28)
 - Decision owner: Carl Enns
-- Approval: Direction stated by Carl (2026-09-27/28: move data hosting from Neon to Prisma Postgres before going live); cutover itself pending Carl's go
+- Approval: Direction stated by Carl (2026-09-27/28: move data hosting from Neon to Prisma Postgres before going live); cutover executed and verified 2026-09-28
 
 ## Context
 
@@ -46,11 +46,31 @@ Prisma Postgres pricing (checked 2026-09-28 on prisma.io/pricing; re-check befor
 - Measured load: about 40 statements per logged shot including page loads
   (`query-budget.route.test.ts`). At 10 shots a day that is about 12k operations a month, far
   under the Free allowance. Grafana or ad-hoc SQL add to this and should use a read-only role.
-- Render's region is Oregon (`render.yaml`). Pick the Prisma region closest to it (a US West
-  region if offered) to keep latency down.
+- `render.yaml` said the Render region was Oregon, but the live service (checked via the Render
+  API, 2026-09-28) actually runs in **Ohio**; `render.yaml` has been corrected to `region: ohio`.
+  Prisma has no Ohio/us-east-2 region, so `us-east-1` (N. Virginia) — the region already used —
+  remains the closest available option regardless; this does not change the decision.
 - Rollback is a single Render environment change back to the Neon `DATABASE_URL`. Any shots
   logged on Prisma after cutover would need to be copied back first (the same script, with
   source and target swapped, into an emptied Neon branch).
-- ADR-0006's Neon decision is superseded once the cutover is completed and recorded.
+- ADR-0006's Neon decision is superseded now that the cutover is completed and recorded.
+
+## Cutover record — 2026-09-28
+
+- Target: Prisma project `BSE` (`db_jrpn92jbuyw48gkdgvr5zpbl`, us-east-1, Postgres 17.2).
+- `check`: only the expected "target Postgres 17 is older than source 18" warning.
+- `copy --confirm-empty-target`: `"verified": true`, all 12 tables matched exactly (279 shots),
+  no mismatches, no sequence issues.
+- Render `DATABASE_URL` switched to the Prisma **pooled** string; `DATABASE_POOL_MAX=5` added.
+  Deploy `dep-dat8s7nlk1mc73eo3di0` went live 2026-09-28 15:57 UTC.
+- Post-switch smoke (`bigshotespresso.onrender.com`): `/api/healthz` ok, Dashboard rendered the
+  active bag/defaults/shots correctly, a test shot was logged and deleted cleanly.
+- `verify` after the switch: 11 of 12 tables matched exactly; `settings` showed equal row counts
+  (42/42) but the digest differed. Row-by-row comparison found every key/value identical between
+  Neon and Prisma — the only difference was `updated_at`, bulk-touched on Prisma at boot by the
+  idempotent runtime schema guard. Not data loss.
+- First backup taken: `~/BSE-backups/bse-2026-09-28.dump` (12 tables, 183,808 bytes).
+- Neon (`small-tree-07649498`) is untouched and stays as the rollback target for two weeks per
+  the runbook.
 
 See [prisma-postgres-migration-runbook.md](../implementation/prisma-postgres-migration-runbook.md).
