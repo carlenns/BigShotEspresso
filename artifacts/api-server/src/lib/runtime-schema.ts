@@ -88,9 +88,19 @@ WHERE origin = 'standard'
   AND canonical_key IS NULL;
 `;
 
+// System Phase labels + current phase (migration 0015). Additive seed only:
+// ON CONFLICT DO NOTHING never overwrites labels the owner has edited in Settings.
+const SYSTEM_PHASE_SETTINGS_SQL = `
+INSERT INTO settings (key, value) VALUES
+  ('systemPhaseLabels', '[{"number":1,"name":"Initial Setup"},{"number":2,"name":"Scientific Process / Baseline"},{"number":3,"name":"Timed Dose Optimization"},{"number":4,"name":"Active Experimentation Era"}]'),
+  ('currentSystemPhase', '3')
+ON CONFLICT (key) DO NOTHING;
+`;
+
 export async function ensureRuntimeSchema(): Promise<void> {
   await pool.query(EQUIPMENT_SCHEMA_SQL);
   await pool.query(SHOTS_SCHEMA_SQL);
   await pool.query(TASTE_SELECTORS_SCHEMA_SQL);
+  await pool.query(SYSTEM_PHASE_SETTINGS_SQL);
   logger.info("Runtime schema check complete");
 }

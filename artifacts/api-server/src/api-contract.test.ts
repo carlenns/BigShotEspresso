@@ -508,7 +508,10 @@ test("Shot-level System Phase / Experiment is an additive foundation, distinct f
   assert.match(shotFormSource, /experimentName: existingShot\.experimentName \?\? undefined/);
   assert.match(shotFormSource, /name="systemPhase"/);
   assert.match(shotFormSource, /<CardTitle className="text-base">Workflow Context<\/CardTitle>/);
-  assert.doesNotMatch(shotFormSource, /setValue\("systemPhase"/);
+  // Superseded 2026-09-28 (owner-approved): new shots now start on the Settings
+  // "Current System Phase" (default 3). It is still create-only and blank-only,
+  // never inferred from Hopper Phase or shot order, and edit mode never sets it.
+  assert.match(shotFormSource, /if \(isEditing \|\| settings === undefined \|\| appliedSystemPhaseDefault\.current\) return;/);
   assert.doesNotMatch(shotFormSource, /setValue\("experimentName"/);
 
   // User-visible copy names the distinction from Hopper Phase, spells out the

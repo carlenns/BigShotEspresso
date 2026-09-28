@@ -3380,3 +3380,31 @@ Baseline re-verification on `f9cd885` (2026-09-28, cloud session): `pnpm run typ
 - `shot-list.route.test.ts`: helper round-trip/junk handling, param mapping, and a route test
   proving exact bag match, inclusive end day, reference/rating filters, paging totals, and 400.
 - `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 109/109 ✓ · `pnpm run build` ✓
+
+# Phase 2A — S2b System Phase labels and default — 2026-09-28
+
+Requested by Carl mid-session ("add my requests for System phase to the UI and save the phase
+labels"); labels and default confirmed in the same session.
+
+## Completed
+
+- Saved labels (Settings key `systemPhaseLabels`, JSON): 1 Initial Setup · 2 Scientific
+  Process / Baseline · 3 Timed Dose Optimization · 4 Active Experimentation Era.
+  `currentSystemPhase` = `3`.
+- Seeded by migration `0015_system_phase_labels.sql` (+ `.down.sql`) and the runtime schema
+  guard with `ON CONFLICT (key) DO NOTHING`, so the next deploy saves them without ever
+  overwriting later edits.
+- Settings: new **System Phases** card — Current System Phase select (or "No default"), editable
+  names, "Add Phase N". Numbers are permanent; renaming never rewrites saved shots.
+- Log Shot: System Phase is now a labelled dropdown ("Phase 3 — Timed Dose Optimization");
+  choosing a phase fills Phase Name unless it was hand-edited. New shots start on the current
+  phase (create-only, blank-only, once per form); edit mode never changes it. Unknown saved
+  numbers still display.
+- Shared helper `lib/system-phases.ts`. Supersedes the 2026-08-27 contract assertion that Log
+  Shot never sets `systemPhase` (test updated with a dated note).
+
+## Verified
+
+- `system-phase.route.test.ts`: approved labels/default, malformed-input fallback, server seed
+  present on first boot, and a second boot keeps edited labels and phase.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 112/112 ✓ · `pnpm run build` ✓

@@ -25,10 +25,12 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DateTimeInput } from "@/components/ui/date-time-input";
 import { cn } from "@/lib/utils";
 import { TASTE_ZONE_OPTIONS, curatedOptions, curatedScalarOptions, describeAnalysisEligibility, drinkTypeOptionsFromSettings } from "@/lib/selector-options";
 import { calculateDoseCorrection, roundToTenth } from "@/lib/dose-correction";
+import { formatSystemPhase, parseCurrentSystemPhase, parseSystemPhaseLabels, systemPhaseName } from "@/lib/system-phases";
 
 interface Bag {
   id: number; beanName: string | null; bagNumber: string | null; bagName: string | null; isActive: boolean;
@@ -890,6 +892,24 @@ export default function ShotForm() {
     seed("flowTime", latestShotDefaults?.flowTime);
   }, [isEditing, settings, selectedBagId, defaultGrindSetting, defaultGrindTime, defaultDose, defaultYield, defaultTemp, defaultTopUpTime, latestShotDefaults, form]);
 
+  // System Phase (owner-approved 2026-09-28): new shots start on the Settings
+  // "Current System Phase" and its saved label. Create-only and blank-only, run
+  // once per form, so an explicit per-shot choice (or clearing it) is kept.
+  const systemPhaseLabels = parseSystemPhaseLabels(settings?.systemPhaseLabels);
+  const appliedSystemPhaseDefault = useRef(false);
+  useEffect(() => {
+    if (isEditing || settings === undefined || appliedSystemPhaseDefault.current) return;
+    appliedSystemPhaseDefault.current = true;
+    const phase = parseCurrentSystemPhase(settings.currentSystemPhase);
+    if (phase == null || form.getValues("systemPhase") != null) return;
+    form.setValue("systemPhase", phase);
+    if (!form.getValues("systemPhaseName")) {
+      const name = systemPhaseName(systemPhaseLabels, phase);
+      if (name) form.setValue("systemPhaseName", name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing, settings, form]);
+
   const saving = createShot.isPending || updateShot.isPending;
 
   return (
@@ -1717,17 +1737,45 @@ export default function ShotForm() {
                 </span>
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <FormField control={form.control} name="systemPhase" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>System Phase <span className="text-muted-foreground text-xs font-normal">optional</span></FormLabel>
-                    <FormControl><NumberStepper field={field} step={1} min={1} placeholder="e.g. 3" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+                <FormField control={form.control} name="systemPhase" render={({ field }) => {
+                  const known = systemPhaseLabels.some((l) => l.number === field.value);
+                  return (
+                    <FormItem>
+                      <FormLabel>System Phase <span className="text-muted-foreground text-xs font-normal">optional</span></FormLabel>
+                      <Select
+                        value={field.value == null ? "none" : String(field.value)}
+                        onValueChange={(v) => {
+                          const next = v === "none" ? undefined : Number(v);
+                          // Keep Phase Name in step with the label unless it was hand-edited.
+                          const prevLabel = systemPhaseName(systemPhaseLabels, field.value);
+                          const currentName = form.getValues("systemPhaseName") ?? "";
+                          if (!currentName || currentName === prevLabel) {
+                            form.setValue("systemPhaseName", next == null ? undefined : systemPhaseName(systemPhaseLabels, next) || undefined);
+                          }
+                          field.onChange(next);
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger aria-label="System Phase"><SelectValue placeholder="Not set" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">Not set</SelectItem>
+                          {systemPhaseLabels.map((l) => (
+                            <SelectItem key={l.number} value={String(l.number)}>{formatSystemPhase(systemPhaseLabels, l.number)}</SelectItem>
+                          ))}
+                          {field.value != null && !known && (
+                            <SelectItem value={String(field.value)}>Phase {field.value}</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }} />
                 <FormField control={form.control} name="systemPhaseName" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Phase Name <span className="text-muted-foreground text-xs font-normal">optional</span></FormLabel>
-                    <FormControl><Input placeholder="e.g. Timed Dose Optimization" {...field} value={field.value ?? ""} /></FormControl>
+                    <FormControl><Input placeholder="Filled from the phase label" {...field} value={field.value ?? ""} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />

@@ -10,6 +10,7 @@ This revision adds three sections requested for launch-scope planning that were 
 
 - **New Bag Dial-In (§ workflow 4):** the launch-safe guided dial-in shipped in `f379aa6` (2026-09-23) — auto-tag "New Bag Dial-In" until the bag's first Status = "Dialed In" shot. No schema change.
 - **Open decision 4 (one active Bag):** resolved at the route level in `20ad425` (2026-09-23): `POST /bags` and `PATCH /bags/:id` deactivate every other active bag in the same transaction. A database-level constraint is still not added.
+- **System Phase labels (2026-09-28, Carl-approved):** saved in Settings (`systemPhaseLabels`, `currentSystemPhase` = 3) — 1 Initial Setup, 2 Scientific Process / Baseline, 3 Timed Dose Optimization, 4 Active Experimentation Era. New shots start on the current phase (create-only, blank-only). Still not the full structured `system_phases` model below.
 - **Hopper phase edit/end UI:** scheduled as Phase 2A slice S3 ([phase-2a-scope-authorization.md](phase-2a-scope-authorization.md)).
 
 The body below is unchanged from the 2026-08-25 revision.

@@ -10,8 +10,16 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Save, Settings as SettingsIcon, Coffee, Zap, Wrench, ClipboardList, Star,
+  Save, Settings as SettingsIcon, Coffee, Zap, Wrench, ClipboardList, Star, Milestone, Plus,
 } from "lucide-react";
+import {
+  CURRENT_SYSTEM_PHASE_SETTINGS_KEY,
+  SYSTEM_PHASE_LABELS_SETTINGS_KEY,
+  formatSystemPhase,
+  parseCurrentSystemPhase,
+  parseSystemPhaseLabels,
+  serializeSystemPhaseLabels,
+} from "@/lib/system-phases";
 import {
   CURATED_SELECTOR_OPTIONS,
   CUSTOM_DRINK_TYPES_SETTINGS_KEY,
@@ -281,6 +289,7 @@ export default function Settings() {
           </Card>
         ))}
         <GrinderDefaultsSection values={values} set={set} grinders={grinders} />
+        <SystemPhasesSection values={values} set={set} />
         </>
       )}
 
@@ -301,6 +310,80 @@ export default function Settings() {
         </Button>
       </div>
     </div>
+  );
+}
+
+// ── System Phases Section ─────────────────────────────────────────────────────
+// Saved phase labels + the phase new shots start on. Numbers are permanent once
+// added (shots store the number); names can be edited. Never rewrites shots.
+
+function SystemPhasesSection({
+  values,
+  set,
+}: {
+  values: Record<string, string>;
+  set: (key: string, value: string) => void;
+}) {
+  const labels = parseSystemPhaseLabels(values[SYSTEM_PHASE_LABELS_SETTINGS_KEY]);
+  const current = parseCurrentSystemPhase(values[CURRENT_SYSTEM_PHASE_SETTINGS_KEY]);
+  const saveLabels = (next: typeof labels) => set(SYSTEM_PHASE_LABELS_SETTINGS_KEY, serializeSystemPhaseLabels(next));
+  const nextNumber = Math.max(0, ...labels.map((l) => l.number)) + 1;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Milestone className="h-5 w-5 text-primary" />
+          <CardTitle>System Phases</CardTitle>
+        </div>
+        <CardDescription>
+          The machine/workflow learning era a shot belongs to — separate from Hopper Phase. New shots start on the
+          Current System Phase; you can still change it per shot. Renaming a phase does not change saved shots.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-1.5 max-w-sm">
+          <Label>Current System Phase</Label>
+          <Select
+            value={current == null ? "none" : String(current)}
+            onValueChange={(v) => set(CURRENT_SYSTEM_PHASE_SETTINGS_KEY, v)}
+          >
+            <SelectTrigger aria-label="Current System Phase"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No default (leave blank on new shots)</SelectItem>
+              {labels.map((l) => (
+                <SelectItem key={l.number} value={String(l.number)}>{formatSystemPhase(labels, l.number)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Phase labels</Label>
+          {labels.map((l) => (
+            <div key={l.number} className="flex items-center gap-2">
+              <span className="w-20 shrink-0 text-sm text-muted-foreground tabular-nums">Phase {l.number}</span>
+              <Input
+                aria-label={`Phase ${l.number} name`}
+                value={l.name}
+                placeholder="Phase name"
+                onChange={(e) => saveLabels(labels.map((x) => (x.number === l.number ? { ...x, name: e.target.value } : x)))}
+              />
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => saveLabels([...labels, { number: nextNumber, name: "" }])}
+          >
+            <Plus className="h-3.5 w-3.5" /> Add Phase {nextNumber}
+          </Button>
+          <p className="text-xs text-muted-foreground">Remember to Save Changes.</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
