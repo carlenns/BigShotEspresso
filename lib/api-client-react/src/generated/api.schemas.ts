@@ -73,13 +73,15 @@ export interface Shot {
   /** @nullable */
   flowTime?: number | null;
   /**
-     * Technical/extraction rating. Capped at 10.
+     * Technical/extraction rating. Range 0–10.
+     * @minimum 0
      * @maximum 10
      * @nullable
      */
   rating?: number | null;
   /**
-     * Personal enjoyment score. Capped at 11 for rare benchmark shots.
+     * Personal enjoyment score. Range 0–11; 11 is reserved for rare benchmark shots.
+     * @minimum 0
      * @maximum 11
      * @nullable
      */
@@ -292,9 +294,15 @@ export interface ShotWriteFields {
      * @nullable
      */
   scaleTime?: number | null;
-  /** @nullable */
+  /**
+     * Technical/extraction rating, 0–10. Range is enforced server-side (validateRatings) so out-of-range values get a human 400 message.
+     * @nullable
+     */
   rating?: number | null;
-  /** @nullable */
+  /**
+     * Personal enjoyment score, 0–11. Range is enforced server-side (validateRatings).
+     * @nullable
+     */
   preferenceRating?: number | null;
   /** @nullable */
   rated?: boolean | null;
@@ -395,9 +403,15 @@ export interface ShotInput {
      * @nullable
      */
   scaleTime?: number | null;
-  /** @nullable */
+  /**
+     * Technical/extraction rating, 0–10. Range is enforced server-side (validateRatings) so out-of-range values get a human 400 message.
+     * @nullable
+     */
   rating?: number | null;
-  /** @nullable */
+  /**
+     * Personal enjoyment score, 0–11. Range is enforced server-side (validateRatings).
+     * @nullable
+     */
   preferenceRating?: number | null;
   /** @nullable */
   rated?: boolean | null;
@@ -498,9 +512,15 @@ export interface ShotUpdate {
      * @nullable
      */
   scaleTime?: number | null;
-  /** @nullable */
+  /**
+     * Technical/extraction rating, 0–10. Range is enforced server-side (validateRatings) so out-of-range values get a human 400 message.
+     * @nullable
+     */
   rating?: number | null;
-  /** @nullable */
+  /**
+     * Personal enjoyment score, 0–11. Range is enforced server-side (validateRatings).
+     * @nullable
+     */
   preferenceRating?: number | null;
   /** @nullable */
   rated?: boolean | null;

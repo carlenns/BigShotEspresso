@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { errorMessageFrom } from "@/lib/http";
+import { errorMessageFrom, getJson } from "@/lib/http";
+import { QueryErrorState } from "@/components/QueryErrorState";
 import { Plus, Pencil, Trash2, Wrench } from "lucide-react";
 import {
   GRINDER_SUGGESTIONS,
@@ -43,14 +44,14 @@ const BURR_TYPES = ["Flat", "Conical", "Hybrid"];
 const GRINDER_ADJUSTMENT_TYPES = ["Stepless", "Stepped", "Indexed", "Unknown"];
 const BREW_METHODS = ["Espresso", "Pour-over", "AeroPress", "French Press", "Moka Pot", "Lever", "Other"];
 
-function fetchGrinders(): Promise<Grinder[]> { return fetch("/api/equipment/grinders").then((r) => r.json()); }
-function fetchMachines(): Promise<Machine[]> { return fetch("/api/equipment/machines").then((r) => r.json()); }
+function fetchGrinders(): Promise<Grinder[]> { return getJson<Grinder[]>("/api/equipment/grinders"); }
+function fetchMachines(): Promise<Machine[]> { return getJson<Machine[]>("/api/equipment/machines"); }
 
 export default function Equipment() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { data: grinders = [], isLoading: gLoading } = useQuery({ queryKey: ["grinders"], queryFn: fetchGrinders });
-  const { data: machines = [], isLoading: mLoading } = useQuery({ queryKey: ["machines"], queryFn: fetchMachines });
+  const { data: grinders = [], isLoading: gLoading, isError: gError, error: gErr, refetch: gRefetch } = useQuery({ queryKey: ["grinders"], queryFn: fetchGrinders });
+  const { data: machines = [], isLoading: mLoading, isError: mError, error: mErr, refetch: mRefetch } = useQuery({ queryKey: ["machines"], queryFn: fetchMachines });
 
   const [gOpen, setGOpen] = useState(false);
   const [mOpen, setMOpen] = useState(false);
@@ -130,7 +131,9 @@ export default function Equipment() {
           </div>
           <Button onClick={openNewG} size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> Add Grinder</Button>
         </div>
-        {gLoading ? (
+        {gError ? (
+          <QueryErrorState what="grinders" error={gErr} onRetry={() => gRefetch()} />
+        ) : gLoading ? (
           <div className="space-y-2">{Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
         ) : grinders.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground border rounded-lg"><p>No grinders added yet.</p></div>
@@ -195,7 +198,9 @@ export default function Equipment() {
           </div>
           <Button onClick={openNewM} size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> Add Machine</Button>
         </div>
-        {mLoading ? (
+        {mError ? (
+          <QueryErrorState what="machines" error={mErr} onRetry={() => mRefetch()} />
+        ) : mLoading ? (
           <div className="space-y-2">{Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
         ) : machines.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground border rounded-lg"><p>No machines added yet.</p></div>

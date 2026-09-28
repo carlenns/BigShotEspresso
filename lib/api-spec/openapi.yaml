@@ -499,8 +499,8 @@ components:
         pourDelay: { type: ["integer", "null"] }
         pourTime: { type: ["integer", "null"] }
         flowTime: { type: ["integer", "null"] }
-        rating: { type: ["number", "null"], maximum: 10, description: "Technical/extraction rating. Capped at 10." }
-        preferenceRating: { type: ["number", "null"], maximum: 11, description: "Personal enjoyment score. Capped at 11 for rare benchmark shots." }
+        rating: { type: ["number", "null"], minimum: 0, maximum: 10, description: "Technical/extraction rating. Range 0–10." }
+        preferenceRating: { type: ["number", "null"], minimum: 0, maximum: 11, description: "Personal enjoyment score. Range 0–11; 11 is reserved for rare benchmark shots." }
         ratingDifference: { type: ["number", "null"], readOnly: true }
         avgWeightedRating: { type: ["number", "null"], readOnly: true }
         rated: { type: ["boolean", "null"] }
@@ -615,8 +615,8 @@ components:
         pourTime: { type: ["integer", "null"] }
         flowTime: { type: ["integer", "null"] }
         scaleTime: { type: ["integer", "null"], deprecated: true, description: "Temporary compatibility alias for flowTime." }
-        rating: { type: ["number", "null"] }
-        preferenceRating: { type: ["number", "null"] }
+        rating: { type: ["number", "null"], description: "Technical/extraction rating, 0–10. Range is enforced server-side (validateRatings) so out-of-range values get a human 400 message." }
+        preferenceRating: { type: ["number", "null"], description: "Personal enjoyment score, 0–11. Range is enforced server-side (validateRatings)." }
         rated: { type: ["boolean", "null"] }
         isForOthers: { type: ["boolean", "null"] }
         isReference: { type: boolean }

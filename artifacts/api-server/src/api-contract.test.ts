@@ -1596,9 +1596,10 @@ test("Active Hopper Status is compact for phase-only hoppers, not a large standa
   assert.match(source, /Line 4: compact hopper phase context/);
   // Phase-only hoppers never have a null-collapsing gap: a missing phase
   // falls back to "Hopper phase tracking active" rather than rendering
-  // nothing, and startingBeans is labeled as a measured baseline.
+  // nothing, and startingBeans uses the shared "starting beans (phase
+  // baseline)" wording (PL-3) used on the Dashboard stat and Bags dialog.
   assert.equal(source.includes('hopper.phase ? `Hopper phase: ${hopper.phase}` : "Hopper phase tracking active",'), true);
-  assert.equal(source.includes('hopper.startingBeans != null ? `measured baseline ${hopper.startingBeans}g` : null,'), true);
+  assert.equal(source.includes('hopper.startingBeans != null ? `starting beans ${hopper.startingBeans}g (phase baseline)` : null,'), true);
   // The compact line must state, in words, that it is NOT whole-bag inventory.
   assert.equal(source.includes('"separate from whole-bag Bag Progress",'), true);
 
@@ -1718,7 +1719,7 @@ test("Mobile bottom nav signals it scrolls and marks the active tab without rely
   // "Log Shot" and "Shot Log" tabs as the adjacent near-identical labels
   // "Log" and "Shot". "Shot Log" carries a shortLabel so the pair reads as
   // "Log" (create) vs "Shots" (browse).
-  assert.match(source, /\{ title: "Shot Log",\s+href: "\/shots",\s+icon: BookOpen,\s+shortLabel: "Shots" \}/);
+  assert.match(source, /\{ title: "Shot Log",\s+href: "\/shots",\s+icon: BookOpen,\s+shortLabel: "Shots"(, exclude: \["\/shots\/new"\])? \}/);
   assert.match(source, /item\.shortLabel \?\? item\.title\.split\(" "\)\[0\]/);
 });
 
@@ -2278,7 +2279,7 @@ test("Catalog pages render the API's graceful 400/404/409 delete-error contract"
     ["Accessories", accessories],
     ["TasteSelectors", tasteSelectors],
   ] as const) {
-    assert.match(src, /import \{ errorMessageFrom \} from "@\/lib\/http"/, `${name} imports errorMessageFrom`);
+    assert.match(src, /import \{ errorMessageFrom(, getJson)? \} from "@\/lib\/http"/, `${name} imports errorMessageFrom`);
     // No page still surfaces a raw response body or `String(e)` in a delete/save error.
     assert.doesNotMatch(src, /throw new Error\(await (response|r)\.text\(\)\)/, `${name} no longer throws raw response text`);
     assert.match(src, /description: e instanceof Error \? e\.message : String\(e\)/, `${name} onError renders e.message`);
@@ -2323,7 +2324,7 @@ test("BeanForm / BagDetail / Bags render the same graceful {error} contract (no 
     ["BagDetail", bagDetail],
     ["Bags", bags],
   ] as const) {
-    assert.match(src, /import \{ errorMessageFrom \} from "@\/lib\/http"/, `${name} imports errorMessageFrom`);
+    assert.match(src, /import \{ errorMessageFrom(, getJson)? \} from "@\/lib\/http"/, `${name} imports errorMessageFrom`);
     // No mutation/query still surfaces a raw response body or bare String(e).
     assert.doesNotMatch(src, /throw new Error\(await (r|response|res)\.text\(\)\)/, `${name} no raw response.text() throw`);
     assert.doesNotMatch(src, /description: String\(e\), variant: "destructive"/, `${name} onError renders e.message`);

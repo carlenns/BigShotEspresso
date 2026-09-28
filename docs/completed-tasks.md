@@ -3323,3 +3323,37 @@ Baseline re-verification on `f9cd885` (2026-09-28, cloud session): `pnpm run typ
 ## Verified
 
 - Docs only; no code changes.
+
+# Phase 2A — S1 Safe-now fixes — 2026-09-28
+
+## Completed
+
+- **DI-2 (cosmetic):** `openapi.yaml` Shot response `rating`/`preferenceRating` now declare
+  `minimum: 0` (with 10/11 maxima); write-schema descriptions state the range and that it is
+  enforced server-side by `validateRatings` (kept there so users get a human 400 message).
+  Regenerated `lib/api-zod` and `lib/api-client-react`.
+- **EQ-3:** the roadmap described the bug backwards — `POST /accessories` already cleared
+  per-type defaults. The real gap was `PATCH`: a toggle-only `{ isDefault: true }` (no `type`
+  in the body) left the old default in place, giving two defaults of one type. PATCH now
+  resolves the type from the stored row; POST and PATCH run clear+write in one transaction.
+- **PL-1:** Shot Log no longer highlights on `/shots/new` (sidebar and bottom nav share
+  `isNavActive`, with a per-item `exclude`).
+- **PL-2:** new `getJson()` (throws on non-2xx) + shared `QueryErrorState` (icon + text +
+  Try again) on Reference Shots, Beans, Bags, Equipment (grinders and machines),
+  Accessories, and Taste Selectors.
+- **PL-3:** hopper phase starting amount reads "starting beans (phase baseline)" on the
+  Dashboard compact line, Dashboard stat, and Start Hopper Phase dialog.
+- **PL-4:** already done before this slice (Settings note "Not yet used elsewhere…"); no change.
+- **PL-6:** Reference Shots nav icon is now `Target`, not the Log Shot coffee cup.
+- **Test harness (new):** `@workspace/db` gains a `pglite-test` export condition
+  (`lib/db/src/testing/pglite.ts`): in-memory PGlite with every forward migration applied and
+  a Drizzle-logger statement counter. The api-server `test` script passes
+  `--conditions=pglite-test`; production resolution is unchanged. `src/test-support/http.ts`
+  boots the real Express app on an ephemeral port for route-level tests.
+
+## Verified
+
+- `accessories.route.test.ts` (3 route tests) fails 1/3 against the old PATCH and passes on the fix.
+- `phase-2a-ui.test.ts` for PL-1/2/3/6; two existing `api-contract` regexes widened to accept
+  `import { errorMessageFrom, getJson }` and the Shot Log `exclude`.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 106/106 ✓ · `pnpm run build` ✓

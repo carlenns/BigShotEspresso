@@ -11,7 +11,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { errorMessageFrom } from "@/lib/http";
+import { errorMessageFrom, getJson } from "@/lib/http";
+import { QueryErrorState } from "@/components/QueryErrorState";
 import { Archive, Plus, Star, Package, Pencil, ChevronRight, ClipboardCheck, RefreshCw, AlertTriangle, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useListHoppers, getListHoppersQueryKey } from "@workspace/api-client-react";
@@ -38,8 +39,8 @@ interface Bag {
   closedOutDate: string | null; daysSinceClosedOut: number | null;
 }
 
-function fetchBags(): Promise<Bag[]> { return fetch("/api/bags").then((r) => r.json()); }
-function fetchBeans(): Promise<Bean[]> { return fetch("/api/beans").then((r) => r.json()); }
+function fetchBags(): Promise<Bag[]> { return getJson<Bag[]>("/api/bags"); }
+function fetchBeans(): Promise<Bean[]> { return getJson<Bean[]>("/api/beans"); }
 
 const ROAST_DATE_CONFIDENCE = ["Exact", "Estimated High", "Estimated Medium", "Estimated Low", "Unknown"];
 
@@ -78,7 +79,7 @@ function suggestNextBagNumber(bags: Bag[]): string {
 export default function Bags() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { data: bags = [], isLoading } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
+  const { data: bags = [], isLoading, isError, error, refetch } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: beans = [] } = useQuery({ queryKey: ["beans"], queryFn: fetchBeans });
   const { data: hoppers = [] } = useListHoppers();
   const activeHopperPhaseByBagId = new Map(
@@ -301,7 +302,9 @@ export default function Bags() {
         </CardContent>
       </Card>
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorState what="bags" error={error} onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div>
       ) : bags.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
@@ -556,7 +559,7 @@ export default function Bags() {
             )}
 
             <div className="space-y-1.5">
-              <Label>Starting Beans / Phase Baseline (g)</Label>
+              <Label>Starting beans (phase baseline, g)</Label>
               <Input
                 type="number"
                 step="0.1"

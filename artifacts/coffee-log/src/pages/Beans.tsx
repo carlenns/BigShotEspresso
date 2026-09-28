@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { errorMessageFrom } from "@/lib/http";
+import { errorMessageFrom, getJson } from "@/lib/http";
+import { QueryErrorState } from "@/components/QueryErrorState";
 import { Plus, Star, Pencil, Trash2, Sprout } from "lucide-react";
 
 interface Bean {
@@ -36,13 +37,13 @@ interface Bean {
 }
 
 function fetchBeans(): Promise<Bean[]> {
-  return fetch("/api/beans").then((r) => r.json());
+  return getJson<Bean[]>("/api/beans");
 }
 
 export default function Beans() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { data: beans = [], isLoading } = useQuery({ queryKey: ["beans"], queryFn: fetchBeans });
+  const { data: beans = [], isLoading, isError, error, refetch } = useQuery({ queryKey: ["beans"], queryFn: fetchBeans });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -73,7 +74,9 @@ export default function Beans() {
         </Button>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorState what="beans" error={error} onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
         </div>

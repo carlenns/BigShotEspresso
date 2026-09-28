@@ -319,7 +319,7 @@ export default function Dashboard() {
                       <Package className="h-3 w-3 shrink-0" />
                       {[
                         hopper.phase ? `Hopper phase: ${hopper.phase}` : "Hopper phase tracking active",
-                        hopper.startingBeans != null ? `measured baseline ${hopper.startingBeans}g` : null,
+                        hopper.startingBeans != null ? `starting beans ${hopper.startingBeans}g (phase baseline)` : null,
                         "separate from whole-bag Bag Progress",
                       ].filter(Boolean).join(" · ")}
                     </span>
@@ -404,7 +404,7 @@ export default function Dashboard() {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {hopper.startingBeans != null && (
-                      <IntelStat label="Starting beans" value={`${hopper.startingBeans}g`} icon={Package} />
+                      <IntelStat label="Starting beans (phase baseline)" value={`${hopper.startingBeans}g`} icon={Package} />
                     )}
                     {hopper.hopperMass != null ? (
                       <IntelStat label="Hopper mass" value={`${hopper.hopperMass}g`} />

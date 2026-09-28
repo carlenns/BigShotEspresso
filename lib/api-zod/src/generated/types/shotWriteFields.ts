@@ -63,9 +63,15 @@ export interface ShotWriteFields {
      * @nullable
      */
   scaleTime?: number | null;
-  /** @nullable */
+  /**
+     * Technical/extraction rating, 0–10. Range is enforced server-side (validateRatings) so out-of-range values get a human 400 message.
+     * @nullable
+     */
   rating?: number | null;
-  /** @nullable */
+  /**
+     * Personal enjoyment score, 0–11. Range is enforced server-side (validateRatings).
+     * @nullable
+     */
   preferenceRating?: number | null;
   /** @nullable */
   rated?: boolean | null;

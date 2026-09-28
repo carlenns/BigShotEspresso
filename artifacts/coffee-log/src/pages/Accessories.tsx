@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { errorMessageFrom } from "@/lib/http";
+import { errorMessageFrom, getJson } from "@/lib/http";
+import { QueryErrorState } from "@/components/QueryErrorState";
 import { Plus, Pencil, Trash2, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ACCESSORY_SUGGESTIONS, matchingSuggestions } from "@/lib/equipment-suggestions";
@@ -39,14 +40,14 @@ interface Accessory {
   specs: Record<string, string> | null;
 }
 
-function fetchAccessories(): Promise<Accessory[]> { return fetch("/api/accessories").then((r) => r.json()); }
+function fetchAccessories(): Promise<Accessory[]> { return getJson<Accessory[]>("/api/accessories"); }
 
 const BLANK = { type: "", shortLabel: "", sourceUrl: "", brand: "", model: "", size: "", notes: "", isActive: "true", isDefault: "false", diameter: "", thickness: "", ratedDose: "", ridgeless: "false", springLoaded: "false", springPressure: "", needleCount: "", needleThickness: "" };
 
 export default function Accessories() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { data: accessories = [], isLoading } = useQuery({ queryKey: ["accessories"], queryFn: fetchAccessories });
+  const { data: accessories = [], isLoading, isError, error, refetch } = useQuery({ queryKey: ["accessories"], queryFn: fetchAccessories });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Accessory | null>(null);
   const [form, setForm] = useState<Record<string, string>>({ ...BLANK });
@@ -173,7 +174,9 @@ export default function Accessories() {
         <Button onClick={() => openNew()} className="gap-2"><Plus className="h-4 w-4" /> Add Accessory</Button>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorState what="accessories" error={error} onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="space-y-6">{TYPES.slice(0, 3).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}</div>
       ) : accessories.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground border rounded-xl">
