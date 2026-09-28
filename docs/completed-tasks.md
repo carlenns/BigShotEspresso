@@ -3618,3 +3618,32 @@ Carl: "work on the migration to Prisma for now" (smoke test of Phase 2A first; c
   database to `~/BSE-backups/bse-YYYY-MM-DD.dump`; rejects the pooled URL.
 - Rehearsed locally: 12 tables in the dump; `pg_restore --exit-on-error` into an empty database
   was clean, and all 31 shots were present.
+
+# UI polish: PL-5, PL-7, PL-8 — 2026-09-28
+
+Carl: "Polish the UI". These are the three remaining polish items from the launch roadmap.
+
+## Completed
+
+- **PL-7, mobile navigation:** the 10-item horizontally scrolling bottom bar is now five fixed
+  tabs: Dashboard, Log, Shots, Bags and **More**. More opens a menu with Reference Shots,
+  Beans, Equipment, Accessories, Taste Selectors, Data Health and Settings. More shows as
+  active when you're on one of its pages. The non-colour active cue is kept.
+- **PL-5, Bags copy:** each dialog now leads with one short line.
+  - Close Out Bag: "Marks this bag finished. Past shots are never changed." plus a visible
+    Next step. The full explanation sits under "What closing a bag does".
+  - Start Hopper Phase: "Record the beans you're adding now…". The full explanation sits
+    under "What is a hopper phase?", with shorter helper text.
+  - The Bag Lifecycle card collapses its six steps under "Show the 6 steps".
+  - No wording was lost; it is all still one tap away.
+- **PL-8, Log Shot bag switch:** switching bags now re-seeds fields that still hold the value
+  the form filled in for the previous bag, such as pour timings from that bag's last shot. A
+  field with no default for the new bag is cleared only if the form had filled it. Values you
+  typed are never overwritten.
+- Four older contract assertions superseded, with dated notes. Two new UI tests added.
+
+## Verified
+
+- Browser at 390 px: the bottom bar shows five tabs, and More lists all seven pages. The Start
+  Hopper Phase and Close Out Bag dialogs fit on screen with the explanations collapsed.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 135/135 ✓ · `pnpm run build` ✓

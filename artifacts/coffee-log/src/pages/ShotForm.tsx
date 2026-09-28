@@ -887,18 +887,31 @@ export default function ShotForm() {
   // picks up the right default. Fields with no available default (pour timings
   // on a bag's first shot) are left genuinely blank.
   const appliedRecipeDefaultsFor = useRef<string | null>(null);
+  const seededRecipeValues = useRef(new Map<string, number>());
   useEffect(() => {
     if (isEditing || settings === undefined) return;
     const runKey = `${selectedBagId ?? 0}:${latestShotDefaults ? "L" : "-"}`;
     if (appliedRecipeDefaultsFor.current === runKey) return;
     appliedRecipeDefaultsFor.current = runKey;
+    // PL-8: a field still holding the value this effect seeded for the previous
+    // bag counts as untouched, so switching bags re-seeds it. A value the user
+    // typed never matches the seeded one and is never overwritten.
     const seed = (
       name: "grindSetting" | "grindTime" | "initialGrindWeight" | "topUpGrind" | "timeAdj" | "temperature" | "dose" | "yield" | "pourDelay" | "pourTime" | "flowTime",
       value: number | null | undefined,
     ) => {
-      if (value == null) return;
       const current = form.getValues(name);
-      if (current == null || (current as unknown) === "") form.setValue(name, value);
+      const blank = current == null || (current as unknown) === "";
+      const untouched = !blank && seededRecipeValues.current.has(name) && Number(current) === seededRecipeValues.current.get(name);
+      if (value == null) {
+        // New bag has no default for this field: clear it only if we seeded it.
+        if (untouched) { form.setValue(name, undefined as never); seededRecipeValues.current.delete(name); }
+        return;
+      }
+      if (blank || untouched) {
+        form.setValue(name, value);
+        seededRecipeValues.current.set(name, value);
+      }
     };
     seed("grindSetting", defaultGrindSetting);
     seed("grindTime", defaultGrindTime);

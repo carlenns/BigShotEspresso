@@ -320,12 +320,18 @@ export default function Bags() {
               <div>
                 <h2 className="font-semibold">Bag Lifecycle Flow</h2>
                 <p className="text-sm text-muted-foreground">
+                  Switching coffees? Tap <span className="font-medium text-foreground">Change Bag</span> above for the guided flow.
+                </p>
+              </div>
+              {/* PL-5: the step list and background notes stay one tap away. */}
+              <details className="group">
+              <summary className="cursor-pointer text-sm font-medium text-primary select-none">Show the 6 steps</summary>
+              <p className="mt-2 text-sm text-muted-foreground">
                   Use this flow when switching coffees: preserve old-bag evidence, then start the new bag cleanly.
                   The "Change Bag" button above runs this whole flow in one guided dialog; each active bag's own
                   Close and Start Phase buttons below do just one step at a time, if that's all you need.
-                </p>
-              </div>
-              <ol className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              </p>
+              <ol className="mt-2 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
                 {[
                   "Close / Reconcile Old Bag",
                   "Record Maintenance Or Purge Waste",
@@ -347,6 +353,7 @@ export default function Bags() {
                 grinder cleanout) is planned as its own calm workflow with non-blocking reminders, separate from
                 shot logging and from Shot Classification.
               </p>
+              </details>
             </div>
           </div>
         </CardContent>
@@ -484,8 +491,7 @@ export default function Bags() {
               <p className="text-muted-foreground">Bag #{closeoutBag?.bagNumber ?? closeoutBag?.id}</p>
             </div>
             <p className="text-xs text-muted-foreground">
-              Close Out Bag records that you have stopped using this bag: it marks the bag inactive and saves your
-              leftover and cleanout notes as evidence. It never edits past shots and does not start the next bag.
+              Marks this bag finished. Past shots are never changed.
             </p>
             <div className="space-y-1.5">
               <Label>Closed Out Date</Label>
@@ -533,13 +539,19 @@ export default function Bags() {
                 Also a good place for grinder purge, hopper emptying, or machine cleaning you did between bags.
               </p>
             </div>
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200 space-y-1">
+            {/* PL-5: the essentials stay visible; the full explanation is one tap away. */}
+            <p className="text-sm font-medium">Next: create or select your new bag, then tap Start Phase when you begin using it.</p>
+            <details className="group rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+              <summary className="cursor-pointer font-medium select-none">What closing a bag does</summary>
+              <div className="mt-2 space-y-1">
+              <p>Close Out Bag records that you have stopped using this bag: it marks the bag inactive and saves your leftover and cleanout notes as evidence. It never edits past shots and does not start the next bag.</p>
               <p>Closing this bag marks it inactive as of the closed-out date above.</p>
               <p>Your remaining-beans estimate is saved as reconciliation evidence only — it does not rewrite or recalculate past shot consumption.</p>
               <p>Closeout notes are saved to this bag's record for later reference.</p>
               <p>Maintenance, purge waste, and hopper cleanout are not yet tracked as their own lifecycle events — for now, note them here or in the bag's Notes field. A dedicated maintenance workflow (with calm, non-blocking reminders such as backflush or Cafiza clean) is planned separately from shot logging. The bag's active hopper phase (if any) is not automatically closed by this action.</p>
               <p className="font-medium">Next: create or select your new bag, then use Start Hopper Phase once you're ready to begin tracking it.</p>
-            </div>
+              </div>
+            </details>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCloseoutBag(null)}>Cancel</Button>
@@ -626,13 +638,19 @@ export default function Bags() {
               <p className="text-muted-foreground">Bag #{startPhaseBag?.bagNumber ?? startPhaseBag?.id}</p>
             </div>
 
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
+              Record the beans you're <strong>adding now</strong>. You don't need to empty the hopper first.
+            </p>
+            <details className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+              <summary className="cursor-pointer font-medium text-foreground select-none">What is a hopper phase?</summary>
+              <p className="mt-2">
               A hopper phase is a measured operating window you choose to track from this point forward — not a
               count of every bean physically left in the hopper or bag. Starting a new phase means recording the
               beans you're <em>adding now</em> — you don't have to empty the hopper first. Unmeasured carryover
               from the previous phase can be intentionally left out of this baseline and just stays in the hopper.
               The Dashboard's Bag Progress still tracks whole-bag consumed and remaining separately from this phase baseline.
-            </div>
+              </p>
+            </details>
 
             {activeBags.length > 1 && (
               <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
@@ -689,7 +707,7 @@ export default function Bags() {
               <p className="text-xs text-muted-foreground">
                 {startingBeansPrefilled
                   ? "Pre-filled from this bag's recorded weight, since this is its first hopper phase. Adjust if you're loading less."
-                  : "Enter the measured beans you're adding now — not the total in the hopper. Any unmeasured carryover from the previous phase isn't counted here. BSE doesn't track exact bean depletion between phases, so this isn't auto-filled."}
+                  : "The measured beans you're adding now, not the hopper total. Leftover from the last phase isn't counted."}
               </p>
             </div>
 
@@ -703,8 +721,8 @@ export default function Bags() {
             </div>
 
             <p className="text-xs text-muted-foreground">
-              This creates a new active Hopper record named "Bag #{startPhaseBag?.bagNumber ?? startPhaseBag?.id} —{" "}
-              {startPhaseForm.phase} — {todayDate()}" and deactivates any previous active hopper for this bag. It does not modify past phases.
+              Saves as "Bag #{startPhaseBag?.bagNumber ?? startPhaseBag?.id} — {startPhaseForm.phase} — {todayDate()}" and ends
+              this bag's previous phase. Past phases are kept.
             </p>
           </div>
           <DialogFooter>

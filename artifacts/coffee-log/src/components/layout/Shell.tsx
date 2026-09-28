@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import {
   Activity, BookOpen, Coffee, LayoutDashboard,
-  Menu, Package, Settings, Sprout, Target, Wrench, Tag, Layers
+  Menu, MoreHorizontal, Package, Settings, Sprout, Target, Wrench, Tag, Layers
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,16 +39,21 @@ const primaryNav: NavItem[] = [
   { title: "Reference Shots", href: "/reference",   icon: Target },
 ];
 
+// PL-7: four everyday tabs plus "More", instead of a 10-item scrolling bar.
 const mobileBottomNav: NavItem[] = [
   { title: "Dashboard",       href: "/",            icon: LayoutDashboard, exact: true },
   { title: "Log Shot",        href: "/shots/new",   icon: Coffee,          exact: true },
   { title: "Shot Log",        href: "/shots",       icon: BookOpen,        shortLabel: "Shots", exclude: ["/shots/new"] },
-  { title: "Reference Shots", href: "/reference",   icon: Target },
-  { title: "Beans", href: "/beans", icon: Sprout },
   { title: "Bags", href: "/bags", icon: Package },
+];
+
+const mobileBottomMoreNav: NavItem[] = [
+  { title: "Reference Shots", href: "/reference", icon: Target },
+  { title: "Beans", href: "/beans", icon: Sprout },
   { title: "Equipment", href: "/equipment", icon: Wrench },
   { title: "Accessories", href: "/accessories", icon: Layers },
-  { title: "Taste", href: "/taste-selectors", icon: Tag },
+  { title: "Taste Selectors", href: "/taste-selectors", icon: Tag },
+  { title: "Data Health", href: "/data-health", icon: Activity },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -183,43 +188,66 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
-      {/* Mobile Bottom Nav */}
+      {/* Mobile Bottom Nav — four everyday tabs + More (PL-7). Non-color active
+          cue: a top underline bar + bolder label weight, so the active tab reads
+          correctly for color-blind users, not just via the primary-color text. */}
       <nav
-        className={cn(
-          "fixed bottom-0 left-0 right-0 z-50 h-16 overflow-x-auto border-t bg-background px-1 pb-safe md:hidden",
-          // Right-edge fade signals there's more to scroll to — the bar has
-          // no other visual cue that it scrolls, which is what actually made
-          // Settings undiscoverable on phone (the row hard-clipped at the
-          // viewport edge with no hint anything else existed off-screen).
-          "[mask-image:linear-gradient(to_right,black_85%,transparent_100%)]",
-          "[-webkit-mask-image:linear-gradient(to_right,black_85%,transparent_100%)]"
-        )}
-        aria-label="Swipeable mobile navigation"
+        className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-background pb-safe md:hidden"
+        aria-label="Mobile navigation"
       >
-        {/* Trailing padding so the last item (Settings) can scroll clear of the
-            right-edge fade — without it, at max scroll the very item the fade
-            exists to rescue stays permanently half-ghosted under it. */}
-        <div className="flex h-full min-w-max snap-x snap-mandatory pr-14">
-        {mobileBottomNav.map((item) => {
-          const isActive = isNavActive(item, location);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "relative flex w-20 shrink-0 snap-start flex-col items-center justify-center gap-0.5 text-[10px] transition-colors",
-                isActive ? "text-primary font-semibold" : "text-muted-foreground font-medium hover:text-foreground"
-              )}
-            >
-              {/* Non-color active cue: a top underline bar + bolder label
-                  weight, so the active tab reads correctly for color-blind
-                  users, not just via the primary-color text. */}
-              {isActive && <span aria-hidden="true" className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />}
-              <item.icon className={cn("h-5 w-5", isActive && "fill-primary/10")} />
-              <span>{item.shortLabel ?? item.title.split(" ")[0]}</span>
-            </Link>
-          );
-        })}
+        <div className="grid h-full grid-cols-5">
+          {mobileBottomNav.map((item) => {
+            const isActive = isNavActive(item, location);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  "relative flex flex-col items-center justify-center gap-0.5 text-[11px] transition-colors",
+                  isActive ? "text-primary font-semibold" : "text-muted-foreground font-medium hover:text-foreground"
+                )}
+              >
+                {isActive && <span aria-hidden="true" className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />}
+                <item.icon className={cn("h-5 w-5", isActive && "fill-primary/10")} />
+                <span>{item.shortLabel ?? item.title.split(" ")[0]}</span>
+              </Link>
+            );
+          })}
+          {(() => {
+            const moreActive = mobileBottomMoreNav.some((item) => isNavActive(item, location));
+            return (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(
+                      "relative flex flex-col items-center justify-center gap-0.5 text-[11px] transition-colors",
+                      moreActive ? "text-primary font-semibold" : "text-muted-foreground font-medium hover:text-foreground"
+                    )}
+                    aria-label="More pages"
+                  >
+                    {moreActive && <span aria-hidden="true" className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />}
+                    <MoreHorizontal className="h-5 w-5" />
+                    <span>More</span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" align="end" className="w-56 mb-2">
+                  {mobileBottomMoreNav.map((item) => (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link
+                        href={item.href}
+                        className={cn("flex w-full items-center gap-2", isNavActive(item, location) && "font-semibold text-primary")}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.title}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            );
+          })()}
         </div>
       </nav>
     </div>
