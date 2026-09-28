@@ -152,7 +152,7 @@ function major(version) {
 function versionWarnings(sourceVersion, targetVersion, dumpVersion) {
   const warnings = [];
   const [src, tgt, dump] = [major(sourceVersion), major(targetVersion), major(String(dumpVersion).replace(/^\D+/, ""))];
-  if (tgt < src) warnings.push(`Target Postgres ${tgt} is older than source ${src}; a dump from the newer server may not restore. Stop and check before copying.`);
+  if (tgt < src) warnings.push(`Target Postgres ${tgt} is older than source ${src}. BSE uses plain tables only (checked 2026-09-28: no generated columns, no named NOT NULL constraints, only plpgsql), so the restore is expected to work; it runs in one transaction, so if it fails nothing is written. Proceed with copy and send the error if it fails.`);
   if (Number.isFinite(dump) && dump < src) warnings.push(`pg_dump ${dump} is older than the source server ${src}; install a newer libpq (brew upgrade libpq).`);
   return warnings;
 }

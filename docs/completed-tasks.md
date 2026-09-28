@@ -3598,3 +3598,14 @@ Carl: "work on the migration to Prisma for now" (smoke test of Phase 2A first; c
 
 - Real Neon → Prisma copy (needs Carl's Mac: the cloud session cannot open Postgres
   connections), the Render switch, and the choice between Free and Starter.
+
+# Prisma Postgres target database created — 2026-09-28
+
+- Created at Carl's request through the Prisma connector: workspace `BSE`, project/database
+  `bse-coffee-log` (`db_o4hvcnvas0n2cm1e58ckduh4`), region `us-west-1`, Postgres 17.2. Verified
+  empty (0 public tables). No data copied, and Render is unchanged.
+- Found: Neon runs Postgres 18. A read-only check found only plain tables (12 tables, no
+  generated columns or named NOT NULL constraints, `plpgsql` only). `check` now explains this
+  version gap instead of saying "stop". The runbook records the target and the pg_dump 18
+  requirement.
+- An older, empty `BSE` database (us-east-1, created 2026-09-24) also exists; it was left untouched.
