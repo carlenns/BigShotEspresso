@@ -3609,3 +3609,12 @@ Carl: "work on the migration to Prisma for now" (smoke test of Phase 2A first; c
   version gap instead of saying "stop". The runbook records the target and the pg_dump 18
   requirement.
 - An older, empty `BSE` database (us-east-1, created 2026-09-24) also exists; it was left untouched.
+
+# Prisma plan decision: Free, with owner-run backups — 2026-09-28
+
+- Carl chose the **Free** plan. ADR-0010 and the runbook are updated. Upgrade path: Starter
+  ($10, daily backups) when usage nears 200k operations a month or subscribers start logging.
+- New `node scripts/prisma-postgres-migration.mjs backup`: read-only `pg_dump` of the Prisma
+  database to `~/BSE-backups/bse-YYYY-MM-DD.dump`; rejects the pooled URL.
+- Rehearsed locally: 12 tables in the dump; `pg_restore --exit-on-error` into an empty database
+  was clean, and all 31 shots were present.

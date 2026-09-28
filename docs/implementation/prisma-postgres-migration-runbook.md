@@ -61,8 +61,8 @@ for Render.
 - Pick a quiet time: **no shot logging** from step 4 until step 8.
 - On the Mac: `brew install libpq` (gives `pg_dump` / `pg_restore`). `check` warns if they are
   older than the Neon server.
-- Decide the plan: **Free** needs your own backups (below); **Starter** ($10) includes daily
-  backups kept 7 days.
+- Plan: **Free** (Carl, 2026-09-28). There are no provider backups, so use the weekly backup
+  below. Starter ($10, daily backups kept 7 days) is the upgrade path.
 
 ## Steps
 
@@ -119,16 +119,25 @@ for Render.
 
 ## Backups on the Free plan
 
-Free has no backups. Run this weekly from the Mac, and before any risky change:
+Free has no backups. From the repo on the Mac, weekly and before any risky change:
 
 ```sh
-mkdir -p ~/BSE-backups
-pg_dump --format=custom --no-owner --no-acl \
-  --dbname "$TARGET_DATABASE_URL" -f ~/BSE-backups/bse-$(date +%F).dump
+node scripts/prisma-postgres-migration.mjs backup
 ```
 
-Each backup is about 12 operations. Test a restore once, into a new empty database, with
-`pg_restore --no-owner --no-acl --dbname <new-db-direct-url> <file>`.
+This writes `~/BSE-backups/bse-YYYY-MM-DD.dump` using `TARGET_DATABASE_URL` (the direct Prisma
+string from `.env`). It only reads, costs about a dozen operations, and reports how many tables
+are in the dump. Keep a few weeks of files and copy the folder somewhere off the Mac
+(iCloud Drive, for example).
+
+**Restore test** (do once): create a new empty Prisma database, then
+
+```sh
+pg_restore --no-owner --no-acl --exit-on-error --dbname "<new database DIRECT url>" ~/BSE-backups/<file>.dump
+```
+
+Rehearsed locally on 2026-09-28: the backup contained 12 tables and restored cleanly into an
+empty database with all 31 shots.
 
 ## Keeping operations low
 
@@ -154,5 +163,5 @@ Each backup is about 12 operations. Test a restore once, into a new empty databa
   - use a short default time range and take snapshots for R&D records
   - Postgres views for shared metrics (best shot, Quick Look score, windows, Ref Shot %) are a
     later step
-- **Monitor:** check operations in the Prisma console after the first week. Stay on Free, or
-  move to Starter, based on real usage and the backup choice above.
+- **Monitor:** check operations in the Prisma console after the first week. Starting on Free;
+  move to Starter if usage nears 200k operations a month or when subscribers start logging.

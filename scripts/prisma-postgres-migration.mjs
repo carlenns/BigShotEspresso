@@ -4,6 +4,7 @@
 //   node scripts/prisma-postgres-migration.mjs check
 //   node scripts/prisma-postgres-migration.mjs copy --confirm-empty-target
 //   node scripts/prisma-postgres-migration.mjs verify
+//   node scripts/prisma-postgres-migration.mjs backup   (weekly on the Free plan)
 //
 // Reads SOURCE_DATABASE_URL (Neon, the current production database) and
 // TARGET_DATABASE_URL (Prisma Postgres DIRECT connection string, db.prisma.io)
@@ -17,7 +18,7 @@
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -220,10 +221,32 @@ async function verify({ source, target }) {
   }
 }
 
+/**
+ * Free plan has no provider backups: dump the Prisma database (read-only) to
+ * ~/BSE-backups/bse-YYYY-MM-DD.dump. Only TARGET_DATABASE_URL is needed.
+ */
+async function backup() {
+  const target = process.env.TARGET_DATABASE_URL;
+  if (!target) throw new Error("Set TARGET_DATABASE_URL (Prisma Postgres direct connection string).");
+  if (/pooled\.db\.prisma\.io/.test(target)) throw new Error("Use the direct Prisma URL (db.prisma.io) for backups.");
+  const dir = process.env.BSE_BACKUP_DIR ?? path.join(os.homedir(), "BSE-backups");
+  await mkdir(dir, { recursive: true });
+  const file = path.join(dir, `bse-${new Date().toISOString().slice(0, 10)}.dump`);
+  await run(binary("pg_dump"), ["--format=custom", "--no-owner", "--no-acl", "--file", file, "--dbname", target]);
+  const toc = await run(binary("pg_restore"), ["--list", file]);
+  const tablesInDump = toc.stdout.split("\n").filter((line) => /\bTABLE DATA\b/.test(line)).length;
+  return { backedUp: true, file, bytes: (await stat(file)).size, tablesInDump };
+}
+
 async function main() {
   const command = process.argv[2];
+  if (command === "backup") {
+    await loadEnv();
+    console.log(JSON.stringify(await backup(), null, 2));
+    return;
+  }
   if (!["check", "copy", "verify"].includes(command ?? "")) {
-    console.log("usage: node scripts/prisma-postgres-migration.mjs <check|copy --confirm-empty-target|verify>");
+    console.log("usage: node scripts/prisma-postgres-migration.mjs <check|copy --confirm-empty-target|verify|backup>");
     process.exitCode = 2;
     return;
   }

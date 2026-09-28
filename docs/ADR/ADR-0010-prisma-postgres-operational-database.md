@@ -35,8 +35,9 @@ Prisma Postgres pricing (checked 2026-09-28 on prisma.io/pricing; re-check befor
 3. Data moves with `scripts/prisma-postgres-migration.mjs` (`pg_dump` of Neon → `pg_restore`
    into an empty Prisma database, then a row-count + content-digest + sequence check).
    Neon is kept, read-only in practice, as the rollback target until Carl retires it.
-4. Start on **Free** only if an owner-run backup routine exists (Free has no backups).
-   Otherwise start on **Starter**. Carl chooses.
+4. **Plan: Free** (Carl, 2026-09-28). Free has no provider backups, so the owner runs
+   `node scripts/prisma-postgres-migration.mjs backup` weekly and before risky changes.
+   Revisit Starter ($10, daily backups kept 7 days) once real subscribers log shots or usage nears 200k operations a month.
 5. Operation efficiency is enforced by the query-budget tests (Phase 2A S6) and checked in the
    Prisma console after the first week.
 
