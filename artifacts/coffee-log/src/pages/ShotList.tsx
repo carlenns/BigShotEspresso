@@ -122,6 +122,13 @@ export default function ShotList() {
   const { from, to, pageCount } = pageSummary(filters.page, total);
   const filterCount = activeFilterCount(filters);
 
+  // A stale or shared link can point past the last page (e.g. after filtering
+  // or deleting shots): jump to the last real page instead of showing nothing.
+  useEffect(() => {
+    if (data && filters.page > pageCount) update({ page: pageCount }, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, filters.page, pageCount]);
+
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -231,6 +238,7 @@ export default function ShotList() {
               </Select>
             </div>
 
+            <div className="grid grid-cols-2 gap-3 sm:col-span-2 lg:col-span-1">
             <div className="space-y-1.5">
               <Label htmlFor="shot-filter-from">From</Label>
               <Input id="shot-filter-from" type="date" value={filters.dateFrom} max={filters.dateTo || undefined} onChange={(e) => update({ dateFrom: e.target.value })} />
@@ -239,6 +247,7 @@ export default function ShotList() {
             <div className="space-y-1.5">
               <Label htmlFor="shot-filter-to">To</Label>
               <Input id="shot-filter-to" type="date" value={filters.dateTo} min={filters.dateFrom || undefined} onChange={(e) => update({ dateTo: e.target.value })} />
+            </div>
             </div>
 
             {filterCount > 0 && (
@@ -378,7 +387,7 @@ export default function ShotList() {
         )}
       </div>
 
-      {!isError && total > 0 && (
+      {!isError && total > 0 && from > 0 && (
         <nav className="flex items-center justify-between gap-3 text-sm" aria-label="Shot Log pages">
           <span className="text-muted-foreground">
             Showing {from}–{to} of {total} shot{total === 1 ? "" : "s"}

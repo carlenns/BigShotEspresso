@@ -3464,3 +3464,15 @@ labels"); labels and default confirmed in the same session.
   still sets `hasDialedInShot`; `PATCH` with a changed bag recomputes Days Since Open from the
   new bag; settings upsert updates and inserts.
 - `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 125/125 ✓ · `pnpm run build` ✓
+
+# Phase 2A — final verification — 2026-09-28
+
+- Shot Log paging fix found in the UI pass: a link past the last page (e.g. `?page=2` after
+  filtering down to 16 shots) showed "Showing 26–16"; it now jumps to the last real page, and
+  From/To sit side by side on phones.
+- 390 px browser pass against a seeded local build: Shot Log filters + paging, Log Shot grind
+  helper ("Steps by 0.33 (Eureka Mignon's marker spacing…)") and System Phase defaulting to
+  "Phase 3 — Timed Dose Optimization", Bags hopper edit/end dialog and confirm, Settings
+  System Phases card, and bottom nav highlighting only "Log" on `/shots/new`.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 125/125 (was 99) ✓ · `pnpm run build` ✓
+- S5 (equipment defaults Option A) not started — waiting on Carl's go and the Default Basket question.

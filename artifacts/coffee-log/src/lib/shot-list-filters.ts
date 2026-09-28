@@ -95,7 +95,7 @@ export function pageSummary(page: number, total: number, pageSize = SHOT_LIST_PA
   pageCount: number;
 } {
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  if (total === 0) return { from: 0, to: 0, pageCount };
+  if (total === 0 || page > pageCount) return { from: 0, to: 0, pageCount };
   const from = (page - 1) * pageSize + 1;
   return { from, to: Math.min(total, page * pageSize), pageCount };
 }

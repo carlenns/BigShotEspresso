@@ -51,5 +51,9 @@ the Neon → Prisma Postgres switch, and any infrastructure or plan change.
 
 ## Completion record
 
-Filled in as slices land. See [completed-tasks.md](../completed-tasks.md) entries titled
-"Phase 2A — S*".
+See [completed-tasks.md](../completed-tasks.md) entries titled "Phase 2A — S*".
+
+| Slice | Status (2026-09-28) |
+|---|---|
+| S0, S1, S2, S2b, S3, S4, S6 | Implemented and verified in the cloud session; not yet committed/merged |
+| S5 | Held — needs Carl's go (and the Default Basket decision) |

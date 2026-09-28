@@ -45,6 +45,7 @@ test("Shot Log filters map onto existing GET /shots params with inclusive day bo
   });
   assert.deepEqual(pageSummary(2, 60, 25), { from: 26, to: 50, pageCount: 3 });
   assert.deepEqual(pageSummary(1, 0, 25), { from: 0, to: 0, pageCount: 1 });
+  assert.deepEqual(pageSummary(2, 16, 25), { from: 0, to: 0, pageCount: 1 }, "past the last page shows no range");
 });
 
 test("GET /shots filters by exact bagId, reference, rating and inclusive day range, and pages with a total", async () => {
