@@ -6,41 +6,9 @@ import { eligibleShotConditions, isEligibleShotRow, ratingEligibleShotConditions
 import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weighting";
 import { selectComparisonReferences } from "../lib/dashboard-comparison";
 import { buildNextShotReminder } from "../lib/next-shot-reminder";
+import { resolveEquipmentDefaults } from "../lib/equipment-defaults";
 
 const router: IRouter = Router();
-
-function equipmentLabel(item: { name?: string | null; brand?: string | null; model?: string | null; size?: string | null; specs?: unknown }) {
-  if (item.name) return item.name;
-  const specs = item.specs && typeof item.specs === "object" ? item.specs as Record<string, unknown> : null;
-  const specValues = specs
-    ? Object.entries(specs)
-      .filter(([, value]) => value !== null && value !== undefined && value !== "" && value !== false && value !== "false")
-      .map(([key, value]) => `${key}: ${String(value)}`)
-    : [];
-  return [item.brand, item.model, item.size, ...specValues].filter(Boolean).join(" — ") || "Unnamed";
-}
-
-function compactLabel(
-  savedValue: string | undefined,
-  rows: Array<{ name?: string | null; shortLabel?: string | null; brand?: string | null; model?: string | null; size?: string | null; specs?: unknown }>,
-): string | null {
-  if (!savedValue) return null;
-  const match = rows.find((row) => equipmentLabel(row) === savedValue);
-  return match?.shortLabel || savedValue;
-}
-
-function compactPuckScreenLabel(
-  savedValue: string | undefined,
-  rows: Array<{ type?: string | null; name?: string | null; shortLabel?: string | null; brand?: string | null; model?: string | null; size?: string | null; specs?: unknown }>,
-): string | null {
-  if (!savedValue) return null;
-  const match = rows.find((row) => row.type === "puck_screen" && equipmentLabel(row) === savedValue);
-  if (!match) return savedValue;
-  const specs = match.specs && typeof match.specs === "object" ? match.specs as Record<string, unknown> : {};
-  const thickness = specs.thickness ? String(specs.thickness) : null;
-  const label = match.shortLabel || match.brand || "Puck Screen";
-  return `${label} Puck Screen${thickness ? ` ${thickness}` : ""}`;
-}
 
 // ── Robust range helper ───────────────────────────────────────────────────────
 function robustRange(vals: number[]): {
@@ -106,6 +74,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
     db.select().from(machinesTable),
     db.select().from(accessoriesTable),
   ]);
+  const equipmentDefaults = resolveEquipmentDefaults(grinders, machines, accessories);
 
   // ── Active bag ────────────────────────────────────────────────────────────
   const [activeBagRow] = await db
@@ -521,16 +490,11 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
       openDays,
       roastAge,
       shotCount: activeBagShots.length,
-      grinder: compactLabel(settings.defaultGrinder || settings.defaultRegularGrinder, grinders),
-      machine: compactLabel(settings.defaultMachine, machines),
-      basket: compactLabel(settings.defaultBasket, accessories) ?? settings.defaultBasket ?? null,
-      // `usePuckScreen` had been reading a removed global Settings key that
-      // nothing writes any more (see api-contract.test.ts removed-keys list),
-      // so the Dashboard puck-screen chip never showed even when a Default
-      // Puck Screen was configured. There is no per-bag puck-screen column;
-      // the only real signal is whether a Default Puck Screen is set.
-      usePuckScreen: Boolean(settings.defaultPuckScreen && settings.defaultPuckScreen.trim()),
-      puckScreen: compactPuckScreenLabel(settings.defaultPuckScreen, accessories),
+      // Equipment defaults Option A (Phase 2A S5): the Equipment / Accessories
+      // `isDefault` flags are the single source; the old Settings strings are
+      // no longer read. Basket falls back to the default machine's stock basket.
+      // usePuckScreen (DI-6) is true when a default puck screen accessory exists.
+      ...equipmentDefaults,
     },
     bagIntelligence: {
       totalShots: activeBagShots.length,

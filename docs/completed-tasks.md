@@ -3506,3 +3506,39 @@ then enter Experiment info — these are all saved; give me selectors again").
   Shot offers them; selecting them and saving stores System Phase 3 / "Hopper Overfill Mode" /
   "Timed Dose Stability" on the shot.
 - `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 128/128 ✓ · `pnpm run build` ✓
+
+# Phase 2A — S5 Equipment defaults, Option A — 2026-09-28
+
+Approved by Carl in the 2026-09-28 session: Option A, decaf/pour-over deferred, Default Basket
+moves to Accessories.
+
+## Completed
+
+- **Single source:** the Equipment / Accessories **Default** flag now drives Log Shot (already)
+  and the Dashboard setup summary (machine, grinder, basket, puck screen). The Dashboard no
+  longer reads `defaultMachine` / `defaultGrinder` / `defaultRegularGrinder` / `defaultBasket` /
+  `defaultPuckScreen`. With no default basket accessory, the Dashboard shows the default
+  machine's stock basket. DI-6: `usePuckScreen` = a default puck-screen accessory exists.
+- **One-time backfill on deploy** (`lib/equipment-default-backfill.ts`, called from the runtime
+  schema step): copies each old Settings string onto the one record whose label matches
+  exactly, only when that table/type has no default yet. Ambiguous or unmatched values are
+  reported, never guessed; a saved machine stock basket is recognised. Runs once (marker
+  `equipmentDefaultsBackfill` in `settings`, which also stores the report), so later manual
+  changes are respected. Old Settings rows are left in place (EQ-5 not done).
+- **Settings:** the Equipment Defaults card is read-only (current defaults with "Change on
+  Equipment / Accessories" links) and lists any backfill values that need setting by hand.
+  Retired controls: Espresso Machine, Regular/Default Grinder, Decaf and Pour-over Grinder,
+  Default Basket (incl. the `edb469a` Default Basket Size selector), Scale, Tamper, Puck Screen.
+- Pure helpers in `lib/equipment-defaults.ts` (label, resolve, backfill plan). Decision doc
+  marked Accepted; consolidation plan records the outcome per phase; five superseded contract
+  assertions updated with dated notes.
+
+## Verified
+
+- `equipment-defaults.route.test.ts`: plan outcomes (set / ambiguous / stock-basket / unmatched /
+  already-set), resolver incl. stock-basket fallback and inactive accessories, and a boot test
+  that sets defaults, feeds the Dashboard, runs only once, and leaves old rows in place.
+- Browser (390 px) against a simulated existing database: Settings shows Go / Go stock 18g
+  (machine's stock basket) and flags the unmatched old grinder string; Dashboard shows the
+  machine, stock basket and the Normcore puck screen (previously never shown).
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 131/131 ✓ · `pnpm run build` ✓

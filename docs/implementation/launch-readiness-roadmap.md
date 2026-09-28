@@ -57,6 +57,14 @@ Size: **S** ≈ hours / one small PR · **M** ≈ a day / a few PRs · **L** ≈
 | DI-6 — Dashboard `usePuckScreen` rewired off the removed global Settings key to `defaultPuckScreen` | audit Part 2 "Bonus finding" | `3230e02` |
 | System Phase historical corpus **backfilled by Carl** (manual, via Codex, from first-hand phase knowledge) — supersedes the "stays NULL / no backfill" note below; all 251 shots now carry `system_phase` 1/2/3 | owner data-entry decision | live DB 2026-08-28; `completed-tasks.md` "owner backfill of the historical corpus" |
 
+### Phase 2A status (2026-09-28)
+
+Closed by Phase 2A ([scope](phase-2a-scope-authorization.md), [completed-tasks](../completed-tasks.md)); the tables below are kept as history:
+
+- **Done:** DI-2 (contract), DI-6, EQ-0, EQ-1, EQ-3 (real gap was PATCH), EQ-4, GRD-1, PL-1, PL-2, PL-3, PL-4 (already done), PL-6, TS-1 (PR #11/#12).
+- **Decided / deferred:** EQ-2 decaf/pour-over defaults deferred (not a launch need). EQ-5 not done — old Settings rows left inert.
+- **Still open:** DI-3 (accessory FKs; less load-bearing now that defaults are flags), DI-4, DI-5 remainder, GRD-2, SC-1..3, PL-5, PL-7, PL-8, TS-2/TS-3, AUTH-1..9.
+
 ### Open — data integrity / standing rules
 
 | # | Item | Source | Blocking? | Cat | Size | Depends on |

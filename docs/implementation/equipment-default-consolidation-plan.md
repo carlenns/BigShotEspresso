@@ -1,6 +1,15 @@
 # Implementation Plan: Equipment Default Consolidation (Option A)
 
-Status: **Pending Carl's approval. This is a plan, not authorization to implement.**
+Status: **Approved by Carl 2026-09-28; implemented in Phase 2A S5.** Outcome per phase:
+
+- Phase 0 (backfill): done as a one-time, never-overwriting boot step (`lib/equipment-default-backfill.ts`, marker `equipmentDefaultsBackfill` in `settings` holds the report). Includes basket and puck screen (Phase 4's backfill).
+- Phase 1: done. Dashboard reads `isDefault`; Settings no longer sets machine/grinder/decaf/pour-over/scale/tamper.
+- Phase 2 (decaf / pour-over): **deferred** — not a launch need (Carl, 2026-09-28).
+- Phase 3: done earlier in Phase 2A S1 (the real gap was the toggle-only PATCH; POST already cleared per type).
+- Phase 4: done. Basket and puck screen come from accessory `isDefault`; with no default basket accessory the Dashboard shows the default machine's stock basket. The Settings Default Basket selector (`edb469a`) is retired. DI-6 folded in.
+- Phase 5: **not done** — the old `settings` rows are left in place, inert.
+
+Original status: Pending Carl's approval. This is a plan, not authorization to implement.
 Date: 2026-08-27
 Author: Agent 2 (review/docs)
 Source decision: `docs/architecture/equipment-default-source-of-truth-decision.md` — Option A

@@ -1,5 +1,6 @@
 import { pool } from "@workspace/db";
 import { logger } from "./logger";
+import { backfillEquipmentDefaultsOnce } from "./equipment-default-backfill";
 
 const EQUIPMENT_SCHEMA_SQL = `
 ALTER TABLE grinders
@@ -124,5 +125,8 @@ export async function ensureRuntimeSchema(): Promise<void> {
   await pool.query(SHOTS_SCHEMA_SQL);
   await pool.query(TASTE_SELECTORS_SCHEMA_SQL);
   await pool.query(SYSTEM_PHASE_SETTINGS_SQL);
+  // Equipment defaults Option A (Phase 2A S5): one-time, never-overwriting copy of
+  // the retired Settings equipment strings onto the isDefault flags.
+  await backfillEquipmentDefaultsOnce();
   logger.info("Runtime schema check complete");
 }

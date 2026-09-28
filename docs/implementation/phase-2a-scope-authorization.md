@@ -32,7 +32,7 @@ fields, target-model changes, or fixture policy.
 | S2c | Saved Phase Name / Experiment selectors per System Phase, with + to add a new value that is saved for future shots; seeded once from existing shot values (Carl-requested, 2026-09-28). Settings rows only | B |
 | S3 | Hopper phase **edit** and **end** in the Bags UI via existing `PATCH /hoppers/:id`; no UI delete; no range-baseline UI | B (UI only) |
 | S4 | GRD-1: Log Shot grind stepper follows the selected grinder's stored increment/precision (display only; stored history unchanged) | B |
-| S5 | Equipment defaults Option A (EQ-0/EQ-1/EQ-4/DI-6) — **held**: requires Carl's separate go, including the Default Basket question raised by `edb469a` | B (gated) |
+| S5 | Equipment defaults Option A (EQ-0/EQ-1/EQ-4/DI-6) — **approved by Carl 2026-09-28** incl. moving Default Basket to Accessories; EQ-2 decaf/pour-over deferred; old Settings rows left inert (EQ-5 not done) | B |
 | S6 | Query-efficiency preparation for a future per-operation-billed Postgres host: test-only query counter, fewer round trips on dashboard and shot writes. **No database/host change.** | A/B |
 
 ## Explicit non-goals
@@ -56,5 +56,4 @@ See [completed-tasks.md](../completed-tasks.md) entries titled "Phase 2A — S*"
 
 | Slice | Status (2026-09-28) |
 |---|---|
-| S0, S1, S2, S2b, S2c, S3, S4, S6 | Implemented and verified in the cloud session; not yet committed/merged |
-| S5 | Held — needs Carl's go (and the Default Basket decision) |
+| S0–S6 (incl. S2b, S2c, S5) | Implemented, verified and committed on branch `phase-2a/owner-alpha-completion` (cloud session); not yet pushed/merged |
