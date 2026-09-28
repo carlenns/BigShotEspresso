@@ -1449,8 +1449,9 @@ test("Log Shot / Shot Detail equipment consistency: preserved on edit, hidden wh
   assert.match(shotFormSource, /const defaultGrinder = grinders\.find\(\(g\) => g\.isDefault\)/);
 
   // Grind Setting step is not yet equipment-aware — stated in the UI, not hidden.
-  assert.match(shotFormSource, /step=\{0\.01\}/);
-  assert.match(shotFormSource, /don't drive this yet/);
+  // Superseded 2026-09-28 by GRD-1 (Phase 2A S4): the grind stepper now follows
+  // the selected grinder's precision / marker spacing (see grind-step.test.ts).
+  assert.match(shotFormSource, /step=\{grindStep\}/);
 
   // Shot Detail shows Machine/Grinder only when the shot recorded them.
   assert.match(shotDetailSource, /\{machine && <DetailItem label="Machine" value=\{equipmentLabel\(machine\)\} \/>\}/);

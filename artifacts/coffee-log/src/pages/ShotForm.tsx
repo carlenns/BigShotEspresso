@@ -30,6 +30,7 @@ import { DateTimeInput } from "@/components/ui/date-time-input";
 import { cn } from "@/lib/utils";
 import { TASTE_ZONE_OPTIONS, curatedOptions, curatedScalarOptions, describeAnalysisEligibility, drinkTypeOptionsFromSettings } from "@/lib/selector-options";
 import { calculateDoseCorrection, roundToTenth } from "@/lib/dose-correction";
+import { describeGrindStep, grindDecimalsFor, grindStepFor } from "@/lib/grind-step";
 import { formatSystemPhase, parseCurrentSystemPhase, parseSystemPhaseLabels, systemPhaseName } from "@/lib/system-phases";
 
 interface Bag {
@@ -41,7 +42,7 @@ interface Bag {
 
 interface TasteSelector { id: number; name: string; category: string; }
 
-interface Grinder { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; isDefault: boolean }
+interface Grinder { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; isDefault: boolean; grindSettingPrecision?: number | null; grindStepIncrement?: number | null }
 interface Machine { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; brewMethod: string | null; isDefault: boolean }
 
 const NO_TASTE_SELECTORS: TasteSelector[] = [];
@@ -345,6 +346,7 @@ function NumberStepper({
   placeholder,
   suggestedValue,
   className,
+  decimals,
 }: {
   field: SeedableNumberField;
   step: number;
@@ -353,6 +355,8 @@ function NumberStepper({
   placeholder?: string;
   suggestedValue?: number | string | null;
   className?: string;
+  /** Round +/- results to this many decimals (defaults to the step's own decimals). */
+  decimals?: number;
 }) {
   const currentNumeric = (): number | undefined => {
     if (field.value === undefined || field.value === null || field.value === "") return undefined;
@@ -368,7 +372,9 @@ function NumberStepper({
 
   const adjust = (direction: 1 | -1) => {
     const base = currentNumeric() ?? suggestedNumeric() ?? 0;
-    let next = roundToStep(base + direction * step, step);
+    let next = decimals != null
+      ? Math.round((base + direction * step) * Math.pow(10, decimals)) / Math.pow(10, decimals)
+      : roundToStep(base + direction * step, step);
     if (min !== undefined) next = Math.max(min, next);
     if (max !== undefined) next = Math.min(max, next);
     field.onChange(next);
@@ -910,6 +916,12 @@ export default function ShotForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing, settings, form]);
 
+  // GRD-1: grind stepper follows the selected grinder (see lib/grind-step.ts).
+  const selectedGrinderId = form.watch("grinderId");
+  const selectedGrinder = grinders.find((g) => g.id === Number(selectedGrinderId)) ?? null;
+  const grindStep = grindStepFor(selectedGrinder);
+  const grindDecimals = grindDecimalsFor(selectedGrinder);
+
   const saving = createShot.isPending || updateShot.isPending;
 
   return (
@@ -1112,8 +1124,8 @@ export default function ShotForm() {
                   <FormField control={form.control} name="grindSetting" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Grind Setting</FormLabel>
-                      <FormControl><NumberStepper field={field} step={0.01} placeholder={defaultGrindSetting.toString()} suggestedValue={defaultGrindSetting} /></FormControl>
-                      <p className="text-xs text-muted-foreground">Steps by 0.01 for every grinder — a grinder's own precision and marker spacing from Equipment don't drive this yet.</p>
+                      <FormControl><NumberStepper field={field} step={grindStep} decimals={grindDecimals} placeholder={defaultGrindSetting.toString()} suggestedValue={defaultGrindSetting} /></FormControl>
+                      <p className="text-xs text-muted-foreground">{describeGrindStep(selectedGrinder, selectedGrinder ? equipmentLabel(selectedGrinder) : undefined)}</p>
                       <FormMessage />
                     </FormItem>
                   )} />

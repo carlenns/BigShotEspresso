@@ -3426,3 +3426,21 @@ labels"); labels and default confirmed in the same session.
 - `hopper-phase.route.test.ts`: edit keeps the phase active, explicit null clears the baseline,
   end sets inactive, and the ended phase is still listed; source check that the UI never deletes.
 - `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 114/114 ✓ · `pnpm run build` ✓
+
+# Phase 2A — S4 GRD-1 grinder-aware grind stepper — 2026-09-28
+
+## Completed
+
+- Log Shot's Grind Setting stepper now follows the selected grinder:
+  `grindStepIncrement` (marker spacing) → `10^-grindSettingPrecision` → historical 0.01
+  (also with no grinder selected). +/- output is rounded to the grinder's precision (never
+  coarser than the step), so float noise can't appear. Typed values and saved shots are never
+  rewritten. The helper text under the field says which rule applies and where to change it.
+- `lib/grind-step.ts` helper; `NumberStepper` gains an optional `decimals` prop.
+- `equipment-capability-library-model.md` deferred item 1 is marked resolved with the rules.
+  One old contract assertion (fixed `step={0.01}`) is superseded with a dated note.
+
+## Verified
+
+- `grind-step.test.ts` (rule order, out-of-range precision, rounding, wiring).
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 117/117 ✓ · `pnpm run build` ✓
