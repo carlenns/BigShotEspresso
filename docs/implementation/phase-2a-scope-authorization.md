@@ -56,4 +56,4 @@ See [completed-tasks.md](../completed-tasks.md) entries titled "Phase 2A — S*"
 
 | Slice | Status (2026-09-28) |
 |---|---|
-| S0–S6 (incl. S2b, S2c, S5) | Implemented, verified and committed on branch `phase-2a/owner-alpha-completion` (cloud session); not yet pushed/merged |
+| S0–S6 (incl. S2b, S2c, S5) | Implemented and verified; merged to `main` via PR #13 (merge commit `5d23e2d`, 2026-09-28). Pre-merge check on Carl's Mac: typecheck ✓, 131/131 tests ✓, Render build ✓ |
