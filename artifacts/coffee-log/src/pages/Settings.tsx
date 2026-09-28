@@ -14,10 +14,14 @@ import {
 } from "lucide-react";
 import {
   CURRENT_SYSTEM_PHASE_SETTINGS_KEY,
+  SYSTEM_PHASE_EXPERIMENT_OPTIONS_SETTINGS_KEY,
   SYSTEM_PHASE_LABELS_SETTINGS_KEY,
+  SYSTEM_PHASE_NAME_OPTIONS_SETTINGS_KEY,
   formatSystemPhase,
   parseCurrentSystemPhase,
+  parsePhaseOptionMap,
   parseSystemPhaseLabels,
+  removePhaseOption,
   serializeSystemPhaseLabels,
 } from "@/lib/system-phases";
 import {
@@ -382,8 +386,67 @@ function SystemPhasesSection({
           </Button>
           <p className="text-xs text-muted-foreground">Remember to Save Changes.</p>
         </div>
+
+        <SavedPhaseOptions
+          title="Saved Phase Names (modes)"
+          labels={labels}
+          map={parsePhaseOptionMap(values[SYSTEM_PHASE_NAME_OPTIONS_SETTINGS_KEY])}
+          onChange={(next) => set(SYSTEM_PHASE_NAME_OPTIONS_SETTINGS_KEY, JSON.stringify(next))}
+        />
+        <SavedPhaseOptions
+          title="Saved Experiments"
+          labels={labels}
+          map={parsePhaseOptionMap(values[SYSTEM_PHASE_EXPERIMENT_OPTIONS_SETTINGS_KEY])}
+          onChange={(next) => set(SYSTEM_PHASE_EXPERIMENT_OPTIONS_SETTINGS_KEY, JSON.stringify(next))}
+        />
       </CardContent>
     </Card>
+  );
+}
+
+function SavedPhaseOptions({
+  title,
+  labels,
+  map,
+  onChange,
+}: {
+  title: string;
+  labels: ReturnType<typeof parseSystemPhaseLabels>;
+  map: ReturnType<typeof parsePhaseOptionMap>;
+  onChange: (next: ReturnType<typeof parsePhaseOptionMap>) => void;
+}) {
+  const phases = Object.keys(map).map(Number).sort((a, b) => a - b);
+  return (
+    <div className="space-y-2">
+      <Label>{title}</Label>
+      {phases.length === 0 ? (
+        <p className="text-xs text-muted-foreground">None yet. Add them from Log Shot → Workflow Context with the + button.</p>
+      ) : (
+        phases.map((phase) => (
+          <div key={phase} className="space-y-1">
+            <p className="text-xs text-muted-foreground">{formatSystemPhase(labels, phase)}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {map[String(phase)]!.map((v) => (
+                <span key={v} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs">
+                  {v}
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground"
+                    aria-label={`Remove ${v} from Phase ${phase} options`}
+                    onClick={() => onChange(removePhaseOption(map, phase, v))}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
+      {phases.length > 0 && (
+        <p className="text-xs text-muted-foreground">Removing an option only hides it from the selector; shots keep what they saved.</p>
+      )}
+    </div>
   );
 }
 

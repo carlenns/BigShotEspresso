@@ -29,6 +29,7 @@ fields, target-model changes, or fixture policy.
 | S1 | DI-2 contract `minimum: 0`; EQ-3 accessory POST per-type default; PL-1, PL-2, PL-3, PL-4, PL-6 | A |
 | S2 | Shot List filter controls and paging over the existing `GET /shots` query params, plus one additive exact `bagId` param (the name filter is a substring match) | B |
 | S2b | System Phase labels + default (added mid-session at Carl's request, 2026-09-28): saved labels 1 Initial Setup / 2 Scientific Process / Baseline / 3 Timed Dose Optimization / 4 Active Experimentation Era; Current System Phase = 3 for new shots; Log Shot dropdown fills Phase Name. Settings rows only (migration 0015 + runtime seed, never overwrites); no schema change, no backfill of existing shots | B |
+| S2c | Saved Phase Name / Experiment selectors per System Phase, with + to add a new value that is saved for future shots; seeded once from existing shot values (Carl-requested, 2026-09-28). Settings rows only | B |
 | S3 | Hopper phase **edit** and **end** in the Bags UI via existing `PATCH /hoppers/:id`; no UI delete; no range-baseline UI | B (UI only) |
 | S4 | GRD-1: Log Shot grind stepper follows the selected grinder's stored increment/precision (display only; stored history unchanged) | B |
 | S5 | Equipment defaults Option A (EQ-0/EQ-1/EQ-4/DI-6) — **held**: requires Carl's separate go, including the Default Basket question raised by `edb469a` | B (gated) |
@@ -55,5 +56,5 @@ See [completed-tasks.md](../completed-tasks.md) entries titled "Phase 2A — S*"
 
 | Slice | Status (2026-09-28) |
 |---|---|
-| S0, S1, S2, S2b, S3, S4, S6 | Implemented and verified in the cloud session; not yet committed/merged |
+| S0, S1, S2, S2b, S2c, S3, S4, S6 | Implemented and verified in the cloud session; not yet committed/merged |
 | S5 | Held — needs Carl's go (and the Default Basket decision) |

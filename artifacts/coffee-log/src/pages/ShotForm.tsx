@@ -32,7 +32,19 @@ import { cn } from "@/lib/utils";
 import { TASTE_ZONE_OPTIONS, curatedOptions, curatedScalarOptions, describeAnalysisEligibility, drinkTypeOptionsFromSettings } from "@/lib/selector-options";
 import { calculateDoseCorrection, roundToTenth } from "@/lib/dose-correction";
 import { describeGrindStep, grindDecimalsFor, grindStepFor } from "@/lib/grind-step";
-import { formatSystemPhase, parseCurrentSystemPhase, parseSystemPhaseLabels, systemPhaseName } from "@/lib/system-phases";
+import {
+  SYSTEM_PHASE_EXPERIMENT_OPTIONS_SETTINGS_KEY,
+  SYSTEM_PHASE_NAME_OPTIONS_SETTINGS_KEY,
+  addPhaseOption,
+  experimentOptions,
+  formatSystemPhase,
+  parseCurrentSystemPhase,
+  parsePhaseOptionMap,
+  parseSystemPhaseLabels,
+  phaseNameOptions,
+  systemPhaseName,
+} from "@/lib/system-phases";
+import { CreatableSelect } from "@/components/CreatableSelect";
 
 interface Bag {
   id: number; beanName: string | null; bagNumber: string | null; bagName: string | null; isActive: boolean;
@@ -923,6 +935,24 @@ export default function ShotForm() {
   const grindStep = grindStepFor(selectedGrinder);
   const grindDecimals = grindDecimalsFor(selectedGrinder);
 
+  // Saved Phase Name / Experiment selectors, per System Phase. A new value typed
+  // via "+" is saved to Settings straight away so it is offered next time.
+  const savedPhaseNames = parsePhaseOptionMap(settings?.[SYSTEM_PHASE_NAME_OPTIONS_SETTINGS_KEY]);
+  const savedExperiments = parsePhaseOptionMap(settings?.[SYSTEM_PHASE_EXPERIMENT_OPTIONS_SETTINGS_KEY]);
+  const watchedSystemPhase = form.watch("systemPhase");
+  const currentPhaseNumber = watchedSystemPhase == null || (watchedSystemPhase as unknown) === "" ? null : Number(watchedSystemPhase);
+  const savePhaseOption = async (key: string, map: ReturnType<typeof parsePhaseOptionMap>, value: string) => {
+    if (currentPhaseNumber == null) return;
+    const next = addPhaseOption(map, currentPhaseNumber, value);
+    queryClient.setQueryData(["settings"], (old: Record<string, string> | undefined) => ({ ...(old ?? {}), [key]: JSON.stringify(next) }));
+    try {
+      await saveSettings({ [key]: JSON.stringify(next) });
+    } catch {
+      toast({ title: "Couldn't save that option", description: "It's still on this shot; it just won't be offered next time.", variant: "destructive" });
+    }
+    queryClient.invalidateQueries({ queryKey: ["settings"] });
+  };
+
   const saving = createShot.isPending || updateShot.isPending;
 
   return (
@@ -1749,7 +1779,7 @@ export default function ShotForm() {
                   Phase 3 tracks how consistently your <em>Initial Grinder Output</em> — not the corrected Dose — lands near 18&nbsp;g.
                 </span>
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <FormField control={form.control} name="systemPhase" render={({ field }) => {
                   const known = systemPhaseLabels.some((l) => l.number === field.value);
                   return (
@@ -1758,6 +1788,7 @@ export default function ShotForm() {
                       <Select
                         value={field.value == null ? "none" : String(field.value)}
                         onValueChange={(v) => {
+                          if (v === "") return; // Radix emits "" while items change; never clear on it
                           const next = v === "none" ? undefined : Number(v);
                           // Keep Phase Name in step with the label unless it was hand-edited.
                           const prevLabel = systemPhaseName(systemPhaseLabels, field.value);
@@ -1788,14 +1819,37 @@ export default function ShotForm() {
                 <FormField control={form.control} name="systemPhaseName" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Phase Name <span className="text-muted-foreground text-xs font-normal">optional</span></FormLabel>
-                    <FormControl><Input placeholder="Filled from the phase label" {...field} value={field.value ?? ""} /></FormControl>
+                    <CreatableSelect
+                      ariaLabel="Phase Name"
+                      value={field.value}
+                      options={phaseNameOptions(systemPhaseLabels, savedPhaseNames, currentPhaseNumber, field.value)}
+                      onChange={field.onChange}
+                      onCreate={(v) => void savePhaseOption(SYSTEM_PHASE_NAME_OPTIONS_SETTINGS_KEY, savedPhaseNames, v)}
+                      placeholder={currentPhaseNumber == null ? "Choose a System Phase first" : "Not set"}
+                      addLabel="Add a new phase name (mode)"
+                      inputPlaceholder="e.g. Timed Dose — Hopper Overfill Mode"
+                      disabled={currentPhaseNumber == null && !field.value}
+                    />
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="experimentName" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Experiment <span className="text-muted-foreground text-xs font-normal">optional</span></FormLabel>
-                    <FormControl><Input placeholder="e.g. Hopper Overfill / Timed Dose Stability" {...field} value={field.value ?? ""} /></FormControl>
+                    <CreatableSelect
+                      ariaLabel="Experiment"
+                      value={field.value}
+                      options={experimentOptions(savedExperiments, currentPhaseNumber, field.value)}
+                      onChange={field.onChange}
+                      onCreate={(v) => void savePhaseOption(SYSTEM_PHASE_EXPERIMENT_OPTIONS_SETTINGS_KEY, savedExperiments, v)}
+                      placeholder={currentPhaseNumber == null ? "Choose a System Phase first" : "No experiment"}
+                      addLabel="Add a new experiment"
+                      inputPlaceholder="e.g. Hopper Overfill / Timed Dose Stability"
+                      disabled={currentPhaseNumber == null && !field.value}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Saved under this System Phase. Use + to add a new one; it's offered on future shots.
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )} />

@@ -3476,3 +3476,33 @@ labels"); labels and default confirmed in the same session.
   System Phases card, and bottom nav highlighting only "Log" on `/shots/new`.
 - `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 125/125 (was 99) ✓ · `pnpm run build` ✓
 - S5 (equipment defaults Option A) not started — waiting on Carl's go and the Default Basket question.
+
+# Phase 2A — S2c Saved Phase Name and Experiment selectors — 2026-09-28
+
+Requested by Carl ("choose system phase 3, then enter a new mode or select it from Phase Name,
+then enter Experiment info — these are all saved; give me selectors again").
+
+## Completed
+
+- Log Shot → Workflow Context: **Phase Name** and **Experiment** are now selectors with a **+**
+  button. Pick a saved value, or tap + to type a new one; the new value is saved straight away
+  (Settings `systemPhaseNameOptions` / `systemPhaseExperimentOptions`, JSON grouped by System
+  Phase) and offered on future shots. The value is saved on the shot as before.
+- Options are per System Phase: Phase Name lists the phase's label first, then saved modes; an
+  Experiment belongs to one System Phase (2026-08-25 decision). Existing values on a shot always
+  stay visible. Case-insensitive de-duplication.
+- Deploy seeds both option lists once from values already on shots (migration 0015 + runtime
+  guard, `ON CONFLICT DO NOTHING`).
+- Settings → System Phases shows saved Phase Names and Experiments per phase with × to remove
+  (removing only hides the option; shots keep their values).
+- New reusable `components/CreatableSelect.tsx`. Guarded Radix Select's spurious `""` change
+  event (found in the browser pass: it wiped the prefilled Phase Name when the item list changed).
+
+## Verified
+
+- `system-phase.route.test.ts`: option helpers, deploy seed from shots grouped by phase, seed does
+  not overwrite, and Log Shot wiring.
+- Browser (390 px): add a new mode and experiment with +, both saved to Settings; a fresh Log
+  Shot offers them; selecting them and saving stores System Phase 3 / "Hopper Overfill Mode" /
+  "Timed Dose Stability" on the shot.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 128/128 ✓ · `pnpm run build` ✓
