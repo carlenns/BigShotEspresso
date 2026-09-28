@@ -3647,3 +3647,9 @@ Carl: "Polish the UI". These are the three remaining polish items from the launc
 - Browser at 390 px: the bottom bar shows five tabs, and More lists all seven pages. The Start
   Hopper Phase and Close Out Bag dialogs fit on screen with the explanations collapsed.
 - `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 135/135 ✓ · `pnpm run build` ✓
+
+# Prisma target changed to the existing `BSE` project — 2026-09-28
+
+- Carl will use the Prisma project `BSE` (`db_jrpn92jbuyw48gkdgvr5zpbl`, us-east-1, Postgres
+  17.2), which is empty (re-checked) and linked to the GitHub repo in the Prisma console.
+  Runbook updated. The `bse-coffee-log` project created earlier is unused.

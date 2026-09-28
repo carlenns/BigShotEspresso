@@ -27,23 +27,23 @@ On two local PostgreSQL 16 databases standing in for Neon and Prisma:
 **Not rehearsed:** a real Neon → real Prisma copy. The cloud session cannot open Postgres
 connections, so that run happens from Carl's Mac (step 3 below).
 
-## Target database (created 2026-09-28)
+## Target database (chosen 2026-09-28)
 
-Created from the cloud session through the Prisma connector, at Carl's request:
+Carl chose the existing Prisma project **`BSE`** (the one he sees in the console and has
+linked to the GitHub repo):
 
 | | |
 |---|---|
 | Workspace | `BSE` |
-| Project / database | `bse-coffee-log` (`proj_odfq4aiwfr5h85br2338je7d` / `db_o4hvcnvas0n2cm1e58ckduh4`) |
-| Region | `us-west-1` (N. California), closest available to Render's Oregon service |
-| Postgres | 17.2, empty (0 tables) |
+| Project / database | `BSE` (`proj_la4nrwgx7ii4tyj4ekrbhpfa` / `db_jrpn92jbuyw48gkdgvr5zpbl`) |
+| Region | `us-east-1` (N. Virginia). Round-trip latency from Render Oregon is about the same as today's Neon in us-east-2 |
+| Postgres | 17.2, empty (0 tables, re-checked 2026-09-28) |
 
-Connection strings are **not** written here. Copy them from the Prisma console:
-project `bse-coffee-log` → Connect. Use the direct string for the copy and the pooled string
-for Render.
+Connection strings are **not** written here. Get them in the Prisma console under project
+`BSE` → Connect. Use the direct string for the copy and the pooled string for Render.
 
-- An older empty database, `BSE` in us-east-1 (created 2026-09-24), also exists in the
-  workspace. It is unused; keep it or delete it as you like.
+- The cloud session also created a second empty project, `bse-coffee-log` (us-west-1). It is
+  unused; delete it in the console, or ask Claude to.
 - Neon (`BigShotEspresso`, `small-tree-07649498`, aws-us-east-2) runs **Postgres 18**, and
   Prisma runs 17.2, so `check` will show a version warning. A read-only look at Neon on
   2026-09-28 found only plain tables: 12 tables, no generated columns, no named NOT NULL
