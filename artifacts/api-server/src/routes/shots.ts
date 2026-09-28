@@ -304,6 +304,14 @@ router.get("/shots", async (req, res): Promise<void> => {
   const conditions = [];
   if (p.bean) conditions.push(ilike(shotsTable.bean, `%${p.bean}%`));
   if (p.bag) conditions.push(ilike(shotsTable.bag, `%${p.bag}%`));
+  if (p.bagId) {
+    const bagId = Number(p.bagId);
+    if (!Number.isInteger(bagId)) {
+      res.status(400).json({ error: "bagId must be an integer." });
+      return;
+    }
+    conditions.push(eq(shotsTable.bagId, bagId));
+  }
   if (p.status) conditions.push(eq(shotsTable.status, p.status));
   if (p.faultStatus) conditions.push(sql`${shotsTable.faultStatus} @> ARRAY[${p.faultStatus}]::text[]`);
   if (p.isReference !== undefined && p.isReference !== "") conditions.push(eq(shotsTable.isReference, p.isReference === "true"));

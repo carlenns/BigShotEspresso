@@ -684,6 +684,10 @@ bean?: string;
  * @nullable
  */
 bag?: string | null;
+/**
+ * Exact Bag id match (preferred over the substring `bag` name filter).
+ */
+bagId?: string;
 status?: string;
 faultStatus?: string;
 isReference?: string;

@@ -3357,3 +3357,26 @@ Baseline re-verification on `f9cd885` (2026-09-28, cloud session): `pnpm run typ
 - `phase-2a-ui.test.ts` for PL-1/2/3/6; two existing `api-contract` regexes widened to accept
   `import { errorMessageFrom, getJson }` and the Shot Log `exclude`.
 - `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 106/106 ✓ · `pnpm run build` ✓
+
+# Phase 2A — S2 Shot List filters and paging — 2026-09-28
+
+## Completed
+
+- Shot Log (`pages/ShotList.tsx`) gains a Filters panel: Bag (with a one-tap "Active bag"),
+  Status, Fault Status includes, Reference only / non-reference, minimum technical rating,
+  and From/To day range. Filter state lives in the URL (`?bag=&status=&fault=&ref=&ratingMin=&from=&to=&page=&q=`),
+  so opening a shot and going back keeps the view. Search is debounced into the URL.
+- Paging: 25 per page with "Showing X–Y of N" and previous/next, replacing the fixed 50-row cap.
+- Error state via `QueryErrorState`; the empty state offers "Clear filters".
+- Pure helper `lib/shot-list-filters.ts` (URL ↔ filters ↔ API params).
+- **One additive API param (deviation from "no API change", noted):** `GET /shots?bagId=`
+  exact match. The existing `bag` param is a substring name match, so "Bag 1" would also
+  return "Bag 10". Invalid ids return 400. OpenAPI + generated clients updated.
+- Day bounds: `shot_date` is text (app entries local `YYYY-MM-DDTHH:mm`, imports ISO), so the
+  end bound is `YYYY-MM-DDT23:59:59.999Z`, which keeps late-evening local shots on that day.
+
+## Verified
+
+- `shot-list.route.test.ts`: helper round-trip/junk handling, param mapping, and a route test
+  proving exact bag match, inclusive end day, reference/rating filters, paging totals, and 400.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 109/109 ✓ · `pnpm run build` ✓

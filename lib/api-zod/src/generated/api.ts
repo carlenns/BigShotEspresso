@@ -23,6 +23,7 @@ export const HealthCheckResponse = zod.object({
 export const ListShotsQueryParams = zod.object({
   "bean": zod.coerce.string().optional(),
   "bag": zod.coerce.string().nullish(),
+  "bagId": zod.coerce.string().optional().describe('Exact Bag id match (preferred over the substring `bag` name filter).'),
   "status": zod.coerce.string().optional(),
   "faultStatus": zod.coerce.string().optional(),
   "isReference": zod.coerce.string().optional(),
