@@ -45,6 +45,7 @@ Expected commands:
 | `NODE_ENV` | Yes | Render Blueprint/static value | Must be `production` |
 | `BASE_PATH` | Yes | Render Blueprint/static value | Use `/` for root-domain deployment |
 | `DATABASE_URL` | Yes | Neon | Secret. Do not commit or paste into docs |
+| `DATABASE_POOL_MAX` | Optional | — | Caps node-postgres connections (default 10). Set `5` on Prisma Postgres (pooled URL); see the Prisma migration runbook |
 | `ADMIN_API_TOKEN` | Yes | Generated owner secret | Secret. Required for production bulk/admin routes |
 
 ## Optional Environment Variables

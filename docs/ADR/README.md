@@ -57,5 +57,6 @@ Example: `ADR-0001-airtable-and-postgresql-authority.md`
 | [ADR-0007](ADR-0007-render-first-hosting-and-domain.md) | Render-First Hosting and Domain | Proposed |
 | [ADR-0008](ADR-0008-owner-only-first-release-access.md) | Owner-Only First Release Access | Proposed |
 | [ADR-0009](ADR-0009-user-accounts-authentication-and-data-ownership.md) | User Accounts, Authentication, and Data Ownership | Proposed |
+| [ADR-0010](ADR-0010-prisma-postgres-operational-database.md) | Prisma Postgres as the Operational Database | Proposed |
 
 These ADRs are drafts until reviewed and accepted. They document decisions already made or explicitly requested during Phase 1/1.5 stabilization and repository certification.

@@ -3561,3 +3561,40 @@ Next slice from the Phase 2A handoff §6 ("continue implementing", Carl, 2026-09
   (phase, case-insensitive mode, experiment across phases, combined, 400).
 - Browser (390 px): `?phase=3&exp=Timed Dose Stability` → 1 of 3 seeded shots.
 - `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 132/132 ✓ · `pnpm run build` ✓
+
+# Neon → Prisma Postgres migration — prepared and rehearsed (no cutover) — 2026-09-28
+
+Carl: "work on the migration to Prisma for now" (smoke test of Phase 2A first; cutover later).
+
+## Completed
+
+- Research, re-checked 2026-09-28:
+  - Free: 200k operations, 500 MB, no backups, 10/10 connections
+  - Starter: $10, 1M operations, $8 per extra million, daily backups kept 7 days
+  - Every query counts as an operation
+  - Duration and response size are listed as unlimited; pooled queries time out at 10 minutes
+  - Drizzle + node-postgres are supported (pooled URL at runtime, direct URL for dump/restore)
+- `docs/ADR/ADR-0010-prisma-postgres-operational-database.md` (Proposed).
+- `docs/implementation/prisma-postgres-migration-runbook.md`: steps, rollback, Free-plan backups,
+  operation-saving checklist.
+- `scripts/prisma-postgres-migration.mjs`:
+  - `check` is read-only and reports versions, fingerprints and warnings
+  - `copy --confirm-empty-target` refuses a non-empty target, uses `pg_dump`/`pg_restore` in a
+    single transaction, and skips the CREATE SCHEMA public entry
+  - `verify` compares row counts and order-independent content digests, and checks sequences
+  - never writes to the source, redacts URLs, and rejects a pooled target
+- `lib/db`: optional `DATABASE_POOL_MAX` (default unchanged). Render env checklist updated.
+- Query budget: a whole log-a-shot visit measures 39 statements, pinned at ≤ 45.
+
+## Verified
+
+- Local rehearsal on two PostgreSQL 16 databases: the source was seeded through the real app,
+  then copied and verified (12 tables identical, no sequence issues). A second copy was
+  refused. The app ran on the copy and inserted id 31. Drift was detected, the source was
+  untouched, and a pooled target was rejected.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 133/133 ✓ · `pnpm run build` ✓
+
+## Not done
+
+- Real Neon → Prisma copy (needs Carl's Mac: the cloud session cannot open Postgres
+  connections), the Render switch, and the choice between Free and Starter.

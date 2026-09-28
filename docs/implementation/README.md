@@ -9,6 +9,7 @@ Implementation records are subordinate to the Constitution, ADRs, architecture, 
 - [Pre-Phase-2 Readiness Gates](pre-phase-2-readiness-gates.md)
 - [Phase 2A — Owner-Alpha App Completion: Scope Authorization](phase-2a-scope-authorization.md)
 - [Query Efficiency — Phase 2A S6](query-efficiency-2026-09-28.md)
+- [Runbook: Neon → Prisma Postgres](prisma-postgres-migration-runbook.md)
 - [Release Candidate Checklist](release-candidate-checklist.md)
 - [Release Security Hardening Checklist](release-security-hardening-checklist.md)
 - [Owner-Only Release Smoke Test](owner-only-release-smoke-test.md)
