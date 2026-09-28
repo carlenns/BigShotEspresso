@@ -8,8 +8,8 @@
 |---|---|---|
 | 0 | Project Architecture | Documentation completed |
 | 1 | Data Foundation | Implemented; deployment verification pending |
-| 1.5 | Foundation Stabilization | Locally complete; external gates pending |
-| 2 | Coffee Log Application Completion | Not authorized |
+| 1.5 | Foundation Stabilization | Owner-alpha RC declared 2026-08-28; Airtable gates 5/8 remain open |
+| 2 | Coffee Log Application Completion | **2A authorized (narrow, 2026-09-28)** — see [phase-2a-scope-authorization](implementation/phase-2a-scope-authorization.md); remainder not authorized |
 | 2.5 | Knowledge & Provenance System | Governance foundation initiated |
 | 3 | Dose Consistency Intelligence (DCI) | Not authorized |
 | 4 | Operational Success Intelligence (OSI) | Not authorized |
@@ -73,6 +73,10 @@ Brew-curve capture, Bluetooth scale integration, machine/grinder/device compatib
 This module should be revisited only after BSE is live, has a paying user base, and subscription revenue can support device testing and experimentation. Current shot, bag, hopper, machine, grinder, and accessory records should remain linkable to future device-session or brew-curve records, but no Bluetooth, brew-curve, or live-device functionality is authorized in the current phase.
 
 Users may eventually be able to upload a telemetry file (e.g. an export from an advanced machine's own app) as an alternative to live Bluetooth integration. When this is built, uploaded telemetry should attach as evidence to the Shot, System Phase, or Experiment it belongs to, with clear provenance (source, upload date, confidence), the same way other imported evidence is already handled — not implemented now, and not a substitute for deciding the live-Bluetooth question separately.
+
+## Status change record
+
+- 2026-09-28 — Phase 2 row changed from "Not authorized" to "2A authorized (narrow)"; Phase 1.5 row changed from "Locally complete; external gates pending" to reflect the RC declaration. Rationale, impact, and waivers: [phase-2a-scope-authorization.md](implementation/phase-2a-scope-authorization.md). Approved by Carl (2026-09-28 planning session). No phase sequence or authority changed, so no ADR is required.
 
 ## Roadmap change control
 

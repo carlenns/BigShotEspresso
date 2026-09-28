@@ -1,10 +1,18 @@
 # Bag and Hopper Lifecycle Plan
 
-Last updated: 2026-08-25
+Last updated: 2026-09-28 (status notes only; see "Status since 2026-08-25")
 
 ## Scope of this revision
 
 This revision adds three sections requested for launch-scope planning that were missing from the 2026-08-24 version: a per-workflow field/data requirements breakdown, UI flow recommendations by user type, and a dedicated analytics-protection walkthrough. It also adds a Future Development Notes section. Nothing in the prior workflow definitions, phase-label recommendations, data model direction, implementation order, known risks, decisions needed, launch success criteria, or non-goals is changed by this revision.
+
+## Status since 2026-08-25
+
+- **New Bag Dial-In (§ workflow 4):** the launch-safe guided dial-in shipped in `f379aa6` (2026-09-23) — auto-tag "New Bag Dial-In" until the bag's first Status = "Dialed In" shot. No schema change.
+- **Open decision 4 (one active Bag):** resolved at the route level in `20ad425` (2026-09-23): `POST /bags` and `PATCH /bags/:id` deactivate every other active bag in the same transaction. A database-level constraint is still not added.
+- **Hopper phase edit/end UI:** scheduled as Phase 2A slice S3 ([phase-2a-scope-authorization.md](phase-2a-scope-authorization.md)).
+
+The body below is unchanged from the 2026-08-25 revision.
 
 ## Purpose
 

@@ -211,7 +211,10 @@ Do not run:
 
 ## Gate 9 — Phase 2 Scope Decision
 
-Status: not ready.
+Status: **satisfied for Phase 2A only by option (2)** (2026-09-28) — see
+[phase-2a-scope-authorization.md](phase-2a-scope-authorization.md). Full Phase 2 remains not ready.
+
+Original status (2026-08-17): not ready.
 
 Phase 2 should not begin until one of these is true:
 

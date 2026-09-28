@@ -7,6 +7,7 @@ Implementation records are subordinate to the Constitution, ADRs, architecture, 
 - [Phase 1.5 Completed Tasks](../completed-tasks.md)
 - [Repository Certification Audit](../REPOSITORY_CERTIFICATION_AUDIT.md)
 - [Pre-Phase-2 Readiness Gates](pre-phase-2-readiness-gates.md)
+- [Phase 2A — Owner-Alpha App Completion: Scope Authorization](phase-2a-scope-authorization.md)
 - [Release Candidate Checklist](release-candidate-checklist.md)
 - [Release Security Hardening Checklist](release-security-hardening-checklist.md)
 - [Owner-Only Release Smoke Test](owner-only-release-smoke-test.md)

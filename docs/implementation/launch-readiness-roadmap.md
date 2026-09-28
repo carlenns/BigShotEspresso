@@ -164,8 +164,11 @@ removal of those Settings rows stands.
 
 ### Track 3 — Taste-selector archive (parallel, gated on a decision)
 
-Once Carl approves the decision doc and picks the archive column: **TS-1** as a single M
-slice (migration → API → UI → picker filter). Resolves DI-5. **TS-2 / TS-3** are later.
+**TS-1 done** (2026-09-24): PR #11 `f32131b` added `origin` + `archived_at` (migration 0013),
+archive/restore, promote-to-standard, and category-grouped chips; PR #12 `6475b39` added a
+permanent `canonical_key` (migration 0014), which partly covers TS-2. DI-5 remains partly open:
+`shot_taste_selectors.taste_selector_id` is still `ON DELETE CASCADE` and custom selectors can
+still be hard-deleted. **TS-3** is later.
 
 ### Track 4 — Deferred equipment capability
 
@@ -187,6 +190,9 @@ unblocks TS-3 and everything public-launch.
 
 ---
 
+> **2026-09-28:** superseded as the active plan by
+> [phase-2a-scope-authorization.md](phase-2a-scope-authorization.md). Kept for history.
+
 ## Recommended next 3–4 slices
 
 1. **Use the owner-alpha RC in daily life.** Log real shots, close/open bags,
@@ -196,8 +202,9 @@ unblocks TS-3 and everything public-launch.
    to settle: (a) approve/adjust equipment-default Option A and the
    decaf/pour-over model (EQ-*, EQ-2); (b) approve the taste-selector archive
    slice and pick `archived_at` vs `is_active` (TS-1); (c) import-corpus
-   rule-backfill yes/no (DI-4); (d) confirm the magic-link auth mechanism
-   (AUTH-0). Each is a small answer that releases a queued track.
+   rule-backfill yes/no (DI-4); (d) ~~confirm the auth mechanism (AUTH-0)~~ —
+   decided 2026-09-08: Clerk (see `clickonomics-platform-architecture.md`).
+   (b) TS-1 is done — landed in PR #11 (`f32131b`) and PR #12 (`6475b39`). Each is a small answer that releases a queued track.
 3. **EQ-0 + EQ-3 (A, S), if development resumes before Tier 2.** The
    no-approval-needed pieces of the equipment track: backfill `isDefault` from
    Settings label strings, fix the accessory POST per-type bug, and fix the dead

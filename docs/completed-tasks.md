@@ -3282,3 +3282,44 @@ No commit — this task made no file changes.
 ## Verified
 
 - Pending in this session.
+
+# Post-RC work record backfill (2026-08-31 → 2026-09-24) — reconstructed 2026-09-28
+
+Reconstructed from Git commit messages on `main` during Phase 2A S0. These changes shipped
+without a completed-tasks entry; this entry records them after the fact. Verification lines are
+quoted from the commit messages, not re-run here (the 2026-09-28 baseline below re-ran the
+whole suite on `f9cd885`).
+
+| Date | Commit | Change |
+|---|---|---|
+| 2026-08-31 | `edb469a` | Settings Default Basket changed from free text to a saved selector (keeps legacy values). |
+| 2026-08-31 | `2572346` | Added `CLAUDE.md` project instructions. |
+| 2026-09-20 | `8a7cfec` | Docs: Clickonomics platform architecture + Clerk integration plan; records the 2026-09-08 Clerk decision (AUTH-0). Planning only. |
+| 2026-09-23 | `20ad425` | Single active bag enforced at the route level (POST/PATCH deactivate other bags in the same transaction). No schema change. Verified: typecheck, 95 API tests, Render build. |
+| 2026-09-23 | `d47429f` | Dashboard same-bean timing-window query crash fixed (`inArray()` instead of a raw `ANY(${array})` template); surfaced as a live 500 when Bag #8 shared a bean with Bag #3. |
+| 2026-09-23 | `a8ed6d8` | `POST /hoppers` duplicate name now returns 409; global Express error handler logs the real error and returns JSON. |
+| 2026-09-23 | `f379aa6` | New-bag dial-in guidance: auto "New Bag Dial-In" classification until the bag's first "Dialed In" shot; `bagIntelligence.hasDialedInShot`. No schema change. |
+| 2026-09-24 | `f32131b` (PR #11) | Taste selectors: `origin` + `archived_at` (migration 0013), archive/restore, promote-to-standard, category-grouped chips. Resolves TS-1. |
+| 2026-09-24 | `6475b39` (PR #12) | Taste selectors: normalized names, permanent `canonical_key` (migration 0014), category-required promotion. |
+
+Baseline re-verification on `f9cd885` (2026-09-28, cloud session): `pnpm run typecheck` ✓,
+`pnpm run test:phase1.5` 99/99 ✓, `pnpm run build` ✓.
+
+# Phase 2A — S0 Governance catch-up — 2026-09-28
+
+## Completed
+
+- Added `docs/implementation/phase-2a-scope-authorization.md` (narrow Phase 2A under Gate 9
+  option 2; Gates 5 and 8 waived for this scope only; S5 held pending Carl's go).
+- `docs/ROADMAP.md`: Phase 2 → "2A authorized (narrow)"; Phase 1.5 status reflects the RC;
+  status-change record added.
+- `pre-phase-2-readiness-gates.md` Gate 9: records the option-(2) satisfaction for 2A only.
+- `launch-readiness-roadmap.md`: TS-1 marked done, AUTH-0 magic-link wording replaced with
+  the Clerk decision, and the "Recommended next slices" section marked superseded.
+- `bag-hopper-lifecycle-plan.md`: status notes for dial-in (`f379aa6`) and open decision 4
+  (`20ad425`); body unchanged.
+- Backfilled the post-RC work record above.
+
+## Verified
+
+- Docs only; no code changes.
