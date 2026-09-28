@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "wouter";
+import { QueryErrorState } from "@/components/QueryErrorState";
 import { useListReferenceShots } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,7 +8,7 @@ import { format } from "date-fns";
 import { Target, Star } from "lucide-react";
 
 export default function ReferenceShots() {
-  const { data: shots, isLoading } = useListReferenceShots();
+  const { data: shots, isLoading, isError, error, refetch } = useListReferenceShots();
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -21,7 +22,9 @@ export default function ReferenceShots() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
-        {isLoading ? (
+        {isError ? (
+          <QueryErrorState what="reference shots" error={error} onRetry={() => refetch()} />
+        ) : isLoading ? (
           Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-48 w-full" />)
         ) : shots?.length === 0 ? (
           <div className="col-span-full text-center py-12 text-muted-foreground border rounded-lg bg-muted/10">

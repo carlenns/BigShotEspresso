@@ -32,3 +32,14 @@ export async function errorMessageFrom(response: Response): Promise<string> {
 
   return response.statusText || `Request failed (${response.status})`;
 }
+
+/**
+ * GET a JSON resource and throw a readable Error on a non-2xx response, so
+ * React Query reports `isError` instead of handing an `{ error }` body to a
+ * list renderer as if it were data (PL-2).
+ */
+export async function getJson<T>(url: string): Promise<T> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(await errorMessageFrom(response));
+  return (await response.json()) as T;
+}

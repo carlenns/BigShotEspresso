@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { errorMessageFrom } from "@/lib/http";
+import { errorMessageFrom, getJson } from "@/lib/http";
+import { QueryErrorState } from "@/components/QueryErrorState";
 import { Plus, Pencil, Trash2, Tag, RefreshCw, Archive, ArchiveRestore, Check, BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -49,12 +50,12 @@ const CAT_COLORS: Record<string, string> = {
 // The management page includes archived selectors; the shot-form picker
 // (queryKey ["taste-selectors"]) does not. Invalidating ["taste-selectors"]
 // refreshes both.
-function fetchSelectors(): Promise<TasteSelector[]> { return fetch("/api/taste-selectors?includeArchived=true").then((r) => r.json()); }
+function fetchSelectors(): Promise<TasteSelector[]> { return getJson<TasteSelector[]>("/api/taste-selectors?includeArchived=true"); }
 
 export default function TasteSelectors() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { data: selectors = [], isLoading } = useQuery({ queryKey: ["taste-selectors", "manage"], queryFn: fetchSelectors });
+  const { data: selectors = [], isLoading, isError, error, refetch } = useQuery({ queryKey: ["taste-selectors", "manage"], queryFn: fetchSelectors });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TasteSelector | null>(null);
   const [form, setForm] = useState({ name: "", category: "custom" });
@@ -164,7 +165,9 @@ export default function TasteSelectors() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorState what="taste selectors" error={error} onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div>
       ) : selectors.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground border rounded-xl">

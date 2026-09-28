@@ -11,10 +11,11 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { errorMessageFrom } from "@/lib/http";
+import { errorMessageFrom, getJson } from "@/lib/http";
+import { QueryErrorState } from "@/components/QueryErrorState";
 import { Archive, Plus, Star, Package, Pencil, ChevronRight, ClipboardCheck, RefreshCw, AlertTriangle, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useListHoppers, getListHoppersQueryKey } from "@workspace/api-client-react";
+import { useListHoppers, useUpdateHopper, getListHoppersQueryKey, type Hopper } from "@workspace/api-client-react";
 
 const HOPPER_PHASE_OPTIONS = ["Phase 1", "Phase 2", "Phase 3", "End of Bag", "Single Bag Phase", "Custom"] as const;
 
@@ -38,8 +39,8 @@ interface Bag {
   closedOutDate: string | null; daysSinceClosedOut: number | null;
 }
 
-function fetchBags(): Promise<Bag[]> { return fetch("/api/bags").then((r) => r.json()); }
-function fetchBeans(): Promise<Bean[]> { return fetch("/api/beans").then((r) => r.json()); }
+function fetchBags(): Promise<Bag[]> { return getJson<Bag[]>("/api/bags"); }
+function fetchBeans(): Promise<Bean[]> { return getJson<Bean[]>("/api/beans"); }
 
 const ROAST_DATE_CONFIDENCE = ["Exact", "Estimated High", "Estimated Medium", "Estimated Low", "Unknown"];
 
@@ -78,9 +79,12 @@ function suggestNextBagNumber(bags: Bag[]): string {
 export default function Bags() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { data: bags = [], isLoading } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
+  const { data: bags = [], isLoading, isError, error, refetch } = useQuery({ queryKey: ["bags"], queryFn: fetchBags });
   const { data: beans = [] } = useQuery({ queryKey: ["beans"], queryFn: fetchBeans });
   const { data: hoppers = [] } = useListHoppers();
+  const activeHopperByBagId = new Map(
+    hoppers.filter((h) => h.isActive && h.bagId != null).map((h) => [h.bagId as number, h]),
+  );
   const activeHopperPhaseByBagId = new Map(
     hoppers.filter((h) => h.isActive && h.bagId != null).map((h) => [h.bagId as number, h.phase ?? null]),
   );
@@ -205,6 +209,53 @@ export default function Bags() {
     onError: (e) => toast({ title: "Could not start phase", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
+  // Hopper phase edit / end (Phase 2A S3). Uses the existing PATCH /hoppers/:id.
+  // Ending a phase only sets isActive=false: the record, its dates and notes stay
+  // as history. There is deliberately no delete from the UI.
+  const [managePhase, setManagePhase] = useState<Hopper | null>(null);
+  const [managePhaseForm, setManagePhaseForm] = useState({ startingBeans: "", notes: "" });
+  const [confirmEndPhase, setConfirmEndPhase] = useState(false);
+  const updateHopper = useUpdateHopper();
+  const openManagePhase = (bag: Bag) => {
+    const hopper = activeHopperByBagId.get(bag.id);
+    if (!hopper) return;
+    setManagePhase(hopper);
+    setConfirmEndPhase(false);
+    setManagePhaseForm({
+      startingBeans: hopper.startingBeans != null ? String(hopper.startingBeans) : "",
+      notes: hopper.notes ?? "",
+    });
+  };
+  const savePhase = (end: boolean) => {
+    if (!managePhase) return;
+    const startingBeans = managePhaseForm.startingBeans.trim();
+    if (startingBeans !== "" && (!Number.isFinite(Number(startingBeans)) || Number(startingBeans) < 0)) {
+      toast({ title: "Check starting beans", description: "Starting beans must be a number of grams (0 or more).", variant: "destructive" });
+      return;
+    }
+    updateHopper.mutate(
+      {
+        id: managePhase.id,
+        data: {
+          startingBeans: startingBeans === "" ? null : Number(startingBeans),
+          notes: managePhaseForm.notes.trim() === "" ? null : managePhaseForm.notes.trim(),
+          ...(end ? { isActive: false } : {}),
+        },
+      },
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: getListHoppersQueryKey() });
+          qc.invalidateQueries({ queryKey: ["dashboard-intelligence"] });
+          setManagePhase(null);
+          toast(end
+            ? { title: "Hopper phase ended", description: "The phase is kept in history. Start a new phase when you refill." }
+            : { title: "Hopper phase updated" });
+        },
+        onError: (e) => toast({ title: end ? "Could not end phase" : "Could not update phase", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+      },
+    );
+  };
+
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const openStartPhase = (bag: Bag) => {
@@ -301,7 +352,9 @@ export default function Bags() {
         </CardContent>
       </Card>
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorState what="bags" error={error} onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div>
       ) : bags.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
@@ -314,7 +367,7 @@ export default function Bags() {
           {activeBags.length > 0 && (
             <section>
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Active</h2>
-              <div className="space-y-2">{activeBags.map((b) => <BagRow key={b.id} bag={b} onEdit={openEdit} onCloseout={openCloseout} onStartPhase={openStartPhase} hopperPhase={activeHopperPhaseByBagId.get(b.id) ?? null} />)}</div>
+              <div className="space-y-2">{activeBags.map((b) => <BagRow key={b.id} bag={b} onEdit={openEdit} onCloseout={openCloseout} onStartPhase={openStartPhase} onManagePhase={openManagePhase} hopperPhase={activeHopperPhaseByBagId.get(b.id) ?? null} />)}</div>
             </section>
           )}
           {inactiveBags.length > 0 && (
@@ -497,6 +550,71 @@ export default function Bags() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!managePhase} onOpenChange={(isOpen) => !isOpen && setManagePhase(null)}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Hopper Phase</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-md border bg-muted/40 p-3 text-sm">
+              <p className="font-medium">{managePhase?.phase ?? "Hopper phase"}</p>
+              <p className="text-muted-foreground break-words">{managePhase?.name}</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="manage-phase-starting-beans">Starting beans (phase baseline, g)</Label>
+              <Input
+                id="manage-phase-starting-beans"
+                type="number"
+                step="0.1"
+                min="0"
+                inputMode="decimal"
+                value={managePhaseForm.startingBeans}
+                onChange={(e) => setManagePhaseForm((f) => ({ ...f, startingBeans: e.target.value }))}
+                placeholder="Leave blank if not measured"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="manage-phase-notes">Notes</Label>
+              <Input
+                id="manage-phase-notes"
+                value={managePhaseForm.notes}
+                onChange={(e) => setManagePhaseForm((f) => ({ ...f, notes: e.target.value }))}
+                placeholder="e.g. topped up 20 g, hopper wiped"
+              />
+            </div>
+            {confirmEndPhase ? (
+              <div role="alert" className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950/40">
+                <p className="font-medium flex items-center gap-1.5"><AlertTriangle className="h-4 w-4" aria-hidden="true" /> End this hopper phase?</p>
+                <p className="text-muted-foreground mt-1">
+                  It stops being the active phase for this bag. The record and its shots are kept; nothing is deleted.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Editing changes only this phase's baseline and notes. Past shots are not changed.
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            {confirmEndPhase ? (
+              <>
+                <Button variant="outline" onClick={() => setConfirmEndPhase(false)} disabled={updateHopper.isPending}>Keep it active</Button>
+                <Button variant="destructive" onClick={() => savePhase(true)} disabled={updateHopper.isPending}>
+                  {updateHopper.isPending ? "Ending…" : "End phase"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setConfirmEndPhase(true)} disabled={updateHopper.isPending}>End phase…</Button>
+                <Button onClick={() => savePhase(false)} disabled={updateHopper.isPending}>
+                  {updateHopper.isPending ? "Saving…" : "Save changes"}
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!startPhaseBag} onOpenChange={(isOpen) => !isOpen && setStartPhaseBag(null)}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -556,7 +674,7 @@ export default function Bags() {
             )}
 
             <div className="space-y-1.5">
-              <Label>Starting Beans / Phase Baseline (g)</Label>
+              <Label>Starting beans (phase baseline, g)</Label>
               <Input
                 type="number"
                 step="0.1"
@@ -611,7 +729,7 @@ export default function Bags() {
   );
 }
 
-function BagRow({ bag, onEdit, onCloseout, onStartPhase, hopperPhase }: { bag: Bag; onEdit: (b: Bag) => void; onCloseout: (b: Bag) => void; onStartPhase?: (b: Bag) => void; hopperPhase?: string | null }) {
+function BagRow({ bag, onEdit, onCloseout, onStartPhase, onManagePhase, hopperPhase }: { bag: Bag; onEdit: (b: Bag) => void; onCloseout: (b: Bag) => void; onStartPhase?: (b: Bag) => void; onManagePhase?: (b: Bag) => void; hopperPhase?: string | null }) {
   return (
     <Card className={cn("transition-colors hover:border-primary/40", bag.isActive && "border-primary/50 bg-primary/5")}>
       <CardContent className="p-4">
@@ -622,7 +740,18 @@ function BagRow({ bag, onEdit, onCloseout, onStartPhase, hopperPhase }: { bag: B
               {bag.bagName && <span className="text-muted-foreground text-sm">{bag.bagName}</span>}
               <Badge variant="outline" className="text-xs">#{bag.bagNumber ?? bag.id}</Badge>
               {bag.isActive && <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Active</Badge>}
-              {bag.isActive && hopperPhase && <Badge variant="secondary" className="text-xs">Hopper: {hopperPhase}</Badge>}
+              {bag.isActive && hopperPhase && (onManagePhase ? (
+                <button
+                  type="button"
+                  onClick={() => onManagePhase(bag)}
+                  aria-label={`Edit or end hopper phase ${hopperPhase}`}
+                  className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80"
+                >
+                  Hopper: {hopperPhase} <Pencil className="h-3 w-3" aria-hidden="true" />
+                </button>
+              ) : (
+                <Badge variant="secondary" className="text-xs">Hopper: {hopperPhase}</Badge>
+              ))}
               {bag.isActive && !hopperPhase && onStartPhase && (
                 <button
                   type="button"

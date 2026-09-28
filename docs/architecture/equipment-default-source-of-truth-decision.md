@@ -1,6 +1,6 @@
 # Decision Proposal: "Default Machine / Grinder" Source-of-Truth Split
 
-Status: **Proposal — pending Carl/Codex approval. Not implemented.**
+Status: **Accepted — Option A approved by Carl 2026-09-28 and implemented in Phase 2A S5** (see `docs/implementation/equipment-default-consolidation-plan.md`). Original status: Proposal — pending Carl/Codex approval.
 Date: 2026-08-27
 Author: Agent 2 (review/docs)
 Scope: documentation only. No code, schema, migration, or API change is made by this file.

@@ -1,14 +1,43 @@
-import React, { useState } from "react";
-import { Link } from "wouter";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useSearch } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { useListShots } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Search, Plus, Star, Info } from "lucide-react";
+import { Search, Plus, Star, Info, SlidersHorizontal, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { displaySelectorValue } from "@/lib/selector-options";
+import { CURATED_SELECTOR_OPTIONS, displaySelectorValue } from "@/lib/selector-options";
+import { getJson } from "@/lib/http";
+import { QueryErrorState } from "@/components/QueryErrorState";
+import {
+  EMPTY_SHOT_LIST_FILTERS,
+  activeFilterCount,
+  pageSummary,
+  parseShotListQuery,
+  toListShotsParams,
+  toShotListQuery,
+  type ShotListFilters,
+} from "@/lib/shot-list-filters";
+
+interface BagOption {
+  id: number;
+  bagName: string | null;
+  bagNumber: string | null;
+  beanName: string | null;
+  isActive: boolean;
+}
+
+function bagLabel(b: BagOption): string {
+  const name = b.bagName || (b.bagNumber ? `Bag ${b.bagNumber}` : `Bag #${b.id}`);
+  return b.beanName && !name.includes(b.beanName) ? `${name} — ${b.beanName}` : name;
+}
+
+const ANY = "__any__";
 
 // ── Shot Highlight helpers ────────────────────────────────────────────────────
 
@@ -59,10 +88,46 @@ function highlightChipClass(label: string): string {
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function ShotList() {
-  const [search, setSearch] = useState("");
+  const [location, setLocation] = useLocation();
+  const searchString = useSearch();
+  // URL is the source of truth so back-navigation from a shot keeps the filters.
+  const filters = useMemo(() => parseShotListQuery(searchString), [searchString]);
+  const [searchDraft, setSearchDraft] = useState(filters.search);
+  const [showFilters, setShowFilters] = useState(activeFilterCount(filters) > 0);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const { data, isLoading } = useListShots({ search, limit: "50" });
+
+  const update = (patch: Partial<ShotListFilters>, keepPage = false) => {
+    const next = { ...filters, ...patch, page: keepPage ? (patch.page ?? filters.page) : 1 };
+    const qs = toShotListQuery(next);
+    setLocation(qs ? `${location}?${qs}` : location, { replace: true });
+  };
+
+  // Debounce free-text search into the URL.
+  useEffect(() => {
+    if (searchDraft === filters.search) return;
+    const t = setTimeout(() => update({ search: searchDraft }), 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchDraft]);
+
+  const { data: bags = [] } = useQuery({
+    queryKey: ["bags"],
+    queryFn: () => getJson<BagOption[]>("/api/bags"),
+  });
+  const activeBag = bags.find((b) => b.isActive);
+
+  const { data, isLoading, isError, error, refetch } = useListShots(toListShotsParams(filters));
   const shots = data?.shots;
+  const total = data?.total ?? 0;
+  const { from, to, pageCount } = pageSummary(filters.page, total);
+  const filterCount = activeFilterCount(filters);
+
+  // A stale or shared link can point past the last page (e.g. after filtering
+  // or deleting shots): jump to the last real page instead of showing nothing.
+  useEffect(() => {
+    if (data && filters.page > pageCount) update({ page: pageCount }, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, filters.page, pageCount]);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -80,15 +145,127 @@ export default function ShotList() {
         </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by bean, bag, or notes..."
-          className="pl-9"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by bean, bag, or notes..."
+            className="pl-9"
+            value={searchDraft}
+            onChange={(e) => setSearchDraft(e.target.value)}
+          />
+        </div>
+        <Button
+          type="button"
+          variant={showFilters ? "secondary" : "outline"}
+          onClick={() => setShowFilters((v) => !v)}
+          aria-expanded={showFilters}
+          aria-controls="shot-filters"
+          className="gap-1.5 shrink-0"
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          Filters{filterCount > 0 ? ` (${filterCount})` : ""}
+        </Button>
       </div>
+
+      {showFilters && (
+        <Card id="shot-filters" className="border-dashed">
+          <CardContent className="p-4 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
+              <Label>Bag</Label>
+              <div className="flex gap-2">
+                <Select value={filters.bagId || ANY} onValueChange={(v) => update({ bagId: v === ANY ? "" : v })}>
+                  <SelectTrigger className="flex-1" aria-label="Bag"><SelectValue placeholder="All bags" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ANY}>All bags</SelectItem>
+                    {bags.map((b) => (
+                      <SelectItem key={b.id} value={String(b.id)}>
+                        {bagLabel(b)}{b.isActive ? " (active)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {activeBag && filters.bagId !== String(activeBag.id) && (
+                  <Button type="button" variant="outline" onClick={() => update({ bagId: String(activeBag.id) })} className="shrink-0">
+                    Active bag
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Select value={filters.status || ANY} onValueChange={(v) => update({ status: v === ANY ? "" : v })}>
+                <SelectTrigger aria-label="Status"><SelectValue placeholder="Any status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ANY}>Any status</SelectItem>
+                  {CURATED_SELECTOR_OPTIONS.status.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Fault Status includes</Label>
+              <Select value={filters.faultStatus || ANY} onValueChange={(v) => update({ faultStatus: v === ANY ? "" : v })}>
+                <SelectTrigger aria-label="Fault Status"><SelectValue placeholder="Any fault status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ANY}>Any fault status</SelectItem>
+                  {CURATED_SELECTOR_OPTIONS.faultStatus.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Reference</Label>
+              <Select value={filters.reference || ANY} onValueChange={(v) => update({ reference: v === ANY ? "" : (v as "true" | "false") })}>
+                <SelectTrigger aria-label="Reference"><SelectValue placeholder="All shots" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ANY}>All shots</SelectItem>
+                  <SelectItem value="true">Reference shots only</SelectItem>
+                  <SelectItem value="false">Non-reference only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Minimum technical rating</Label>
+              <Select value={filters.ratingMin || ANY} onValueChange={(v) => update({ ratingMin: v === ANY ? "" : v })}>
+                <SelectTrigger aria-label="Minimum technical rating"><SelectValue placeholder="Any rating" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ANY}>Any rating</SelectItem>
+                  {[5, 6, 7, 8, 9, 10].map((r) => <SelectItem key={r} value={String(r)}>{r}+ / 10</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:col-span-2 lg:col-span-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="shot-filter-from">From</Label>
+              <Input id="shot-filter-from" type="date" value={filters.dateFrom} max={filters.dateTo || undefined} onChange={(e) => update({ dateFrom: e.target.value })} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="shot-filter-to">To</Label>
+              <Input id="shot-filter-to" type="date" value={filters.dateTo} min={filters.dateFrom || undefined} onChange={(e) => update({ dateTo: e.target.value })} />
+            </div>
+            </div>
+
+            {filterCount > 0 && (
+              <div className="sm:col-span-2 lg:col-span-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => update({ ...EMPTY_SHOT_LIST_FILTERS, search: filters.search })}
+                >
+                  <X className="h-3.5 w-3.5" /> Clear filters
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Shot Highlights onboarding */}
       <div className="flex items-start gap-2 text-xs text-muted-foreground px-1">
@@ -116,11 +293,20 @@ export default function ShotList() {
       )}
 
       <div className="grid gap-3">
-        {isLoading ? (
+        {isError ? (
+          <QueryErrorState what="shots" error={error} onRetry={() => refetch()} />
+        ) : isLoading ? (
           Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)
         ) : shots?.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             No shots found matching your criteria.
+            {filterCount > 0 && (
+              <div className="mt-3">
+                <Button type="button" variant="outline" size="sm" onClick={() => update({ ...EMPTY_SHOT_LIST_FILTERS, search: filters.search })}>
+                  Clear filters
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           shots?.map((shot) => {
@@ -200,6 +386,39 @@ export default function ShotList() {
           })
         )}
       </div>
+
+      {!isError && total > 0 && from > 0 && (
+        <nav className="flex items-center justify-between gap-3 text-sm" aria-label="Shot Log pages">
+          <span className="text-muted-foreground">
+            Showing {from}–{to} of {total} shot{total === 1 ? "" : "s"}
+          </span>
+          {pageCount > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={filters.page <= 1}
+                onClick={() => { update({ page: filters.page - 1 }, true); window.scrollTo({ top: 0 }); }}
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="tabular-nums">Page {filters.page} of {pageCount}</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={filters.page >= pageCount}
+                onClick={() => { update({ page: filters.page + 1 }, true); window.scrollTo({ top: 0 }); }}
+                aria-label="Next page"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </nav>
+      )}
     </div>
   );
 }

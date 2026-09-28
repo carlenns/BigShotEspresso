@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import {
   Activity, BookOpen, Coffee, LayoutDashboard,
-  Menu, Package, Settings, Sprout, Wrench, Tag, Layers
+  Menu, Package, Settings, Sprout, Target, Wrench, Tag, Layers
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,20 +27,23 @@ interface NavItem {
   // two near-identical adjacent tabs. Set this where the first word is
   // ambiguous.
   shortLabel?: string;
+  // Paths that match this item's prefix but belong to a more specific item
+  // (e.g. "/shots/new" is Log Shot, not Shot Log). PL-1.
+  exclude?: string[];
 }
 
 const primaryNav: NavItem[] = [
   { title: "Dashboard",       href: "/",            icon: LayoutDashboard, exact: true },
   { title: "Log Shot",        href: "/shots/new",   icon: Coffee,          exact: true },
-  { title: "Shot Log",        href: "/shots",       icon: BookOpen },
-  { title: "Reference Shots", href: "/reference",   icon: Coffee },
+  { title: "Shot Log",        href: "/shots",       icon: BookOpen,        exclude: ["/shots/new"] },
+  { title: "Reference Shots", href: "/reference",   icon: Target },
 ];
 
 const mobileBottomNav: NavItem[] = [
   { title: "Dashboard",       href: "/",            icon: LayoutDashboard, exact: true },
   { title: "Log Shot",        href: "/shots/new",   icon: Coffee,          exact: true },
-  { title: "Shot Log",        href: "/shots",       icon: BookOpen,        shortLabel: "Shots" },
-  { title: "Reference Shots", href: "/reference",   icon: Coffee },
+  { title: "Shot Log",        href: "/shots",       icon: BookOpen,        shortLabel: "Shots", exclude: ["/shots/new"] },
+  { title: "Reference Shots", href: "/reference",   icon: Target },
   { title: "Beans", href: "/beans", icon: Sprout },
   { title: "Bags", href: "/bags", icon: Package },
   { title: "Equipment", href: "/equipment", icon: Wrench },
@@ -76,6 +79,7 @@ const mobileMoreNav: NavItem[] = [
 function isNavActive(item: NavItem, location: string): boolean {
   if (item.exact) return location === item.href;
   if (item.href === "/") return location === "/";
+  if (item.exclude?.includes(location)) return false;
   return location === item.href || location.startsWith(item.href + "/");
 }
 
@@ -197,7 +201,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             exists to rescue stays permanently half-ghosted under it. */}
         <div className="flex h-full min-w-max snap-x snap-mandatory pr-14">
         {mobileBottomNav.map((item) => {
-          const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
+          const isActive = isNavActive(item, location);
           return (
             <Link
               key={item.href}

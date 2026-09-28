@@ -138,7 +138,8 @@ test("analytical route inventory uses the shared eligibility condition", async (
   );
   assert.match(
     dashboardSource,
-    /const activeBagShots = await db\.select\(\)\.from\(shotsTable\)[\s\S]{0,120}?eq\(shotsTable\.bagId, activeBagRow\.id\),[\s\S]{0,40}?\.\.\.eligibleShotConditions,/,
+    // Phase 2A S6: one bag-scoped read, eligible subset via the shared in-memory twin.
+    /const activeBagInventoryRecords = await db\.select\(\)\.from\(shotsTable\)\s*\.where\(eq\(shotsTable\.bagId, activeBagRow\.id\)\)[\s\S]{0,200}?const activeBagShots = activeBagInventoryRecords\.filter\(isEligibleShotRow\);/,
     "activeBagShots must be scoped to the active bag AND the shared eligibility condition before comparison",
   );
   // The insufficient-reference state is a labelled null, never a zeroed object.

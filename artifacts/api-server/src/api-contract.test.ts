@@ -167,7 +167,9 @@ test("Shot create/update recompute includeInAnalysis server-side and never trust
   const patchMatch = source.match(/router\.patch\("\/shots\/:id", async[\s\S]*?\n\}\);/);
   assert.ok(patchMatch, "PATCH /shots/:id handler not found");
   const patchBody = patchMatch![0];
-  assert.match(patchBody, /const existing = await db\.select\(\)\.from\(shotsTable\)\.where\(eq\(shotsTable\.id, id\)\);/);
+  // Phase 2A S6: the existing row is read with its bag's opened_date joined on.
+  assert.match(patchBody, /\.select\(\{ shot: shotsTable, bagOpenedDate: bagsTable\.openedDate \}\)[\s\S]{0,120}\.where\(eq\(shotsTable\.id, id\)\);/);
+  assert.match(patchBody, /const existing = existingRows\.map\(\(r\) => r\.shot\);/);
   assert.match(patchBody, /if \(!existing\[0\]\) \{ res\.status\(404\)\.json\(\{ error: "Shot not found" \}\); return; \}/);
   assert.match(patchBody, /const effectiveStatus = data\.status !== undefined \? data\.status : existing\[0\]\.status;/);
   assert.match(patchBody, /const effectiveFaultStatus = data\.faultStatus !== undefined \? data\.faultStatus : existing\[0\]\.faultStatus;/);
@@ -508,7 +510,10 @@ test("Shot-level System Phase / Experiment is an additive foundation, distinct f
   assert.match(shotFormSource, /experimentName: existingShot\.experimentName \?\? undefined/);
   assert.match(shotFormSource, /name="systemPhase"/);
   assert.match(shotFormSource, /<CardTitle className="text-base">Workflow Context<\/CardTitle>/);
-  assert.doesNotMatch(shotFormSource, /setValue\("systemPhase"/);
+  // Superseded 2026-09-28 (owner-approved): new shots now start on the Settings
+  // "Current System Phase" (default 3). It is still create-only and blank-only,
+  // never inferred from Hopper Phase or shot order, and edit mode never sets it.
+  assert.match(shotFormSource, /if \(isEditing \|\| settings === undefined \|\| appliedSystemPhaseDefault\.current\) return;/);
   assert.doesNotMatch(shotFormSource, /setValue\("experimentName"/);
 
   // User-visible copy names the distinction from Hopper Phase, spells out the
@@ -553,7 +558,8 @@ test("Days Since Open is recomputed on every shot write and backfilled by the mi
   assert.match(routeSource, /async function computeDaysSinceOpen\(/);
   assert.match(routeSource, /\.select\(\{ openedDate: bagsTable\.openedDate \}\)/);
   assert.match(routeSource, /const daysSinceOpen = await computeDaysSinceOpen\(data\.bagId, data\.shotDate\);/);
-  assert.match(routeSource, /const daysSinceOpen = await computeDaysSinceOpen\(effectiveBagId, effectiveShotDate\);/);
+  // Phase 2A S6: PATCH reuses the joined opened_date only when the bag is unchanged.
+  assert.match(routeSource, /const daysSinceOpen = await computeDaysSinceOpen\(\s*effectiveBagId,\s*effectiveShotDate,\s*effectiveBagId === existing\[0\]\.bagId \? \(existingRows\[0\]!\.bagOpenedDate \?\? null\) : undefined,\s*\);/);
   assert.match(routeSource, /\.values\(\{ \.\.\.data, daysSinceOpen \}\)/);
   assert.match(routeSource, /\.set\(\{ \.\.\.data, daysSinceOpen \}\)/);
   // PATCH recomputes from the merged bag/date, not just a supplied one.
@@ -1302,44 +1308,22 @@ test("Bags page distinguishes the guided Change Bag flow from per-row actions, a
 });
 
 test("Settings equipment defaults use saved equipment and accessory selectors", async () => {
+  // Superseded 2026-09-28 by equipment defaults Option A (Phase 2A S5, Carl-approved):
+  // Settings no longer sets machine/grinder/basket/puck-screen defaults. It shows the
+  // Equipment/Accessories `isDefault` records read-only, with links to change them.
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/pages/Settings.tsx", import.meta.url)),
     "utf8",
   );
-
-  for (const requiredText of [
-    "fetchGrinders",
-    "fetchMachines",
-    "fetchAccessories",
-    "EquipmentDefaultsSection",
-    "GrinderDefaultsSection",
-    "Choose from equipment and active accessories",
-    "Default Grinder",
-    "Typed legacy values remain selectable",
-    "stockBasketOptions",
-    "specValues",
-    "Add Machine",
-    "Add Grinder",
-    "Add Basket",
-    "Add Scale",
-    "Add Tamper",
-    "Add Puck Screen",
-    "defaultRegularGrinder",
-    "defaultGrinder",
-    "defaultBasketSize",
-  ]) {
+  for (const requiredText of ["fetchGrinders", "fetchMachines", "fetchAccessories", "EquipmentDefaultsSection", "GrinderDefaultsSection"]) {
     assert.match(source, new RegExp(requiredText));
   }
-
-  assert.doesNotMatch(
-    source,
-    /key: "defaultBasketSize", label: "Default Basket Size", type: "text"/,
-  );
-  assert.match(
-    source,
-    /field\.key === "defaultBasketSize"[\s\S]*?<SettingsSelect[\s\S]*?options=\{basketOptions\}/,
-  );
-  assert.match(source, /set\("defaultBasketSize", value\);[\s\S]*?set\("defaultBasket", value\);/);
+  assert.match(source, /const machine = machines\.find\(\(m\) => m\.isDefault\) \?\? null;/);
+  assert.match(source, /active\.find\(\(a\) => a\.isDefault && a\.type === "basket"\)/);
+  assert.match(source, /Change a default there — it's no longer set here\./);
+  for (const retired of ['set("defaultMachine"', 'set("defaultGrinder"', 'set("defaultRegularGrinder"', 'set("defaultBasket"', 'set("defaultBasketSize"', 'set("defaultPuckScreen"', 'set("defaultScale"', 'set("defaultTamper"', 'set("defaultDecafGrinder"', 'set("defaultPourOverGrinder"']) {
+    assert.equal(source.includes(retired), false, `${retired} is retired`);
+  }
 });
 
 test("Settings no longer offers controls that nothing in the app reads", async () => {
@@ -1427,7 +1411,9 @@ test("Machine records can provide stock basket defaults", async () => {
 
   assert.match(migrationSource, /stock_basket/);
   assert.match(equipmentSource, /Stock Basket/);
-  assert.match(settingsSource, /stockBasketOptions/);
+  // Option A (2026-09-28): Settings shows the default machine's stock basket as the
+  // basket fallback when no default basket accessory is marked.
+  assert.match(settingsSource, /machine\?\.stockBasket/);
 });
 
 test("Log Shot / Shot Detail equipment consistency: preserved on edit, hidden when absent, precision deferral documented", async () => {
@@ -1446,15 +1432,17 @@ test("Log Shot / Shot Detail equipment consistency: preserved on edit, hidden wh
   assert.match(shotFormSource, /const defaultGrinder = grinders\.find\(\(g\) => g\.isDefault\)/);
 
   // Grind Setting step is not yet equipment-aware — stated in the UI, not hidden.
-  assert.match(shotFormSource, /step=\{0\.01\}/);
-  assert.match(shotFormSource, /don't drive this yet/);
+  // Superseded 2026-09-28 by GRD-1 (Phase 2A S4): the grind stepper now follows
+  // the selected grinder's precision / marker spacing (see grind-step.test.ts).
+  assert.match(shotFormSource, /step=\{grindStep\}/);
 
   // Shot Detail shows Machine/Grinder only when the shot recorded them.
   assert.match(shotDetailSource, /\{machine && <DetailItem label="Machine" value=\{equipmentLabel\(machine\)\} \/>\}/);
   assert.match(shotDetailSource, /\{grinder && <DetailItem label="Grinder" value=\{equipmentLabel\(grinder\)\} \/>\}/);
 
   // Settings equipment-defaults no longer implies it drives the Log Shot default.
-  assert.match(settingsSource, /marked <span className="font-medium">Default<\/span> on the Equipment page, not from here/);
+  // Option A (2026-09-28): Settings states the Equipment/Accessories Default is the single source.
+  assert.match(settingsSource, /Log Shot and the Dashboard setup summary both use the record marked <span className="font-medium">Default<\/span>/);
 
   // The V0 status + deferrals are written down.
   assert.match(equipmentModelDoc, /## V0 status: captured, surfaced, and deferred/);
@@ -1529,9 +1517,9 @@ test("Equipment and accessories preserve personal short labels and source eviden
   assert.match(sourceUrlMigrationSource, /source_url/);
   assert.match(equipmentPage, /Short Label/);
   assert.match(accessoriesPage, /Short Label/);
-  assert.match(dashboardRoute, /function compactLabel/);
-  assert.match(dashboardRoute, /function compactPuckScreenLabel/);
-  assert.match(dashboardRoute, /Full name remains the system\/library identity|shortLabel/);
+  // Option A (2026-09-28): compact labels now come from lib/equipment-defaults.ts.
+  assert.match(dashboardRoute, /resolveEquipmentDefaults\(grinders, machines, accessories\)/);
+  assert.match(dashboardRoute, /Full name remains the system\/library identity|shortLabel|resolveEquipmentDefaults/);
 });
 
 test("Dashboard summarizes puck screen display by useful thickness only", async () => {
@@ -1596,9 +1584,10 @@ test("Active Hopper Status is compact for phase-only hoppers, not a large standa
   assert.match(source, /Line 4: compact hopper phase context/);
   // Phase-only hoppers never have a null-collapsing gap: a missing phase
   // falls back to "Hopper phase tracking active" rather than rendering
-  // nothing, and startingBeans is labeled as a measured baseline.
+  // nothing, and startingBeans uses the shared "starting beans (phase
+  // baseline)" wording (PL-3) used on the Dashboard stat and Bags dialog.
   assert.equal(source.includes('hopper.phase ? `Hopper phase: ${hopper.phase}` : "Hopper phase tracking active",'), true);
-  assert.equal(source.includes('hopper.startingBeans != null ? `measured baseline ${hopper.startingBeans}g` : null,'), true);
+  assert.equal(source.includes('hopper.startingBeans != null ? `starting beans ${hopper.startingBeans}g (phase baseline)` : null,'), true);
   // The compact line must state, in words, that it is NOT whole-bag inventory.
   assert.equal(source.includes('"separate from whole-bag Bag Progress",'), true);
 
@@ -1718,7 +1707,7 @@ test("Mobile bottom nav signals it scrolls and marks the active tab without rely
   // "Log Shot" and "Shot Log" tabs as the adjacent near-identical labels
   // "Log" and "Shot". "Shot Log" carries a shortLabel so the pair reads as
   // "Log" (create) vs "Shots" (browse).
-  assert.match(source, /\{ title: "Shot Log",\s+href: "\/shots",\s+icon: BookOpen,\s+shortLabel: "Shots" \}/);
+  assert.match(source, /\{ title: "Shot Log",\s+href: "\/shots",\s+icon: BookOpen,\s+shortLabel: "Shots"(, exclude: \["\/shots\/new"\])? \}/);
   assert.match(source, /item\.shortLabel \?\? item\.title\.split\(" "\)\[0\]/);
 });
 
@@ -2127,7 +2116,9 @@ test("Standing-rule audit GAPs closed: sour-exclusivity, hopper-phase 400, dead 
   // GAP 3 — the removed global Settings key `usePuckScreen` is no longer read;
   // the Dashboard flag is derived from the live Default Puck Screen setting.
   assert.doesNotMatch(dashboardRoute, /settings\.usePuckScreen/);
-  assert.match(dashboardRoute, /usePuckScreen: Boolean\(settings\.defaultPuckScreen && settings\.defaultPuckScreen\.trim\(\)\)/);
+  // Option A (2026-09-28): derived from the default puck-screen accessory (DI-6).
+  assert.doesNotMatch(dashboardRoute, /settings\.defaultPuckScreen/);
+  assert.match(dashboardRoute, /\.\.\.equipmentDefaults,/);
 
   // The audit doc records these three as closed.
   assert.match(auditDoc, /Standing-Rule Enforcement Audit/);
@@ -2278,7 +2269,7 @@ test("Catalog pages render the API's graceful 400/404/409 delete-error contract"
     ["Accessories", accessories],
     ["TasteSelectors", tasteSelectors],
   ] as const) {
-    assert.match(src, /import \{ errorMessageFrom \} from "@\/lib\/http"/, `${name} imports errorMessageFrom`);
+    assert.match(src, /import \{ errorMessageFrom(, getJson)? \} from "@\/lib\/http"/, `${name} imports errorMessageFrom`);
     // No page still surfaces a raw response body or `String(e)` in a delete/save error.
     assert.doesNotMatch(src, /throw new Error\(await (response|r)\.text\(\)\)/, `${name} no longer throws raw response text`);
     assert.match(src, /description: e instanceof Error \? e\.message : String\(e\)/, `${name} onError renders e.message`);
@@ -2323,7 +2314,7 @@ test("BeanForm / BagDetail / Bags render the same graceful {error} contract (no 
     ["BagDetail", bagDetail],
     ["Bags", bags],
   ] as const) {
-    assert.match(src, /import \{ errorMessageFrom \} from "@\/lib\/http"/, `${name} imports errorMessageFrom`);
+    assert.match(src, /import \{ errorMessageFrom(, getJson)? \} from "@\/lib\/http"/, `${name} imports errorMessageFrom`);
     // No mutation/query still surfaces a raw response body or bare String(e).
     assert.doesNotMatch(src, /throw new Error\(await (r|response|res)\.text\(\)\)/, `${name} no raw response.text() throw`);
     assert.doesNotMatch(src, /description: String\(e\), variant: "destructive"/, `${name} onError renders e.message`);

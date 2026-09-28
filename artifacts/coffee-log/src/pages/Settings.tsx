@@ -10,8 +10,20 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Save, Settings as SettingsIcon, Coffee, Zap, Wrench, ClipboardList, Star,
+  Save, Settings as SettingsIcon, Coffee, Zap, Wrench, ClipboardList, Star, Milestone, Plus,
 } from "lucide-react";
+import {
+  CURRENT_SYSTEM_PHASE_SETTINGS_KEY,
+  SYSTEM_PHASE_EXPERIMENT_OPTIONS_SETTINGS_KEY,
+  SYSTEM_PHASE_LABELS_SETTINGS_KEY,
+  SYSTEM_PHASE_NAME_OPTIONS_SETTINGS_KEY,
+  formatSystemPhase,
+  parseCurrentSystemPhase,
+  parsePhaseOptionMap,
+  parseSystemPhaseLabels,
+  removePhaseOption,
+  serializeSystemPhaseLabels,
+} from "@/lib/system-phases";
 import {
   CURATED_SELECTOR_OPTIONS,
   CUSTOM_DRINK_TYPES_SETTINGS_KEY,
@@ -86,7 +98,6 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
       { key: "defaultDose", label: "Default Dose", type: "number", placeholder: "18", unit: "g" },
       { key: "defaultTargetYield", label: "Default Target Yield", type: "number", placeholder: "36", unit: "g" },
       { key: "defaultBrewTemp", label: "Default Brew Temperature", type: "number", placeholder: "94", unit: "°C" },
-      { key: "defaultBasketSize", label: "Default Basket Size", type: "select" },
     ],
   },
   {
@@ -94,7 +105,6 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
     icon: Zap,
     description: "Grind settings are carried forward until you change them.",
     fields: [
-      { key: "defaultGrinder", label: "Default Grinder", type: "text", placeholder: "Eureka Magnifico" },
       { key: "defaultGrindSetting", label: "Default Grind Setting", type: "number", placeholder: "2.33" },
       { key: "defaultGrindTime", label: "Default Grind Time", type: "number", placeholder: "8.1", unit: "sec" },
       {
@@ -103,21 +113,6 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
         note: "Not yet used elsewhere in the app — reserved for future single-dose workflow support.",
       },
       { key: "grindMinTime", label: "Minimum Grind Time", type: "number", placeholder: "0.2", unit: "s" },
-    ],
-  },
-  {
-    title: "Equipment Defaults",
-    icon: Wrench,
-    description: "Your equipment setup, used to pre-fill shot entry forms.",
-    fields: [
-      { key: "defaultMachine", label: "Espresso Machine", type: "text", placeholder: "Profitec Go" },
-      { key: "defaultRegularGrinder", label: "Regular Grinder", type: "text", placeholder: "Eureka Magnifico" },
-      { key: "defaultDecafGrinder", label: "Decaf Grinder", type: "text", placeholder: "" },
-      { key: "defaultPourOverGrinder", label: "Pour-over Grinder", type: "text", placeholder: "" },
-      { key: "defaultBasket", label: "Default Basket", type: "text", placeholder: "18g VST" },
-      { key: "defaultScale", label: "Default Scale", type: "text", placeholder: "" },
-      { key: "defaultTamper", label: "Default Tamper", type: "text", placeholder: "" },
-      { key: "defaultPuckScreen", label: "Default Puck Screen", type: "text", placeholder: "1.7mm" },
     ],
   },
   {
@@ -170,14 +165,12 @@ export default function Settings() {
   const handleSave = () => mutation.mutate(values);
 
   const customDrinkTypes = parseCustomDrinkTypes(values[CUSTOM_DRINK_TYPES_SETTINGS_KEY]);
-  const basketOptions = [
-    ...machines
-      .map((machine) => machine.stockBasket)
-      .filter((stockBasket): stockBasket is string => Boolean(stockBasket)),
-    ...accessories
-      .filter((accessory) => accessory.isActive && accessory.type === "basket")
-      .map((accessory) => equipmentLabel(accessory)),
-  ];
+  // Equipment defaults Option A (Phase 2A S5): the Equipment / Accessories
+  // "Default" flag is the single source for machine, grinder, basket and puck screen.
+  const defaultMachine = machines.find((m) => m.isDefault) ?? null;
+  const defaultGrinder = grinders.find((g) => g.isDefault) ?? null;
+  const defaultMachineLabel = defaultMachine ? defaultMachine.shortLabel || equipmentLabel(defaultMachine) : undefined;
+  const defaultGrinderLabel = defaultGrinder ? defaultGrinder.shortLabel || equipmentLabel(defaultGrinder) : undefined;
   const addCustomDrinkType = (value: string) => {
     set(CUSTOM_DRINK_TYPES_SETTINGS_KEY, JSON.stringify([...customDrinkTypes, value]));
   };
@@ -206,13 +199,13 @@ export default function Settings() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-1 text-sm">
               {[
-                ["Grinder", values.defaultGrinder || values.defaultRegularGrinder],
+                ["Grinder", defaultGrinderLabel],
                 ["Grind Setting", values.defaultGrindSetting],
                 ["Grind Time", values.defaultGrindTime ? `${values.defaultGrindTime} sec` : undefined],
                 ["Dose", values.defaultDose ? `${values.defaultDose}g` : undefined],
                 ["Target Yield", values.defaultTargetYield ? `${values.defaultTargetYield}g` : undefined],
                 ["Temperature", values.defaultBrewTemp ? `${values.defaultBrewTemp}°C` : undefined],
-                ["Machine", values.defaultMachine],
+                ["Machine", defaultMachineLabel],
                 ["Score Weighting", `${values.ratingTechnicalWeight || "40"}% technical / ${values.ratingPreferenceWeight || "60"}% preference`],
               ]
                 .filter(([, v]) => v)
@@ -253,19 +246,6 @@ export default function Settings() {
                       onChangeValue={(v) => set("defaultDrinkType", v)}
                       onAddCustomType={addCustomDrinkType}
                     />
-                  ) : field.key === "defaultBasketSize" ? (
-                    <SettingsSelect
-                      key={field.key}
-                      label={field.label}
-                      value={values.defaultBasketSize ?? values.defaultBasket ?? ""}
-                      options={basketOptions}
-                      onChange={(value) => {
-                        set("defaultBasketSize", value);
-                        set("defaultBasket", value);
-                      }}
-                      addHref="/accessories"
-                      addLabel="Add Basket"
-                    />
                   ) : (
                     <FieldControl
                       key={field.key}
@@ -281,13 +261,13 @@ export default function Settings() {
           </Card>
         ))}
         <GrinderDefaultsSection values={values} set={set} grinders={grinders} />
+        <SystemPhasesSection values={values} set={set} />
         </>
       )}
 
       {!isLoading && (
         <EquipmentDefaultsSection
           values={values}
-          set={set}
           grinders={grinders}
           machines={machines}
           accessories={accessories}
@@ -300,6 +280,139 @@ export default function Settings() {
           {mutation.isPending ? "Saving…" : "Save Changes"}
         </Button>
       </div>
+    </div>
+  );
+}
+
+// ── System Phases Section ─────────────────────────────────────────────────────
+// Saved phase labels + the phase new shots start on. Numbers are permanent once
+// added (shots store the number); names can be edited. Never rewrites shots.
+
+function SystemPhasesSection({
+  values,
+  set,
+}: {
+  values: Record<string, string>;
+  set: (key: string, value: string) => void;
+}) {
+  const labels = parseSystemPhaseLabels(values[SYSTEM_PHASE_LABELS_SETTINGS_KEY]);
+  const current = parseCurrentSystemPhase(values[CURRENT_SYSTEM_PHASE_SETTINGS_KEY]);
+  const saveLabels = (next: typeof labels) => set(SYSTEM_PHASE_LABELS_SETTINGS_KEY, serializeSystemPhaseLabels(next));
+  const nextNumber = Math.max(0, ...labels.map((l) => l.number)) + 1;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Milestone className="h-5 w-5 text-primary" />
+          <CardTitle>System Phases</CardTitle>
+        </div>
+        <CardDescription>
+          The machine/workflow learning era a shot belongs to — separate from Hopper Phase. New shots start on the
+          Current System Phase; you can still change it per shot. Renaming a phase does not change saved shots.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-1.5 max-w-sm">
+          <Label>Current System Phase</Label>
+          <Select
+            value={current == null ? "none" : String(current)}
+            onValueChange={(v) => set(CURRENT_SYSTEM_PHASE_SETTINGS_KEY, v)}
+          >
+            <SelectTrigger aria-label="Current System Phase"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No default (leave blank on new shots)</SelectItem>
+              {labels.map((l) => (
+                <SelectItem key={l.number} value={String(l.number)}>{formatSystemPhase(labels, l.number)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Phase labels</Label>
+          {labels.map((l) => (
+            <div key={l.number} className="flex items-center gap-2">
+              <span className="w-20 shrink-0 text-sm text-muted-foreground tabular-nums">Phase {l.number}</span>
+              <Input
+                aria-label={`Phase ${l.number} name`}
+                value={l.name}
+                placeholder="Phase name"
+                onChange={(e) => saveLabels(labels.map((x) => (x.number === l.number ? { ...x, name: e.target.value } : x)))}
+              />
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => saveLabels([...labels, { number: nextNumber, name: "" }])}
+          >
+            <Plus className="h-3.5 w-3.5" /> Add Phase {nextNumber}
+          </Button>
+          <p className="text-xs text-muted-foreground">Remember to Save Changes.</p>
+        </div>
+
+        <SavedPhaseOptions
+          title="Saved Phase Names (modes)"
+          labels={labels}
+          map={parsePhaseOptionMap(values[SYSTEM_PHASE_NAME_OPTIONS_SETTINGS_KEY])}
+          onChange={(next) => set(SYSTEM_PHASE_NAME_OPTIONS_SETTINGS_KEY, JSON.stringify(next))}
+        />
+        <SavedPhaseOptions
+          title="Saved Experiments"
+          labels={labels}
+          map={parsePhaseOptionMap(values[SYSTEM_PHASE_EXPERIMENT_OPTIONS_SETTINGS_KEY])}
+          onChange={(next) => set(SYSTEM_PHASE_EXPERIMENT_OPTIONS_SETTINGS_KEY, JSON.stringify(next))}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+function SavedPhaseOptions({
+  title,
+  labels,
+  map,
+  onChange,
+}: {
+  title: string;
+  labels: ReturnType<typeof parseSystemPhaseLabels>;
+  map: ReturnType<typeof parsePhaseOptionMap>;
+  onChange: (next: ReturnType<typeof parsePhaseOptionMap>) => void;
+}) {
+  const phases = Object.keys(map).map(Number).sort((a, b) => a - b);
+  return (
+    <div className="space-y-2">
+      <Label>{title}</Label>
+      {phases.length === 0 ? (
+        <p className="text-xs text-muted-foreground">None yet. Add them from Log Shot → Workflow Context with the + button.</p>
+      ) : (
+        phases.map((phase) => (
+          <div key={phase} className="space-y-1">
+            <p className="text-xs text-muted-foreground">{formatSystemPhase(labels, phase)}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {map[String(phase)]!.map((v) => (
+                <span key={v} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs">
+                  {v}
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground"
+                    aria-label={`Remove ${v} from Phase ${phase} options`}
+                    onClick={() => onChange(removePhaseOption(map, phase, v))}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
+      {phases.length > 0 && (
+        <p className="text-xs text-muted-foreground">Removing an option only hides it from the selector; shots keep what they saved.</p>
+      )}
     </div>
   );
 }
@@ -325,8 +438,7 @@ function GrinderDefaultsSection({
   set: (key: string, value: string) => void;
   grinders: Grinder[];
 }) {
-  const grinderOptions = grinders.map((grinder) => equipmentLabel(grinder));
-  const fields = SECTIONS.find((section) => section.title === "Grinder Defaults")?.fields.filter((field) => field.key !== "defaultGrinder") ?? [];
+  const fields = SECTIONS.find((section) => section.title === "Grinder Defaults")?.fields ?? [];
 
   return (
     <Card>
@@ -339,17 +451,6 @@ function GrinderDefaultsSection({
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <SettingsSelect
-            label="Default Grinder"
-            value={values.defaultGrinder ?? values.defaultRegularGrinder ?? ""}
-            options={grinderOptions}
-            onChange={(value) => {
-              set("defaultGrinder", value);
-              set("defaultRegularGrinder", value);
-            }}
-            addHref="/equipment"
-            addLabel="Add Grinder"
-          />
           {fields.map((field) => (
             <FieldControl
               key={field.key}
@@ -440,70 +541,36 @@ function DrinkTypeDefaultField({
   );
 }
 
-function SettingsSelect({
-  label,
-  value,
-  options,
-  onChange,
-  addHref,
-  addLabel,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (value: string) => void;
-  addHref: string;
-  addLabel: string;
-}) {
-  const uniqueOptions = Array.from(new Set(options.filter(Boolean)));
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <Label className="text-sm">{label}</Label>
-        <Button variant="link" size="sm" className="h-auto p-0 text-xs" asChild>
-          <Link href={addHref}>{addLabel}</Link>
-        </Button>
-      </div>
-      <Select value={value || "__none__"} onValueChange={(v) => onChange(v === "__none__" ? "" : v)}>
-        <SelectTrigger>
-          <SelectValue placeholder="Choose saved equipment…" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="__none__">— not set —</SelectItem>
-          {value && !uniqueOptions.includes(value) && (
-            <SelectItem value={value}>{value} · typed value</SelectItem>
-          )}
-          {uniqueOptions.map((option) => (
-            <SelectItem key={option} value={option}>{option}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
-
 function EquipmentDefaultsSection({
   values,
-  set,
   grinders,
   machines,
   accessories,
 }: {
   values: Record<string, string>;
-  set: (key: string, value: string) => void;
   grinders: Grinder[];
   machines: Machine[];
   accessories: Accessory[];
 }) {
-  const activeAccessories = accessories.filter((accessory) => accessory.isActive);
-  const accessoryOptions = (type: string) => activeAccessories
-    .filter((accessory) => accessory.type === type)
-    .map((accessory) => equipmentLabel(accessory));
-  const grinderOptions = grinders.map((grinder) => equipmentLabel(grinder));
-  const machineOptions = machines.map((machine) => equipmentLabel(machine));
-  const stockBasketOptions = machines
-    .map((machine) => machine.stockBasket)
-    .filter((stockBasket): stockBasket is string => Boolean(stockBasket));
+  const machine = machines.find((m) => m.isDefault) ?? null;
+  const grinder = grinders.find((g) => g.isDefault) ?? null;
+  const active = accessories.filter((a) => a.isActive);
+  const basket = active.find((a) => a.isDefault && a.type === "basket") ?? null;
+  const puckScreen = active.find((a) => a.isDefault && a.type === "puck_screen") ?? null;
+  const label = (row: { shortLabel: string | null } & Parameters<typeof equipmentLabel>[0]) => row.shortLabel || equipmentLabel(row);
+  const rows: { name: string; value: string | null; note?: string; href: string; action: string }[] = [
+    { name: "Espresso Machine", value: machine ? label(machine) : null, href: "/equipment", action: "Equipment" },
+    { name: "Grinder", value: grinder ? label(grinder) : null, href: "/equipment", action: "Equipment" },
+    {
+      name: "Basket",
+      value: basket ? label(basket) : machine?.stockBasket ?? null,
+      note: !basket && machine?.stockBasket ? "machine's stock basket" : undefined,
+      href: "/accessories",
+      action: "Accessories",
+    },
+    { name: "Puck Screen", value: puckScreen ? label(puckScreen) : null, href: "/accessories", action: "Accessories" },
+  ];
+  const needsAttention = backfillNeedsAttention(values.equipmentDefaultsBackfill);
 
   return (
     <Card>
@@ -513,89 +580,55 @@ function EquipmentDefaultsSection({
           <CardTitle>Equipment Defaults</CardTitle>
         </div>
         <CardDescription>
-          Choose from equipment and active accessories you have already entered. These feed the Dashboard setup summary and pre-fill accessory/basket workflows. The Machine and Grinder that Log Shot pre-selects come from whichever record is marked <span className="font-medium">Default</span> on the Equipment page, not from here.
+          Log Shot and the Dashboard setup summary both use the record marked <span className="font-medium">Default</span> on
+          the Equipment and Accessories pages. Change a default there — it's no longer set here.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <SettingsSelect
-            label="Espresso Machine"
-            value={values.defaultMachine ?? ""}
-            options={machineOptions}
-            onChange={(value) => set("defaultMachine", value)}
-            addHref="/equipment"
-            addLabel="Add Machine"
-          />
-          <SettingsSelect
-            label="Regular Grinder"
-            value={values.defaultRegularGrinder ?? values.defaultGrinder ?? ""}
-            options={grinderOptions}
-            onChange={(value) => {
-              set("defaultRegularGrinder", value);
-              set("defaultGrinder", value);
-            }}
-            addHref="/equipment"
-            addLabel="Add Grinder"
-          />
-          <SettingsSelect
-            label="Decaf Grinder"
-            value={values.defaultDecafGrinder ?? ""}
-            options={grinderOptions}
-            onChange={(value) => set("defaultDecafGrinder", value)}
-            addHref="/equipment"
-            addLabel="Add Grinder"
-          />
-          <SettingsSelect
-            label="Pour-Over Grinder"
-            value={values.defaultPourOverGrinder ?? ""}
-            options={grinderOptions}
-            onChange={(value) => set("defaultPourOverGrinder", value)}
-            addHref="/equipment"
-            addLabel="Add Grinder"
-          />
-          <SettingsSelect
-            label="Default Basket"
-            value={values.defaultBasket ?? values.defaultBasketSize ?? ""}
-            options={[...stockBasketOptions, ...accessoryOptions("basket")]}
-            onChange={(value) => {
-              set("defaultBasket", value);
-              set("defaultBasketSize", value);
-            }}
-            addHref="/accessories"
-            addLabel="Add Basket"
-          />
-          <SettingsSelect
-            label="Default Scale"
-            value={values.defaultScale ?? ""}
-            options={accessoryOptions("scale")}
-            onChange={(value) => set("defaultScale", value)}
-            addHref="/accessories"
-            addLabel="Add Scale"
-          />
-          <SettingsSelect
-            label="Default Tamper"
-            value={values.defaultTamper ?? ""}
-            options={accessoryOptions("tamper")}
-            onChange={(value) => set("defaultTamper", value)}
-            addHref="/accessories"
-            addLabel="Add Tamper"
-          />
-          <SettingsSelect
-            label="Default Puck Screen"
-            value={values.defaultPuckScreen ?? ""}
-            options={accessoryOptions("puck_screen")}
-            onChange={(value) => set("defaultPuckScreen", value)}
-            addHref="/accessories"
-            addLabel="Add Puck Screen"
-          />
-        </div>
+      <CardContent className="space-y-3">
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {rows.map((row) => (
+            <div key={row.name} className="rounded-md border p-3 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <dt className="text-xs text-muted-foreground">{row.name}</dt>
+                <dd className="text-sm font-medium break-words">
+                  {row.value ?? <span className="text-muted-foreground font-normal">No default set</span>}
+                  {row.note && <span className="text-xs text-muted-foreground font-normal"> ({row.note})</span>}
+                </dd>
+              </div>
+              <Button variant="link" size="sm" className="h-auto p-0 text-xs shrink-0" asChild>
+                <Link href={row.href}>{row.value ? "Change" : "Set"} on {row.action}</Link>
+              </Button>
+            </div>
+          ))}
+        </dl>
+        {needsAttention.length > 0 && (
+          <div role="status" className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950/40">
+            <p className="font-medium">Some old Settings defaults couldn't be matched to a saved record:</p>
+            <ul className="mt-1 list-disc pl-5 text-muted-foreground">
+              {needsAttention.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+            <p className="mt-1 text-xs text-muted-foreground">Mark the right record as Default on the Equipment or Accessories page.</p>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground">
-          Typed legacy values remain selectable until you replace them with saved equipment records.
-          User-specific active equipment will become stricter after accounts/OAuth are added.
+          Decaf and pour-over grinder defaults are deferred (not a launch need). Scale and tamper defaults were never used and are retired.
         </p>
       </CardContent>
     </Card>
   );
+}
+
+/** Human list of backfill outcomes the owner should resolve by hand (unmatched / ambiguous). */
+function backfillNeedsAttention(raw?: string): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as { outcomes?: { kind: string; label: string; from: string; matches?: number }[] };
+    return (parsed.outcomes ?? [])
+      .filter((o) => o.kind === "unmatched" || o.kind === "ambiguous")
+      .map((o) => `${o.from.replace(/^default/, "")}: "${o.label}"${o.kind === "ambiguous" ? ` matches ${o.matches} records` : " matches no saved record"}`);
+  } catch {
+    return [];
+  }
 }
 
 // ── Field control ─────────────────────────────────────────────────────────────

@@ -3282,3 +3282,263 @@ No commit — this task made no file changes.
 ## Verified
 
 - Pending in this session.
+
+# Post-RC work record backfill (2026-08-31 → 2026-09-24) — reconstructed 2026-09-28
+
+Reconstructed from Git commit messages on `main` during Phase 2A S0. These changes shipped
+without a completed-tasks entry; this entry records them after the fact. Verification lines are
+quoted from the commit messages, not re-run here (the 2026-09-28 baseline below re-ran the
+whole suite on `f9cd885`).
+
+| Date | Commit | Change |
+|---|---|---|
+| 2026-08-31 | `edb469a` | Settings Default Basket changed from free text to a saved selector (keeps legacy values). |
+| 2026-08-31 | `2572346` | Added `CLAUDE.md` project instructions. |
+| 2026-09-20 | `8a7cfec` | Docs: Clickonomics platform architecture + Clerk integration plan; records the 2026-09-08 Clerk decision (AUTH-0). Planning only. |
+| 2026-09-23 | `20ad425` | Single active bag enforced at the route level (POST/PATCH deactivate other bags in the same transaction). No schema change. Verified: typecheck, 95 API tests, Render build. |
+| 2026-09-23 | `d47429f` | Dashboard same-bean timing-window query crash fixed (`inArray()` instead of a raw `ANY(${array})` template); surfaced as a live 500 when Bag #8 shared a bean with Bag #3. |
+| 2026-09-23 | `a8ed6d8` | `POST /hoppers` duplicate name now returns 409; global Express error handler logs the real error and returns JSON. |
+| 2026-09-23 | `f379aa6` | New-bag dial-in guidance: auto "New Bag Dial-In" classification until the bag's first "Dialed In" shot; `bagIntelligence.hasDialedInShot`. No schema change. |
+| 2026-09-24 | `f32131b` (PR #11) | Taste selectors: `origin` + `archived_at` (migration 0013), archive/restore, promote-to-standard, category-grouped chips. Resolves TS-1. |
+| 2026-09-24 | `6475b39` (PR #12) | Taste selectors: normalized names, permanent `canonical_key` (migration 0014), category-required promotion. |
+
+Baseline re-verification on `f9cd885` (2026-09-28, cloud session): `pnpm run typecheck` ✓,
+`pnpm run test:phase1.5` 99/99 ✓, `pnpm run build` ✓.
+
+# Phase 2A — S0 Governance catch-up — 2026-09-28
+
+## Completed
+
+- Added `docs/implementation/phase-2a-scope-authorization.md` (narrow Phase 2A under Gate 9
+  option 2; Gates 5 and 8 waived for this scope only; S5 held pending Carl's go).
+- `docs/ROADMAP.md`: Phase 2 → "2A authorized (narrow)"; Phase 1.5 status reflects the RC;
+  status-change record added.
+- `pre-phase-2-readiness-gates.md` Gate 9: records the option-(2) satisfaction for 2A only.
+- `launch-readiness-roadmap.md`: TS-1 marked done, AUTH-0 magic-link wording replaced with
+  the Clerk decision, and the "Recommended next slices" section marked superseded.
+- `bag-hopper-lifecycle-plan.md`: status notes for dial-in (`f379aa6`) and open decision 4
+  (`20ad425`); body unchanged.
+- Backfilled the post-RC work record above.
+
+## Verified
+
+- Docs only; no code changes.
+
+# Phase 2A — S1 Safe-now fixes — 2026-09-28
+
+## Completed
+
+- **DI-2 (cosmetic):** `openapi.yaml` Shot response `rating`/`preferenceRating` now declare
+  `minimum: 0` (with 10/11 maxima); write-schema descriptions state the range and that it is
+  enforced server-side by `validateRatings` (kept there so users get a human 400 message).
+  Regenerated `lib/api-zod` and `lib/api-client-react`.
+- **EQ-3:** the roadmap described the bug backwards — `POST /accessories` already cleared
+  per-type defaults. The real gap was `PATCH`: a toggle-only `{ isDefault: true }` (no `type`
+  in the body) left the old default in place, giving two defaults of one type. PATCH now
+  resolves the type from the stored row; POST and PATCH run clear+write in one transaction.
+- **PL-1:** Shot Log no longer highlights on `/shots/new` (sidebar and bottom nav share
+  `isNavActive`, with a per-item `exclude`).
+- **PL-2:** new `getJson()` (throws on non-2xx) + shared `QueryErrorState` (icon + text +
+  Try again) on Reference Shots, Beans, Bags, Equipment (grinders and machines),
+  Accessories, and Taste Selectors.
+- **PL-3:** hopper phase starting amount reads "starting beans (phase baseline)" on the
+  Dashboard compact line, Dashboard stat, and Start Hopper Phase dialog.
+- **PL-4:** already done before this slice (Settings note "Not yet used elsewhere…"); no change.
+- **PL-6:** Reference Shots nav icon is now `Target`, not the Log Shot coffee cup.
+- **Test harness (new):** `@workspace/db` gains a `pglite-test` export condition
+  (`lib/db/src/testing/pglite.ts`): in-memory PGlite with every forward migration applied and
+  a Drizzle-logger statement counter. The api-server `test` script passes
+  `--conditions=pglite-test`; production resolution is unchanged. `src/test-support/http.ts`
+  boots the real Express app on an ephemeral port for route-level tests.
+
+## Verified
+
+- `accessories.route.test.ts` (3 route tests) fails 1/3 against the old PATCH and passes on the fix.
+- `phase-2a-ui.test.ts` for PL-1/2/3/6; two existing `api-contract` regexes widened to accept
+  `import { errorMessageFrom, getJson }` and the Shot Log `exclude`.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 106/106 ✓ · `pnpm run build` ✓
+
+# Phase 2A — S2 Shot List filters and paging — 2026-09-28
+
+## Completed
+
+- Shot Log (`pages/ShotList.tsx`) gains a Filters panel: Bag (with a one-tap "Active bag"),
+  Status, Fault Status includes, Reference only / non-reference, minimum technical rating,
+  and From/To day range. Filter state lives in the URL (`?bag=&status=&fault=&ref=&ratingMin=&from=&to=&page=&q=`),
+  so opening a shot and going back keeps the view. Search is debounced into the URL.
+- Paging: 25 per page with "Showing X–Y of N" and previous/next, replacing the fixed 50-row cap.
+- Error state via `QueryErrorState`; the empty state offers "Clear filters".
+- Pure helper `lib/shot-list-filters.ts` (URL ↔ filters ↔ API params).
+- **One additive API param (deviation from "no API change", noted):** `GET /shots?bagId=`
+  exact match. The existing `bag` param is a substring name match, so "Bag 1" would also
+  return "Bag 10". Invalid ids return 400. OpenAPI + generated clients updated.
+- Day bounds: `shot_date` is text (app entries local `YYYY-MM-DDTHH:mm`, imports ISO), so the
+  end bound is `YYYY-MM-DDT23:59:59.999Z`, which keeps late-evening local shots on that day.
+
+## Verified
+
+- `shot-list.route.test.ts`: helper round-trip/junk handling, param mapping, and a route test
+  proving exact bag match, inclusive end day, reference/rating filters, paging totals, and 400.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 109/109 ✓ · `pnpm run build` ✓
+
+# Phase 2A — S2b System Phase labels and default — 2026-09-28
+
+Requested by Carl mid-session ("add my requests for System phase to the UI and save the phase
+labels"); labels and default confirmed in the same session.
+
+## Completed
+
+- Saved labels (Settings key `systemPhaseLabels`, JSON): 1 Initial Setup · 2 Scientific
+  Process / Baseline · 3 Timed Dose Optimization · 4 Active Experimentation Era.
+  `currentSystemPhase` = `3`.
+- Seeded by migration `0015_system_phase_labels.sql` (+ `.down.sql`) and the runtime schema
+  guard with `ON CONFLICT (key) DO NOTHING`, so the next deploy saves them without ever
+  overwriting later edits.
+- Settings: new **System Phases** card — Current System Phase select (or "No default"), editable
+  names, "Add Phase N". Numbers are permanent; renaming never rewrites saved shots.
+- Log Shot: System Phase is now a labelled dropdown ("Phase 3 — Timed Dose Optimization");
+  choosing a phase fills Phase Name unless it was hand-edited. New shots start on the current
+  phase (create-only, blank-only, once per form); edit mode never changes it. Unknown saved
+  numbers still display.
+- Shared helper `lib/system-phases.ts`. Supersedes the 2026-08-27 contract assertion that Log
+  Shot never sets `systemPhase` (test updated with a dated note).
+
+## Verified
+
+- `system-phase.route.test.ts`: approved labels/default, malformed-input fallback, server seed
+  present on first boot, and a second boot keeps edited labels and phase.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 112/112 ✓ · `pnpm run build` ✓
+
+# Phase 2A — S3 Hopper phase edit / end — 2026-09-28
+
+## Completed
+
+- Bags page: the active bag's "Hopper: <phase>" badge is now a button that opens a
+  **Hopper Phase** dialog: edit starting beans (phase baseline, g; blank clears it) and notes,
+  or **End phase…** with an inline confirm. Ending only sets `isActive=false`; the record and
+  its shots are kept. There is no delete from the UI. No range-baseline UI.
+- Uses the generated `useUpdateHopper` hook (existing `PATCH /hoppers/:id`). The existing Start
+  Phase create `fetch` was left as-is: it already has error handling and contract tests, so
+  swapping it had no user benefit.
+
+## Verified
+
+- `hopper-phase.route.test.ts`: edit keeps the phase active, explicit null clears the baseline,
+  end sets inactive, and the ended phase is still listed; source check that the UI never deletes.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 114/114 ✓ · `pnpm run build` ✓
+
+# Phase 2A — S4 GRD-1 grinder-aware grind stepper — 2026-09-28
+
+## Completed
+
+- Log Shot's Grind Setting stepper now follows the selected grinder:
+  `grindStepIncrement` (marker spacing) → `10^-grindSettingPrecision` → historical 0.01
+  (also with no grinder selected). +/- output is rounded to the grinder's precision (never
+  coarser than the step), so float noise can't appear. Typed values and saved shots are never
+  rewritten. The helper text under the field says which rule applies and where to change it.
+- `lib/grind-step.ts` helper; `NumberStepper` gains an optional `decimals` prop.
+- `equipment-capability-library-model.md` deferred item 1 is marked resolved with the rules.
+  One old contract assertion (fixed `step={0.01}`) is superseded with a dated note.
+
+## Verified
+
+- `grind-step.test.ts` (rule order, out-of-range precision, rounding, wiring).
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 117/117 ✓ · `pnpm run build` ✓
+
+# Phase 2A — S6 Query-efficiency prep — 2026-09-28
+
+## Completed
+
+- Statement budgets pinned by `query-budget.route.test.ts`. Dashboard 9 → 8, shot edit 3 → 2,
+  settings save N → 1. See [query-efficiency-2026-09-28.md](implementation/query-efficiency-2026-09-28.md).
+- `isEligibleShotRow` added beside `eligibleShotConditions` as its in-memory twin; the dashboard
+  reads the active bag's shots once. Contract regexes updated with dated notes.
+- React Query client (`lib/query-client.ts`): 30 s stale time and no focus refetch for reference
+  data; dashboard intelligence stays live and is invalidated after every successful mutation.
+  Equipment page cache keys unified with Log Shot / Settings.
+- No database, host, or plan change.
+
+## Verified
+
+- Budget tests; a behaviour test that an excluded "Dialed In" shot stays out of analytics but
+  still sets `hasDialedInShot`; `PATCH` with a changed bag recomputes Days Since Open from the
+  new bag; settings upsert updates and inserts.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 125/125 ✓ · `pnpm run build` ✓
+
+# Phase 2A — final verification — 2026-09-28
+
+- Shot Log paging fix found in the UI pass: a link past the last page (e.g. `?page=2` after
+  filtering down to 16 shots) showed "Showing 26–16"; it now jumps to the last real page, and
+  From/To sit side by side on phones.
+- 390 px browser pass against a seeded local build: Shot Log filters + paging, Log Shot grind
+  helper ("Steps by 0.33 (Eureka Mignon's marker spacing…)") and System Phase defaulting to
+  "Phase 3 — Timed Dose Optimization", Bags hopper edit/end dialog and confirm, Settings
+  System Phases card, and bottom nav highlighting only "Log" on `/shots/new`.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 125/125 (was 99) ✓ · `pnpm run build` ✓
+- S5 (equipment defaults Option A) not started — waiting on Carl's go and the Default Basket question.
+
+# Phase 2A — S2c Saved Phase Name and Experiment selectors — 2026-09-28
+
+Requested by Carl ("choose system phase 3, then enter a new mode or select it from Phase Name,
+then enter Experiment info — these are all saved; give me selectors again").
+
+## Completed
+
+- Log Shot → Workflow Context: **Phase Name** and **Experiment** are now selectors with a **+**
+  button. Pick a saved value, or tap + to type a new one; the new value is saved straight away
+  (Settings `systemPhaseNameOptions` / `systemPhaseExperimentOptions`, JSON grouped by System
+  Phase) and offered on future shots. The value is saved on the shot as before.
+- Options are per System Phase: Phase Name lists the phase's label first, then saved modes; an
+  Experiment belongs to one System Phase (2026-08-25 decision). Existing values on a shot always
+  stay visible. Case-insensitive de-duplication.
+- Deploy seeds both option lists once from values already on shots (migration 0015 + runtime
+  guard, `ON CONFLICT DO NOTHING`).
+- Settings → System Phases shows saved Phase Names and Experiments per phase with × to remove
+  (removing only hides the option; shots keep their values).
+- New reusable `components/CreatableSelect.tsx`. Guarded Radix Select's spurious `""` change
+  event (found in the browser pass: it wiped the prefilled Phase Name when the item list changed).
+
+## Verified
+
+- `system-phase.route.test.ts`: option helpers, deploy seed from shots grouped by phase, seed does
+  not overwrite, and Log Shot wiring.
+- Browser (390 px): add a new mode and experiment with +, both saved to Settings; a fresh Log
+  Shot offers them; selecting them and saving stores System Phase 3 / "Hopper Overfill Mode" /
+  "Timed Dose Stability" on the shot.
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 128/128 ✓ · `pnpm run build` ✓
+
+# Phase 2A — S5 Equipment defaults, Option A — 2026-09-28
+
+Approved by Carl in the 2026-09-28 session: Option A, decaf/pour-over deferred, Default Basket
+moves to Accessories.
+
+## Completed
+
+- **Single source:** the Equipment / Accessories **Default** flag now drives Log Shot (already)
+  and the Dashboard setup summary (machine, grinder, basket, puck screen). The Dashboard no
+  longer reads `defaultMachine` / `defaultGrinder` / `defaultRegularGrinder` / `defaultBasket` /
+  `defaultPuckScreen`. With no default basket accessory, the Dashboard shows the default
+  machine's stock basket. DI-6: `usePuckScreen` = a default puck-screen accessory exists.
+- **One-time backfill on deploy** (`lib/equipment-default-backfill.ts`, called from the runtime
+  schema step): copies each old Settings string onto the one record whose label matches
+  exactly, only when that table/type has no default yet. Ambiguous or unmatched values are
+  reported, never guessed; a saved machine stock basket is recognised. Runs once (marker
+  `equipmentDefaultsBackfill` in `settings`, which also stores the report), so later manual
+  changes are respected. Old Settings rows are left in place (EQ-5 not done).
+- **Settings:** the Equipment Defaults card is read-only (current defaults with "Change on
+  Equipment / Accessories" links) and lists any backfill values that need setting by hand.
+  Retired controls: Espresso Machine, Regular/Default Grinder, Decaf and Pour-over Grinder,
+  Default Basket (incl. the `edb469a` Default Basket Size selector), Scale, Tamper, Puck Screen.
+- Pure helpers in `lib/equipment-defaults.ts` (label, resolve, backfill plan). Decision doc
+  marked Accepted; consolidation plan records the outcome per phase; five superseded contract
+  assertions updated with dated notes.
+
+## Verified
+
+- `equipment-defaults.route.test.ts`: plan outcomes (set / ambiguous / stock-basket / unmatched /
+  already-set), resolver incl. stock-basket fallback and inactive accessories, and a boot test
+  that sets defaults, feeds the Dashboard, runs only once, and leaves old rows in place.
+- Browser (390 px) against a simulated existing database: Settings shows Go / Go stock 18g
+  (machine's stock basket) and flags the unmatched old grinder string; Dashboard shows the
+  machine, stock basket and the Normcore puck screen (previously never shown).
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 131/131 ✓ · `pnpm run build` ✓

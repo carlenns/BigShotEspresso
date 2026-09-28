@@ -103,15 +103,20 @@ async function carryForwardActiveBagGrindDefaults(
 async function computeDaysSinceOpen(
   bagId: number | null | undefined,
   shotDate: string | null | undefined,
+  // Phase 2A S6: callers that already read the bag's opened_date (e.g. PATCH,
+  // which joins it onto the existing shot) pass it here to skip a query.
+  knownOpenedDate?: string | null,
 ): Promise<number | null> {
   if (bagId == null || !shotDate) return null;
   const shotDay = /^\d{4}-\d{2}-\d{2}/.exec(shotDate)?.[0];
   if (!shotDay) return null;
-  const bag = await db
-    .select({ openedDate: bagsTable.openedDate })
-    .from(bagsTable)
-    .where(eq(bagsTable.id, bagId));
-  const openedDay = /^\d{4}-\d{2}-\d{2}/.exec(bag[0]?.openedDate ?? "")?.[0];
+  const openedDate = knownOpenedDate !== undefined
+    ? knownOpenedDate
+    : (await db
+      .select({ openedDate: bagsTable.openedDate })
+      .from(bagsTable)
+      .where(eq(bagsTable.id, bagId)))[0]?.openedDate;
+  const openedDay = /^\d{4}-\d{2}-\d{2}/.exec(openedDate ?? "")?.[0];
   if (!openedDay) return null;
   const shotMs = Date.parse(`${shotDay}T00:00:00Z`);
   const openedMs = Date.parse(`${openedDay}T00:00:00Z`);
@@ -304,6 +309,14 @@ router.get("/shots", async (req, res): Promise<void> => {
   const conditions = [];
   if (p.bean) conditions.push(ilike(shotsTable.bean, `%${p.bean}%`));
   if (p.bag) conditions.push(ilike(shotsTable.bag, `%${p.bag}%`));
+  if (p.bagId) {
+    const bagId = Number(p.bagId);
+    if (!Number.isInteger(bagId)) {
+      res.status(400).json({ error: "bagId must be an integer." });
+      return;
+    }
+    conditions.push(eq(shotsTable.bagId, bagId));
+  }
   if (p.status) conditions.push(eq(shotsTable.status, p.status));
   if (p.faultStatus) conditions.push(sql`${shotsTable.faultStatus} @> ARRAY[${p.faultStatus}]::text[]`);
   if (p.isReference !== undefined && p.isReference !== "") conditions.push(eq(shotsTable.isReference, p.isReference === "true"));
@@ -451,7 +464,12 @@ router.patch("/shots/:id", async (req, res): Promise<void> => {
     return;
   }
   const id = Number(params.data.id);
-  const existing = await db.select().from(shotsTable).where(eq(shotsTable.id, id));
+  const existingRows = await db
+    .select({ shot: shotsTable, bagOpenedDate: bagsTable.openedDate })
+    .from(shotsTable)
+    .leftJoin(bagsTable, eq(shotsTable.bagId, bagsTable.id))
+    .where(eq(shotsTable.id, id));
+  const existing = existingRows.map((r) => r.shot);
   if (!existing[0]) { res.status(404).json({ error: "Shot not found" }); return; }
   // Never trust a client-supplied includeInAnalysis on update either. Merge
   // whatever Status/Fault Status this request is actually changing with the
@@ -467,7 +485,11 @@ router.patch("/shots/:id", async (req, res): Promise<void> => {
   // NULLs left by the Neon move on any edit.
   const effectiveBagId = data.bagId !== undefined ? data.bagId : existing[0].bagId;
   const effectiveShotDate = data.shotDate !== undefined ? data.shotDate : existing[0].shotDate;
-  const daysSinceOpen = await computeDaysSinceOpen(effectiveBagId, effectiveShotDate);
+  const daysSinceOpen = await computeDaysSinceOpen(
+    effectiveBagId,
+    effectiveShotDate,
+    effectiveBagId === existing[0].bagId ? (existingRows[0]!.bagOpenedDate ?? null) : undefined,
+  );
   const shot = await db.update(shotsTable).set({ ...data, daysSinceOpen }).where(eq(shotsTable.id, id)).returning();
   if (!shot[0]) { res.status(404).json({ error: "Shot not found" }); return; }
   await carryForwardActiveBagGrindDefaults(shot[0].bagId, data);
