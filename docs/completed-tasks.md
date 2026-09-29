@@ -4097,3 +4097,30 @@ can delete the project manually in the Prisma console.
 - Migration script's own `check`/`copy`/`verify` output (above) is the primary evidence.
 - Local smoke test against the copy (above).
 - No application code changed — typecheck/tests/build are unaffected by this entry.
+
+# Gate 7: restore-from-backup rehearsed on real Prisma Postgres — 2026-09-29
+
+Carl: "Do restore test." Neon had just been retired, so a `prisma-postgres-migration.mjs backup`
+dump is the only recovery path; the runbook's restore test had only been done locally (2026-09-28).
+
+## What was done
+
+- Authorized the Prisma MCP (a first attempt failed with "no OAuth flow in progress"; a fresh
+  flow worked). Created an empty Prisma Postgres database `bse-restore-test-2026-09-29`
+  (us-east-1); production `BSE` was untouched apart from the read-only `verify`.
+- `pg_restore --no-owner --no-acl --exit-on-error` of `~/BSE-backups/bse-2026-09-29.dump` (taken
+  earlier the same day, 184,415 bytes, 12 tables): exit 0, about 7 seconds.
+- `verify` (production as read-only source, restore as target): `verified: true`, all 12 tables
+  matched (280 shots, 78 taste selectors, 21 hoppers, 36 settings), no mismatches, no sequence issues.
+
+## Not cleaned up
+
+`bse-restore-test-2026-09-29` is the default database of its own project, so the API cannot delete
+it (same limitation as the earlier rehearsal project). Free tier, no traffic; delete the project in
+the Prisma console when convenient. Its connection string was used only in this session's shell.
+
+## Verified
+
+`verify` output above. Not run: an app smoke test against the restored copy (the 2026-09-29
+reverse-direction rehearsal already smoke-tested the same schema), and typecheck/tests/build, since
+only docs changed. Runbook and Gate 7 updated; not committed.

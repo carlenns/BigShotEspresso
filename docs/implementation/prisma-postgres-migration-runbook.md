@@ -151,6 +151,14 @@ pg_restore --no-owner --no-acl --exit-on-error --dbname "<new database DIRECT ur
 Rehearsed locally on 2026-09-28: the backup contained 12 tables and restored cleanly into an
 empty database with all 31 shots.
 
+**Restore test on real Prisma, 2026-09-29 (passed):** `~/BSE-backups/bse-2026-09-29.dump`
+(184,415 bytes, 12 tables) was restored with the command above into a new empty Prisma Postgres
+database (`bse-restore-test-2026-09-29`, us-east-1). `pg_restore --exit-on-error` exited 0 in
+about 7 seconds. `verify` against production (production read-only) returned `verified: true`:
+all 12 tables matched, 280 shots, no mismatches, no sequence issues. The restore-test database is
+the default database of its own project, so it cannot be deleted through the API; delete the
+project in the Prisma console when convenient.
+
 ## Keeping operations low
 
 - **App:** query budgets are pinned in `query-budget.route.test.ts`:

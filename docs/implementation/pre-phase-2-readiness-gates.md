@@ -200,8 +200,9 @@ Required before deployment certification:
   (Prisma → Neon-shaped target), rehearsed against a disposable Prisma project. Neon was retired on
   2026-09-29, so there is no longer a Neon rollback instance. Recovery is now a restore from a
   `prisma-postgres-migration.mjs backup` dump into a fresh Prisma database (runbook, "Rollback").
-  A restore of a real dump into a fresh database was rehearsed locally on 2026-09-28; it has not
-  yet been rehearsed against a real Prisma project.
+  A restore of a real dump into a fresh Prisma database was rehearsed on 2026-09-29
+  (`pg_restore` of `bse-2026-09-29.dump`, then `verify` against production: 12/12 tables matched,
+  280 shots, no mismatches).
 - Re-run migration safety. — Done: a second `copy` attempt on an already-populated target was
   refused in both the original and 2026-09-29 rehearsals.
 - Data import rehearsal. — Done (CSV import rehearsed pre-Neon; live data literally moved
@@ -213,8 +214,8 @@ Required before deployment certification:
 
 Can proceed now?
 
-- Yes for the current Phase 2A scope. Neon is retired; the remaining piece is a
-  one-time restore-from-dump rehearsal into a fresh Prisma database (see Rollback above).
+- Yes for the current Phase 2A scope. Neon is retired and the restore-from-dump
+  path has been rehearsed on Prisma (see Rollback above); nothing further is required for Gate 7.
 
 Decision recorded:
 
