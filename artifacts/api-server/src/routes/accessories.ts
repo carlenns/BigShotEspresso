@@ -100,6 +100,19 @@ router.patch("/accessories/:id", async (req, res): Promise<void> => {
 
 router.delete("/accessories/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [existing] = await db
+    .select({ id: accessoriesTable.id, type: accessoriesTable.type, isDefault: accessoriesTable.isDefault })
+    .from(accessoriesTable)
+    .where(eq(accessoriesTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+  if (existing.isDefault) {
+    const label = ACCESSORY_LABELS[existing.type] ?? existing.type;
+    res.status(409).json({
+      error: `This is the default ${label} — set another as default first, or turn off Default, before deleting.`,
+    });
+    return;
+  }
   await db.delete(accessoriesTable).where(eq(accessoriesTable.id, id));
   res.status(204).end();
 });

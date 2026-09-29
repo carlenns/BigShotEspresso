@@ -37,3 +37,27 @@ test("EQ-3: PATCH on a missing accessory is a 404 and changes no defaults", asyn
   assert.equal(missing.status, 404);
   assert.deepEqual(await defaultsOfType("puck_screen"), before);
 });
+
+// DI-3: no table references accessories today (no foreign key exists to
+// violate), so the only real gap was that DELETE had no guard at all —
+// missing id, invalid id, and the default accessory of a type all deleted
+// (or 204'd) unconditionally. Mirrors the existence + protected-record guard
+// pattern already used for grinders/machines/bags.
+test("DI-3: DELETE /accessories/:id rejects a bad id, a missing id, and the default of its type", async () => {
+  const bad = await api("DELETE", "/accessories/not-a-number");
+  assert.equal(bad.status, 400);
+
+  const missing = await api("DELETE", "/accessories/999999");
+  assert.equal(missing.status, 404);
+
+  const wdt = await api("POST", "/accessories", { type: "wdt_tool", brand: "Test WDT", isDefault: true });
+  const blocked = await api("DELETE", `/accessories/${wdt.json.id}`);
+  assert.equal(blocked.status, 409);
+  assert.match(blocked.json.error, /default/i);
+  assert.equal((await api("GET", `/accessories/${wdt.json.id}`)).status, 200, "not actually deleted");
+
+  const nonDefault = await api("POST", "/accessories", { type: "wdt_tool", brand: "Test WDT 2" });
+  const allowed = await api("DELETE", `/accessories/${nonDefault.json.id}`);
+  assert.equal(allowed.status, 204);
+  assert.equal((await api("GET", `/accessories/${nonDefault.json.id}`)).status, 404);
+});

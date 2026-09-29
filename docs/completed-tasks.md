@@ -3942,3 +3942,47 @@ against the real schema. Read-only (`set transaction read only`); nothing was ch
   reproduced exactly the handoff's claimed result (164 shots, rows 64/107).
 - `DATABASE_URL=<prisma> node scripts/corpus-rule-check.mjs --database` run and confirmed working
   (see above).
+
+# EQ-5 and DI-3: two small backlog items from the DI-4 handoff — 2026-09-29
+
+Carl: "lets do the whats next candidates." Picked up the two low-risk, well-scoped items from the
+DI-4 handoff's "Open, not started" list (the third — the two/three flagged shots — is a data
+decision for Carl, not code, and is being handled separately).
+
+## EQ-5: removed the inert pre-Option-A Settings equipment rows
+
+Confirmed via grep across `artifacts/` and `lib/` that `defaultMachine`, `defaultGrinder`,
+`defaultRegularGrinder`, `defaultBasket`, `defaultBasketSize`, and `defaultPuckScreen` in the
+`settings` table are dead: `backfillEquipmentDefaultsOnce` (Phase 2A S5) already copied them onto
+the per-record `isDefault` flags months ago, and `resolveEquipmentDefaults()` — what Dashboard
+actually calls — reads only `isDefault`. Nothing else reads these 6 keys (`equipmentDefaultsBackfill`,
+the backfill's own marker/report row, is a different key and stays — `Settings.tsx` still reads it).
+
+- Migration 0018 + runtime schema guard: `DELETE FROM settings WHERE key IN (...)`, run after
+  `backfillEquipmentDefaultsOnce()` (order matters — the backfill still needs to read these rows
+  on a fresh/un-migrated database before they're removed). Captured the live values first so the
+  down-migration is a real rollback, not a no-op.
+- This reverses part of an earlier decision (`equipment-defaults.route.test.ts`'s "S5 boot backfill"
+  test used to assert "Old Settings rows are left in place (inert), not deleted" — that was the
+  right call at the time, before EQ-5 was requested). Updated the test to assert the opposite.
+
+## DI-3: DELETE /accessories/:id now guards against deleting the default of its type
+
+`DELETE /accessories/:id` had no guard at all — no id validation, no existence check, always
+204 even for a nonexistent id. Investigated "accessory foreign keys" in the backlog title first:
+no table actually references accessories today (unlike grinders/machines/bags, which shots
+reference directly), so there's no FK violation to catch — the backlog title was aspirational.
+The real gap was just: nothing stopped deleting the default accessory of a type.
+
+- Added the same existence-check + protected-record-guard shape already used for
+  grinders/machines/bags: 400 on a non-numeric id, 404 if missing, 409 if `isDefault` is true
+  (mentioning the accessory type by its friendly label), else deletes as before.
+- New test: `DI-3: DELETE /accessories/:id rejects a bad id, a missing id, and the default of
+  its type`.
+- Noted for later, not acted on: if accessories are ever wired to shots (a future `accessoryId`
+  column), this guard would need the same shot-count check equipment.ts has — not needed today.
+
+## Verified
+
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 136/136 ✓ · `pnpm run build` ✓
+- Not yet committed/pushed.

@@ -138,6 +138,20 @@ ALTER TABLE bags
   ADD COLUMN IF NOT EXISTS estimated_roast_window_end text;
 `;
 
+// EQ-5 (migration 0018): remove the inert pre-Option-A Settings equipment
+// rows. `backfillEquipmentDefaultsOnce` already copied their values onto the
+// per-record isDefault flags months ago (Phase 2A S5), and
+// resolveEquipmentDefaults() — what Dashboard actually calls — reads only
+// isDefault now. Nothing in the app still reads these 6 keys. Does not touch
+// `equipmentDefaultsBackfill` (the backfill's own marker/report row), which
+// Settings.tsx still reads.
+const EQUIPMENT_SETTINGS_CLEANUP_SQL = `
+DELETE FROM settings WHERE key IN (
+  'defaultMachine', 'defaultGrinder', 'defaultRegularGrinder',
+  'defaultBasket', 'defaultBasketSize', 'defaultPuckScreen'
+);
+`;
+
 export async function ensureRuntimeSchema(): Promise<void> {
   await pool.query(EQUIPMENT_SCHEMA_SQL);
   await pool.query(SHOTS_SCHEMA_SQL);
@@ -146,6 +160,8 @@ export async function ensureRuntimeSchema(): Promise<void> {
   await pool.query(SYSTEM_PHASE_SETTINGS_SQL);
   // Equipment defaults Option A (Phase 2A S5): one-time, never-overwriting copy of
   // the retired Settings equipment strings onto the isDefault flags.
+  // Must run before EQUIPMENT_SETTINGS_CLEANUP_SQL, which deletes the source rows.
   await backfillEquipmentDefaultsOnce();
+  await pool.query(EQUIPMENT_SETTINGS_CLEANUP_SQL);
   logger.info("Runtime schema check complete");
 }

@@ -68,6 +68,12 @@ test("S5 boot backfill runs once, sets matching defaults, and the Dashboard read
   await ensureRuntimeSchema();
   const again = (await api("GET", "/equipment/grinders")).json as { id: number; isDefault: boolean }[];
   assert.equal(again.find((x) => x.id === grinder.json.id)?.isDefault, false);
-  // Old Settings rows are left in place (inert), not deleted.
-  assert.equal((await api("GET", "/settings")).json.defaultMachine, "Profitec Go");
+  // EQ-5 (2026-09-29, reverses the "left in place (inert)" call above): the
+  // old Settings rows are now removed on boot, after the backfill has already
+  // had its one chance to read them. resolveEquipmentDefaults() reads only
+  // isDefault, so nothing is lost by deleting them.
+  const settingsAfter = (await api("GET", "/settings")).json as Record<string, unknown>;
+  for (const retired of ["defaultMachine", "defaultGrinder", "defaultRegularGrinder", "defaultBasket", "defaultBasketSize", "defaultPuckScreen"]) {
+    assert.equal(settingsAfter[retired], undefined, `${retired} should have been removed`);
+  }
 });
