@@ -3985,4 +3985,56 @@ The real gap was just: nothing stopped deleting the default accessory of a type.
 ## Verified
 
 - `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 136/136 ✓ · `pnpm run build` ✓
-- Not yet committed/pushed.
+- Committed and pushed (`2f23c02`); deployed to Render.
+
+# DI-4 flagged shots: Carl's decision, and one data cleanup — 2026-09-29
+
+Presented the three include-in-analysis mismatches the DI-4 corpus-rule-check found (shots 63,
+106, 203) with full context for Carl to decide, per the handoff's "Decision on those two shots is
+Carl's" note.
+
+## Carl's decisions
+
+- **Shot 63** (Dialed In, faults "Good, Purge"): purged during this shot, but the shot itself was
+  poured and tasted great — kept in analysis. Leave as-is.
+- **Shot 106** (Good, faults "Good, Grinder Jam"): grinder jammed, took some finagling to get
+  working, but the resulting shot was great — kept it. Leave as-is.
+- **Shot 203** (Good, faults included a "Grind Waste Intentional, DO NOT COUNT towards waste
+  metrics" note): grinds wasted intentionally, noted for future reference. Carl asked whether the
+  waste is actually counted against grind waste metrics before deciding.
+
+## What was checked for shot 203
+
+Shot 203 has its own numeric `grind_waste` field (18.7g), independent of the fault-status text —
+that number already flows into the Dashboard's bag bean-mass-consumed tracking regardless of
+fault status or Include in Analysis. The "DO NOT COUNT towards waste metrics" note in the fault
+status isn't read by any code; it was Carl's own documentation for future review, and nothing
+currently acts on it either way. Told Carl this, and he confirmed: leave as-is, same as 63/106.
+
+**No `include_in_analysis` changes made on any of the three** — the corpus-rule-check's rule is a
+blunt automated flag surfaced for review, not an auto-correct; Carl's manual judgment (purge/jam/
+waste didn't invalidate the poured shot's taste) is more accurate than the rule for these three.
+
+## One data cleanup made: shot 203's malformed fault_status
+
+While pulling shot 203, found its `fault_status` array was corrupted by the CSV import — a comma
+inside a quoted note had split it into three broken pieces with stray quote characters
+(`["Good", "\"Grind Waste Intentional", "DO NOT COUNT towards waste metrics\""]`) instead of one
+clean second element. Carl asked to tidy it up.
+
+Fixed with a direct, narrow SQL update touching only `fault_status` —
+`["Good", "Grind Waste Intentional, DO NOT COUNT towards waste metrics"]` — deliberately **not**
+via `PATCH /shots/:id`, because that route unconditionally recomputes `include_in_analysis` from
+status + fault status on every edit (`routes/shots.ts:484-492`, "never trust a client-supplied
+includeInAnalysis"). Since the cleaned fault status still has two elements, going through the
+normal edit path would have silently flipped `include_in_analysis` to `false` — exactly what Carl
+just said not to do. Verified after: `include_in_analysis` unchanged (`true`), `fault_status`
+clean, `status`/rating/everything else untouched.
+
+## Verified
+
+- Re-ran `node scripts/corpus-rule-check.mjs --database` against the live database after the fix:
+  same 3 shots flagged (expected — these are deliberate keeps, not errors), shot 203's fault note
+  now displays as one clean string.
+- No code changed for this entry; only the one shot's `fault_status` column, applied directly to
+  the live Prisma Postgres database.
