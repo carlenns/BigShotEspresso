@@ -43,9 +43,30 @@ equipment, accessories, and the dashboard.
 Client-side savings depend on usage and are not measured here. Check the provider's
 operation counter after the first real week, as planned.
 
+## Status update — 2026-09-29 (measured on `main` after the bags commit `3b8f039`)
+
+Statements per request, from `query-budget.route.test.ts` (`SHOW_SQL=1` prints them):
+
+| Request | Now |
+|---|---:|
+| `GET /dashboard/intelligence` | 5 |
+| `POST /shots` | 3 |
+| `PATCH /shots/:id` | 2 |
+| `GET /bags` | 4 |
+| `GET /shots` | 2 |
+| `PUT /settings` (any number of keys) | 1 |
+| One "log a shot" visit (Dashboard → Log Shot → save → Dashboard) | 29 |
+
+- **Done:** merging the dashboard's four small reads (settings, grinders, machines,
+  accessories). They are one statement now (the first of the five), so the dashboard went
+  9 → 8 → 5.
+- **Evaluated and declined:** folding `POST /shots`'s bag lookup into the insert. It would save
+  one statement per logged shot (about 3% of a visit) but means re-implementing Days Since
+  Open in SQL alongside the application code that `PATCH /shots/:id` also uses, and that logic
+  sits next to the bag freshness-dating code. Two copies of the rule can drift apart; not worth
+  one statement. Revisit only if a real operation-count problem appears.
+
 ## Not done here (candidates for the migration phase)
 
-- Merging the four small dashboard reads (settings, grinders, machines, accessories).
-- Folding `POST /shots`'s bag lookup into the insert.
 - Postgres views for shared metrics (best shot, Quick Look score, windows, Ref Shot %).
 - A read-only Grafana role and dashboard-refresh settings (owner analysis only).
