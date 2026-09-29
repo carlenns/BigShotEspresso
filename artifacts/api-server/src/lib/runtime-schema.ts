@@ -120,9 +120,28 @@ FROM (
 ON CONFLICT (key) DO NOTHING;
 `;
 
+// Best-Before Date (migration 0016): the raw printed date, recorded as
+// evidence only — distinct from "Best-Before Minus One Year", which computes
+// a roast date from it. No formula here; it never feeds roastDate/roastDateUsed.
+//
+// Estimated Roast Window Start/End (migration 0017, Carl 2026-09-29: "make
+// the date fields actual date fields"): structured replacement for the old
+// free-text estimated_roast_window ("2026-08-03 to 2026-08-17"), so the
+// window is queryable instead of a string to parse. The old column is left
+// untouched for existing rows — the app shows it read-only rather than
+// migrating its text into the new columns, since parsing arbitrary historical
+// phrasing into two dates would be a guess.
+const BAGS_SCHEMA_SQL = `
+ALTER TABLE bags
+  ADD COLUMN IF NOT EXISTS best_before_date text,
+  ADD COLUMN IF NOT EXISTS estimated_roast_window_start text,
+  ADD COLUMN IF NOT EXISTS estimated_roast_window_end text;
+`;
+
 export async function ensureRuntimeSchema(): Promise<void> {
   await pool.query(EQUIPMENT_SCHEMA_SQL);
   await pool.query(SHOTS_SCHEMA_SQL);
+  await pool.query(BAGS_SCHEMA_SQL);
   await pool.query(TASTE_SELECTORS_SCHEMA_SQL);
   await pool.query(SYSTEM_PHASE_SETTINGS_SQL);
   // Equipment defaults Option A (Phase 2A S5): one-time, never-overwriting copy of

@@ -766,23 +766,15 @@ export default function ShotForm() {
     const grindTime = values.grindTime;
     if (grindSetting == null && grindTime == null) return;
 
-    const tasks: Promise<unknown>[] = [];
-    if (values.bagId != null) {
-      tasks.push(fetch(`/api/bags/${values.bagId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...(grindSetting != null ? { currentGrindSetting: grindSetting } : {}),
-          ...(grindTime != null ? { currentGrindTime: grindTime } : {}),
-        }),
-      }));
-    }
-    tasks.push(saveSettings({
+    // The bag's own currentGrindSetting/currentGrindTime are carried forward
+    // server-side on every shot write (carryForwardActiveBagGrindDefaults in
+    // routes/shots.ts) — no client PATCH /bags/:id needed here. This only
+    // saves the global defaultGrindSetting/defaultGrindTime for next-shot prefill.
+    await saveSettings({
       ...(settings ?? {}),
       ...(grindSetting != null ? { defaultGrindSetting: String(grindSetting) } : {}),
       ...(grindTime != null ? { defaultGrindTime: String(grindTime) } : {}),
-    }));
-    await Promise.allSettled(tasks);
+    });
   };
 
   const onSubmit = async (values: FormValues) => {

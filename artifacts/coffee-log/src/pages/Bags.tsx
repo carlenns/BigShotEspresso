@@ -19,12 +19,14 @@ import { useListHoppers, useUpdateHopper, getListHoppersQueryKey, type Hopper } 
 
 const HOPPER_PHASE_OPTIONS = ["Phase 1", "Phase 2", "Phase 3", "End of Bag", "Single Bag Phase", "Custom"] as const;
 
-interface Bean { id: number; name: string; }
+interface Bean { id: number; name: string; roaster?: string | null; origin?: string | null; process?: string | null; }
 interface Bag {
   id: number; beanId: number | null; beanName: string | null; bagNumber: string | null;
   bagName: string | null; purchaseDate: string | null; roastDate: string | null;
   roastDateUsed: string | null; estimatedRoastWindow: string | null; actualRoastDate: string | null;
   estimatedRoastDate: string | null; freshnessDatingMethod: string | null;
+  bestBeforeDate: string | null;
+  estimatedRoastWindowStart: string | null; estimatedRoastWindowEnd: string | null;
   roastDateConfidence: string | null; roastDateNotes: string | null;
   openedDate: string | null; bagWeight: number | null; remainingEstimate: number | null;
   cost: number | null; isActive: boolean;
@@ -44,13 +46,23 @@ function fetchBeans(): Promise<Bean[]> { return getJson<Bean[]>("/api/beans"); }
 
 const ROAST_DATE_CONFIDENCE = ["Exact", "Estimated High", "Estimated Medium", "Estimated Low", "Unknown"];
 
+// Whether the Roast Date entered above is what's printed on the bag or your
+// best guess — reuses the existing roastDateUsed column (which historically
+// held exactly "Actual"/"Estimated" from the Airtable import) rather than a
+// new field; the labels are just friendlier (Carl, 2026-09-29).
+const ROAST_DATE_METHOD_OPTIONS = ["Roast Date on Bag", "Estimated"];
+
 // How a Roast Date was derived — distinct from Roast Date Confidence (how
 // sure you are). "Best-Before Minus One Year" covers roasters (e.g. De
 // Luca's) that print a Best-Before date rather than a roast date; see the
-// helper copy near its selector below for the concrete example.
+// helper copy near its selector below for the concrete example. "Best-Before
+// Date" is a separate, narrower method: just record the printed date itself
+// as evidence, with no minus-one-year (or any other) formula applied — pick
+// it when you don't yet want to commit to a computed roast date.
 const FRESHNESS_DATING_METHOD_OPTIONS = [
   "Exact Roast Date",
   "Best-Before Minus One Year",
+  "Best-Before Date",
   "Roaster / Staff Confirmed",
   "Printed Bag Code",
   "Unknown",
@@ -76,6 +88,16 @@ function suggestNextBagNumber(bags: Bag[]): string {
   return numeric.length > 0 ? String(Math.max(...numeric) + 1) : "";
 }
 
+// Suggests "Bag #{n} — {Bean Name}" from the bean's own Name field — an
+// editable starting point, not a locked value (Carl, 2026-09-29: simpler than
+// recombining Roaster/Origin/Process, which the bean's Name already captures).
+function suggestBagLabel(bagNumber: string, beanName?: string | null): string {
+  const name = beanName?.trim() ?? "";
+  const n = bagNumber.trim() ? `Bag #${bagNumber.trim()}` : "";
+  if (!n && !name) return "";
+  return [n, name].filter(Boolean).join(" — ");
+}
+
 export default function Bags() {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -98,12 +120,12 @@ export default function Bags() {
   const [startingBeansPrefilled, setStartingBeansPrefilled] = useState(false);
   const [changeBagOpen, setChangeBagOpen] = useState(false);
 
-  const blankForm = () => ({ beanId: "", bagNumber: "", bagName: "", purchaseDate: "", roastDate: "", roastDateUsed: "", estimatedRoastWindow: "", actualRoastDate: "", estimatedRoastDate: "", freshnessDatingMethod: "", roastDateConfidence: "", roastDateNotes: "", openedDate: "", closedOutDate: "", bagWeight: "", remainingEstimate: "", cost: "", isActive: "false", startGrindSetting: "", currentGrindSetting: "", startGrindTime: "", currentGrindTime: "", defaultDose: "", defaultYield: "", defaultTemp: "", dialInNotes: "", notes: "" });
+  const blankForm = () => ({ beanId: "", bagNumber: "", bagName: "", purchaseDate: "", roastDate: "", roastDateUsed: "", estimatedRoastWindow: "", estimatedRoastWindowStart: "", estimatedRoastWindowEnd: "", freshnessDatingMethod: "", bestBeforeDate: "", roastDateConfidence: "", roastDateNotes: "", openedDate: "", closedOutDate: "", bagWeight: "", remainingEstimate: "", cost: "", isActive: "false", startGrindSetting: "", currentGrindSetting: "", startGrindTime: "", currentGrindTime: "", defaultDose: "", defaultYield: "", defaultTemp: "", dialInNotes: "", notes: "" });
 
   const openNew = () => { setEditing(null); setForm(blankForm()); setOpen(true); };
   const openEdit = (b: Bag) => {
     setEditing(b);
-    setForm({ beanId: String(b.beanId ?? ""), bagNumber: b.bagNumber ?? "", bagName: b.bagName ?? "", purchaseDate: b.purchaseDate ?? "", roastDate: b.roastDate ?? "", roastDateUsed: b.roastDateUsed ?? "", estimatedRoastWindow: b.estimatedRoastWindow ?? "", actualRoastDate: b.actualRoastDate ?? "", estimatedRoastDate: b.estimatedRoastDate ?? "", freshnessDatingMethod: b.freshnessDatingMethod ?? "", roastDateConfidence: b.roastDateConfidence ?? "", roastDateNotes: b.roastDateNotes ?? "", openedDate: b.openedDate ?? "", closedOutDate: b.closedOutDate?.slice(0, 10) ?? "", bagWeight: String(b.bagWeight ?? ""), remainingEstimate: String(b.remainingEstimate ?? ""), cost: String(b.cost ?? ""), isActive: String(b.isActive), startGrindSetting: String(b.startGrindSetting ?? ""), currentGrindSetting: String(b.currentGrindSetting ?? ""), startGrindTime: String(b.startGrindTime ?? ""), currentGrindTime: String(b.currentGrindTime ?? ""), defaultDose: String(b.defaultDose ?? ""), defaultYield: String(b.defaultYield ?? ""), defaultTemp: String(b.defaultTemp ?? ""), dialInNotes: b.dialInNotes ?? "", notes: b.notes ?? "" });
+    setForm({ beanId: String(b.beanId ?? ""), bagNumber: b.bagNumber ?? "", bagName: b.bagName ?? "", purchaseDate: b.purchaseDate ?? "", roastDate: b.roastDate ?? "", roastDateUsed: b.roastDateUsed ?? "", estimatedRoastWindow: b.estimatedRoastWindow ?? "", estimatedRoastWindowStart: b.estimatedRoastWindowStart ?? "", estimatedRoastWindowEnd: b.estimatedRoastWindowEnd ?? "", freshnessDatingMethod: b.freshnessDatingMethod ?? "", bestBeforeDate: b.bestBeforeDate ?? "", roastDateConfidence: b.roastDateConfidence ?? "", roastDateNotes: b.roastDateNotes ?? "", openedDate: b.openedDate ?? "", closedOutDate: b.closedOutDate?.slice(0, 10) ?? "", bagWeight: String(b.bagWeight ?? ""), remainingEstimate: String(b.remainingEstimate ?? ""), cost: String(b.cost ?? ""), isActive: String(b.isActive), startGrindSetting: String(b.startGrindSetting ?? ""), currentGrindSetting: String(b.currentGrindSetting ?? ""), startGrindTime: String(b.startGrindTime ?? ""), currentGrindTime: String(b.currentGrindTime ?? ""), defaultDose: String(b.defaultDose ?? ""), defaultYield: String(b.defaultYield ?? ""), defaultTemp: String(b.defaultTemp ?? ""), dialInNotes: b.dialInNotes ?? "", notes: b.notes ?? "" });
     setOpen(true);
   };
 
@@ -295,6 +317,14 @@ export default function Bags() {
     ? [...FRESHNESS_DATING_METHOD_OPTIONS, form.freshnessDatingMethod]
     : FRESHNESS_DATING_METHOD_OPTIONS;
 
+  // Same carve-out for Roast Date Method (roastDateUsed): imported bags hold
+  // the original "Actual"/"Estimated" values, which predate the friendlier
+  // "Roast Date on Bag" label — keep them selectable rather than relabeling
+  // history.
+  const roastDateMethodOptions = form.roastDateUsed && !ROAST_DATE_METHOD_OPTIONS.includes(form.roastDateUsed)
+    ? [...ROAST_DATE_METHOD_OPTIONS, form.roastDateUsed]
+    : ROAST_DATE_METHOD_OPTIONS;
+
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -308,7 +338,12 @@ export default function Bags() {
           <Button variant="outline" onClick={() => setChangeBagOpen(true)} className="gap-2">
             <ArrowRightLeft className="h-4 w-4" /> {activeBags.length > 0 ? "Change Bag" : "Start New Bag"}
           </Button>
-          <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Bag</Button>
+          {/* "Add Bag" hidden 2026-09-28 (Carl): inconsistent with Change Bag's guided
+              flow (no bean creation, no auto-suggestions) and its real use case —
+              adding a bag without switching, e.g. for a second brew method — is
+              deferred pending a proper brew-method design. The dialog and openNew()
+              are left in place so this is a quick toggle to bring back, and Edit Bag
+              (pencil icon, openEdit) reuses the same dialog unaffected. */}
         </div>
       </div>
 
@@ -402,9 +437,42 @@ export default function Bags() {
             </div>
             <div className="space-y-1.5"><Label>Bag Number</Label><Input value={form.bagNumber} onChange={(e) => set("bagNumber", e.target.value)} placeholder="e.g. 4" /></div>
             <div className="space-y-1.5"><Label>Bag Name / Label</Label><Input value={form.bagName} onChange={(e) => set("bagName", e.target.value)} placeholder="e.g. Summer 2026" /></div>
-            <div className="space-y-1.5"><Label>Purchase Date</Label><Input value={form.purchaseDate} onChange={(e) => set("purchaseDate", e.target.value)} placeholder="2026-05-20" /></div>
-            <div className="space-y-1.5"><Label>Roast Date</Label><Input value={form.roastDate} onChange={(e) => set("roastDate", e.target.value)} placeholder="2026-05-15" /></div>
-            <div className="space-y-1.5"><Label>Roast Date Used</Label><Input value={form.roastDateUsed} onChange={(e) => set("roastDateUsed", e.target.value)} placeholder="Actual or estimated date used by app" /></div>
+            <div className="space-y-1.5"><Label>Purchase Date</Label><Input type="date" value={form.purchaseDate} onChange={(e) => set("purchaseDate", e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Roast Date</Label><Input type="date" value={form.roastDate} onChange={(e) => set("roastDate", e.target.value)} /></div>
+            <div className="space-y-1.5">
+              <Label>Roast Date Method</Label>
+              <Select value={form.roastDateUsed || "__none__"} onValueChange={(v) => set("roastDateUsed", v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— not set —</SelectItem>
+                  {roastDateMethodOptions.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Freshness Dating Method</Label>
+              <Select value={form.freshnessDatingMethod || "__none__"} onValueChange={(v) => set("freshnessDatingMethod", v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— not set —</SelectItem>
+                  {freshnessDatingMethodOptions.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {form.freshnessDatingMethod === "Best-Before Date" && (
+              <div className="space-y-1.5"><Label>Best-Before Date</Label><Input type="date" value={form.bestBeforeDate} onChange={(e) => set("bestBeforeDate", e.target.value)} /></div>
+            )}
+            {form.roastDateUsed === "Estimated" && (
+              <>
+                <div className="space-y-1.5"><Label>Estimated Roast Window Start</Label><Input type="date" value={form.estimatedRoastWindowStart} onChange={(e) => set("estimatedRoastWindowStart", e.target.value)} /></div>
+                <div className="space-y-1.5"><Label>Estimated Roast Window End</Label><Input type="date" value={form.estimatedRoastWindowEnd} onChange={(e) => set("estimatedRoastWindowEnd", e.target.value)} /></div>
+              </>
+            )}
+            {form.estimatedRoastWindow && (
+              <p className="col-span-2 text-xs text-muted-foreground">
+                Legacy Estimated Roast Window (read-only, predates the Start/End fields above): {form.estimatedRoastWindow}
+              </p>
+            )}
             <div className="space-y-1.5">
               <Label>Roast Date Confidence</Label>
               <Select value={form.roastDateConfidence || "__none__"} onValueChange={(v) => set("roastDateConfidence", v === "__none__" ? "" : v)}>
@@ -415,23 +483,10 @@ export default function Bags() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5"><Label>Actual Roast Date</Label><Input value={form.actualRoastDate} onChange={(e) => set("actualRoastDate", e.target.value)} placeholder="2026-08-15" /></div>
-            <div className="space-y-1.5"><Label>Estimated Roast Date</Label><Input value={form.estimatedRoastDate} onChange={(e) => set("estimatedRoastDate", e.target.value)} placeholder="2026-08-10" /></div>
-            <div className="col-span-2 space-y-1.5"><Label>Estimated Roast Window</Label><Input value={form.estimatedRoastWindow} onChange={(e) => set("estimatedRoastWindow", e.target.value)} placeholder="2026-08-03 to 2026-08-17" /></div>
-            <div className="col-span-2 space-y-1.5">
-              <Label>Freshness Dating Method</Label>
-              <Select value={form.freshnessDatingMethod || "__none__"} onValueChange={(v) => set("freshnessDatingMethod", v === "__none__" ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">— not set —</SelectItem>
-                  {freshnessDatingMethodOptions.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+            <div className="col-span-2 space-y-1.5"><Label>Roast Date Notes</Label><Input value={form.roastDateNotes} onChange={(e) => set("roastDateNotes", e.target.value)} placeholder="Evidence/clues for the roast date, e.g. best-before math or early-degassing signs…" /></div>
             <p className="col-span-2 text-xs text-muted-foreground">
-              Roast Date can be exact or your best estimate. Freshness Dating Method records how you derived it — e.g. some roasters like De Luca's print a Best-Before date rather than a roast date; De Luca's own Best-Before month/year appears to be about one year after the roast/packing month, so pick "Best-Before Minus One Year" and set Roast Date Confidence to Estimated High for the month (lower if you need the exact day and it isn't confirmed). If Dating Method is "Other", describe it in Roast Date Notes below.
+              Roast Date can be exact (Roast Date Method: Roast Date on Bag) or your best estimate (Estimated). Freshness Dating Method records how you derived it — e.g. some roasters like De Luca's print a Best-Before date rather than a roast date; De Luca's own Best-Before month/year appears to be about one year after the roast/packing month, so pick "Best-Before Minus One Year" and set Roast Date Confidence to Estimated High for the month (lower if you need the exact day and it isn't confirmed). If you'd rather just record the printed Best-Before date without computing a roast date from it, pick "Best-Before Date" and fill in the Best-Before Date field above — it's evidence only and never sets Roast Date on its own. If Dating Method is "Other", describe it in Roast Date Notes below.
             </p>
-            <div className="col-span-2 space-y-1.5"><Label>Roast Date Notes</Label><Input value={form.roastDateNotes} onChange={(e) => set("roastDateNotes", e.target.value)} placeholder="Evidence for actual/estimated roast date…" /></div>
             <div className="space-y-1.5"><Label>Opened Date</Label><Input type="date" value={form.openedDate} onChange={(e) => set("openedDate", e.target.value)} placeholder="2026-05-22" /></div>
             <div className="space-y-1.5"><Label>Closed Out Date</Label><Input type="date" value={form.closedOutDate} onChange={(e) => set("closedOutDate", e.target.value)} placeholder="2026-08-17" /></div>
             <div className="space-y-1.5"><Label>Bag Weight (g)</Label><Input type="number" value={form.bagWeight} onChange={(e) => set("bagWeight", e.target.value)} placeholder="250" /></div>
@@ -877,12 +932,20 @@ function ChangeBagDialog({
     newBeanName: "",
     newBeanRoaster: "",
     newBeanOrigin: "",
+    newBeanProcess: "",
     bagNumber: suggestNextBagNumber(allBags),
     bagName: "",
+    bagNameEdited: false,
     bagWeight: "",
     purchaseDate: "",
     roastDate: "",
+    roastDateUsed: "",
+    freshnessDatingMethod: "",
+    bestBeforeDate: "",
     roastDateConfidence: "",
+    estimatedRoastWindowStart: "",
+    estimatedRoastWindowEnd: "",
+    roastDateNotes: "",
     startPhase: true,
     phase: "Phase 1",
     customLabel: "",
@@ -899,11 +962,30 @@ function ChangeBagDialog({
 
   const set = <K extends keyof ReturnType<typeof blank>>(key: K, value: ReturnType<typeof blank>[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
+  // Marks the label as user-edited so the auto-suggestion effect below stops overwriting it.
+  const setBagName = (value: string) => setForm((current) => ({ ...current, bagName: value, bagNameEdited: true }));
 
   // Reflects the suggestion Bag Number was *seeded* with (not the live form
   // value, which the user may since have edited) — used only to pick the
   // right helper copy below.
   const suggestedBagNumber = suggestNextBagNumber(allBags);
+
+  // Bag Label auto-suggestion: "Bag #{n} — {Bean Name}" from whichever bean is
+  // currently selected/being created. Re-suggests live as the bean or bag
+  // number changes, but never overwrites a label the user has typed
+  // themselves (bagNameEdited), same pattern as PL-8's bag-switch field
+  // carry-forward.
+  const selectedExistingBean = form.beanMode === "existing"
+    ? beans.find((b) => b.id === Number(form.existingBeanId))
+    : undefined;
+  const labelBeanName = form.beanMode === "existing" ? selectedExistingBean?.name : form.newBeanName;
+  const suggestedBagLabel = suggestBagLabel(form.bagNumber, labelBeanName);
+  React.useEffect(() => {
+    if (!form.bagNameEdited && suggestedBagLabel && suggestedBagLabel !== form.bagName) {
+      setForm((current) => ({ ...current, bagName: suggestedBagLabel }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestedBagLabel]);
 
   const changeBagMutation = useMutation({
     mutationFn: async () => {
@@ -921,6 +1003,7 @@ function ChangeBagDialog({
             name: form.newBeanName.trim(),
             roaster: form.newBeanRoaster.trim() || undefined,
             origin: form.newBeanOrigin.trim() || undefined,
+            process: form.newBeanProcess.trim() || undefined,
           }),
         });
         if (!beanRes.ok) throw new Error(`Could not create the new bean: ${await errorMessageFrom(beanRes)}`);
@@ -929,13 +1012,24 @@ function ChangeBagDialog({
 
       // 2. Create the new bag, active, before touching the old one — if this
       // fails, nothing else has changed yet.
+      // Roast Date is entered directly now (Carl, 2026-09-29) rather than
+      // resolved from separate Actual/Estimated inputs — Roast Date Method
+      // (roastDateUsed: "Roast Date on Bag" / "Estimated") just flags which
+      // kind it is, reusing the column that already held this Actual/Estimated
+      // distinction pre-import. No formula combines them.
       const bagBody: Record<string, unknown> = { beanId, isActive: true };
       if (form.bagNumber.trim()) bagBody.bagNumber = form.bagNumber.trim();
       if (form.bagName.trim()) bagBody.bagName = form.bagName.trim();
       if (form.bagWeight !== "") bagBody.bagWeight = Number(form.bagWeight);
       if (form.purchaseDate) bagBody.purchaseDate = form.purchaseDate;
       if (form.roastDate) bagBody.roastDate = form.roastDate;
+      if (form.roastDateUsed) bagBody.roastDateUsed = form.roastDateUsed;
+      if (form.freshnessDatingMethod) bagBody.freshnessDatingMethod = form.freshnessDatingMethod;
+      if (form.bestBeforeDate) bagBody.bestBeforeDate = form.bestBeforeDate;
       if (form.roastDateConfidence) bagBody.roastDateConfidence = form.roastDateConfidence;
+      if (form.estimatedRoastWindowStart) bagBody.estimatedRoastWindowStart = form.estimatedRoastWindowStart;
+      if (form.estimatedRoastWindowEnd) bagBody.estimatedRoastWindowEnd = form.estimatedRoastWindowEnd;
+      if (form.roastDateNotes.trim()) bagBody.roastDateNotes = form.roastDateNotes.trim();
       bagBody.openedDate = todayDate();
       const bagRes = await fetch("/api/bags", {
         method: "POST",
@@ -1142,6 +1236,7 @@ function ChangeBagDialog({
                   <Input value={form.newBeanRoaster} onChange={(e) => set("newBeanRoaster", e.target.value)} placeholder="Roaster (optional)" />
                   <Input value={form.newBeanOrigin} onChange={(e) => set("newBeanOrigin", e.target.value)} placeholder="Origin (optional)" />
                 </div>
+                <Input value={form.newBeanProcess} onChange={(e) => set("newBeanProcess", e.target.value)} placeholder="Process (optional, e.g. Washed)" />
                 <p className="text-xs text-muted-foreground">More bean detail can be added later from the Beans page.</p>
               </div>
             )}
@@ -1150,33 +1245,89 @@ function ChangeBagDialog({
           <div className="space-y-3 rounded-lg border p-3">
             <Label>New Bag Details</Label>
             <div className="grid grid-cols-2 gap-2">
-              <Input value={form.bagNumber} onChange={(e) => set("bagNumber", e.target.value)} placeholder="Bag number" />
-              <Input value={form.bagName} onChange={(e) => set("bagName", e.target.value)} placeholder="Bag name/label" />
-              <Input type="number" step="0.1" min="0" value={form.bagWeight} onChange={(e) => set("bagWeight", e.target.value)} placeholder="Bag weight (g)" />
               <div className="space-y-1">
-                <Label className="text-xs font-normal text-muted-foreground">Roast Date <span className="text-muted-foreground/70">(or estimated)</span></Label>
-                <Input type="date" value={form.roastDate} onChange={(e) => set("roastDate", e.target.value)} />
+                <Label className="text-xs font-normal text-muted-foreground">Bag Number</Label>
+                <Input value={form.bagNumber} onChange={(e) => set("bagNumber", e.target.value)} placeholder="Bag number" />
               </div>
-              <div className="col-span-2 space-y-1">
-                <Label className="text-xs font-normal text-muted-foreground">Roast Date Confidence <span className="text-muted-foreground/70">(optional)</span></Label>
-                <Select value={form.roastDateConfidence || "__none__"} onValueChange={(v) => set("roastDateConfidence", v === "__none__" ? "" : v)}>
-                  <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">— not set —</SelectItem>
-                    {ROAST_DATE_CONFIDENCE.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-1">
+                <Label className="text-xs font-normal text-muted-foreground">Bag Label</Label>
+                <Input value={form.bagName} onChange={(e) => setBagName(e.target.value)} placeholder="Bag name/label" />
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
               {suggestedBagNumber
                 ? `Bag Number suggested as ${suggestedBagNumber} (one after your highest numbered bag) — edit if needed.`
                 : "No previous numeric bag numbers found, so nothing was suggested — enter one to help identify this bag."}
+              {" "}Bag Label is suggested from the bag number and bean name — edit or replace it anytime.
             </p>
+            <Input type="number" step="0.1" min="0" value={form.bagWeight} onChange={(e) => set("bagWeight", e.target.value)} placeholder="Bag weight (g)" />
+            <div className="space-y-1">
+              <Label className="text-xs font-normal text-muted-foreground">Purchase Date <span className="text-muted-foreground/70">(optional)</span></Label>
+              <Input type="date" value={form.purchaseDate} onChange={(e) => set("purchaseDate", e.target.value)} />
+            </div>
+
+            <div className="space-y-1 pt-1 border-t">
+              <Label className="text-xs font-normal text-muted-foreground pt-2 block">Roast Date</Label>
+              <Input type="date" value={form.roastDate} onChange={(e) => set("roastDate", e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-normal text-muted-foreground">Roast Date Method</Label>
+              <Select value={form.roastDateUsed || "__none__"} onValueChange={(v) => set("roastDateUsed", v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Is this the date on the bag, or your estimate?" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— not set —</SelectItem>
+                  {ROAST_DATE_METHOD_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-normal text-muted-foreground">Freshness Dating Method</Label>
+              <Select value={form.freshnessDatingMethod || "__none__"} onValueChange={(v) => set("freshnessDatingMethod", v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="How do you know the roast date?" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— not set —</SelectItem>
+                  {FRESHNESS_DATING_METHOD_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {form.freshnessDatingMethod === "Best-Before Date" && (
+              <div className="space-y-1">
+                <Label className="text-xs font-normal text-muted-foreground">Best-Before Date (as printed)</Label>
+                <Input type="date" value={form.bestBeforeDate} onChange={(e) => set("bestBeforeDate", e.target.value)} />
+              </div>
+            )}
+            {form.roastDateUsed === "Estimated" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs font-normal text-muted-foreground">Estimated Roast Window Start <span className="text-muted-foreground/70">(optional)</span></Label>
+                  <Input type="date" value={form.estimatedRoastWindowStart} onChange={(e) => set("estimatedRoastWindowStart", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-normal text-muted-foreground">Estimated Roast Window End <span className="text-muted-foreground/70">(optional)</span></Label>
+                  <Input type="date" value={form.estimatedRoastWindowEnd} onChange={(e) => set("estimatedRoastWindowEnd", e.target.value)} />
+                </div>
+              </div>
+            )}
+            <div className="space-y-1">
+              <Label className="text-xs font-normal text-muted-foreground">Roast Date Confidence <span className="text-muted-foreground/70">(optional)</span></Label>
+              <Select value={form.roastDateConfidence || "__none__"} onValueChange={(v) => set("roastDateConfidence", v === "__none__" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— not set —</SelectItem>
+                  {ROAST_DATE_CONFIDENCE.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-normal text-muted-foreground">Roast Date Notes <span className="text-muted-foreground/70">(optional)</span></Label>
+              <Input value={form.roastDateNotes} onChange={(e) => set("roastDateNotes", e.target.value)} placeholder="Evidence/clues for the roast date, e.g. best-before math or early-degassing signs…" />
+            </div>
             <p className="text-xs text-muted-foreground">
-              Roast Date is when the beans were roasted (exact or your best estimate) — not Purchase Date (when bought, not collected here). Opened Date is set automatically to today when this bag is created.
+              {form.freshnessDatingMethod === "Best-Before Date"
+                ? "Best-Before Date is recorded as evidence only — it does not compute a roast date."
+                : "Freshness Dating Method records how you derived the Roast Date above."}
+              {" "}Not Purchase Date (when bought). Opened Date is set automatically to today when this bag is created.
             </p>
-            <p className="text-xs text-muted-foreground">This bag will be created and set active immediately. Add Freshness Dating Method (how you derived the Roast Date, e.g. Best-Before Minus One Year) and more detail anytime from Edit.</p>
           </div>
 
           <div className="space-y-3 rounded-lg border p-3">

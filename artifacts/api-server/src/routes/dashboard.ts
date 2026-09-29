@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { sql, desc, isNotNull, eq, ne, and, lt, inArray } from "drizzle-orm";
-import { db, shotsTable, bagsTable, beansTable, settingsTable, grindersTable, machinesTable, accessoriesTable } from "@workspace/db";
+import { db, shotsTable, bagsTable, beansTable } from "@workspace/db";
 import { GetRecentShotsQueryParams, GetBestRatedShotsQueryParams } from "@workspace/api-zod";
 import { eligibleShotConditions, isEligibleShotRow, ratingEligibleShotConditions } from "../lib/shot-eligibility";
 import { averageWeightedShotScore, getRatingWeights } from "../lib/rating-weighting";
@@ -64,17 +64,33 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   // always return a fresh response to prevent 304 hits serving stale fields.
   res.setHeader("Cache-Control", "no-store");
 
-  // ── Settings (for baseline extras: grinder, machine, basket) ─────────────
-  const settingRows = await db.select().from(settingsTable);
+  // ── Settings + equipment defaults, one statement ──────────────────────────
+  // Only the fields resolveEquipmentDefaults/getRatingWeights actually read
+  // (see lib/equipment-defaults.ts, lib/rating-weighting.ts) — not full rows.
+  // Four separate SELECTs (Phase 2A S6 follow-up) folded into one to cut
+  // billed operations on a per-statement-billed Postgres host.
+  const [combined] = (await db.execute<{
+    settings: { key: string; value: string }[];
+    grinders: { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; isDefault: boolean }[];
+    machines: { id: number; name: string; shortLabel: string | null; brand: string | null; model: string | null; isDefault: boolean; stockBasket: string | null }[];
+    accessories: { id: number; type: string; shortLabel: string | null; brand: string | null; model: string | null; size: string | null; specs: unknown; isActive: boolean; isDefault: boolean }[];
+  }>(sql`
+    SELECT
+      COALESCE((SELECT jsonb_agg(jsonb_build_object('key', key, 'value', value)) FROM settings), '[]'::jsonb) AS settings,
+      COALESCE((SELECT jsonb_agg(jsonb_build_object(
+        'id', id, 'name', name, 'shortLabel', short_label, 'brand', brand, 'model', model, 'isDefault', is_default
+      )) FROM grinders), '[]'::jsonb) AS grinders,
+      COALESCE((SELECT jsonb_agg(jsonb_build_object(
+        'id', id, 'name', name, 'shortLabel', short_label, 'brand', brand, 'model', model, 'isDefault', is_default, 'stockBasket', stock_basket
+      )) FROM machines), '[]'::jsonb) AS machines,
+      COALESCE((SELECT jsonb_agg(jsonb_build_object(
+        'id', id, 'type', type, 'shortLabel', short_label, 'brand', brand, 'model', model, 'size', size, 'specs', specs, 'isActive', is_active, 'isDefault', is_default
+      )) FROM accessories), '[]'::jsonb) AS accessories
+  `)).rows;
   const settings: Record<string, string> = {};
-  for (const r of settingRows) settings[r.key] = r.value;
+  for (const r of combined.settings) settings[r.key] = r.value;
   const ratingWeights = getRatingWeights(settings);
-  const [grinders, machines, accessories] = await Promise.all([
-    db.select().from(grindersTable),
-    db.select().from(machinesTable),
-    db.select().from(accessoriesTable),
-  ]);
-  const equipmentDefaults = resolveEquipmentDefaults(grinders, machines, accessories);
+  const equipmentDefaults = resolveEquipmentDefaults(combined.grinders, combined.machines, combined.accessories);
 
   // ── Active bag ────────────────────────────────────────────────────────────
   const [activeBagRow] = await db

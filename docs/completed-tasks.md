@@ -3695,3 +3695,250 @@ Carl's explicit go-ahead at each of the three pause points (create/target, copy,
   the runbook, then retire or downgrade.
 - `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 135/135 ✓ · `pnpm run build` ✓ (verified
   before the copy step, on `phase-2b/next`).
+
+# Write efficiency: two of the runbook's three follow-up candidates — 2026-09-28
+
+Carl: "make the writes efficient to optimize for the free plan at Prisma... this is all new
+to me so I'll leave that up to you." Picked up the three candidates the runbook listed
+(`prisma-postgres-migration-runbook.md`, "Remaining app candidates").
+
+## Completed
+
+- **Dashboard: 4 reads folded into 1.** `GET /dashboard/intelligence` used four separate
+  `SELECT * FROM` statements (settings, grinders, machines, accessories) just to build a
+  `Record<string,string>` and feed `resolveEquipmentDefaults`. Replaced with one statement
+  selecting only the fields those two functions actually read, via `jsonb_agg`/
+  `jsonb_build_object` per table. Verified with `SHOW_SQL=1`: dashboard statements 8 → 5,
+  the full "log-a-shot visit" 39 → 30 (the endpoint is called twice per visit). Query-budget
+  assertions tightened to match (`<= 5`, `<= 34`).
+- **Dropped the redundant client grind carry-forward.** `ShotForm.tsx`'s `carryForwardGrindDefaults`
+  PATCHed `/api/bags/:id` with `currentGrindSetting`/`currentGrindTime` on every new shot — but
+  `routes/shots.ts` (`carryForwardActiveBagGrindDefaults`) already does exactly this,
+  unconditionally, on every shot create *and* edit. Removed the duplicate client PATCH; kept
+  the (functionally different) `PUT /settings` call that saves the global default for the next
+  new shot's prefill. Updated the two tests that encoded the old behavior
+  (`api-contract.test.ts`'s source-text assertions, `query-budget.route.test.ts`'s simulated visit).
+
+## Considered, not done
+
+- **Folding `POST /shots`'s bag lookup into the insert.** The `SELECT opened_date FROM bags`
+  (for `daysSinceOpen`) and the `UPDATE bags SET current_grind_setting/current_grind_time`
+  (grind carry-forward) both touch the same bag row, but under different conditions — the
+  `SELECT` needs `opened_date` regardless of bag-active status or grind data, while the
+  `UPDATE` only fires when the bag is active and grind fields are present. Merging them would
+  mean writing to `bags` (bumping `updated_at`) on every shot save even with no grind data, and
+  would silently stop returning `opened_date` whenever the target bag isn't active — a real
+  behavior change for a 1-statement saving. Left as-is.
+
+## Verified
+
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 135/135 ✓ · `pnpm run build` ✓
+- Not yet committed/pushed — holding for Carl's go-ahead.
+
+# Bags: freshness-dating flow moved into bag creation — 2026-09-28
+
+Carl: "it is quite confusing the way it is presently, not very intuitive" — the roast-date
+detail (freshness dating method, actual/estimated date, confidence, window, notes) existed
+only in the Edit dialog, disconnected from the "Change Bag" creation flow, which only asked
+for a single flat Roast Date + Confidence. No new schema — every field already existed on
+`bagsTable`; this only reorganizes the creation UI and resolves which existing field feeds which.
+
+## Completed
+
+- **Bag Label auto-suggestion**, mirroring the existing Bag Number pattern: `suggestBagLabel()`
+  builds `Bag #{n} — {Roaster} {Origin} {Process}` live from the selected/new bean, editable,
+  and never overwrites a label the user typed (`bagNameEdited` flag, same carry-forward
+  pattern as PL-8). Added a Process field to the inline new-bean quick-create so it can feed
+  the label (previously only Name/Roaster/Origin).
+- **Freshness-dating flow added to Change Bag**, in order: Purchase Date -> Freshness Dating
+  Method -> (Unknown -> Estimated Roast Date | anything else -> Actual Roast Date) -> Roast
+  Date Confidence -> Estimated Roast Window -> Roast Date Notes.
+- **Roast date resolution rule** (Carl, 2026-09-28: "when actual roast date, it is known, when
+  estimated roast date, it is unknown"): `resolvedRoastDate = method === "Unknown" ?
+  estimatedRoastDate : actualRoastDate`. This becomes the bag's one operative Roast Date (what
+  Dashboard reads for roast-age) and also sets `roastDateUsed`, so there's a single source of
+  truth instead of two disconnected concepts.
+- Updated `api-contract.test.ts`'s contract test, which had previously *locked in* the old
+  exclusion ("Deliberately excluded from this compact flow... this task's boundaries forbid new
+  schema regardless") — that was the right call at the time; today's request explicitly reverses it.
+
+## Verified
+
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 135/135 ✓ · `pnpm run build` ✓
+- Manually walked the flow in a browser against the live production database (server on
+  localhost:5055, `NODE_ENV=production`), without submitting: bean creation fields, live Bag
+  Label suggestion (confirmed "Bag #9 — Acme Roastery Ethiopia Washed"), the label surviving a
+  bag-weight edit, the label staying put after editing Origin post-hoc (proving
+  `bagNameEdited` blocks the auto-suggestion once touched), and the Freshness Dating Method
+  conditional swap in both directions (Unknown -> Estimated Roast Date; Best-Before Minus One
+  Year -> Actual Roast Date). Closed the dialog without submitting — Bag #8 remained the
+  active bag, no bean/bag was created, no production data touched.
+- Not yet committed/pushed — holding for Carl's go-ahead.
+
+# Bags: Best-Before Date as its own Freshness Dating Method — 2026-09-29
+
+Carl: "there is no listing on bags for a best before date yet in freshness dating method
+there is a Best-before minus one year option, closest option is a printed bag code, maybe
+add a best before date." Confirmed via clarifying questions before touching schema: store
+the raw printed date with no roast-date formula (evidence only, same spirit as "Printed Bag
+Code" but with an actual date), and add it alongside "Best-Before Minus One Year" rather than
+replacing it.
+
+## Completed
+
+- **New `bags.best_before_date` column** (text, nullable) — `lib/db/src/schema/bags.ts`,
+  applied via the runtime schema guard (`artifacts/api-server/src/lib/runtime-schema.ts`,
+  new `BAGS_SCHEMA_SQL`, idempotent `ADD COLUMN IF NOT EXISTS`), documented in migration
+  0016 (`lib/db/migrations/0016_bags_best_before_date.sql` + `.down.sql`), same pattern as
+  every schema change since 0007.
+- **New "Best-Before Date" option** in `FRESHNESS_DATING_METHOD_OPTIONS`, placed next to
+  "Best-Before Minus One Year". Selecting it shows a Best-Before Date (as printed) input plus
+  an optional Estimated Roast Date — treated the same as "Unknown" for roast-date resolution
+  (`isBestBeforeDateMethod` in `resolvedRoastDate`), since recording the printed date is
+  evidence only and computes nothing. Full Edit Bag dialog gets a matching plain Best-Before
+  Date field alongside Actual/Estimated Roast Date.
+- Wired through `GET /bags`, `GET /bags/:id`, and `parseBagBody` (`routes/bags.ts`) so the
+  field round-trips on create/edit like every other freshness field.
+
+## Verified
+
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 135/135 ✓ · `pnpm run build` ✓
+- Not yet committed/pushed — holding for Carl's go-ahead. (Superseded in part by the very next
+  entry: Actual/Estimated Roast Date stopped being separate fields the same day.)
+
+# Bags: roast-date flow rework — single Roast Date, Roast Date Method, structured window — 2026-09-29
+
+Carl walked through the Edit Bag screenshot from the previous entry and flagged it directly:
+"there is too many fields that look like they are repeating the same info there." He then
+specified a concrete replacement flow (Bag Number -> Bag Label from bean name -> Purchase Date
+-> Roast Date -> Roast Date Method [Roast Date on Bag / Estimated] -> Freshness Dating Method
+[unchanged options] -> estimated dates if Estimated -> rest of the form), confirmed reusing
+`roastDateUsed` for the new Roast Date Method field ("it is just a different name (actual or
+estimated right??)"), asked to keep Roast Date Confidence, and asked to "make the date fields
+actual date fields." This supersedes part of the immediately preceding entry: Actual/Estimated
+Roast Date are no longer separate fields in either dialog.
+
+## Investigation before touching anything
+
+- Confirmed `bags.roastDateUsed` already held exactly "Actual"/"Estimated" pre-import (visible
+  live on Bag 8: "Roast Date Used: Estimated") — the write-efficiency entry earlier today had
+  repurposed it to store a copied date string instead, which is reverted here.
+- Grepped `dashboard.ts`/`shots.ts`: only `bags.roastDate` (the single resolved field) feeds any
+  engine logic (roast-age). `actualRoastDate`, `estimatedRoastDate`, `roastDateUsed`,
+  `freshnessDatingMethod`, `roastDateConfidence`, `roastDateNotes`, `estimatedRoastWindow` are
+  all supplementary/evidence fields nothing downstream reads — safe to consolidate the UI
+  without touching engine behavior.
+
+## Completed
+
+- **New `bags.estimated_roast_window_start`/`estimated_roast_window_end` columns** (text,
+  nullable) — structured replacement for the free-text `estimated_roast_window`
+  ("2026-08-03 to 2026-08-17"), so the window is analyzable. Migration 0017 + runtime schema
+  guard, same idempotent `ADD COLUMN IF NOT EXISTS` pattern as every prior schema change. The
+  old `estimated_roast_window` column and its historical values are left untouched — no
+  backfill, since parsing its free-text phrasing into two dates would be a guess — and shown
+  read-only in the Edit dialog when present.
+- **Roast Date is one field** in both the Edit Bag dialog and the Change Bag creation flow —
+  removed the separate Actual Roast Date / Estimated Roast Date inputs entirely (their
+  underlying columns are untouched for history, just no longer surfaced or written by either
+  dialog).
+- **Roast Date Method** replaces the raw "Roast Date Used" text box: a curated Select
+  ("Roast Date on Bag" / "Estimated") bound to the existing `roastDateUsed` column, with the
+  same historical-value carve-out pattern as Freshness Dating Method (old "Actual"/"Estimated"
+  values stay selectable).
+- **New field order** in both dialogs: Purchase Date -> Roast Date -> Roast Date Method ->
+  Freshness Dating Method -> Best-Before Date (if that method) -> Estimated Roast Window
+  Start/End (if Method = Estimated) -> Roast Date Confidence -> Roast Date Notes.
+- **Bag Label auto-suggestion simplified** to "Bag #{n} — {Bean Name}", dropping the
+  Roaster/Origin/Process recombination now that the bean's own Name field already captures
+  that. `suggestBagLabel` signature reduced accordingly.
+- **Date fields use real `<input type="date">` pickers** throughout the Edit Bag dialog
+  (Purchase Date, Roast Date, Best-Before Date, Estimated Roast Window Start/End), matching
+  the Change Bag dialog's existing date inputs — previously several were plain text boxes with
+  a placeholder example.
+- Wired the two new columns through `GET /bags`, `GET /bags/:id`, and `parseBagBody`
+  (`routes/bags.ts`).
+
+## Verified
+
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 135/135 ✓ · `pnpm run build` ✓
+- Manually walked both dialogs in a browser against the live Prisma Postgres database (server on
+  localhost:5055, `NODE_ENV=production`), using the real active Bag #8 (which already had legacy
+  `roastDateUsed: "Estimated"` and a legacy `estimatedRoastWindow` string, giving real historical
+  data to test the carve-out and read-only note against instead of a synthetic case): Roast Date
+  Method showed "Estimated" pre-selected from history; Freshness Dating Method showed "Printed
+  Bag Code" and the curated 7-option list; switching Freshness Dating Method to "Best-Before
+  Date" correctly revealed the Best-Before Date field; switching Roast Date Method to "Roast Date
+  on Bag" correctly hid the Estimated Roast Window Start/End fields; the legacy
+  "2026-09-01 to 2026-09-16" window showed as a read-only note throughout. Repeated the same
+  checks in the Change Bag creation flow (Bag Label correctly suggested "Bag #9 — De Luca's —
+  Authentic Espresso" from the bean name). All date fields were real date pickers. Closed both
+  dialogs without submitting — Bag #8 remained the active bag, no bean/bag was created or
+  changed, no production data touched.
+
+# DI-4: read-only corpus rule check, handed off from a cloud session — 2026-09-29
+
+A prior cloud Claude session did this work on branch `claude/di4-corpus-rule-check` (draft PR
+#15, CI green) and handed it off via `handoff-corpus-rule-check.md` + `corpus-rule-check.patch`
+for this terminal session to commit. Applied the patch (`scripts/corpus-rule-check.mjs`, one new
+file, nothing else changed) and expanded its header comment with the rationale Carl gave the
+cloud session, so the "why" travels with the script instead of living only in the handoff doc.
+
+## What the script does (read-only, changes no data)
+
+Counts shots that break the rules the app enforces on new shots: Include in Analysis (status
+Good/Dialed In AND fault status exactly ["Good"]), Signature Shot implies Reference Shot, a Sour
+shot is never Reference or Signature, technical rating 0-10, preference rating 0-11. Run via
+`--csv "<Shots.csv>"` or `DATABASE_URL=... --database`.
+
+## Why the rule exists (Carl, relayed via the cloud session's handoff)
+
+Include in Analysis originally depended on Shot Status AND Fault Status together — status must
+be Good or Dialed In (Dialed In was used for reference shots), and fault status must show no
+faults, so both must be good for a shot to count. Fault Status keeps non-ratable events out of
+ratings: a shot that poured out of the portafilter, new beans added, grinder/machine maintenance,
+purge/waste shots, and bag changes — these can still be logged and rated, but must not count
+toward ratings. Goal: keep ratings pure. Since moving to the external database and the Render
+app, Carl has not looked at a table directly — he says rating purity is safeguarded in all
+aspects of information logging in the app itself.
+
+## What the cloud session confirmed by reading the app's code (not just writing the check)
+
+- `routes/shots.ts` calls `computeIncludeInAnalysis` on both create (~line 398) and edit
+  (~line 492) — the flag is recomputed on every save, never taken from what the form sends.
+- Rating queries (dashboard, bags, beans, insights, shots) all use the eligibility conditions in
+  `lib/shot-eligibility.ts` (`includeInAnalysis = true`; ratings also need a non-null rating and
+  `rated` not false).
+- Only the CSV/Airtable import path copies values as-is, so any mismatch the check finds is
+  limited to imported shots.
+
+## Result on the committed fixture (164 shots)
+
+`artifacts/api-server/test-fixtures/csv/Shots-Shots Entering-7.csv`: 2 include-in-analysis
+mismatches, nothing else — both marked included but carrying an extra fault beside "Good" (row
+64, 2026-05-14, bag 3: "Dialed In" / "Good, Purge"; row 107, 2026-05-30, bag 4: "Good" /
+"Good, Grinder Jam"). Carl confirmed the rule (both status and fault status must be good). No
+data was changed. Decision on those two specific shots is Carl's, not made here.
+
+## Known gap, unresolved — do not guess a rule to close it
+
+The check only tests status and faults. A maintenance or bag-change shot that never got a fault
+status would not be caught. If such old shots exist, Carl needs to say how to recognize them (a
+note, a bag change, a drink type) before a check can be added.
+
+## `--database` mode, run against the live database
+
+The cloud session never ran `--database` mode (no database access there). Ran it here against
+the live Prisma Postgres database (280 shots): 3 include-in-analysis mismatches (shot ids 63,
+106, 203 — the same two rows as the CSV fixture, plus one more the live database has that the
+fixture snapshot doesn't), 0 for every other rule. Confirms the check's database path works
+against the real schema. Read-only (`set transaction read only`); nothing was changed.
+
+## Verified
+
+- `pnpm run typecheck` ✓ · `pnpm run test:phase1.5` 135/135 ✓ · `pnpm run build` ✓ (all three
+  re-run in this terminal session with the script present, per the handoff's repo rule).
+- `node scripts/corpus-rule-check.mjs --csv "artifacts/api-server/test-fixtures/csv/Shots-Shots Entering-7.csv"`
+  reproduced exactly the handoff's claimed result (164 shots, rows 64/107).
+- `DATABASE_URL=<prisma> node scripts/corpus-rule-check.mjs --database` run and confirmed working
+  (see above).

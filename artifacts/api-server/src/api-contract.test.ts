@@ -1123,7 +1123,7 @@ test("Change Bag guided flow reuses existing endpoints and never forces hopper p
   assert.ok(beanStepIndex > 0 && bagStepIndex > beanStepIndex && closeStepIndex > bagStepIndex, "expected bean -> new bag -> close-old order in ChangeBagDialog's mutationFn");
 });
 
-test("Change Bag suggests the next Bag Number and clearly labels Roast Date", async () => {
+test("Change Bag suggests Bag Number and Bag Label, and walks the full freshness-dating flow", async () => {
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/pages/Bags.tsx", import.meta.url)),
     "utf8",
@@ -1149,11 +1149,6 @@ test("Change Bag suggests the next Bag Number and clearly labels Roast Date", as
   assert.match(source, /Bag Number suggested as \$\{suggestedBagNumber\}/);
   assert.match(source, /No previous numeric bag numbers found, so nothing was suggested/);
 
-  // Roast Date must now have an explicit, unambiguous Label distinguishing
-  // it from Purchase Date and Opened Date — not just an input placeholder.
-  assert.match(source, /<Label className="text-xs font-normal text-muted-foreground">Roast Date <span className="text-muted-foreground\/70">\(or estimated\)<\/span><\/Label>/);
-  assert.match(source, /Roast Date is when the beans were roasted \(exact or your best estimate\) — not Purchase Date \(when bought, not collected here\)\. Opened Date is set automatically to today when this bag is created\./);
-
   // Roast Date Confidence already exists on the Bag schema (used elsewhere
   // in this same file's full Edit form) and is small/safe enough to surface
   // here too — no new schema, reuses the existing ROAST_DATE_CONFIDENCE list.
@@ -1162,15 +1157,55 @@ test("Change Bag suggests the next Bag Number and clearly labels Roast Date", as
   const changeBagDialogSource = source.slice(source.indexOf("function ChangeBagDialog("));
   assert.match(changeBagDialogSource, /ROAST_DATE_CONFIDENCE\.map\(\(v\) => <SelectItem key=\{v\} value=\{v\}>\{v\}<\/SelectItem>\)/);
 
-  // Deliberately excluded from this compact flow (available via full Edit
-  // later): free-text roast-date detail is more than a quick-create flow
-  // warrants, and this task's boundaries forbid new schema regardless.
-  assert.doesNotMatch(changeBagDialogSource, /freshnessDatingMethod/);
-  assert.doesNotMatch(changeBagDialogSource, /estimatedRoastWindow/);
+  // 2026-09-29 (Carl: "for natural flow..."): Roast Date is now one field the
+  // owner fills in directly, not resolved from separate Actual/Estimated
+  // inputs. The order is Purchase Date -> Roast Date -> Roast Date Method
+  // (Roast Date on Bag / Estimated) -> Freshness Dating Method -> (Best-Before
+  // Date, if that method) -> (Estimated Roast Window Start/End, if Estimated)
+  // -> Roast Date Confidence -> Roast Date Notes.
+  assert.match(changeBagDialogSource, /roastDate: ""/);
+  assert.match(changeBagDialogSource, /roastDateUsed: ""/);
+  assert.match(changeBagDialogSource, /freshnessDatingMethod: ""/);
+  assert.match(changeBagDialogSource, /FRESHNESS_DATING_METHOD_OPTIONS\.map\(\(v\) => <SelectItem key=\{v\} value=\{v\}>\{v\}<\/SelectItem>\)/);
+  assert.match(changeBagDialogSource, /estimatedRoastWindowStart: ""/);
+  assert.match(changeBagDialogSource, /estimatedRoastWindowEnd: ""/);
+  assert.match(changeBagDialogSource, /roastDateNotes: ""/);
 
-  // The Change Bag helper copy should point to Dating Method via Edit
-  // without adding a field to this compact flow (prose only, no identifier).
-  assert.match(source, /Add Freshness Dating Method \(how you derived the Roast Date, e\.g\. Best-Before Minus One Year\) and more detail anytime from Edit\./);
+  // Roast Date Method reuses the roastDateUsed column (which pre-import held
+  // exactly "Actual"/"Estimated") with friendlier labels — no new column, no
+  // formula combining it with Roast Date.
+  assert.match(
+    source,
+    /const ROAST_DATE_METHOD_OPTIONS = \["Roast Date on Bag", "Estimated"\];/,
+  );
+  assert.match(changeBagDialogSource, /ROAST_DATE_METHOD_OPTIONS\.map\(\(v\) => <SelectItem key=\{v\} value=\{v\}>\{v\}<\/SelectItem>\)/);
+  assert.match(changeBagDialogSource, /if \(form\.roastDate\) bagBody\.roastDate = form\.roastDate;/);
+  assert.match(changeBagDialogSource, /if \(form\.roastDateUsed\) bagBody\.roastDateUsed = form\.roastDateUsed;/);
+  assert.doesNotMatch(changeBagDialogSource, /resolvedRoastDate/);
+
+  // Best-Before Date is captured separately from Roast Date and never feeds
+  // it via a formula — evidence only.
+  assert.match(changeBagDialogSource, /bestBeforeDate: ""/);
+  assert.match(changeBagDialogSource, /if \(form\.bestBeforeDate\) bagBody\.bestBeforeDate = form\.bestBeforeDate;/);
+  assert.match(changeBagDialogSource, /form\.freshnessDatingMethod === "Best-Before Date" && \(/);
+  assert.match(changeBagDialogSource, /Best-Before Date \(as printed\)/);
+
+  // Estimated Roast Window is two real date fields (Start/End), only shown
+  // when Roast Date Method is "Estimated" — Carl, 2026-09-29: "make the date
+  // fields actual date fields" / "we could add the window as fields so they
+  // can be analyzed".
+  assert.match(changeBagDialogSource, /form\.roastDateUsed === "Estimated" && \(/);
+  assert.match(changeBagDialogSource, /Estimated Roast Window Start.*<\/Label>\s*\n\s*<Input type="date" value=\{form\.estimatedRoastWindowStart\}/s);
+  assert.match(changeBagDialogSource, /Estimated Roast Window End.*<\/Label>\s*\n\s*<Input type="date" value=\{form\.estimatedRoastWindowEnd\}/s);
+  assert.match(changeBagDialogSource, /if \(form\.estimatedRoastWindowStart\) bagBody\.estimatedRoastWindowStart = form\.estimatedRoastWindowStart;/);
+  assert.match(changeBagDialogSource, /if \(form\.estimatedRoastWindowEnd\) bagBody\.estimatedRoastWindowEnd = form\.estimatedRoastWindowEnd;/);
+
+  // Bag Label is suggested (Bag # + Bean Name) but never overwrites a label
+  // the user typed themselves, same carry-forward pattern as Bag Number and
+  // PL-8's bag-switch field seeding.
+  assert.match(source, /function suggestBagLabel\(bagNumber: string, beanName\?: string \| null\): string \{/);
+  assert.match(changeBagDialogSource, /bagNameEdited/);
+  assert.match(changeBagDialogSource, /if \(!form\.bagNameEdited && suggestedBagLabel/);
 });
 
 test("Freshness Dating Method is a curated selector that preserves historical free text", async () => {
@@ -1184,7 +1219,7 @@ test("Freshness Dating Method is a curated selector that preserves historical fr
   // values invented beyond what was specified.
   assert.match(
     source,
-    /const FRESHNESS_DATING_METHOD_OPTIONS = \[\s*"Exact Roast Date",\s*"Best-Before Minus One Year",\s*"Roaster \/ Staff Confirmed",\s*"Printed Bag Code",\s*"Unknown",\s*"Other",\s*\];/,
+    /const FRESHNESS_DATING_METHOD_OPTIONS = \[\s*"Exact Roast Date",\s*"Best-Before Minus One Year",\s*"Best-Before Date",\s*"Roaster \/ Staff Confirmed",\s*"Printed Bag Code",\s*"Unknown",\s*"Other",\s*\];/,
   );
 
   // Freshness Dating Method must now be a curated Select (not a free-text
@@ -1208,14 +1243,47 @@ test("Freshness Dating Method is a curated selector that preserves historical fr
   // explained together, with the concrete, owner-verified De Luca's example
   // (Best-Before month/year ~1 year after roast/packing; high confidence for
   // the month, lower for the exact day unless confirmed).
-  assert.match(source, /Roast Date can be exact or your best estimate\. Freshness Dating Method records how you derived it/);
+  assert.match(source, /Roast Date can be exact \(Roast Date Method: Roast Date on Bag\) or your best estimate \(Estimated\)\. Freshness Dating Method records how you derived it/);
   assert.match(source, /De Luca's own Best-Before month\/year appears to be about one year after the roast\/packing month/);
   assert.match(source, /pick "Best-Before Minus One Year" and set Roast Date Confidence to Estimated High for the month/);
+  assert.match(source, /If you'd rather just record the printed Best-Before date without computing a roast date from it, pick "Best-Before Date"/);
   assert.match(source, /If Dating Method is "Other", describe it in Roast Date Notes below\./);
+
+  // Best-Before Date is a conditional field in the full Edit Bag form too —
+  // only shown when Freshness Dating Method is "Best-Before Date" — evidence
+  // only, never combined into a formula with Roast Date. Actual/Estimated
+  // Roast Date no longer exist as separate inputs here (2026-09-29): Roast
+  // Date is one field now, and Roast Date Method (reusing roastDateUsed)
+  // flags whether it's on-bag or estimated.
+  assert.match(source, /\{form\.freshnessDatingMethod === "Best-Before Date" && \(\s*\n\s*<div className="space-y-1\.5"><Label>Best-Before Date<\/Label><Input type="date" value=\{form\.bestBeforeDate\}/);
+  assert.doesNotMatch(source, /<Label>Actual Roast Date<\/Label>|<Label>Estimated Roast Date<\/Label>/);
+
+  // Roast Date Method is a curated Select too, with the same historical-value
+  // carve-out pattern as Freshness Dating Method (imported bags hold the
+  // original "Actual"/"Estimated" values).
+  assert.match(
+    source,
+    /<Select value=\{form\.roastDateUsed \|\| "__none__"\} onValueChange=\{\(v\) => set\("roastDateUsed", v === "__none__" \? "" : v\)\}>/,
+  );
+  assert.match(source, /\{roastDateMethodOptions\.map\(\(v\) => <SelectItem key=\{v\} value=\{v\}>\{v\}<\/SelectItem>\)\}/);
+  assert.match(
+    source,
+    /const roastDateMethodOptions = form\.roastDateUsed && !ROAST_DATE_METHOD_OPTIONS\.includes\(form\.roastDateUsed\)\s*\n\s*\? \[\.\.\.ROAST_DATE_METHOD_OPTIONS, form\.roastDateUsed\]\s*\n\s*: ROAST_DATE_METHOD_OPTIONS;/,
+  );
+
+  // Estimated Roast Window is two real date fields (Start/End) in the full
+  // Edit Bag form too, shown only when Roast Date Method is "Estimated"; any
+  // legacy free-text value is preserved read-only rather than migrated by
+  // guesswork.
+  assert.match(source, /\{form\.roastDateUsed === "Estimated" && \(/);
+  assert.match(source, /<Label>Estimated Roast Window Start<\/Label><Input type="date" value=\{form\.estimatedRoastWindowStart\}/);
+  assert.match(source, /<Label>Estimated Roast Window End<\/Label><Input type="date" value=\{form\.estimatedRoastWindowEnd\}/);
+  assert.match(source, /\{form\.estimatedRoastWindow && \(/);
+  assert.match(source, /Legacy Estimated Roast Window \(read-only, predates the Start\/End fields above\)/);
 
   // No new formula: this is a manual selection/explanation, never a
   // computed roast-date-from-best-before-date assignment.
-  assert.doesNotMatch(source, /estimatedRoastDate\s*=.*-\s*1|roastDate\s*=.*bestBefore/i);
+  assert.doesNotMatch(source, /estimatedRoastDate\s*=.*-\s*1|roastDate\s*=\s*\(?\s*(form\.)?bestBefore/i);
 });
 
 test("ChangeBagDialog refreshes cached queries on partial failure, not just on success", async () => {
@@ -1518,7 +1586,7 @@ test("Equipment and accessories preserve personal short labels and source eviden
   assert.match(equipmentPage, /Short Label/);
   assert.match(accessoriesPage, /Short Label/);
   // Option A (2026-09-28): compact labels now come from lib/equipment-defaults.ts.
-  assert.match(dashboardRoute, /resolveEquipmentDefaults\(grinders, machines, accessories\)/);
+  assert.match(dashboardRoute, /resolveEquipmentDefaults\(combined\.grinders, combined\.machines, combined\.accessories\)/);
   assert.match(dashboardRoute, /Full name remains the system\/library identity|shortLabel|resolveEquipmentDefaults/);
 });
 
@@ -2393,9 +2461,11 @@ test("Log Shot carries forward saved grind setting/time and dashboard ratio delt
   assert.match(settings, /Carry forward changed grind setting\/time/);
   assert.match(shotForm, /const carryForwardGrindDefaults = async \(values: FormValues\) =>/);
   assert.match(shotForm, /settings\?\.rememberLastGrindSetting === "false"/);
-  assert.match(shotForm, /fetch\(`\/api\/bags\/\$\{values\.bagId\}`/);
-  assert.match(shotForm, /currentGrindSetting: grindSetting/);
-  assert.match(shotForm, /currentGrindTime: grindTime/);
+  // The bag's own currentGrindSetting/currentGrindTime carry forward
+  // server-side on every shot write (carryForwardActiveBagGrindDefaults,
+  // routes/shots.ts) — the client no longer duplicates this with its own
+  // PATCH /api/bags/:id (removed 2026-09-28, Phase 2A S6 follow-up).
+  assert.doesNotMatch(shotForm, /fetch\(`\/api\/bags\/\$\{values\.bagId\}`/);
   assert.match(shotForm, /defaultGrindSetting: String\(grindSetting\)/);
   assert.match(shotForm, /defaultGrindTime: String\(grindTime\)/);
   assert.match(shotForm, /await carryForwardGrindDefaults\(values\);/);

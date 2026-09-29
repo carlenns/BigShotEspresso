@@ -42,7 +42,9 @@ before(async () => {
 test("query budget: GET /dashboard/intelligence", async () => {
   const r = await count("GET /dashboard/intelligence", "GET", "/dashboard/intelligence");
   assert.equal(r.status, 200, JSON.stringify(r.json).slice(0, 300));
-  assert.ok(r.statements <= 8, `dashboard used ${r.statements}`);
+  // Settings + grinders + machines + accessories folded into one statement
+  // (Phase 2A S6 follow-up, 2026-09-28): was <= 8, now <= 5.
+  assert.ok(r.statements <= 5, `dashboard used ${r.statements}`);
 });
 
 test("query budget: POST /shots", async () => {
@@ -110,11 +112,15 @@ test("Budget: one 'log a shot' visit (Dashboard → Log Shot → save → Dashbo
   for (const path of ["/bags", "/equipment/grinders", "/equipment/machines", "/settings", "/taste-selectors", "/dashboard/intelligence"]) await api("GET", path); // Log Shot
   const shot = await api("POST", "/shots", { shotDate: "2026-09-26T09:00", bagId, status: "Good", faultStatus: ["Good"], rating: 8, grindSetting: 2.33, grindTime: 8.1 });
   await api("PUT", `/shots/${shot.json.id}/taste-selectors`, { tasteSelectorIds: [] });
-  await api("PATCH", `/bags/${bagId}`, { currentGrindSetting: 2.33, currentGrindTime: 8.1 });
+  // No client PATCH /bags/:id here (Phase 2A S6 follow-up, 2026-09-28): the
+  // server already carries the grind setting/time forward onto the active
+  // bag on every shot write (carryForwardActiveBagGrindDefaults in
+  // routes/shots.ts), so ShotForm.tsx's old duplicate PATCH was removed.
   await api("PUT", "/settings", { defaultGrindSetting: "2.33", defaultGrindTime: "8.1" });
   for (const path of ["/dashboard/intelligence", "/hoppers"]) await api("GET", path); // back to Dashboard
   measured["log-a-shot visit"] = queryCounter.count;
-  // ~40 statements per logged shot. At 10 shots/day that is ~12k operations/month,
-  // well inside Prisma Postgres Free (200k). Raise deliberately if this grows.
-  assert.ok(queryCounter.count <= 45, `log-a-shot visit used ${queryCounter.count}`);
+  // ~30 statements per logged shot (was ~39: -3 dashboard merge x2 loads, -1
+  // dropped client PATCH). At 10 shots/day that is ~9k operations/month, well
+  // inside Prisma Postgres Free (200k). Raise deliberately if this grows.
+  assert.ok(queryCounter.count <= 34, `log-a-shot visit used ${queryCounter.count}`);
 });
