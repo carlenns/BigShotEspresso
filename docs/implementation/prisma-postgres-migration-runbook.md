@@ -107,9 +107,21 @@ Connection strings are **not** written here. Get them in the Prisma console unde
 8. **Record**: run `verify` once more before logging real shots. It should still match,
    apart from any test shot you did not delete. Then un-freeze. Add a `completed-tasks.md`
    entry, set ADR-0010 to Accepted, and mark ADR-0006's Neon decision superseded.
-9. **Keep Neon for two weeks** as the rollback target, then retire or downgrade it.
+9. ~~Keep Neon for two weeks as the rollback target~~ — superseded: Carl retired Neon on 2026-09-29 (see Rollback below).
 
 ## Rollback
+
+**Neon was retired on 2026-09-29** (Carl's decision, day 1 of the planned two weeks). There is no
+Neon rollback target any more, and Prisma Postgres is the only live database. Recovery now means
+restoring from a backup dump:
+
+- **Bad deploy, data fine:** redeploy the previous Render build; `DATABASE_URL` does not change.
+- **Bad data or lost database:** create a new empty Prisma database, `pg_restore` the newest
+  `~/BSE-backups/bse-*.dump` into it (command under "Backups on the Free plan"), run `verify`,
+  then point Render's `DATABASE_URL` (pooled) at it. Anything logged after the last backup is lost.
+- Take a backup before any risky change, and weekly otherwise. The Free plan has no provider backups.
+
+Historical, superseded 2026-09-29 (Neon-based rollback, valid only during the cutover window):
 
 - **Before step 6:** nothing to undo. The app still uses Neon.
 - **After step 6, no new shots:** set Render `DATABASE_URL` back to the Neon string and remove

@@ -159,3 +159,5 @@ None. This ADR is documentation/planning only, per its explicit task boundary â€
 
 - Supersedes: none (fulfills, rather than supersedes, the deferred question left open by ADR-0008)
 - Superseded by: none
+
+> Note (2026-09-29): this ADR was written when Neon was the operational database. Read "Neon" as "Prisma Postgres" per [ADR-0010](ADR-0010-prisma-postgres-operational-database.md); the row-level `user_id` model is unaffected.

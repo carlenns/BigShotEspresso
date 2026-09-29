@@ -1,9 +1,9 @@
 # ADR-0008: Owner-Only First Release Access
 
 - Date: 2026-08-17
-- Status: Proposed
+- Status: Accepted (2026-09-29)
 - Decision owner: Carl Enns
-- Approval: Pending
+- Approval: Accepted by Carl Enns, 2026-09-29
 
 ## Context
 
@@ -78,4 +78,4 @@ Deferred. It may be required before public release, but it is not required to co
 ## Supersedes / Superseded by
 
 - Supersedes: none
-- Superseded by: none
+- Superseded by: none. Partially amended by [ADR-0010](ADR-0010-prisma-postgres-operational-database.md) (2026-09-28): "Render plus Neon" now reads "Render plus Prisma Postgres"; the owner-only decision itself is unchanged.

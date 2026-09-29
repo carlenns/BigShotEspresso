@@ -197,9 +197,11 @@ Required before deployment certification:
   (2026-08-17), then the real Neon → Prisma cutover (2026-09-28).
 - Rollback rehearsal. — Done both directions now: the Neon rehearsal proved rollback on Neon;
   2026-09-29 proved the reverse-direction copy the runbook's actual rollback path needs
-  (Prisma → Neon-shaped target), rehearsed against a disposable Prisma project. A rollback to
-  the real Neon instance (the documented emergency path, still live) has still never itself
-  been executed — that's the one piece left, and doing it for real isn't a rehearsal anymore.
+  (Prisma → Neon-shaped target), rehearsed against a disposable Prisma project. Neon was retired on
+  2026-09-29, so there is no longer a Neon rollback instance. Recovery is now a restore from a
+  `prisma-postgres-migration.mjs backup` dump into a fresh Prisma database (runbook, "Rollback").
+  A restore of a real dump into a fresh database was rehearsed locally on 2026-09-28; it has not
+  yet been rehearsed against a real Prisma project.
 - Re-run migration safety. — Done: a second `copy` attempt on an already-populated target was
   refused in both the original and 2026-09-29 rehearsals.
 - Data import rehearsal. — Done (CSV import rehearsed pre-Neon; live data literally moved
@@ -211,14 +213,13 @@ Required before deployment certification:
 
 Can proceed now?
 
-- Yes for the current Phase 2A scope. The only remaining piece is executing a real Neon
-  rollback if it's ever actually needed — not something to rehearse further without a real
-  trigger.
+- Yes for the current Phase 2A scope. Neon is retired; the remaining piece is a
+  one-time restore-from-dump rehearsal into a fresh Prisma database (see Rollback above).
 
 Decision recorded:
 
 - Use Neon as the first production-equivalent Postgres rehearsal target. (2026-09-28: superseded
-  as the live operational database by Prisma Postgres, [ADR-0010](../ADR/ADR-0010-prisma-postgres-operational-database.md); Neon kept live as the rollback target.)
+  as the live operational database by Prisma Postgres, [ADR-0010](../ADR/ADR-0010-prisma-postgres-operational-database.md); Neon was kept as the rollback target and retired 2026-09-29.)
 
 ## Gate 8 — Live Airtable Sync Dry Run
 

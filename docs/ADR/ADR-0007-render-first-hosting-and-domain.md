@@ -1,9 +1,9 @@
 # ADR-0007: Render-First Hosting and Domain
 
 - Date: 2026-08-17
-- Status: Proposed
+- Status: Accepted (2026-09-29)
 - Decision owner: Carl Enns
-- Approval: Pending
+- Approval: Accepted by Carl Enns, 2026-09-29
 
 ## Context
 
@@ -86,5 +86,5 @@ Viable, but current architecture prefers Render plus Neon because it keeps app h
 
 ## Supersedes / Superseded by
 
-- Supersedes: none
-- Superseded by: none
+- Supersedes: the Replit-hosted-app assumption in [ADR-0006](ADR-0006-neon-postgres-rehearsal-and-release-database.md) (Neon remained the database at the time)
+- Superseded by: none. Partially amended by [ADR-0010](ADR-0010-prisma-postgres-operational-database.md) (2026-09-28): wherever this ADR says "Neon Postgres", the live database is now Prisma Postgres; the Render-first hosting decision itself is unchanged.

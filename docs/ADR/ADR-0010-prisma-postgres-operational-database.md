@@ -34,7 +34,7 @@ Prisma Postgres pricing (checked 2026-09-28 on prisma.io/pricing; re-check befor
    Migrations, `pg_dump`/`pg_restore` and admin tools use the **direct** URL (`db.prisma.io`).
 3. Data moves with `scripts/prisma-postgres-migration.mjs` (`pg_dump` of Neon → `pg_restore`
    into an empty Prisma database, then a row-count + content-digest + sequence check).
-   Neon is kept, read-only in practice, as the rollback target until Carl retires it.
+   Neon was kept, read-only in practice, as the rollback target until Carl retired it (done 2026-09-29, see the addendum below).
 4. **Plan: Free** (Carl, 2026-09-28). Free has no provider backups, so the owner runs
    `node scripts/prisma-postgres-migration.mjs backup` weekly and before risky changes.
    Revisit Starter ($10, daily backups kept 7 days) once real subscribers log shots or usage nears 200k operations a month.
@@ -74,3 +74,17 @@ Prisma Postgres pricing (checked 2026-09-28 on prisma.io/pricing; re-check befor
   the runbook.
 
 See [prisma-postgres-migration-runbook.md](../implementation/prisma-postgres-migration-runbook.md).
+
+## Addendum — Neon retired, 2026-09-29
+
+Carl retired Neon on 2026-09-29, earlier than the two-week rollback window above, because Neon
+will not be used again. Consequences: Prisma Postgres is the only live database and there is no
+Neon rollback target. Recovery is restore-from-backup (`prisma-postgres-migration.mjs backup`,
+weekly and before risky changes), so the Free plan's lack of provider backups is now the main
+risk; the Starter-plan revisit in Decision item 4 stands. The "Rollback" consequence above is
+historical.
+
+## Supersedes / Superseded by
+
+- Supersedes: the Neon-as-operational-database part of [ADR-0006](ADR-0006-neon-postgres-rehearsal-and-release-database.md). Partially amends [ADR-0007](ADR-0007-render-first-hosting-and-domain.md) and [ADR-0008](ADR-0008-owner-only-first-release-access.md), which name Neon as the database.
+- Superseded by: none

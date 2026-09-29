@@ -1,9 +1,9 @@
 # ADR-0006: Neon Postgres Rehearsal and Release Database
 
 - Date: 2026-08-17
-- Status: Proposed
+- Status: Superseded by ADR-0010 (2026-09-28); the Replit-hosting part also superseded by ADR-0007
 - Decision owner: Carl Enns
-- Approval: Pending
+- Approval: Accepted by Carl Enns, 2026-09-29 (retroactive; the Neon rehearsal it authorised was executed 2026-08-17)
 
 ## Context
 
@@ -97,6 +97,6 @@ Rejected for release architecture because Airtable API limits, plan constraints,
 ## Supersedes / Superseded by
 
 - Supersedes: none
-- Superseded by: [ADR-0010](ADR-0010-prisma-postgres-operational-database.md) (2026-09-28) —
+- Superseded by: [ADR-0007](ADR-0007-render-first-hosting-and-domain.md) (Replit-hosted app assumption, 2026-08-17) and [ADR-0010](ADR-0010-prisma-postgres-operational-database.md) (2026-09-28) —
   operational hosting moved from Neon to Prisma Postgres. Neon is kept as the rollback target
   for two weeks post-cutover; this ADR's decision no longer governs the live database.

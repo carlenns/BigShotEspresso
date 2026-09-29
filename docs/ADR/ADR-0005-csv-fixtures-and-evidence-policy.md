@@ -1,9 +1,9 @@
 # ADR-0005: CSV Fixtures and Evidence Policy
 
 - Date: 2026-08-17
-- Status: Proposed
+- Status: Accepted (2026-09-29)
 - Decision owner: Carl Enns
-- Approval: Pending
+- Approval: Accepted by Carl Enns, 2026-09-29
 
 ## Context
 
