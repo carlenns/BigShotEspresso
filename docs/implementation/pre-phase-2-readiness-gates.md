@@ -163,11 +163,28 @@ Recommended position:
 
 ## Gate 7 — Production-Equivalent Postgres Rehearsal
 
-Status: planned for Neon.
+Status: substantially satisfied. Forward migration, rollback, and restore were rehearsed on
+Neon (2026-08-17); production itself then cut over from Neon to Prisma Postgres for real
+(2026-09-28, [ADR-0010](../ADR/ADR-0010-prisma-postgres-operational-database.md)). The one
+direction that had never been exercised even as a rehearsal — copying current production
+(Prisma) back onto a Neon-shaped rollback target, which is what a real rollback now requires
+per the runbook's rollback section — was rehearsed 2026-09-29 against a disposable Prisma
+Postgres project (not the real Neon rollback instance, so the two-week Neon retention window
+was never touched). See `docs/completed-tasks.md`, 2026-09-29 entry, for the run: `check` (0
+warnings), `copy --confirm-empty-target` and `verify` (12/12 tables matched, no mismatches, no
+sequence issues), and a local app smoke test (`/api/healthz`, `/api/bags`,
+`/api/dashboard/intelligence` all 200 against the copy). The disposable project could not be
+deleted via the available Prisma API (project default databases can't be removed
+independently, same limitation the original rehearsal's leftover project hit) — safe to leave
+on the free tier or delete manually in the console.
 
 Evidence:
 
 - [Neon Postgres Rehearsal Plan](../architecture/neon-postgres-rehearsal-plan.md)
+- [Neon Postgres Rehearsal Report](neon-postgres-rehearsal-report.md)
+- [ADR-0010: Prisma Postgres as the Operational Database](../ADR/ADR-0010-prisma-postgres-operational-database.md) — real cutover, not just a rehearsal
+- [Prisma Postgres Migration Runbook](prisma-postgres-migration-runbook.md)
+- `docs/completed-tasks.md`, 2026-09-29 — reverse-direction (Prisma → disposable) rehearsal
 
 Why it matters:
 
@@ -176,20 +193,32 @@ Why it matters:
 
 Required before deployment certification:
 
-- Forward migration on a production-equivalent Postgres instance.
-- Rollback rehearsal.
-- Re-run migration safety.
-- Data import rehearsal.
-- Query/index sanity check.
-- Backup/restore practice or documented alternative.
+- Forward migration on a production-equivalent Postgres instance. — Done: Neon rehearsal
+  (2026-08-17), then the real Neon → Prisma cutover (2026-09-28).
+- Rollback rehearsal. — Done both directions now: the Neon rehearsal proved rollback on Neon;
+  2026-09-29 proved the reverse-direction copy the runbook's actual rollback path needs
+  (Prisma → Neon-shaped target), rehearsed against a disposable Prisma project. A rollback to
+  the real Neon instance (the documented emergency path, still live) has still never itself
+  been executed — that's the one piece left, and doing it for real isn't a rehearsal anymore.
+- Re-run migration safety. — Done: a second `copy` attempt on an already-populated target was
+  refused in both the original and 2026-09-29 rehearsals.
+- Data import rehearsal. — Done (CSV import rehearsed pre-Neon; live data literally moved
+  twice now: Neon→Prisma for real, Prisma→disposable as a rehearsal).
+- Query/index sanity check. — Covered by `query-budget.route.test.ts` on the real schema.
+- Backup/restore practice or documented alternative. — Done: weekly
+  `prisma-postgres-migration.mjs backup`, with a documented restore-test procedure
+  (`prisma-postgres-migration-runbook.md`).
 
 Can proceed now?
 
-- Only if a safe local or remote Postgres target is available.
+- Yes for the current Phase 2A scope. The only remaining piece is executing a real Neon
+  rollback if it's ever actually needed — not something to rehearse further without a real
+  trigger.
 
 Decision recorded:
 
-- Use Neon as the first production-equivalent Postgres rehearsal target.
+- Use Neon as the first production-equivalent Postgres rehearsal target. (2026-09-28: superseded
+  as the live operational database by Prisma Postgres, [ADR-0010](../ADR/ADR-0010-prisma-postgres-operational-database.md); Neon kept live as the rollback target.)
 
 ## Gate 8 — Live Airtable Sync Dry Run
 

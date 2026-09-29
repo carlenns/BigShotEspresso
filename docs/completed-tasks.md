@@ -4038,3 +4038,62 @@ clean, `status`/rating/everything else untouched.
   now displays as one clean string.
 - No code changed for this entry; only the one shot's `fault_status` column, applied directly to
   the live Prisma Postgres database.
+
+# Phase 1.5 Gate 7: rehearsed the reverse-direction rollback copy — 2026-09-29
+
+Carl: "lets look at remaing phase 1.5 gates," then "can you plan this?" for the one actually
+actionable item found. Corrected a misreading along the way: `ROADMAP.md`'s "Airtable gates
+5/8 remain open" means **Gates 5 and 8** specifically (of 9 total in
+`pre-phase-2-readiness-gates.md`), not "5 of 8." Gates 5 and 8 are blocked on live Airtable API
+access (Carl's account, not actionable here); Gates 1/3/4/6/9 are draft documents waiting on
+Carl's approval, not code. Gate 7 (Postgres forward/rollback rehearsal) had one real gap: the
+original Neon rehearsal and the real Neon→Prisma cutover only ever exercised the *forward*
+direction; the runbook's actual rollback procedure (`prisma-postgres-migration-runbook.md:112-118`)
+needs a **Prisma → Neon-shaped copy**, since shots have been logged on Prisma since cutover —
+and that direction had never been tested, not even in simulation.
+
+Planned in plan mode; Carl chose the low-risk rehearsal target (a disposable Prisma project)
+over touching the real Neon rollback instance within its two-week retention window.
+
+## What was done
+
+- `node scripts/prisma-postgres-migration.mjs backup` first (standard practice before any
+  prod-touching script) — `~/BSE-backups/bse-2026-09-29.dump`, 12 tables, 184,415 bytes.
+- Created a disposable Prisma Postgres project (`bse-rollback-rehearsal-2026-09-29`,
+  `db_hqrhakhghggrpvssba16y4ms`, us-east-1) via the Prisma MCP tools.
+- Ran the existing migration script with production Prisma as `SOURCE_DATABASE_URL` (read-only)
+  and the disposable project as `TARGET_DATABASE_URL` — no code changes, the script already
+  supports either direction:
+  - `check`: 12 source tables, 280 shots, empty target, 0 warnings.
+  - `copy --confirm-empty-target`: `verified: true`, all 12 tables matched exactly, no
+    mismatches, no sequence issues.
+  - `verify` (independent second pass): same clean result.
+- Smoke-tested the copy: booted the api-server locally against it
+  (`NODE_ENV=production`, port 5056) — "Runtime schema check complete" on boot, then
+  `/api/healthz`, `/api/bags` (8 bags, active bag correct), and `/api/dashboard/intelligence`
+  all returned 200 with correct data.
+- Updated `pre-phase-2-readiness-gates.md`'s Gate 7 section: status, evidence list, and a
+  checked-off list against its six "required before deployment certification" bullets.
+
+## Not fully cleaned up
+
+The disposable Prisma project could not be deleted via the available API —
+`delete_prisma_postgres_database` returned `state:invalid` because it's the project's *default*
+database, and no project-delete tool is available (the same limitation the original rehearsal's
+leftover `bse-coffee-log` project hit — "delete it in the console, or ask Claude to"). It's a
+free-tier, zero-cost residual with no production traffic pointed at it; safe to leave, or Carl
+can delete the project manually in the Prisma console.
+
+## What's still genuinely open (not part of this session's scope)
+
+- **Gates 5 and 8**: blocked on Carl's live Airtable API access — nothing to build here.
+- **Gates 1, 3, 4, 6, 9**: draft documents already written, waiting on Carl to read and
+  approve/revise/reject — a decision task, not an implementation task.
+- **A real Neon rollback** (not a rehearsal): still never executed, and shouldn't be, without an
+  actual reason to roll back.
+
+## Verified
+
+- Migration script's own `check`/`copy`/`verify` output (above) is the primary evidence.
+- Local smoke test against the copy (above).
+- No application code changed — typecheck/tests/build are unaffected by this entry.
