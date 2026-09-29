@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and, gte, lte, ilike, or, sql, isNotNull } from "drizzle-orm";
 import {
-  db, shotsTable, bagsTable, beansTable, hoppersTable, hopperRangeBaselinesTable,
+  db, shotsTable, bagsTable, beansTable, hoppersTable, hopperRangeBaselinesTable, settingsTable,
   type InsertShot,
 } from "@workspace/db";
 import {
@@ -79,11 +79,17 @@ function validateRatings(data: Partial<InsertShot>): string | null {
 // Carry forward grind setting/time only within the same active Bag.
 // Do not apply this to Beans or future Bags. Historical bean guidance must remain
 // advisory until explicitly accepted by the user during new-bag setup.
+//
+// It also honours the Settings toggle "Carry forward changed grind setting/time"
+// (rememberLastGrindSetting, on unless explicitly "false") and only follows the
+// bag's newest shot, so editing or back-dating an older shot can't overwrite the
+// grind the bag is currently using. Both rules live in the one UPDATE's WHERE
+// clause, so this stays a single statement per shot write.
 async function carryForwardActiveBagGrindDefaults(
-  bagId: number | null | undefined,
+  shot: { id: number; shotDate: string; bagId: number | null } | undefined,
   data: Partial<InsertShot>,
 ): Promise<void> {
-  if (bagId == null) return;
+  if (!shot || shot.bagId == null) return;
   const updates: { currentGrindSetting?: number; currentGrindTime?: number } = {};
   if (data.grindSetting != null) updates.currentGrindSetting = Number(data.grindSetting);
   if (data.grindTime != null) updates.currentGrindTime = Number(data.grindTime);
@@ -91,7 +97,16 @@ async function carryForwardActiveBagGrindDefaults(
 
   await db.update(bagsTable)
     .set(updates)
-    .where(and(eq(bagsTable.id, bagId), eq(bagsTable.isActive, true)));
+    .where(and(
+      eq(bagsTable.id, shot.bagId),
+      eq(bagsTable.isActive, true),
+      sql`coalesce((select ${settingsTable.value} from ${settingsTable} where ${settingsTable.key} = 'rememberLastGrindSetting'), 'true') <> 'false'`,
+      sql`not exists (
+        select 1 from ${shotsTable}
+        where ${shotsTable.bagId} = ${shot.bagId}
+          and (${shotsTable.shotDate}, ${shotsTable.id}) > (${shot.shotDate}, ${shot.id})
+      )`,
+    ));
 }
 
 // Days Since Open — a derived integer: (shot_date − bag.opened_date) in whole
@@ -400,7 +415,7 @@ router.post("/shots", async (req, res): Promise<void> => {
   // merged into the insert values rather than onto `data`.
   const daysSinceOpen = await computeDaysSinceOpen(data.bagId, data.shotDate);
   const shot = await db.insert(shotsTable).values({ ...data, daysSinceOpen }).returning();
-  await carryForwardActiveBagGrindDefaults(shot[0]?.bagId, data);
+  await carryForwardActiveBagGrindDefaults(shot[0], data);
   res.status(201).json(toShotApi(shot[0]!));
 });
 
@@ -502,7 +517,7 @@ router.patch("/shots/:id", async (req, res): Promise<void> => {
   );
   const shot = await db.update(shotsTable).set({ ...data, daysSinceOpen }).where(eq(shotsTable.id, id)).returning();
   if (!shot[0]) { res.status(404).json({ error: "Shot not found" }); return; }
-  await carryForwardActiveBagGrindDefaults(shot[0].bagId, data);
+  await carryForwardActiveBagGrindDefaults(shot[0], data);
   res.json(toShotApi(shot[0]));
 });
 
