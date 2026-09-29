@@ -2,7 +2,7 @@
 // shots created today? Nothing is written; no rows are changed.
 //
 //   node scripts/corpus-rule-check.mjs --csv "path/to/Shots.csv"
-//   DATABASE_URL=postgres://... node scripts/corpus-rule-check.mjs --database
+//   DATABASE_URL=<connection string> node scripts/corpus-rule-check.mjs --database
 //
 // Rules mirrored from the app (keep in lockstep):
 //   - include-in-analysis: Shot Status is Good or Dialed In AND Fault Status is
