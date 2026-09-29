@@ -2469,6 +2469,9 @@ test("Log Shot carries forward saved grind setting/time and dashboard ratio delt
   assert.match(shotForm, /defaultGrindSetting: String\(grindSetting\)/);
   assert.match(shotForm, /defaultGrindTime: String\(grindTime\)/);
   assert.match(shotForm, /await carryForwardGrindDefaults\(values\);/);
+  // The shot is already saved by then, so a failed defaults save must not skip
+  // the taste-selector save, cache refresh or redirect (it was allSettled once).
+  assert.match(shotForm, /try \{\s*await saveSettings\(/);
   assert.match(shotForm, /invalidateQueries\(\{ queryKey: \["bags"\] \}\)/);
   assert.match(shotForm, /invalidateQueries\(\{ queryKey: \["settings"\] \}\)/);
 
