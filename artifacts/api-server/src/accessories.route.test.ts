@@ -37,3 +37,29 @@ test("EQ-3: PATCH on a missing accessory is a 404 and changes no defaults", asyn
   assert.equal(missing.status, 404);
   assert.deepEqual(await defaultsOfType("puck_screen"), before);
 });
+
+test("DI-3: deleting the default accessory is refused; a non-default one can be deleted", async () => {
+  const keep = await api("POST", "/accessories", { type: "dosing_cup", brand: "Guard A", isDefault: true });
+  const other = await api("POST", "/accessories", { type: "dosing_cup", brand: "Guard B" });
+
+  const refused = await api("DELETE", `/accessories/${keep.json.id}`);
+  assert.equal(refused.status, 409);
+  assert.match(refused.json.error, /default/i);
+  assert.ok((await defaultsOfType("dosing_cup")).includes(keep.json.id));
+
+  assert.equal((await api("DELETE", `/accessories/${other.json.id}`)).status, 204);
+  const remaining = (await api("GET", "/accessories")).json as Array<{ id: number }>;
+  assert.ok(!remaining.some((a) => a.id === other.json.id));
+});
+
+test("DI-3: once Default is turned off (or moved), the accessory can be deleted", async () => {
+  const a = await api("POST", "/accessories", { type: "distributor", brand: "Guard C", isDefault: true });
+  assert.equal((await api("DELETE", `/accessories/${a.json.id}`)).status, 409);
+  await api("PATCH", `/accessories/${a.json.id}`, { isDefault: false });
+  assert.equal((await api("DELETE", `/accessories/${a.json.id}`)).status, 204);
+});
+
+test("DI-3: deleting a missing or invalid accessory id is a clear error, not a silent 204", async () => {
+  assert.equal((await api("DELETE", "/accessories/999999")).status, 404);
+  assert.equal((await api("DELETE", "/accessories/abc")).status, 400);
+});
