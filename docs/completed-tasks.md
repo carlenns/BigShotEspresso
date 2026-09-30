@@ -4113,14 +4113,23 @@ dump is the only recovery path; the runbook's restore test had only been done lo
 - `verify` (production as read-only source, restore as target): `verified: true`, all 12 tables
   matched (280 shots, 78 taste selectors, 21 hoppers, 36 settings), no mismatches, no sequence issues.
 
-## Not cleaned up
+## Cleanup
 
-`bse-restore-test-2026-09-29` is the default database of its own project, so the API cannot delete
-it (same limitation as the earlier rehearsal project). Free tier, no traffic; delete the project in
-the Prisma console when convenient. Its connection string was used only in this session's shell.
+`bse-restore-test-2026-09-29` was the default database of its own project, so the API could not
+delete it (same limitation as the earlier rehearsal project). Carl deleted it in the Prisma console
+on 2026-09-30. Its connection string was used only in this session's shell.
 
 ## Verified
 
 `verify` output above. Not run: an app smoke test against the restored copy (the 2026-09-29
 reverse-direction rehearsal already smoke-tested the same schema), and typecheck/tests/build, since
 only docs changed. Runbook and Gate 7 updated; not committed.
+
+# Neon project deleted — 2026-09-29/30
+
+Carl retired Neon and, after the console refused to delete the project's only (default)
+`production` branch, asked for it to be removed. Confirmed first: project `BigShotEspresso`
+(`small-tree-07649498`, aws-us-east-2, about 35 MB, last active 2026-09-29 12:47), Render
+`DATABASE_URL` already on Prisma pooled since 2026-09-28. Carl confirmed "delete Neon"; the project was
+deleted through the Neon MCP and a follow-up lookup returned 404. Not recoverable. Recovery is now
+only a restore from `~/BSE-backups` (restore-tested 2026-09-29). Docs only; no code changed.

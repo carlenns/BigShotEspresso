@@ -82,7 +82,10 @@ will not be used again. Consequences: Prisma Postgres is the only live database 
 Neon rollback target. Recovery is restore-from-backup (`prisma-postgres-migration.mjs backup`,
 weekly and before risky changes), so the Free plan's lack of provider backups is now the main
 risk; the Starter-plan revisit in Decision item 4 stands. The "Rollback" consequence above is
-historical.
+historical. The Neon project (`small-tree-07649498`, about 35 MB, one `production` branch) was
+**deleted** the same day at Carl's instruction, after confirming Render pointed only at Prisma;
+the Neon console refused to delete the default branch alone, so the whole project was removed.
+It cannot be recovered.
 
 ## Supersedes / Superseded by
 

@@ -111,7 +111,8 @@ Connection strings are **not** written here. Get them in the Prisma console unde
 
 ## Rollback
 
-**Neon was retired on 2026-09-29** (Carl's decision, day 1 of the planned two weeks). There is no
+**Neon was retired on 2026-09-29** (Carl's decision, day 1 of the planned two weeks) and the
+project `small-tree-07649498` was **deleted** the same day. There is no
 Neon rollback target any more, and Prisma Postgres is the only live database. Recovery now means
 restoring from a backup dump:
 
@@ -156,8 +157,8 @@ empty database with all 31 shots.
 database (`bse-restore-test-2026-09-29`, us-east-1). `pg_restore --exit-on-error` exited 0 in
 about 7 seconds. `verify` against production (production read-only) returned `verified: true`:
 all 12 tables matched, 280 shots, no mismatches, no sequence issues. The restore-test database is
-the default database of its own project, so it cannot be deleted through the API; delete the
-project in the Prisma console when convenient.
+the default database of its own project, so it could not be deleted through the API; Carl deleted
+it in the Prisma console on 2026-09-30.
 
 ## Keeping operations low
 
