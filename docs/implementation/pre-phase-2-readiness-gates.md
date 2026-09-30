@@ -67,7 +67,7 @@ Limit:
 
 ## Gate 3 — CSV-to-Postgres Coverage
 
-Status: complete draft.
+Status: field treatments decided by Carl 2026-09-30 (see below); Airtable metadata (Gate 5) still unverified.
 
 Evidence:
 
@@ -85,9 +85,43 @@ Known Shot mapping review list:
 - `Initial Output vs Target Dose (g)`
 - `Initial Output vs Hopper Baseline (g)`
 
-Decision needed:
+Decision recorded 2026-09-30 (Carl):
 
-- Whether these fields are handled as typed storage, imported read-only evidence, relationships, or raw-only evidence.
+| Field | Treatment |
+| --- | --- |
+| `Bag` | Relationship, already covered by `shots.bag_id` (with `bag_label`); no separate storage |
+| `Rating ( Valid Only )` | Imported read-only / raw-only evidence; not recalculated until the formula is verified |
+| `Hopper Range Link` | Relationship, already covered by `shots.hopper_range_baseline_id` |
+| `Hopper Range Match` | Raw-only evidence |
+| `Hopper Link` | Relationship, already covered by `shots.hopper_id` |
+| `Yield Window` | Imported read-only evidence |
+| `Ratio Window` | Imported read-only evidence |
+| `Initial Output vs Target Dose (g)` | Evidence only; **not** mapped to `actual_dose_error` |
+| `Initial Output vs Hopper Baseline (g)` | Evidence only; **not** mapped to `baseline_output_delta` |
+
+Rationale for the last two (Carl's recollection, corrected against the export on 2026-09-30):
+
+- `Initial Output vs Target Dose (g)`: an earlier dose comparison later superseded by a newer field;
+  the app now calculates initial output minus target dose itself (`dose-correction.ts`). Evidence: the
+  export has values for it on 154 of 235 shots, from shot #21 (2026-04-27) to shot #196
+  (2026-07-18), then none, which fits it being retired in mid-July. It is not confined to System
+  Phase 1 (52 early, 66 middle, 36 late shots).
+- `Initial Output vs Hopper Baseline (g)`: Carl recalls it was created by ChatGPT as part of
+  evaluating hopper performance and that he never really used it. It is still populated on 188 of the
+  189 shots that have an Initial Output, through the last exported shot (2026-08-15), so it looks like
+  a live Airtable formula, not a retired field. That does not change the treatment: the app does not import it
+  (its matching column is empty); whether any code reads that column was not traced.
+- The current field, confirmed by Carl 2026-09-30 as the correct one in use both in Airtable and in
+  the app, is `Initial Output (g)`, stored as `shots.initial_grind_weight`: present from
+  shot #21 to the end, on 233 of 282 production shots (Phase 1: 28 of 51, Phase 2: 126 of 146, Phase 3:
+  78 of 84; shots 1-20 have none). System Phase 1 is only 51 of the 282 shots, so neither field
+  is limited to Phase 1 shots.
+- Checked 2026-09-30: `actual_dose_error` and `baseline_output_delta` are empty for all 282 production
+  shots, so treating these two fields as evidence-only changes no existing data. The identity of any
+  newer replacement for field 8 has not been confirmed.
+
+Decisions 1-7 rest on the Airtable formulas and lookups not yet being verified (Gate 5); revisit
+any of them if that metadata shows a different source.
 
 ## Gate 4 — Postgres Target Model
 
