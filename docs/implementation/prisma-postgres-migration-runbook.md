@@ -132,6 +132,13 @@ Historical, superseded 2026-09-29 (Neon-based rollback, valid only during the cu
 
 ## Backups on the Free plan
 
+**Schedule and copies (2026-09-30):** a launchd job (`com.bigshotespresso.prisma-backup`) runs the
+backup every Sunday at 9:00 AM, and only while the Mac is awake. `~/BSE-backups` is mirrored by
+Google Drive for Desktop to Drive under `My Mac` > `BSE-backups`, so a lost Mac does not lose the
+dumps. Carl confirmed the sync propagates deletions, so **never delete, prune or overwrite files
+in that folder**; dumps are about 184 KB each, so there is no need to. After the first scheduled
+Sunday run (2026-10-04), confirm the new dump appears in both places.
+
 Free has no backups. From the repo on the Mac, weekly and before any risky change:
 
 ```sh

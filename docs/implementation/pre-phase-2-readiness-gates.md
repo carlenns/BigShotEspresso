@@ -15,7 +15,7 @@ Airtable API access is currently constrained by account/API limits, but current 
 
 | Gate | Status | Can complete offline? | Notes |
 | --- | --- | --- | --- |
-| Repository documentation governance | Mostly complete | Yes | Constitution, ADR drafts, indexes, certification docs exist |
+| Repository documentation governance | Complete except ADR-0009 | Yes | Constitution, ADR drafts, indexes, certification docs exist |
 | Offline Airtable CSV evidence | Complete for visible exports | Yes | Corrected full Shots export has 235 records and 93 fields |
 | CSV-to-Postgres coverage review | Complete draft | Yes | Known 9 Shot field gaps documented |
 | Postgres target model | Complete draft | Yes | Requires approval before implementation |
@@ -27,7 +27,9 @@ Airtable API access is currently constrained by account/API limits, but current 
 
 ## Gate 1 — Documentation Governance
 
-Status: mostly complete.
+Status: complete except one open ADR. ADR-0001 to 0005, 0007 and 0008 were accepted on 2026-09-29,
+ADR-0006 is superseded, and ADR-0010 is accepted. ADR-0009 (user accounts and data ownership)
+remains Proposed and is not needed for the current owner-only scope.
 
 Evidence:
 
@@ -42,7 +44,8 @@ Evidence:
 
 Remaining decision:
 
-- ADR drafts need explicit acceptance, revision, or rejection.
+- ADR-0009 needs explicit acceptance, revision, or rejection. Accepting it would only approve the
+  row-level `user_id` design direction, not any implementation.
 
 ## Gate 2 — Offline CSV Evidence
 

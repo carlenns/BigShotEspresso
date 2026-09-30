@@ -41,6 +41,28 @@ Prisma Postgres pricing (checked 2026-09-28 on prisma.io/pricing; re-check befor
 5. Operation efficiency is enforced by the query-budget tests (Phase 2A S6) and checked in the
    Prisma console after the first week.
 
+## Evidence
+
+- Cutover record below: `check`, `copy --confirm-empty-target` and `verify` all clean (12/12 tables,
+  279 shots at cutover), post-switch smoke test on `bigshotespresso.onrender.com`.
+- Measured load of about 40 statements per logged shot (`query-budget.route.test.ts`), against the
+  Free plan's 200k operations a month.
+- Prisma pricing as checked 2026-09-28 (table in Context).
+- Carl's cost analysis and his intent to consolidate BSE, the IATSE app and Clickonomics on
+  Prisma Postgres (recorded in Context).
+- Restore-from-backup rehearsed on real Prisma Postgres 2026-09-29 (`docs/completed-tasks.md`).
+
+## Alternatives considered
+
+- **Stay on Neon** (ADR-0006): rejected on Carl's cost analysis and the consolidation goal above.
+  Neon was kept only as a short-term rollback target, then deleted (see the addendum).
+- **Prisma Postgres Starter plan ($10 a month, daily backups kept 7 days)**: deferred, not
+  rejected. Free was chosen; revisit once real subscribers log shots or usage nears 200k
+  operations a month (Decision item 4).
+- **Other Postgres hosts** (including those weighed in ADR-0006: Supabase, Railway, Render
+  Postgres): Carl evaluated multiple hosts and chose Prisma Postgres (stated 2026-09-30). The
+  per-host comparison itself is not recorded here.
+
 ## Consequences
 
 - Measured load: about 40 statements per logged shot including page loads
@@ -86,6 +108,23 @@ historical. The Neon project (`small-tree-07649498`, about 35 MB, one `productio
 **deleted** the same day at Carl's instruction, after confirming Render pointed only at Prisma;
 the Neon console refused to delete the default branch alone, so the whole project was removed.
 It cannot be recovered.
+
+## Related Project Notes
+
+- Owner-Alpha RC report and the Phase 2A operation-efficiency work (query-budget tests).
+
+## Related documentation
+
+- [Prisma Postgres Migration Runbook](../implementation/prisma-postgres-migration-runbook.md)
+- [ADR-0001: Postgres System of Record](ADR-0001-postgres-system-of-record-and-airtable-transition.md)
+- [ADR-0006: Neon Postgres Rehearsal and Release Database](ADR-0006-neon-postgres-rehearsal-and-release-database.md)
+- [Pre-Phase-2 Readiness Gates](../implementation/pre-phase-2-readiness-gates.md), Gate 7
+
+## Related code changes
+
+- `scripts/prisma-postgres-migration.mjs` (check, copy, verify, backup)
+- `render.yaml` (region corrected to `ohio`)
+- `artifacts/api-server/src/query-budget.route.test.ts`
 
 ## Supersedes / Superseded by
 
