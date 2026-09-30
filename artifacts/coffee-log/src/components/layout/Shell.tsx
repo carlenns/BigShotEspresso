@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import {
   Activity, BookOpen, Coffee, LayoutDashboard,
-  Menu, MoreHorizontal, Package, Settings, Sprout, Target, Wrench, Tag, Layers
+  Menu, Package, Settings, Sprout, Target, Wrench, Tag, Layers
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,8 @@ const mobileBottomNav: NavItem[] = [
   { title: "Bags", href: "/bags", icon: Package },
 ];
 
+// Everything after the four everyday tabs. The bottom bar is one swipeable strip
+// (mobileBottomNav then this list), not a fixed row with a "More" dropdown.
 const mobileBottomMoreNav: NavItem[] = [
   { title: "Reference Shots", href: "/reference", icon: Target },
   { title: "Beans", href: "/beans", icon: Sprout },
@@ -119,8 +121,17 @@ function NavGroup({ items, label }: { items: NavItem[]; label?: string }) {
   );
 }
 
+const mobileSwipeNav: NavItem[] = [...mobileBottomNav, ...mobileBottomMoreNav];
+
 export function Shell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const navRef = useRef<HTMLDivElement>(null);
+
+  // Keep the active tab visible when the route changes (e.g. via a link elsewhere).
+  useEffect(() => {
+    const active = navRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    active?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [location]);
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col md:flex-row bg-background text-foreground selection:bg-primary/20 selection:text-primary">
@@ -188,15 +199,20 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
-      {/* Mobile Bottom Nav — four everyday tabs + More (PL-7). Non-color active
+      {/* Mobile Bottom Nav — one horizontally swipeable strip of every page
+          (replaces four tabs + More). Tabs are ~22% wide so the fifth is always
+          cut off at the edge, which signals that the bar scrolls. Non-color active
           cue: a top underline bar + bolder label weight, so the active tab reads
           correctly for color-blind users, not just via the primary-color text. */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-background pb-safe md:hidden"
         aria-label="Mobile navigation"
       >
-        <div className="grid h-full grid-cols-5">
-          {mobileBottomNav.map((item) => {
+        <div
+          ref={navRef}
+          className="flex h-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {mobileSwipeNav.map((item) => {
             const isActive = isNavActive(item, location);
             return (
               <Link
@@ -204,50 +220,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "relative flex flex-col items-center justify-center gap-0.5 text-[11px] transition-colors",
+                  "relative flex basis-[22%] shrink-0 snap-start flex-col items-center justify-center gap-0.5 text-[11px] transition-colors",
                   isActive ? "text-primary font-semibold" : "text-muted-foreground font-medium hover:text-foreground"
                 )}
               >
                 {isActive && <span aria-hidden="true" className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />}
                 <item.icon className={cn("h-5 w-5", isActive && "fill-primary/10")} />
-                <span>{item.shortLabel ?? item.title.split(" ")[0]}</span>
+                <span className="max-w-full truncate px-1">{item.shortLabel ?? item.title.split(" ")[0]}</span>
               </Link>
             );
           })}
-          {(() => {
-            const moreActive = mobileBottomMoreNav.some((item) => isNavActive(item, location));
-            return (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className={cn(
-                      "relative flex flex-col items-center justify-center gap-0.5 text-[11px] transition-colors",
-                      moreActive ? "text-primary font-semibold" : "text-muted-foreground font-medium hover:text-foreground"
-                    )}
-                    aria-label="More pages"
-                  >
-                    {moreActive && <span aria-hidden="true" className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />}
-                    <MoreHorizontal className="h-5 w-5" />
-                    <span>More</span>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="top" align="end" className="w-56 mb-2">
-                  {mobileBottomMoreNav.map((item) => (
-                    <DropdownMenuItem key={item.href} asChild>
-                      <Link
-                        href={item.href}
-                        className={cn("flex w-full items-center gap-2", isNavActive(item, location) && "font-semibold text-primary")}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {item.title}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            );
-          })()}
         </div>
       </nav>
     </div>

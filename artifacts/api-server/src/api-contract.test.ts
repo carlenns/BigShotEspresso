@@ -1736,9 +1736,9 @@ test("Mobile shell exposes setup and system navigation", async () => {
   for (const requiredText of [
     "mobileMoreNav",
     "mobileBottomNav",
-    // PL-7 (2026-09-28): the swipeable 10-item bar became four tabs + "More".
+    // PL-7 (2026-09-28) made the bar four tabs + "More"; superseded 2026-09-30 by
+    // a single swipeable strip, so there is no "More pages" dropdown any more.
     "mobileBottomMoreNav",
-    "More pages",
     "Setup &amp; System",
     "Open setup menu",
     "/equipment",
@@ -1751,21 +1751,25 @@ test("Mobile shell exposes setup and system navigation", async () => {
 });
 
 test("Mobile bottom nav signals it scrolls and marks the active tab without relying on color alone", async () => {
-  // Superseded 2026-09-28 by PL-7: the bar no longer scrolls (four tabs + More in a
-  // 5-column grid), so the fade mask and scroll padding are gone. The non-color
-  // active cue (top underline + bolder label) and the short labels remain.
+  // 2026-09-30 (Carl): the bar is one swipeable strip again, superseding PL-7's four
+  // tabs + More. Tabs are ~22% wide so the fifth is cut off (the scroll cue), snap
+  // into place, and the active one is scrolled into view. The non-color active cue
+  // (top underline + bolder label) and the short labels remain.
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/components/layout/Shell.tsx", import.meta.url)),
     "utf8",
   );
-  assert.match(source, /<div className="grid h-full grid-cols-5">/);
-  assert.doesNotMatch(source, /overflow-x-auto border-t/);
+  assert.doesNotMatch(source, /grid h-full grid-cols-5/);
+  assert.match(source, /snap-x snap-mandatory overflow-x-auto/);
+  assert.match(source, /basis-\[22%\] shrink-0 snap-start/);
+  assert.match(source, /const mobileSwipeNav: NavItem\[\] = \[\.\.\.mobileBottomNav, \.\.\.mobileBottomMoreNav\]/);
+  assert.match(source, /scrollIntoView\(\{ inline: "center"/);
+  assert.doesNotMatch(source, /More pages/);
   assert.match(source, /isActive && <span aria-hidden="true"[\s\S]{0,80}bg-primary/);
   assert.match(source, /isActive \? "text-primary font-semibold" : "text-muted-foreground font-medium/);
-  assert.match(source, /moreActive \? "text-primary font-semibold" : "text-muted-foreground font-medium/);
   assert.match(source, /\{ title: "Shot Log",\s+href: "\/shots",\s+icon: BookOpen,\s+shortLabel: "Shots"(, exclude: \["\/shots\/new"\])? \}/);
   assert.match(source, /item\.shortLabel \?\? item\.title\.split\(" "\)\[0\]/);
-  // Everything that left the bar is reachable from More.
+  // Every page is reachable from the swipeable strip (mobileSwipeNav = tabs + the rest).
   for (const href of ["/reference", "/beans", "/equipment", "/accessories", "/taste-selectors", "/data-health", "/settings"]) {
     assert.match(source.slice(source.indexOf("const mobileBottomMoreNav")), new RegExp(`href: "${href}"`));
   }
