@@ -770,11 +770,17 @@ export default function ShotForm() {
     // server-side on every shot write (carryForwardActiveBagGrindDefaults in
     // routes/shots.ts) — no client PATCH /bags/:id needed here. This only
     // saves the global defaultGrindSetting/defaultGrindTime for next-shot prefill.
-    await saveSettings({
-      ...(settings ?? {}),
-      ...(grindSetting != null ? { defaultGrindSetting: String(grindSetting) } : {}),
-      ...(grindTime != null ? { defaultGrindTime: String(grindTime) } : {}),
-    });
+    // Best effort: the shot is already saved, so a failed defaults save must not
+    // skip the taste-selector save, the cache refresh or the redirect after it.
+    try {
+      await saveSettings({
+        ...(settings ?? {}),
+        ...(grindSetting != null ? { defaultGrindSetting: String(grindSetting) } : {}),
+        ...(grindTime != null ? { defaultGrindTime: String(grindTime) } : {}),
+      });
+    } catch {
+      /* next-shot prefill defaults are optional */
+    }
   };
 
   const onSubmit = async (values: FormValues) => {
