@@ -4136,6 +4136,8 @@ only a restore from `~/BSE-backups` (restore-tested 2026-09-29). Docs only; no c
 
 # Historical taste import (24 late shots) and Airtable Gate 5 check — 2026-10-01
 
+> **Note:** the taste import described in this entry (and extended in its first addendum) was **reversed later the same day**; see "Addendum, same day: historical taste import reversed" at the end of this entry. The Gate 5 check findings stand.
+
 Carl: "match up what we have with what was there before" for the Airtable Taste field, then chose option 2 after the
 usage-over-time check ("shows the historical evolution of my taste selector system, for my knowledge only").
 
@@ -4164,6 +4166,8 @@ usage-over-time check ("shows the historical evolution of my taste selector syst
 
 ## Addendum, same day: Phase 2 taste data added; Phase 1 and Gate 8 declined
 
+> **Note:** the Phase 2 taste links added here were removed again later the same day (see the final addendum). The Phase 1 and Gate 8 decisions stand.
+
 Carl: do not add System Phase 1 shots, add Phase 2 (taste data), match taste selectors to the app's new selectors only;
 no Gate 8 sync dry run (the app is in daily use); commit and push when done.
 
@@ -4178,3 +4182,13 @@ no Gate 8 sync dry run (the app is in daily use); commit and push when done.
 - Undo path: restore from `~/BSE-backups/bse-2026-10-01.dump`, taken before either import. No second same-day backup was
   taken because the file name is date-based and would have overwritten that pre-import dump.
 - Gate 8 recorded as "not required" in the readiness gates doc. Airtable total for the day: 8 read-only calls, no writes.
+
+## Addendum, same day: historical taste import reversed
+
+Carl: remove the imported taste links ("they are pretty dumb sounding now"); chose to keep all selectors.
+
+- Safety checks first: 351 planned pairs, 68 shots, exactly 351 links on those shots; any other number would have aborted.
+- One transaction deleted the exact 351 (shot, selector) pairs. Result: shots with taste links 76 to 8, total links 404 to 53,
+  selectors unchanged at 78 (none archived), shots unchanged at 283. The 8 app-logged shots and their 53 links were untouched.
+- Net effect of the whole day on production taste data: none. Historical Airtable taste (84 shots, 502 selections) stays in
+  Airtable only. `~/BSE-backups/bse-2026-10-01.dump` (pre-import) is still the restore point if ever needed.

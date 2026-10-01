@@ -239,15 +239,17 @@ Beans.Certification and the three Grinder Jam Events selects. Bags.Status option
   that the selector colors hid, then found it too tedious for a public app. Usage by month confirms the pattern with one
   twist: heavy use Apr 10-May 20 (60 shots), none May 21-Jul 19, and a return Jul 20-Aug 15 (24 of 36 shots).
   Decision, refined the same day: import the taste data for the Phase 2 shots (44) as well as the late Phase 3 shots (24),
-  68 shots in all, using only the app's current selectors (exact and close matches, level dropped); Phase 1 shots are not
-  added; the unmatched Airtable names stay in Airtable as preserved evidence of how the taste-selector system evolved.
-  Done 2026-10-01 (see completed-tasks.md).
+  68 shots in all, using only the app's current selectors. Done, then **reversed the same day at Carl's request**: all 351
+  imported links were removed and the selectors kept (the matched selectors sounded wrong against the old graded data).
+  Final state: no historical Airtable taste data is in the database; Airtable remains the preserved record of how the
+  taste-selector system evolved (see completed-tasks.md).
 - Project Phase is understood to be the app's System Phase; Field 8 is believed already corrected in the app; neither
   was re-verified.
 - The 25 Phase 1 setup shots (before 2026-04-21) and 2 non-shot notes are **not** being added (Carl, 2026-10-01); Phase 1
   was setup only and feeds no calculation. Every Phase 2 and Phase 3 shot is already in the database.
 
 **Remaining unknowns:** view filters; whether any other table is view-filtered; the Project Phase to `system_phase` mapping.
+Taste history was deliberately left out of the database (see above).
 
 ## Gate 6 — Fixture Strategy
 
