@@ -4199,7 +4199,7 @@ Carl's answers: Prisma and Render stay on the Free plan; testers get no CSV impo
 EQ-2 keep decaf/pour-over as base default fields; enact the security items; draft the legal/onboarding documents; the
 auth-readiness documents (W7) wait until housekeeping is done. (A second "4" in his reply was withdrawn as an error.)
 
-## Code (uncommitted at time of writing)
+## Code (commit 3a55162)
 
 - `artifacts/api-server/src/middlewares/security-headers.ts` (new): strict Content Security Policy (same-origin scripts, Google Fonts
   allowed, no inline scripts, no eval, frame-ancestors none) plus HSTS in production, alongside the existing four headers.
@@ -4215,7 +4215,9 @@ auth-readiness documents (W7) wait until housekeeping is done. (A second "4" in 
 
 Typecheck clean in all four packages; API tests 145/145 (136 before plus 9 new); `build:render` passes. CSP checked in Chrome against the
 built app served locally with the real header (no database): Dashboard and Log Shot render fully, no CSP violations in the console.
-Not yet deployed or checked in production.
+Deployed 2026-10-01 (commit 3a55162, Render deploy live after about 70 seconds) and verified on production: `/api/healthz` ok; CSP and HSTS
+headers present on the page and API; `/api/bags` returns 200; `POST /api/airtable/test` returns 403 without the admin token; rate-limit
+headers show a 600/min budget; the live Dashboard renders with real data and no CSP violations in Chrome.
 
 ## Findings
 
