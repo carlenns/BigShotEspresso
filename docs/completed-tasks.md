@@ -4222,7 +4222,8 @@ headers show a 600/min budget; the live Dashboard renders with real data and no 
 ## Findings
 
 - A legacy Airtable token exists in old git history on an unmerged remote branch of the public repository; current files, untracked files
-  and `.env` are clean. Carl to revoke the token in Airtable (revoking is the fix). The token was not used or tested.
+  and `.env` are clean. Carl later confirmed (2026-10-01) the token was revoked long ago, so nothing further is needed; this was not verified by
+  Claude, and the token was never used or tested.
 - 4 dependency advisories (fixed above). Frontend bundle clean (only environment variable names appear as Settings labels).
 
 ## Environment incident

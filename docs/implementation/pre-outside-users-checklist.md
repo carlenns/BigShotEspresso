@@ -53,7 +53,7 @@ Status key: Done · Open · Decision (Carl) · Not re-verified (listed in an old
 ## W5 Security hardening (auth-independent)
 | Item | Status |
 |---|---|
-| Fresh secret scan (tracked, untracked, full history) | Done 2026-10-01: files clean; **legacy Airtable token found in old history on a public branch; Carl to revoke it in Airtable** |
+| Fresh secret scan (tracked, untracked, full history) | Done 2026-10-01: files clean. A legacy Airtable token was found in old history on a public branch; Carl says it was revoked long ago (not verified by Claude; the token was never used or tested) |
 | Dependency audit (`pnpm audit`) | Done 2026-10-01: 4 advisories fixed by pinning `qs` and `body-parser`; now clean |
 | Frontend bundle exposes no secrets | Done 2026-10-01: clean |
 | Content Security Policy | Done 2026-10-01: deployed (3a55162) and verified live in Chrome, no violations |

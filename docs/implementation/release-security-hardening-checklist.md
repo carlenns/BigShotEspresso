@@ -253,7 +253,7 @@ Current backup/restore evidence:
 
 | Item | Result |
 | --- | --- |
-| 1. Secret scan (tracked, untracked, full git history) | Current files and untracked files clean; `.env` never committed. **Finding:** a legacy Airtable token exists in old git history on an unmerged remote branch of the public repository. Carl to revoke it in Airtable (revoking is the fix; deleting the branch alone is not enough) |
+| 1. Secret scan (tracked, untracked, full git history) | Current files and untracked files clean; `.env` never committed. **Finding:** a legacy Airtable token exists in old git history on an unmerged remote branch of the public repository. Carl states it was revoked long ago (2026-10-01; not verified by Claude, who did not use or test it). The old history remains public, but a revoked token in it is harmless |
 | 2. Admin/destructive routes | Reviewed. `/api/airtable/test` (calls Airtable with the server token, unused by the frontend) is now behind the admin token; all admin routes are now rate limited before the token check |
 | 3. Airtable sync in release | Not in release scope; Gate 8 sync dry run not required (Carl, 2026-10-01) |
 | 4. Neon rehearsal | Done 2026-08-17; Neon since replaced by Prisma Postgres and deleted |
