@@ -57,6 +57,11 @@ Expected commands:
 | `CORS_ORIGIN` | Frontend and API are intentionally split across origins | Leave unset for one-service same-origin Render deployment |
 | `LOG_LEVEL` | Debugging deployment issues | Do not use verbose logs forever in production |
 | `COFFEELOG_STATIC_DIR` | Render build path differs unexpectedly | Usually not needed |
+| `RATE_LIMIT_API_PER_MIN` | Tuning abuse limits | General API limit per client IP per minute; default 600 |
+| `RATE_LIMIT_WRITE_PER_MIN` | Tuning abuse limits | POST/PUT/PATCH/DELETE limit per client IP per minute; default 120 |
+| `RATE_LIMIT_ADMIN_PER_15MIN` | Tuning abuse limits | Admin/bulk route limit per client IP per 15 minutes; default 10 |
+| `RATE_LIMIT_DISABLED` | Emergency or local debugging only | Set to `1` to turn all rate limiting off |
+| `TRUST_PROXY_HOPS` | The number of proxies in front of the app changes | Default 1 (Render's load balancer); wrong values make the limiter act on the proxy's address or trust spoofed headers |
 
 ## Variables Render Provides
 

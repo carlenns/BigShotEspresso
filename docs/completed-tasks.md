@@ -4192,3 +4192,44 @@ Carl: remove the imported taste links ("they are pretty dumb sounding now"); cho
   selectors unchanged at 78 (none archived), shots unchanged at 283. The 8 app-logged shots and their 53 links were untouched.
 - Net effect of the whole day on production taste data: none. Historical Airtable taste (84 shots, 502 selections) stays in
   Airtable only. `~/BSE-backups/bse-2026-10-01.dump` (pre-import) is still the restore point if ever needed.
+
+# Pre-outside-users work: decisions, security hardening, drafts — 2026-10-01
+
+Carl's answers: Prisma and Render stay on the Free plan; testers get no CSV import or Airtable connection; TS-1 archive approved;
+EQ-2 keep decaf/pour-over as base default fields; enact the security items; draft the legal/onboarding documents; the
+auth-readiness documents (W7) wait until housekeeping is done. (A second "4" in his reply was withdrawn as an error.)
+
+## Code (uncommitted at time of writing)
+
+- `artifacts/api-server/src/middlewares/security-headers.ts` (new): strict Content Security Policy (same-origin scripts, Google Fonts
+  allowed, no inline scripts, no eval, frame-ancestors none) plus HSTS in production, alongside the existing four headers.
+- `artifacts/api-server/src/middlewares/rate-limit.ts` (new): in-memory per-IP fixed-window limiter, no new dependency. Defaults 600/min
+  general, 120/min writes, 10 per 15 min on admin routes; `/api/healthz` exempt; env overrides documented in the Render environment checklist.
+- `artifacts/api-server/src/app.ts`: uses both; `trust proxy` = 1 in production; limiters run before body parsing; `/api/airtable/test` is now
+  behind the admin token and the admin rate limiter (the frontend never calls it).
+- `artifacts/api-server/src/security.test.ts` (new, 9 tests).
+- `pnpm-workspace.yaml` / `pnpm-lock.yaml`: pinned `qs` 6.16.0 and `body-parser` 2.3.0 (four Express-transitive advisories); `pnpm audit --prod` clean.
+- TS-1 needed no code: the archive feature already exists (migration 0013, routes, Taste Selectors page).
+
+## Verification
+
+Typecheck clean in all four packages; API tests 145/145 (136 before plus 9 new); `build:render` passes. CSP checked in Chrome against the
+built app served locally with the real header (no database): Dashboard and Log Shot render fully, no CSP violations in the console.
+Not yet deployed or checked in production.
+
+## Findings
+
+- A legacy Airtable token exists in old git history on an unmerged remote branch of the public repository; current files, untracked files
+  and `.env` are clean. Carl to revoke the token in Airtable (revoking is the fix). The token was not used or tested.
+- 4 dependency advisories (fixed above). Frontend bundle clean (only environment variable names appear as Settings labels).
+
+## Environment incident
+
+Several large files vanished from `node_modules` at about 03:33 (esbuild's binary and a pglite wasm file), breaking tests; Carl thinks he deleted
+them by accident. Repaired by removing the regenerable `node_modules` folders and running `pnpm install --frozen-lockfile`. No tracked or
+production data was affected.
+
+## Drafts and docs
+
+Privacy policy, beta terms and tester onboarding drafted in `docs/product/` (not for sending until per-user data ownership exists).
+Neon-era docs carry supersession notes; the security checklist, route exposure audit, Render environment checklist and the Phase 2B tracker are updated.

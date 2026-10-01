@@ -6,6 +6,8 @@ import { existsSync } from "node:fs";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { requireAdminToken } from "./middlewares/admin-auth";
+import { securityHeaders } from "./middlewares/security-headers";
+import { buildApiRateLimiters } from "./middlewares/rate-limit";
 
 const app: Express = express();
 const corsOrigin = process.env.CORS_ORIGIN
@@ -13,13 +15,15 @@ const corsOrigin = process.env.CORS_ORIGIN
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-app.use((_req, res, next) => {
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "DENY");
-  res.setHeader("Referrer-Policy", "no-referrer");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-  next();
-});
+// Render terminates TLS at one proxy hop. Without this every client would share the
+// proxy's address and the rate limiter would act on all users together; with it,
+// req.ip is the client address the proxy appended (not spoofable from the request).
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS ?? 1));
+}
+
+app.use(securityHeaders);
+const rateLimiters = buildApiRateLimiters();
 
 app.use(
   pinoHttp({
@@ -40,6 +44,8 @@ app.use(
     },
   }),
 );
+// Limits run before body parsing so an over-limit client never gets a 10mb body parsed.
+app.use("/api", rateLimiters.general, rateLimiters.writes);
 app.use(cors({
   origin: process.env.NODE_ENV === "production"
     ? (corsOrigin && corsOrigin.length > 0 ? corsOrigin : false)
@@ -48,11 +54,19 @@ app.use(cors({
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-app.use("/api/airtable/clear", requireAdminToken);
-app.use("/api/airtable/sync", requireAdminToken);
-app.use("/api/shots/import-csv", requireAdminToken);
-app.use("/api/hoppers/import-csv", requireAdminToken);
-app.use("/api/hopper-range-baselines/import-csv", requireAdminToken);
+// Bulk, destructive or credential-using routes: rate limited first (so failed token
+// guesses count), then token gated. /api/airtable/test calls Airtable with the server's
+// token and is not used by the frontend, so it is gated like the sync routes.
+for (const adminPath of [
+  "/api/airtable/clear",
+  "/api/airtable/sync",
+  "/api/airtable/test",
+  "/api/shots/import-csv",
+  "/api/hoppers/import-csv",
+  "/api/hopper-range-baselines/import-csv",
+]) {
+  app.use(adminPath, rateLimiters.admin, requireAdminToken);
+}
 
 app.use("/api", router);
 

@@ -247,4 +247,18 @@ Release security can pass only when:
 
 Current backup/restore evidence:
 
-- [Neon Backup and Restore Runbook](neon-backup-restore-runbook.md)
+- [Neon Backup and Restore Runbook](neon-backup-restore-runbook.md) (superseded 2026-10-01; see the update below)
+
+### Update 2026-10-01 (Phase 2B, W5)
+
+| Item | Result |
+| --- | --- |
+| 1. Secret scan (tracked, untracked, full git history) | Current files and untracked files clean; `.env` never committed. **Finding:** a legacy Airtable token exists in old git history on an unmerged remote branch of the public repository. Carl to revoke it in Airtable (revoking is the fix; deleting the branch alone is not enough) |
+| 2. Admin/destructive routes | Reviewed. `/api/airtable/test` (calls Airtable with the server token, unused by the frontend) is now behind the admin token; all admin routes are now rate limited before the token check |
+| 3. Airtable sync in release | Not in release scope; Gate 8 sync dry run not required (Carl, 2026-10-01) |
+| 4. Neon rehearsal | Done 2026-08-17; Neon since replaced by Prisma Postgres and deleted |
+| 5. Dependency audit | 4 advisories (qs and body-parser, via Express); fixed by pinning `qs` 6.16.0 and `body-parser` 2.3.0; `pnpm audit --prod` now clean |
+| 6. Frontend bundle | No secrets; only the names of two Airtable environment variables appear as Settings labels |
+| 7. Backup/restore | Prisma Postgres Migration Runbook; restore tested 2026-09-29; weekly backup mirrored to Drive |
+| 8. Content Security Policy | Added (same-origin scripts; Google Fonts allowed; no inline scripts, no eval). HSTS added in production. Verified in Chrome against the built app: pages render, no CSP violations |
+| New: rate limiting | Added (per client IP, in memory): 600 requests/min general, 120 write requests/min, 10 per 15 min on admin routes; `/api/healthz` exempt. Environment overrides listed in the Render environment checklist |

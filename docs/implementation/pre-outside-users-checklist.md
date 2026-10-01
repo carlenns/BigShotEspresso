@@ -10,16 +10,16 @@ Status key: Done · Open · Decision (Carl) · Not re-verified (listed in an old
 | ADR-0011 Clickonomics platform + Clerk | Carl | Done 2026-10-01 | ADR-0011 |
 | ROADMAP and START_HERE updated | Claude | Done 2026-10-01 | ROADMAP |
 | Phase 2B authorization | Carl | Done 2026-10-01 | phase-2b-scope-authorization |
-| ADR-0011 "Still open" owner decisions (canonical domain, first reference app, personal vs org, product vocabulary) | Carl | Decision | ADR-0011 |
+| ADR-0011 "Still open" owner decisions (canonical domain, first reference app, personal vs org, product vocabulary) | Carl | Decision (not decided yet) | ADR-0011 |
 
 ## W1 Owner decisions
 | Item | Owner | Status | Source |
 |---|---|---|---|
 | EQ-1 equipment defaults Option A | Carl | Done (approved 2026-09-28, Phase 2A S5) | phase-2a-scope-authorization |
-| EQ-2 decaf/pour-over defaults | Carl | Decision (deferred in 2A) | RC report |
-| TS-1 taste-selector archive slice | Carl | Decision | RC report |
+| EQ-2 decaf/pour-over defaults | Carl | Done: keep them as base default fields (Carl, 2026-10-01); no change needed | RC report |
+| TS-1 taste-selector archive slice | Carl | Done: approved 2026-10-01, and already built (migration 0013, archive/restore routes, Taste Selectors page); the RC report was stale | RC report |
 | DI-4 corpus rules backfill | Carl | Partly decided (three flagged shots, 2026-09-29); broader backfill not rechecked | completed-tasks |
-| Testers may import CSV / connect Airtable | Carl | Decision (recommended: no for both) | route-exposure-audit |
+| Testers may import CSV / connect Airtable | Carl | Done: no for both (Carl, 2026-10-01); both stay owner/admin-token tools | route-exposure-audit |
 
 ## W2 App housekeeping
 | Item | Status |
@@ -28,7 +28,7 @@ Status key: Done · Open · Decision (Carl) · Not re-verified (listed in an old
 | DI-3 accessory delete guard, EQ-5 inert equipment settings | Done (commit 2f23c02) |
 | PL-1, PL-2, PL-3, PL-4, PL-6 | Done (Phase 2A S1) |
 | PL-5, PL-7, PL-8 | Not re-verified (PL-7 bottom nav since replaced by the swipeable bar, 2026-09-30) |
-| DI-5 / TS-1 taste-selector archive model | Open (needs TS-1 decision) |
+| DI-5 / TS-1 taste-selector archive model | Done (already built; see TS-1) |
 | Empty-string values in Bag #5 and shot #20 | Not re-verified |
 | Days Since Open off-by-one around late-night entries | Not re-verified |
 | GRD-2 timed-dosing, SC-1..3 | Deferred (not needed for beta) |
@@ -43,32 +43,32 @@ Status key: Done · Open · Decision (Carl) · Not re-verified (listed in an old
 ## W4 Operations
 | Item | Owner | Status |
 |---|---|---|
-| Prisma Free vs Starter (backups, connections) | Carl | Decision |
-| Render free plan spins down; paid instance | Carl | Decision |
+| Prisma Free vs Starter (backups, connections) | Carl | Decided 2026-10-01: stay on Free for now. Risk accepted: no provider backups (weekly dumps to Drive are the only backup), few connections; revisit before real tester data |
+| Render free plan spins down; paid instance | Carl | Decided 2026-10-01: stay on Free for now. Risk accepted: first request after idle is slow; revisit before testers |
 | First scheduled Sunday backup (2026-10-04) present locally and in Drive | Claude/Carl | Open |
 | Error and uptime monitoring with an alert path | Claude/Carl | Open |
 | `domain-setup-checklist.md` for app.bigshotespresso.com | Carl | Open (no DNS change without Carl) |
-| Supersession notes on Neon-era docs (neon-backup-restore-runbook, RC report section 9, security checklist item 4) | Claude | Open |
+| Supersession notes on Neon-era docs (neon-backup-restore-runbook, RC report section 9, security checklist item 4) | Claude | Done 2026-10-01 |
 
 ## W5 Security hardening (auth-independent)
 | Item | Status |
 |---|---|
-| Fresh secret scan (tracked and untracked) | Open |
-| Dependency audit (`pnpm audit`) | Open |
-| Frontend bundle exposes no secrets | Open |
-| Content Security Policy | Open (none in `app.ts`) |
-| Rate limiting / abuse protection | Open (none in `app.ts`) |
-| Admin/destructive route review | Open |
+| Fresh secret scan (tracked, untracked, full history) | Done 2026-10-01: files clean; **legacy Airtable token found in old history on a public branch; Carl to revoke it in Airtable** |
+| Dependency audit (`pnpm audit`) | Done 2026-10-01: 4 advisories fixed by pinning `qs` and `body-parser`; now clean |
+| Frontend bundle exposes no secrets | Done 2026-10-01: clean |
+| Content Security Policy | Done 2026-10-01 (code, tests, Chrome check); not yet deployed |
+| Rate limiting / abuse protection | Done 2026-10-01 (code and tests); not yet deployed |
+| Admin/destructive route review | Done 2026-10-01: `/api/airtable/test` now admin-gated; admin routes rate limited |
 
 ## W6 Product and legal
 | Item | Owner | Status |
 |---|---|---|
-| Privacy policy draft | Claude drafts, Carl reviews | Open (none exists) |
-| Terms of service draft | Claude drafts, Carl reviews | Open (none exists) |
-| Beta onboarding copy and tester expectations | Claude/Carl | Open |
-| Support / feedback path | Carl | Decision |
+| Privacy policy draft | Claude drafts, Carl reviews | Drafted 2026-10-01 ([draft](../product/BSE_PRIVACY_POLICY_DRAFT.md)); awaiting Carl, then a qualified reviewer |
+| Terms of service draft | Claude drafts, Carl reviews | Drafted 2026-10-01 ([draft](../product/BSE_TERMS_OF_SERVICE_DRAFT.md)); awaiting Carl, then a qualified reviewer |
+| Beta onboarding copy and tester expectations | Claude/Carl | Drafted 2026-10-01 ([draft](../product/BSE_BETA_TESTER_ONBOARDING_DRAFT.md)); awaiting Carl |
+| Support / feedback path | Carl | Decision (not decided yet) |
 
-## W7 Auth-readiness documents
+## W7 Auth-readiness documents (deferred by Carl 2026-10-01 until the housekeeping is done)
 | Item | Status |
 |---|---|
 | Update auth-data-ownership-implementation-plan for Clerk, text `user_id`, three checks | Open |

@@ -1,5 +1,10 @@
 # Neon Backup and Restore Runbook
 
+> **Superseded 2026-10-01 (historical record, do not follow for recovery).** Production moved from Neon to Prisma
+> Postgres on 2026-09-28 ([ADR-0010](../ADR/ADR-0010-prisma-postgres-operational-database.md)) and the Neon project was
+> deleted on 2026-09-30. Current backup and restore procedure: [Prisma Postgres Migration Runbook](prisma-postgres-migration-runbook.md)
+> (sections "Rollback" and "Backups on the Free plan").
+
 > **Status:** Draft release runbook  
 > **Created:** 2026-08-17  
 > **Scope:** Coffee Log / BigShotEspresso Neon Postgres release path  

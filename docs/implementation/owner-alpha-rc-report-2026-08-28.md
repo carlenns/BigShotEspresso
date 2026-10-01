@@ -105,6 +105,9 @@ These decisions gate the next stage, not this RC:
 ## 9. Backup / recovery pointer
 
 Use [Neon Backup and Restore Runbook](neon-backup-restore-runbook.md) for recovery.
+
+> **Update 2026-10-01:** superseded. Neon was replaced by Prisma Postgres (2026-09-28) and deleted (2026-09-30). Recovery is
+> now a restore from a `~/BSE-backups` dump; see the [Prisma Postgres Migration Runbook](prisma-postgres-migration-runbook.md).
 Airtable and CSV evidence remain preserved separately from runtime Postgres data.
 
 ## 10. Sign-off

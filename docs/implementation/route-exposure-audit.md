@@ -92,7 +92,7 @@ These routes support normal owner use but are not public-safe without authentica
 | `/api/taste-selectors/seed` | POST | Owner-only workflow. Ungated 2026-09-24: additive and idempotent (inserts only missing standard selectors, never overwrites or deletes), same risk as single-selector create; the admin gate made the page's Load Standard Selectors button fail in production |
 | `/api/shots/:id/taste-selectors` | PUT | Owner-only workflow |
 | `/api/settings` and `/api/settings/:key` | PUT, DELETE | Owner-only/admin workflow |
-| `/api/airtable/test` | POST | Owner/admin diagnostic; should not be public self-serve |
+| `/api/airtable/test` | POST | Owner/admin diagnostic; admin-token gated and rate limited since 2026-10-01 |
 
 ## Release Findings
 
