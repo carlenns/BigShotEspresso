@@ -4133,3 +4133,48 @@ Carl retired Neon and, after the console refused to delete the project's only (d
 `DATABASE_URL` already on Prisma pooled since 2026-09-28. Carl confirmed "delete Neon"; the project was
 deleted through the Neon MCP and a follow-up lookup returned 404. Not recoverable. Recovery is now
 only a restore from `~/BSE-backups` (restore-tested 2026-09-29). Docs only; no code changed.
+
+# Historical taste import (24 late shots) and Airtable Gate 5 check — 2026-10-01
+
+Carl: "match up what we have with what was there before" for the Airtable Taste field, then chose option 2 after the
+usage-over-time check ("shows the historical evolution of my taste selector system, for my knowledge only").
+
+## What was done
+
+- Gate 5 live check: 8 Airtable (MCP) calls, reads only (search_bases, list_tables_for_base, get_table_schema, three
+  Shots reads, Bags, Hopper). Findings are in `docs/implementation/pre-phase-2-readiness-gates.md`, Gate 5 results.
+- Taste usage: Airtable has Taste on 84 shots (502 selections, 31 attributes). Heavy Apr 10-May 20, none May 21-Jul 19,
+  back Jul 20-Aug 15 (24 of 36 shots).
+- Backup first: `~/BSE-backups/bse-2026-10-01.dump` (12 tables, 184,845 bytes).
+- Dry run, then one transaction: 24 database shots (ids 201-234, matched to Airtable by timestamp, each a unique match,
+  none with existing taste links) received **95** `shot_taste_selectors` links. 126 selections read, 95 mapped, 31 left behind.
+- Mapping (level Low/Medium/High dropped): exact: Acidity, Aftertaste, Bitterness, Body, Caramel, Chocolate, Citrus,
+  Complexity, Lingering, Sourness, Sweetness, Dryness, Clean Finish, Clarity. Close (Carl-approved by choosing option 2):
+  Balance to Balanced, Clean/Clear to Clarity, Astringent to Astringency, Smooth to Smoothness, Bright to Brightness,
+  Fruity/Berry to Fruitiness. Left behind (31): Integration 12, Tannins 9, Upper-palate imbalance 3, Refined 3, Strong/Full 2,
+  Separation 1, Dynamic 1.
+- Result: shots with taste links 8 to 32; total links 53 to 148. Only the 24 target shots changed.
+
+## Not done / notes
+
+- (Superseded later the same day, see the addendum below: the Phase 2 shots were added too.)
+- Raw Airtable taste values were not copied into `airtable_sync_evidence` (Airtable itself is the preserved evidence).
+- The 25 Phase 1 setup shots and 2 non-shot notes: Carl decided not to add them.
+- No code changed; the one-off script lives only in the session scratchpad. Typecheck/tests/build unaffected.
+
+## Addendum, same day: Phase 2 taste data added; Phase 1 and Gate 8 declined
+
+Carl: do not add System Phase 1 shots, add Phase 2 (taste data), match taste selectors to the app's new selectors only;
+no Gate 8 sync dry run (the app is in daily use); commit and push when done.
+
+- Interpretation: every Phase 2 shot is already in the database (none are dated before 2026-04-21), so "add those" was
+  taken to mean the Phase 2 shots' taste data.
+- Airtable taste shots by Project Phase: Phase 1: 16 (not in the database; skipped), Phase 2: 44, Phase 3: 24 (done earlier).
+- Dry run, then one transaction: 44 Phase 2 shots (ids 1-59, unique timestamp matches, none with existing taste links)
+  received **256** `shot_taste_selectors` links. 304 selections read, 256 mapped, 48 left behind: Refined 13, Integration 12
+  (10 plus 2 typo "Integration Low"), Strong/Full 9, Tannins 5, Upper-palate imbalance 3, Dynamic 2, Bold 2, Separation 1,
+  Medium 1. Same mapping rules as above.
+- Result: shots with taste links 32 to 76; total links 148 to 404; total shots unchanged at 283.
+- Undo path: restore from `~/BSE-backups/bse-2026-10-01.dump`, taken before either import. No second same-day backup was
+  taken because the file name is date-based and would have overwritten that pre-import dump.
+- Gate 8 recorded as "not required" in the readiness gates doc. Airtable total for the day: 8 read-only calls, no writes.

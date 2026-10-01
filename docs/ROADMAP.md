@@ -9,7 +9,7 @@
 | 0 | Project Architecture | Documentation completed |
 | 1 | Data Foundation | Implemented; deployment verification pending |
 | 1.5 | Foundation Stabilization | Owner-alpha RC declared 2026-08-28; Airtable gates 5/8 remain open |
-| 2 | Coffee Log Application Completion | **2A authorized (narrow, 2026-09-28)** — see [phase-2a-scope-authorization](implementation/phase-2a-scope-authorization.md); remainder not authorized |
+| 2 | Coffee Log Application Completion | **2A authorized (narrow, 2026-09-28)** — see [phase-2a-scope-authorization](implementation/phase-2a-scope-authorization.md). **2B authorized 2026-10-01** (pre-outside-user readiness: docs, housekeeping, verification, ops and security hardening; **no** auth code) — see [phase-2b-scope-authorization](implementation/phase-2b-scope-authorization.md). Remainder not authorized |
 | 2.5 | Knowledge & Provenance System | Governance foundation initiated |
 | 3 | Dose Consistency Intelligence (DCI) | Not authorized |
 | 4 | Operational Success Intelligence (OSI) | Not authorized |
@@ -77,6 +77,8 @@ Users may eventually be able to upload a telemetry file (e.g. an export from an 
 ## Status change record
 
 - 2026-09-28 — Phase 2 row changed from "Not authorized" to "2A authorized (narrow)"; Phase 1.5 row changed from "Locally complete; external gates pending" to reflect the RC declaration. Rationale, impact, and waivers: [phase-2a-scope-authorization.md](implementation/phase-2a-scope-authorization.md). Approved by Carl (2026-09-28 planning session). No phase sequence or authority changed, so no ADR is required.
+
+- 2026-10-01 — Phase 2 row extended with **2B (pre-outside-user readiness)**; previous text was "2A authorized (narrow, 2026-09-28) ... remainder not authorized". Rationale: Carl asked to prepare for invite-only outside beta users and the Clerk track. Impact: authorizes docs, housekeeping, verification, operations and auth-independent security work only; accounts/auth/Clerk code, `user_id` migration, billing and intelligence phases stay unauthorized. Governing records: [ADR-0009](ADR/ADR-0009-user-accounts-authentication-and-data-ownership.md) (accepted as design direction), [ADR-0011](ADR/ADR-0011-clickonomics-platform-and-clerk-identity.md), [phase-2b-scope-authorization](implementation/phase-2b-scope-authorization.md).
 
 ## Roadmap change control
 

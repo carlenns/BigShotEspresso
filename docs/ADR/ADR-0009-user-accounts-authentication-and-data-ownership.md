@@ -1,9 +1,9 @@
 # ADR-0009: User Accounts, Authentication, and Data Ownership
 
 - Date: 2026-08-25
-- Status: Proposed
+- Status: Accepted (2026-10-01) as a design direction only; authorizes no implementation
 - Decision owner: Carl Enns
-- Approval: Pending
+- Approval: Accepted by Carl Enns, 2026-10-01, with the amendments below. Implementation remains separately approval-gated (see [Phase 2B](../implementation/phase-2b-scope-authorization.md) and ADR-0011).
 
 ## Context
 
@@ -127,14 +127,43 @@ Deferred, deliberately, rather than rejected. The data-ownership model (row-leve
 - Outside-tester access (Tier 2) can be reached with a smaller slice of this work (owner-provisioned accounts, no self-serve signup, no billing) than full paid launch (Tier 3) needs — this ADR's model supports building Tier 2 first without redoing the ownership design later for Tier 3.
 - This ADR does not by itself unblock anything — it is the design that a future, separately-approved implementation plan will execute against, per the Constitution's "documentation before implementation" and "plan and obtain approval before implementation" rules.
 
+## Amendments before acceptance (2026-10-01)
+
+The original text above was written 2026-08-25 and is preserved. These amendments record what changed
+before acceptance; where they conflict with the original text, the amendments govern.
+
+1. **Authentication mechanism is Clerk** (managed provider), approved as the direction by Carl on
+   2026-09-08 (see [auth-data-ownership-implementation-plan](../implementation/auth-data-ownership-implementation-plan.md)
+   and [clickonomics-clerk-integration-plan](../implementation/clickonomics-clerk-integration-plan.md)).
+   This answers Open Question 1. The identity provider decision is recorded in [ADR-0011](ADR-0011-clickonomics-platform-and-clerk-identity.md).
+2. **`user_id` is `text`** holding the Clerk user id, not an integer foreign key. The local `users`
+   table is a mirror keyed by that id; it has no sessions, magic-link tokens or password columns.
+   BSE uses personal accounts (no organizations) for consumer users, per the platform architecture.
+3. **Three checks on every BSE request** (the original text covered only the third): (a) a valid
+   Clerk session, (b) the required BSE product/feature entitlement, (c) ownership of the requested
+   rows. Hiding an app tile in Clickonomics is not a security boundary.
+4. **Platform context:** Clickonomics is the account, subscription and entitlement control plane; BSE
+   remains an independently deployed application that enforces entitlement and row ownership itself
+   ([clickonomics-platform-architecture](../implementation/clickonomics-platform-architecture.md)).
+   Sequence: the BSE ownership migration follows the Clickonomics-first steps in that document.
+5. **Infrastructure:** wherever this ADR says Neon, read Prisma Postgres ([ADR-0010](ADR-0010-prisma-postgres-operational-database.md)).
+   Neon was deleted 2026-09-30.
+6. **First outside users** are an invite-only handful of trusted testers (Tier 2): no self-serve signup,
+   no billing, no CSV import or Airtable connection for testers (those stay owner/admin-token tools).
+
 ## Open questions
 
 1. **Authentication mechanism** — email/password, magic link, or a third-party OAuth provider (Google/GitHub/etc.)? Deliberately left open above; needs its own decision, informed by how much of the target audience (home espresso enthusiasts, not necessarily already OAuth-habituated) will tolerate each option.
+   **Resolution (2026-10-01):** Resolved: Clerk (amendment 1).
 2. **`airtable_sync_evidence` scoping** — does Airtable sync remain an owner-only operational tool indefinitely, or does it eventually become per-user? Nothing in current product docs describes per-user Airtable sync; if it stays owner-only, this table may not need `user_id` at all.
+   **Resolution (2026-10-01):** Resolved: stays an owner/operator tool with no per-user scoping, per the implementation plan.
 3. **Migration sequencing** — should the `user_id` columns and backfill land as one large migration, or a sequence of smaller per-table migrations? The `settings` constraint change (above) argues for treating it as its own dedicated migration regardless of how the rest is sequenced.
+   **Resolution (2026-10-01):** Resolved: a sequence of per-table migrations in the implementation plan's order, with the `settings` constraint change as its own dedicated migration, backfilled to the owner only after the owner's real Clerk identity exists.
 4. **Scoping helper design** — a Drizzle-level query wrapper, a thin repository/service layer, or per-route middleware that injects a pre-scoped query builder? This is an implementation-detail decision for whichever future task actually builds this, not decided here.
+   **Resolution (2026-10-01):** Resolved: a thin repository/query-wrapper layer taking the user id, built and tested in isolation before any route is touched (implementation plan).
 5. **Shared-library rollout timing for equipment/taste-selectors** — this ADR recommends the schema shape (`user_id` nullable) that *supports* a future shared/verified library, but does not decide when that library work itself happens; `docs/architecture/equipment-capability-library-model.md` already defers it until "after account/auth, ownership, moderation, admin review, and privacy controls exist," which this ADR is a prerequisite for, not a trigger of.
 6. **Tier 2 vs. Tier 3 sequencing decision** — should implementation target the lighter Tier 2 (outside-tester) slice first as a deliberate milestone, or build the full Tier 3 model in one pass? This ADR shows Tier 2 is reachable with less work, but doesn't decide whether that staging is worth the extra planning overhead versus building once for Tier 3 directly.
+   **Resolution (2026-10-01):** Resolved (Carl, 2026-09-30): Tier 2 first, an invite-only handful.
 
 ## Related Project Notes
 

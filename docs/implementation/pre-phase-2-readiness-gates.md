@@ -15,21 +15,21 @@ Airtable API access is currently constrained by account/API limits, but current 
 
 | Gate | Status | Can complete offline? | Notes |
 | --- | --- | --- | --- |
-| Repository documentation governance | Complete except ADR-0009 | Yes | Constitution, ADR drafts, indexes, certification docs exist |
+| Repository documentation governance | Complete (2026-10-01) | Yes | Constitution, ADR drafts, indexes, certification docs exist |
 | Offline Airtable CSV evidence | Complete for visible exports | Yes | Corrected full Shots export has 235 records and 93 fields |
-| CSV-to-Postgres coverage review | Complete draft | Yes | Known 9 Shot field gaps documented |
-| Postgres target model | Complete draft | Yes | Requires approval before implementation |
-| Airtable metadata verification | Blocked | No | Requires API reset or paid access |
-| Fixture strategy decision | Needs approval | Mostly | Requires decision before changing fixtures/tests |
-| Production-equivalent Postgres rehearsal | Planned for Neon | No, unless local/remote Postgres available | Needed before deployment certification |
-| Live Airtable sync dry run | Blocked | No | Requires API calls and safe DB target |
-| Phase 2 scope decision | Not ready | Partly | Depends on whether metadata blockers are waived |
+| CSV-to-Postgres coverage review | Decided 2026-09-30 | Yes | Treatments for the 9 Shot fields recorded; Airtable formulas still unverified (Gate 5) |
+| Postgres target model | Approved 2026-09-30 | Yes | Roles approved; no schema work authorized |
+| Airtable metadata verification | Done 2026-10-01 | No | 8 Airtable calls; hidden-field and Taste gaps found and resolved (see Gate 5 results) |
+| Fixture strategy decision | Approved 2026-09-30 | Mostly | Manifest first; fixtures unchanged until then |
+| Production-equivalent Postgres rehearsal | Substantially satisfied | No | Neon rehearsal, real cutover to Prisma Postgres, restore-from-backup tested 2026-09-29 |
+| Live Airtable sync dry run | Not required (Carl, 2026-10-01) | No | App is the daily system of record; Airtable is evidence only |
+| Phase 2 scope decision | Phase 2A only (confirmed 2026-09-30) | Partly | Full Phase 2 still not ready |
 
 ## Gate 1 — Documentation Governance
 
-Status: complete except one open ADR. ADR-0001 to 0005, 0007 and 0008 were accepted on 2026-09-29,
-ADR-0006 is superseded, and ADR-0010 is accepted. ADR-0009 (user accounts and data ownership)
-remains Proposed and is not needed for the current owner-only scope.
+Status: **complete (2026-10-01).** ADR-0001 to 0005, 0007 and 0008 were accepted on 2026-09-29, ADR-0006 is
+superseded, and ADR-0009, ADR-0010 and ADR-0011 are accepted (0009 and 0011 on 2026-10-01 as design direction only;
+implementation is separately approval-gated).
 
 Evidence:
 
@@ -44,8 +44,7 @@ Evidence:
 
 Remaining decision:
 
-- ADR-0009 needs explicit acceptance, revision, or rejection. Accepting it would only approve the
-  row-level `user_id` design direction, not any implementation.
+- None. ADR-0009 was accepted 2026-10-01 (design direction only, no implementation).
 
 ## Gate 2 — Offline CSV Evidence
 
@@ -67,7 +66,7 @@ Limit:
 
 ## Gate 3 — CSV-to-Postgres Coverage
 
-Status: field treatments decided by Carl 2026-09-30 (see below); Airtable metadata (Gate 5) still unverified.
+Status: field treatments decided by Carl 2026-09-30 and confirmed by the Airtable metadata check 2026-10-01 (Gate 5).
 
 Evidence:
 
@@ -101,8 +100,9 @@ Decision recorded 2026-09-30 (Carl):
 
 Rationale for the last two (Carl's recollection, corrected against the export on 2026-09-30):
 
-- `Initial Output vs Target Dose (g)`: an earlier dose comparison later superseded by a newer field;
-  the app now calculates initial output minus target dose itself (`dose-correction.ts`). Evidence: the
+- `Initial Output vs Target Dose (g)`: an earlier dose comparison later superseded by a newer field. Verified
+  2026-10-01: its formula is Initial Output minus Expected Dose by Hopper Range (not the target dose, despite the
+  name). The app calculates initial output minus target dose itself (`dose-correction.ts`), a different comparison. Evidence: the
   export has values for it on 154 of 235 shots, from shot #21 (2026-04-27) to shot #196
   (2026-07-18), then none, which fits it being retired in mid-July. It is not confined to System
   Phase 1 (52 early, 66 middle, 36 late shots).
@@ -117,15 +117,17 @@ Rationale for the last two (Carl's recollection, corrected against the export on
   78 of 84; shots 1-20 have none). System Phase 1 is only 51 of the 282 shots, so neither field
   is limited to Phase 1 shots.
 - Checked 2026-09-30: `actual_dose_error` and `baseline_output_delta` are empty for all 282 production
-  shots, so treating these two fields as evidence-only changes no existing data. The identity of any
-  newer replacement for field 8 has not been confirmed.
+  shots, so treating these two fields as evidence-only changes no existing data. Verified 2026-10-01 (Gate 5):
+  the app maps `actual_dose_error` from a different Airtable field, `Actual Dose Error (g)` (Dose minus Target Dose),
+  which is hidden from the CSV export; that is why the column is empty. The identity of any newer replacement for
+  field 8 has not been confirmed.
 
-Decisions 1-7 rest on the Airtable formulas and lookups not yet being verified (Gate 5); revisit
-any of them if that metadata shows a different source.
+Verified 2026-10-01 (Gate 5): the metadata confirms the treatments for fields 1-7 (see Gate 5 results). No
+treatment needs to change.
 
 ## Gate 4 — Postgres Target Model
 
-Status: complete draft.
+Status: **approved by Carl 2026-09-30** (table roles below).
 
 Evidence:
 
@@ -139,13 +141,17 @@ Main proposed model:
 - Project Notes are documentation/evidence first, runtime table optional.
 - Launch Economics is product-planning evidence only.
 
-Decision needed:
-
-- Approve or revise the proposed table roles before schema work.
+Decision recorded 2026-09-30 (Carl): the proposed table roles are approved as written. This approves
+the roles only; it authorizes no schema work. Grinder Jam Events, Shot Fault Rules and the Rating System
+still have no first-class tables, and adding any of them needs its own plan, migration and rollback.
 
 ## Gate 5 — Airtable Metadata Verification
 
-Status: blocked until API access resets.
+Status: **core verification completed 2026-10-01** with 8 Airtable (MCP) calls, well inside the runbook's
+250-call stop limit. Results below are sanitized (no Airtable IDs, no verbatim formulas; raw responses are kept
+outside the repository). Not done: view filters (the MCP does not expose them), full spot-check list (Reference
+Shot, excluded shot, Grinder Jam Event, Baseline), and Beans/Baselines/Jam Events/Rules/Notes/Rating-System
+record counts.
 
 Evidence/runbook:
 
@@ -166,14 +172,86 @@ Decision needed:
 
 - Whether to wait for metadata before implementation, or explicitly waive metadata for a narrow offline-only implementation scope.
 
-Recommended position:
+Recommended position (original, 2026-08-17):
 
 - Do not waive metadata for relationship-heavy work.
 - Relationship and formula questions should wait for reset-day verification.
 
+### Results, 2026-10-01 (sanitized)
+
+Tables: Beans, Bags, Shots, Hopper, Hopper Range Baselines, Shot Fault Rules, Project Notes, 10-Point Rating
+System, Grinder Jam Events, BSE Launch Economics. Shots has **117 fields**; the CSV export has **93**.
+
+**The nine unmapped Shot fields (Gate 3), now verified from metadata:**
+
+| Field | Verified nature |
+| --- | --- |
+| `Bag` | Linked record to Bags; inverse is Bags.Shots; multiple allowed. The authoritative relationship |
+| `Bag Label` | Lookup of the Bags "Bag Label" formula ("Bag N" plus the bean name); display helper |
+| `Rating ( Valid Only )` | Formula: Rating only when Shot Status is Good or Dialed In |
+| `Hopper Range Link` | Linked record to Hopper Range Baselines; single link; inverse is Baselines.Shots |
+| `Hopper Range Match` | Audit formula: compares the shot's Hopper Range with the linked baseline's range (match, mismatch or missing link) |
+| `Hopper Link` | Linked record to Hopper; inverse is Hopper.Shots |
+| `Yield Window`, `Ratio Window` | Lookups of the Bag's yield and ratio window formulas (low / center / high text) |
+| `Initial Output vs Target Dose (g)` | Formula: Initial Output minus **Expected Dose by Hopper Range** (a lookup from the baseline). The name says "Target Dose" but the formula does not use it |
+| `Initial Output vs Hopper Baseline (g)` | Formula: Initial Output minus Baseline Unaided Output (a lookup); 0 when the difference is under 0.05 |
+
+**Hidden from the export (24 Shot fields):** Bag Label, Purge/Toss (g), Dose Adj, Time Adj, Bean Helper, Time,
+Project Phase, Milk Drink?, Effective Drink Type, **Taste**, Hopper Range (from link), Cost per Shot, Bag Cost
+per Gram, Scale Zone, Flow Time Low/Center/High, Flow Time Offset (Scale), **Actual Dose Error (g)**, **Target
+Dose (g)**, Expected Dose by Hopper Range (g), Target Gap (g), Signature Shot Count, Grinder Jam Events.
+`Actual Dose Error (g)` is a formula (Dose minus Target Dose) that the app already maps to
+`shots.actual_dose_error`; because the export omits it, that column is empty in production.
+
+**Record completeness (live Airtable vs CSV vs production database):**
+
+| | Airtable | CSV | Database |
+| --- | --- | --- | --- |
+| Shots | 262 (2026-04-10 to 2026-08-15) | 235 | 283 on 2026-10-01 |
+| Bags | 6 | 6 | 8 (2 created in the app) |
+| Hopper | 17 | 17 | 21 (4 created in the app) |
+
+- 25 Airtable shots dated before 2026-04-21 (Phase 1 setup period) were not exported and are not in the database. This
+  matches Airtable's own `Include in Analysis` formula, which only counts shots from 2026-04-21.
+- 2 more Airtable records (2026-04-21 and 2026-04-22) are non-shot notes (a hopper refill note and a puck-screen
+  change note) with no bag, dose or output; not exported, not imported.
+- Every database shot dated through 2026-08-16 matches an Airtable shot by timestamp; nothing in the database is unexplained.
+- **Historical Taste data was never imported.** Airtable has Taste values on 84 shots (502 selections); the export
+  hid the field and the sync code does not map it. The database has taste links on 8 shots, none of them imported shots.
+  (68 of the 84 shots exist in the database; the other 16 are pre-2026-04-21.)
+
+**`Include in Analysis`:** Airtable's rule is Shot Status Good or Dialed In, AND Fault Status contains "Good", AND date
+2026-04-21 or later. The app's rule (`computeIncludeInAnalysis`) is Good or Dialed In AND Fault Status exactly
+`["Good"]`, with no date cutoff. On Airtable's 262 shots: Airtable includes 190, the app rule 202. Airtable includes 3 the
+app rule excludes (exactly the three DI-4 shots Carl reviewed on 2026-09-29: purge, grinder jam, intentional grind waste;
+production keeps them included by Carl's decision). The app rule includes 15 that Airtable excludes (all Good with Fault
+Status `["Good"]`, i.e. the pre-2026-04-21 shots, which are not in the database).
+
+**Project Phase** (Airtable, hidden from the export) has options Phase 1 to Phase 5; shots carry Phase 1 (27), Phase 2 (188)
+and Phase 3 (47). The database's `system_phase` values differ in count (1: 51, 2: 146, 3: 84); the mapping was not traced.
+
+**Select options captured** (kept privately) for Shot Status, Fault Status, Shot Classification, Bean Achievement,
+Expression Style, Intelligence Lesson Type, Drink Type, Hopper Phase, Project Phase, Taste, Bags.Status,
+Beans.Certification and the three Grinder Jam Events selects. Bags.Status options: Dialing In, Good, Finished, Active.
+
+**Decisions after the check (Carl, 2026-10-01):**
+- Taste history: Carl built the graded Taste vocabulary (attribute plus Low/Medium/High) so an AI could read intensities
+  that the selector colors hid, then found it too tedious for a public app. Usage by month confirms the pattern with one
+  twist: heavy use Apr 10-May 20 (60 shots), none May 21-Jul 19, and a return Jul 20-Aug 15 (24 of 36 shots).
+  Decision, refined the same day: import the taste data for the Phase 2 shots (44) as well as the late Phase 3 shots (24),
+  68 shots in all, using only the app's current selectors (exact and close matches, level dropped); Phase 1 shots are not
+  added; the unmatched Airtable names stay in Airtable as preserved evidence of how the taste-selector system evolved.
+  Done 2026-10-01 (see completed-tasks.md).
+- Project Phase is understood to be the app's System Phase; Field 8 is believed already corrected in the app; neither
+  was re-verified.
+- The 25 Phase 1 setup shots (before 2026-04-21) and 2 non-shot notes are **not** being added (Carl, 2026-10-01); Phase 1
+  was setup only and feeds no calculation. Every Phase 2 and Phase 3 shot is already in the database.
+
+**Remaining unknowns:** view filters; whether any other table is view-filtered; the Project Phase to `system_phase` mapping.
+
 ## Gate 6 — Fixture Strategy
 
-Status: needs decision before test fixture changes.
+Status: **approved by Carl 2026-09-30** (manifest first; fixtures unchanged for now).
 
 Evidence:
 
@@ -193,10 +271,12 @@ Decision options:
 3. Add full-export fixtures alongside smaller fixtures.
 4. Create sanitized representative fixtures.
 
-Recommended position:
+Recommended position (approved by Carl 2026-09-30):
 
 - Add a fixture manifest before changing fixture files.
 - Do not automatically commit full exports until privacy and repository-size policy is approved.
+- Until then the committed fixtures stay unchanged (option 1). Writing the manifest is a separate,
+  not yet started task.
 
 ## Gate 7 — Production-Equivalent Postgres Rehearsal
 
@@ -261,7 +341,13 @@ Decision recorded:
 
 ## Gate 8 — Live Airtable Sync Dry Run
 
-Status: blocked until API access resets.
+Status: **not required, decided by Carl 2026-10-01.** Airtable API access is available again and the metadata check
+(Gate 5) is done, but the sync dry run was deliberately not run: the app has been the system of record in daily use
+since the Neon setup, so a live Airtable sync has no job to do. Airtable stays preserved evidence only. If live sync is
+ever wanted, the safeguards below still apply, and the app's sync route updates existing rows with no dry-run switch,
+so it must only ever run against a disposable copy. Readiness review 2026-10-01 (code only, no calls): the sync reports
+inserted/updated/skipped/errors per table and saves raw evidence, but it does not read the Taste field and the clear route
+is a separate admin-token route.
 
 Required before full certification:
 
@@ -279,8 +365,11 @@ Do not run:
 
 ## Gate 9 — Phase 2 Scope Decision
 
-Status: **satisfied for Phase 2A only by option (2)** (2026-09-28) — see
+Status: **satisfied for Phase 2A only by option (2)** (2026-09-28; confirmed by Carl 2026-09-30) — see
 [phase-2a-scope-authorization.md](phase-2a-scope-authorization.md). Full Phase 2 remains not ready.
+
+Confirmation 2026-09-30 (Carl): approves the Phase 2A-only position as it stands. It does not
+authorize full Phase 2, intelligence engines, accounts/auth, or anything on the "unsafe" list below.
 
 Original status (2026-08-17): not ready.
 
@@ -305,10 +394,12 @@ Unsafe Phase 2 candidates before gates:
 
 ## Next Big Decision Point
 
-The next big decision is fixture/evidence strategy plus metadata timing:
+Resolved 2026-09-30 (kept for history). The decision point was fixture/evidence strategy plus metadata timing:
 
 1. Should the repository keep small committed fixtures only, or add full corrected export fixtures?
 2. Should implementation wait for Airtable metadata reset, or proceed with a narrow no-metadata scope?
 3. Which Postgres target should be used for the first production-equivalent rehearsal?
 
-Until those are decided, the safest remaining work is documentation, evidence indexing, and non-code planning.
+Answers: (1) manifest first, small committed fixtures kept (Gate 6); (2) a narrow no-metadata scope
+was approved as Phase 2A (Gate 9); (3) Neon was used for the rehearsal, and production is now on Prisma
+Postgres (Gate 7, ADR-0010).

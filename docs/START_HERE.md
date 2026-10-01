@@ -45,6 +45,8 @@ This is the required entry point for BigShotEspresso contributors and AI assista
 - [Development Time Log](RESEARCH/DEVELOPMENT_TIME_LOG.md) — contemporaneous session timestamps and category separation for R&D, supporting work, ordinary development, administration, commercialization, marketing, and governance.
 - [Development Effort Reconstruction — through 2026-08-28](HISTORY/2026/development-effort-reconstruction-2026-08-29.md) — retrospective Git-backed chronology and broad owner-effort/development-equivalent estimates; not an exact timesheet.
 
+- [Phase 2B Scope Authorization](implementation/phase-2b-scope-authorization.md) and [Pre-Outside-Users Checklist](implementation/pre-outside-users-checklist.md) — what is authorized before any outside user can log in (docs, housekeeping, verification, ops, security hardening) and the tracker for it. Authorizes no auth code.
+
 ## Authority
 
 When sources conflict:
@@ -92,6 +94,8 @@ Phase 1.5 has reached the first owner-alpha release candidate. See the
 [Owner-Alpha RC Report — 2026-08-28](implementation/owner-alpha-rc-report-2026-08-28.md)
 and [Release Candidate Checklist](implementation/release-candidate-checklist.md).
 
-The release remains owner-only under ADR-0008. Public users, payments,
-accounts/auth, intelligence engines, live Airtable sync, and community features
-remain out of scope until separately approved.
+The release remains owner-only under ADR-0008. Phase 2A and 2B are authorized (2B is
+pre-outside-user readiness only). Public users, payments, accounts/auth/Clerk code,
+intelligence engines, live Airtable sync, and community features remain out of scope until
+separately approved. ADR-0009 (ownership design) and ADR-0011 (Clickonomics platform and
+Clerk) are accepted as direction only.
