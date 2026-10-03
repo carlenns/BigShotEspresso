@@ -64,6 +64,34 @@ Agreed with Carl while discussing how existing data is assigned to the owner:
 - **Consent:** the privacy policy draft says personal records are not shared or aggregated and that any community use needs a separate opt-in and a policy update first. Community features must not count a user's data until they have opted in.
 - The 76 taste links on Carl's existing shots stay with his shots (`shot_taste_selectors` inherits ownership from `shots.user_id`).
 
+### Design note: System Phase for new accounts (Carl, 2026-10-02)
+
+Carl's answer to "what should a new tester's System Phase start as?":
+
+- **A new account starts at System Phase 1 (Initial Setup),** not at Phase 3 as the owner's database does today. Phase 1 records the machine, grinder, bean, bag, dose and basic workflow.
+- **Phase 2 is the fixed-variables baseline:** the routine stays fixed and only one variable changes at a time. Its purpose is reliable, accurate data about that user's own machine for the intelligence engine.
+- **After Phases 1 and 2, users can set up experiments.** Which experiments make sense depends on their equipment (for example, a machine with flow control may test flow control). Experiments could later be **community-based** (shared experiment designs); that falls under the community and consent notes above.
+- **Carl's own experiment is the worked example:** raise the percentage of shots where Initial Grinder Output lands on a natural 18 g dose, chasing it by raising or lowering grind time. (Initial Grinder Output, not the corrected dose, is what this analysis uses.)
+- **Consequence for the accounts work:** the per-user settings seed for a new account should set the current System Phase to 1 with neutral labels, and the owner's existing database stays as it is (Phase 3, his labels). The seed currently lives in migration 0015 and `runtime-schema.ts` (`currentSystemPhase = 3`, owner labels).
+
+Carl's follow-up ideas (same day; ideas, not yet designed or approved for building):
+- **The app nudges users to move up:** when they should go from Phase 1 to Phase 2, and then from Phase 2 to Phase 3. (The criteria for a nudge are not decided.)
+- **Phase 3 is experimentation with custom experiment labels,** for example "chase the natural 18 g dose". This fits the existing optional Experiment field on Log Shot, which already lets a user add a named experiment inside a phase.
+- **Phase 4 is a community mode:** users take part in weekly or monthly events, like cycling tasks (for example "chase the 18 g dose"); Carl will think of other events. Anything that shares or compares users' results needs the opt-in and privacy-policy update described above, and is community functionality that is not authorized until separately approved.
+- **Per-type default grinder (and likely machine) is wanted:** today there is one default grinder across all types. Not scheduled.
+
+Nudge criteria (Carl, same day; ideas, with no thresholds decided):
+- **Phase 1 to 2:** when the user can dial in a bag of beans and has learned how to use the app.
+- **Phase 2 to 3:** when they have used the machine a decent amount; the **main determiner is shot consistency**: it has improved and they can consistently pull good shots.
+- **Both depend on getting great coffee.** A user stuck with beans they dislike cannot build a fair baseline. Carl's example: two unenjoyable bags in a row, almost a pound of beans cleared out because he did not like either coffee. So the app should not nudge someone forward on technical consistency alone, and should ideally let a user say a bag was not enjoyed so it does not count toward their baseline.
+- **Kept as a possible feature (Carl likes it, 2026-10-02):** when closing out a bag, the user can mark it **"didn't enjoy this coffee"**, so that bag does not count toward their baseline or toward the phase nudge. The close-out already records leftover beans, so it is a small addition (a flag on the bag plus a filter wherever baselines and nudges are computed). Not designed or scheduled; open points: whether shots from such a bag stay visible in history (they should), and whether it also excludes them from other analytics or only from baseline and nudges.
+- *Signals the app already records that could drive this (a design aid, nothing decided):* the **Dialed In** shot status (it already means the bag has left the dial-in process, with a confirmation); shot count and shots per bag; the share of shots that are Good or Dialed In with fault status Good (i.e. counted for analysis); spread of the technical rating; the **Preference Rating** (personal enjoyment, the natural signal for "I did not like this coffee"); bag close-out with leftover beans; and Carl's own consistency measure, how close Initial Grinder Output lands to the target dose.
+
+Questions:
+1. *How does a user move between phases?* **Mostly answered:** the app nudges them (Carl); the user presumably still confirms the move. Triggers described by Carl (see the nudge criteria above): Phase 1 to 2 when they can dial in a bag and have learned the app; Phase 2 to 3 mainly on improved shot consistency, and only if the coffee itself is enjoyable. Still open: the actual measures and thresholds, and how a "did not enjoy this bag" flag would work.
+2. *Labels for new accounts.* **Direction given:** Phase 1 Initial Setup, Phase 2 fixed-variables baseline, Phase 3 experimentation (custom experiment labels), Phase 4 community mode (events). Exact wording is open. The owner's seeded labels (Timed Dose Optimization, Active Experimentation Era) and the onboarding briefs (Phase 3 "Focused optimization", Phase 4 "Stable routine") do not match this and should be aligned once the wording is settled; the owner's "Timed Dose Optimization" would become one of his named experiments.
+3. *Owner-specific copy on Log Shot:* **still open.** The Workflow Context text says "Phase 3 tracks how consistently your Initial Grinder Output ... lands near 18 g"; for other users it should refer to their own target dose.
+
 ## Phased sequence
 
 Each phase should land, be verified, and be reviewable independently — this plan explicitly avoids proposing one large "add auth" change. Phases are ordered by hard dependency, not by size.

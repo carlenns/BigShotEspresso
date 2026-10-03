@@ -413,7 +413,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
       message: `Recent performance declining (last 3 avg ${last3Avg.toFixed(1)}) — check grind and bean age.`,
       suggestedChecks: ["Adjust grind by 0.05 in the direction of your drift", "Check brew temp and pre-infusion time", "Compare dose/yield to your reference shot"],
     });
-  } else if (avgRating != null && avgRating >= 8.5) {
+  } else if (avgRating != null && avgRating >= 8.5 && ratedShots.length >= 3) {
     watchlist.push({
       type: "success",
       message: `Bag dialed in — avg ${avgRating.toFixed(2)} across ${ratedShots.length} rated shot${ratedShots.length !== 1 ? "s" : ""}.`,

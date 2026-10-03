@@ -174,3 +174,19 @@ test("For Others implies Not Rated on the server, one way only", async () => {
   assert.equal(noted.json.rated, false);
   assert.equal(noted.json.isForOthers, true);
 });
+
+// 2026-10-02 (Carl): "Bag dialed in" must not appear after one lucky shot. It needs at least 3 rated shots
+// (the same rule of thumb the onboarding files give: wait for three comparable shots).
+test("Dashboard says 'Bag dialed in' only once the bag has at least 3 rated shots averaging 8.5+", async () => {
+  const bag = await api("POST", "/bags", { bagName: "Dialed In Rule Bag", isActive: true });
+  assert.equal(bag.status, 201);
+  const shot = (minute: number) => api("POST", "/shots", { bagId: bag.json.id, shotDate: `2026-10-02T10:0${minute}`, status: "Good", faultStatus: ["Good"], rated: true, rating: 9 });
+  const dialed = async () => JSON.stringify((await api("GET", "/dashboard/intelligence")).json).includes("Bag dialed in");
+
+  await shot(1);
+  assert.equal(await dialed(), false, "one rated shot is not enough");
+  await shot(2);
+  assert.equal(await dialed(), false, "two rated shots are not enough");
+  await shot(3);
+  assert.equal(await dialed(), true, "three rated shots averaging 9 is dialed in");
+});

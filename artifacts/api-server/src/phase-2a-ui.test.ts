@@ -148,3 +148,14 @@ test("Data Health is not in the navigation any more, but its page and route stil
   const app = await ui("App.tsx");
   assert.match(app, /path="\/data-health"/);
 });
+
+// 2026-10-02 (Carl): first-run wording on Bags, and an accurate Settings note about decaf / pour-over grinders.
+test("Bags help text names the button the user actually sees, and Settings describes decaf and pour-over grinders accurately", async () => {
+  const bags = await ui("pages/Bags.tsx");
+  assert.match(bags, /activeBags\.length > 0 \? \(\s*<>\s*Switching coffees\? Tap <span className="font-medium text-foreground">Change Bag<\/span> above for the guided flow\./);
+  assert.match(bags, /Starting out\? Tap <span className="font-medium text-foreground">Start New Bag<\/span> above/);
+  const settings = await ui("pages/Settings.tsx");
+  assert.doesNotMatch(settings, /Decaf and pour-over grinder defaults are deferred \(not a launch need\)/);
+  assert.match(settings, /Decaf and pour-over grinders can be added on the Equipment page and chosen per shot in Log Shot\./);
+  assert.match(settings, /Only one grinder is the default at a time; separate defaults per grinder type are not built yet\./);
+});

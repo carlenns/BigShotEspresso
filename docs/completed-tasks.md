@@ -4307,3 +4307,30 @@ Carl: "Enforce For Others. Don't worry about the ten for others rated shots. The
 - Test: "For Others implies Not Rated on the server, one way only" in `shot-list.route.test.ts` (failed before the change, passes after).
 - Consequence accepted by Carl: the 10 existing For Others shots that were rated stay as they are until one is saved again from the form, which sends For Others and so makes it Not Rated and clears its ratings.
 - Verification: typecheck clean; API tests 154/154; `build:render` passes; `pnpm audit --prod` clean.
+
+## Three wording/behavior fixes and the System Phase decision — 2026-10-02
+
+Carl: yes to items 2, 3 and 4; and for item 1, new accounts start at System Phase 1, then Phase 2 (fixed variables, one change at a time), then equipment-dependent and possibly community experiments.
+
+- Bags help text: with no bag it now says "Starting out? Tap Start New Bag above. You can create your first bean there too." (it used to name a Change Bag button the user could not see). R3 was largely a non-issue: Start New Bag can create a bean inline.
+- "Bag dialed in" on the Dashboard now needs at least 3 rated shots (average 8.5 or more); it used to appear after one shot. Test added.
+- Settings note about decaf and pour-over rewritten to match reality: those grinders can be added on the Equipment page and chosen per shot; there is only one default grinder at a time and per-type defaults are not built (the old text said "deferred (not a launch need)", contradicting Carl's decision to keep them).
+- System Phase for new accounts: design recorded in the auth plan (start at Phase 1, neutral labels, owner's database unchanged) with three open questions (how users advance, label names and the Phase 4 mismatch with the onboarding briefs, owner-specific "18 g" copy). Not implemented; it belongs to the accounts work.
+- Verification: typecheck clean; API tests 156/156; build passes. Not committed or deployed at time of writing.
+
+## System Phase ideas recorded — 2026-10-02 (later the same day)
+
+Carl: users could be nudged by the app when to move to Phase 2 and then 3; Phase 3 is experimentation with custom experiment labels (for example "chase the natural 18 g dose");
+Phase 4 could be a community mode with weekly or monthly events like cycling tasks; per-type default grinders are wanted. Recorded as ideas in the auth plan's System Phase design note and in the Phase 2B tracker.
+Nothing built; community features stay unauthorized until separately approved. No code changed by this entry.
+
+## Phase nudge criteria recorded — 2026-10-02 (later the same day)
+
+Carl: nudge from Phase 1 to 2 when the user can dial in a bag and has learned the app; from Phase 2 to 3 mainly on improved, consistent good shots, which also depends on getting coffee they enjoy
+(two unenjoyable bags recently, almost a pound of beans cleared out). Recorded in the auth plan's System Phase design note with a list of signals the app already records. Ideas only; no thresholds
+decided; nothing built. No code changed by this entry.
+
+## "Didn't enjoy this coffee" bag flag kept as a possible feature — 2026-10-02
+
+Carl liked the idea of letting a user mark a bag as not enjoyed when closing it out, so it does not count toward their baseline or phase nudge. Recorded as a possible feature in the auth plan's
+System Phase design note and the Phase 2B tracker. Not designed or scheduled. No code changed by this entry.

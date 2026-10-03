@@ -611,7 +611,7 @@ function EquipmentDefaultsSection({
           </div>
         )}
         <p className="text-xs text-muted-foreground">
-          Decaf and pour-over grinder defaults are deferred (not a launch need). Scale and tamper defaults were never used and are retired.
+          Decaf and pour-over grinders can be added on the Equipment page and chosen per shot in Log Shot. Only one grinder is the default at a time; separate defaults per grinder type are not built yet. Scale and tamper defaults were never used and are retired.
         </p>
       </CardContent>
     </Card>

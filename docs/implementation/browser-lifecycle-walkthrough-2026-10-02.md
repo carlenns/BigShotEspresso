@@ -32,7 +32,7 @@
 
 | # | Finding |
 | --- | --- |
-| R1 | **Owner defaults for new users.** Correction (2026-10-02): the grind setting 2.33 and grind time 8.1 s were **not** seeded in the database; they were hard-coded fallbacks in the Log Shot form (and Settings placeholders). **Fixed 2026-10-02:** both now start empty ("Your setting", "Seconds"); dose 18 g, yield 36 g and 94 °C stay as ordinary starting points. **Still open:** the database does seed Current System Phase 3 and the research phase labels (Initial Setup, Scientific Process, Timed Dose Optimization, Active Experimentation Era) via migration 0015; see R2 |
+| R1 | **Owner defaults for new users.** Correction (2026-10-02): the grind setting 2.33 and grind time 8.1 s were **not** seeded in the database; they were hard-coded fallbacks in the Log Shot form (and Settings placeholders). **Fixed 2026-10-02:** both now start empty ("Your setting", "Seconds"); dose 18 g, yield 36 g and 94 °C stay as ordinary starting points. **Decided 2026-10-02 (Carl):** new accounts start at System Phase 1 (not 3), then Phase 2 baseline, then equipment-dependent experiments; to be implemented as a per-user settings seed in the accounts work (see the design note in the auth plan). The owner's database keeps Phase 3 and its labels |
 | R2 | Log Shot shows research jargon by default (Workflow Context, System Phase, Phase Name, Experiment, Hopper Phase, "Phase 3 tracks how consistently your Initial Grinder Output lands near 18 g"). Consider hiding or simplifying for testers |
 | R3 | The empty Dashboard says "Go to Bags and mark one as active", but a new user has no beans yet; the order is Beans, then Bags |
 | R4 | The Bags help text says "Tap Change Bag above", but the button reads "Start New Bag" until a first bag exists |

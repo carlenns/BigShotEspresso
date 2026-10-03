@@ -75,6 +75,8 @@ Status key: Done · Open · Decision (Carl) · Not re-verified (listed in an old
 | Item | Status |
 |---|---|
 | Update auth-data-ownership-implementation-plan for Clerk, text `user_id`, three checks | Open |
+| Ideas recorded 2026-10-02, not scheduled: a "didn't enjoy this coffee" flag on bag close-out that keeps a bag out of the baseline and the nudge (Carl likes it); app nudges for Phase 1 to 2 to 3; Phase 3 experimentation with custom labels; Phase 4 community events (weekly/monthly tasks); per-type default grinder and machine | Idea (Carl); needs design and, for community features, separate approval |
+| System Phase for new accounts recorded in the plan (start at Phase 1, Phase 2 baseline one variable at a time, then equipment-dependent and possibly community experiments); three open questions listed | Done 2026-10-02 (design note in auth-data-ownership-implementation-plan.md); implementation waits for the accounts work |
 | Taste selectors and the community aspect recorded in the plan (custom selectors personal, only standard ones eligible for community, promote becomes admin-only, per-user name uniqueness, consent) | Done 2026-10-02 (design note in auth-data-ownership-implementation-plan.md); rest of the plan update still open |
 | Cross-user isolation test specification (hard gate before any invite) | Open |
 | Route-by-route scoping inventory | Open |

@@ -355,7 +355,15 @@ export default function Bags() {
               <div>
                 <h2 className="font-semibold">Bag Lifecycle Flow</h2>
                 <p className="text-sm text-muted-foreground">
-                  Switching coffees? Tap <span className="font-medium text-foreground">Change Bag</span> above for the guided flow.
+                  {activeBags.length > 0 ? (
+                    <>
+                      Switching coffees? Tap <span className="font-medium text-foreground">Change Bag</span> above for the guided flow.
+                    </>
+                  ) : (
+                    <>
+                      Starting out? Tap <span className="font-medium text-foreground">Start New Bag</span> above. You can create your first bean there too.
+                    </>
+                  )}
                 </p>
               </div>
               {/* PL-5: the step list and background notes stay one tap away. */}
