@@ -92,7 +92,7 @@ export default function BagDetail() {
       return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["bag-detail", params.id] }); qc.invalidateQueries({ queryKey: ["bags"] }); setEditingDefaults(false); toast({ title: "Defaults updated" }); },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const set = (k: string, v: string) => setDefaults((d) => ({ ...d, [k]: v }));

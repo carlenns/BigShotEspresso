@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import {
-  Activity, BookOpen, Coffee, LayoutDashboard,
+  BookOpen, Coffee, LayoutDashboard,
   Menu, Package, Settings, Sprout, Target, Wrench, Tag, Layers
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -55,7 +55,6 @@ const mobileBottomMoreNav: NavItem[] = [
   { title: "Equipment", href: "/equipment", icon: Wrench },
   { title: "Accessories", href: "/accessories", icon: Layers },
   { title: "Taste Selectors", href: "/taste-selectors", icon: Tag },
-  { title: "Data Health", href: "/data-health", icon: Activity },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -71,7 +70,6 @@ const tasteNav: NavItem[] = [
 ];
 
 const systemNav: NavItem[] = [
-  { title: "Data Health", href: "/data-health", icon: Activity },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -79,7 +77,6 @@ const mobileMoreNav: NavItem[] = [
   { title: "Equipment", href: "/equipment", icon: Wrench },
   { title: "Accessories", href: "/accessories", icon: Layers },
   { title: "Taste Selectors", href: "/taste-selectors", icon: Tag },
-  { title: "Data Health", href: "/data-health", icon: Activity },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
 

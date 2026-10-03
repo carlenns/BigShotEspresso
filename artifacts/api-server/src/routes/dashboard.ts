@@ -416,7 +416,7 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
   } else if (avgRating != null && avgRating >= 8.5) {
     watchlist.push({
       type: "success",
-      message: `Bag dialled in — avg ${avgRating.toFixed(2)} across ${ratedShots.length} rated shot${ratedShots.length !== 1 ? "s" : ""}.`,
+      message: `Bag dialed in — avg ${avgRating.toFixed(2)} across ${ratedShots.length} rated shot${ratedShots.length !== 1 ? "s" : ""}.`,
     });
   }
   if (activeBagShots.length < 5) {

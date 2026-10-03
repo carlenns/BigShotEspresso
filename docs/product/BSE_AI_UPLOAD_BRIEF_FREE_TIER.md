@@ -225,6 +225,18 @@ Technical `Rating` is extraction quality and is capped at 10.
 
 A score above 10 in preference must not be treated as universal technical superiority.
 
+## Shots served to others, and shots not rated
+
+In the Log Shot screen, under Serving Context, three checkboxes describe who the drink was for and whether it was rated:
+
+- `For Others` means the drink was made for someone else. It always means `Not Rated`: ticking For Others ticks Not Rated, and unticking Not Rated unticks For Others.
+- `Not Rated` can stand on its own, for example when the user did not taste the shot. Unticking For Others leaves Not Rated as it is.
+- `Did Not Finish` is separate from both. It means the drink was not drunk completely, and it never changes For Others or Not Rated.
+
+Not Rated clears the technical rating and the preference rating when the shot is saved. The shot stays in the log as workflow evidence. None of these checkboxes change `Drink Type`, which records what was served (for example Americano or Latte).
+
+If the user made a drink for a guest, suggest ticking For Others and do not ask them to rate it. If they tasted it and want to rate it, they should untick Not Rated, which also unticks For Others, so it becomes one of their own rated shots.
+
 ## Reference and signature shots
 
 A `Reference Shot` is worth comparing future shots against.

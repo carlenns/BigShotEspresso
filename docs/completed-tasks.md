@@ -4236,3 +4236,74 @@ production data was affected.
 
 Privacy policy, beta terms and tester onboarding drafted in `docs/product/` (not for sending until per-user data ownership exists).
 Neon-era docs carry supersession notes; the security checklist, route exposure audit, Render environment checklist and the Phase 2B tracker are updated.
+
+# Browser lifecycle walkthrough — 2026-10-02
+
+Carl asked to run the browser lifecycle walkthrough (Phase 2B W3). Run in Chrome against the built app in production mode on a fresh
+in-memory (PGlite) database, never production. Results and findings are in
+`docs/implementation/browser-lifecycle-walkthrough-2026-10-02.md`.
+
+- Passed: bean, bag, log shot, shot detail, edit shot, dashboard (with data and zero state), Change Bag, empty states.
+- Bugs: B1 (Start Hopper Phase returns 500 on a duplicate name; `isUniqueViolation` misses drizzle-wrapped errors), B2 (Edit Shot
+  rating box turned a typed 8.5 into 78.5). Both fixed the same day at Carl's request; see the fix record in the walkthrough doc.
+- Beta-readiness items R1-R7 recorded, notably that a new database inherits the owner's personal defaults.
+- No code or production data changed. A temporary local server script was created and deleted; the repo was clean afterwards.
+- Browser tooling note: screenshots failed in the first tab with an extension error and worked in a fresh tab group.
+
+## Fixes for B1 and B2 — 2026-10-02
+
+Carl: "fix b1 and b2".
+
+- **B1** (`artifacts/api-server/src/routes/hopper.ts`): `isUniqueViolation` now walks the `cause` chain, because drizzle-orm 0.45 wraps driver
+  errors and keeps the Postgres code on `cause`. New route test in `hopper-phase.route.test.ts` (500 before, 409 after). Verified in Chrome.
+- **B2** (`artifacts/coffee-log/src/pages/ShotForm.tsx`): `NumberStepper` remembers a value it seeded on focus and, on the first edit, keeps only
+  what the user inserted (caret at either end or inside). Source-level test added in `phase-2a-ui.test.ts`. A timer-based first attempt failed
+  a real-browser check (race with fast typing) and a second assumed the caret position; the final version was verified in Chrome (8, ".", 5 gives 8.50).
+- The "no error shown" half of B2 was probably the browser's own validation tooltip, invisible to the automation; not treated as a bug.
+- Verification: typecheck clean; API tests 147/147; `build:render` passes. Not committed or deployed at time of writing.
+
+## "Fix this" — new-tester defaults and wording — 2026-10-02
+
+Carl: new testers should enter their own machine info; mine is for me only; fix the English and spelling of the errors; "dialed in" is the right spelling.
+
+- Correction to the walkthrough: the grind setting 2.33 and grind time 8.1 were hard-coded Log Shot fallbacks, not database seeds. They are removed (fields start empty with
+  "Your setting" / "Seconds" placeholders); Settings placeholders neutralized. Dose 18 g, yield 36 g and 94 C remain as generic starting points.
+- "Bag dialled in" is now "Bag dialed in". Error messages rewritten as clear sentences (server) and the generic "Error" toast title is now "Something went wrong" (15 places).
+- Verified: typecheck clean; API tests 149/149; build passes; the Log Shot form renders correctly on a fresh database in Chrome (no console errors).
+- Still seeded in the database: Current System Phase 3 and the research phase labels (migration 0015). Left alone pending Carl's decision.
+- Questions put to Carl, not changed: what the Log Shot jargon means and how to simplify it for testers; whether Data Health should be admin-only and get a user-facing version.
+- Not committed or deployed at time of writing.
+
+## For Others / Not Rated checkbox rule and linked-control audit — 2026-10-02
+
+Carl (from his phone): ticking For Others auto-ticks Not Rated, but either could then be unticked freely. Wanted: if For Others is ticked, Not Rated sticks, so unticking Not Rated
+unticks For Others; the reverse is not true (Not Rated can stand alone); Did Not Finish is independent of both. Also asked whether other places behave similarly.
+
+- `ShotForm.tsx`: Not Rated's handler now also unticks For Others when it is unticked; help text rewritten. Tests: new rule test in `phase-2a-ui.test.ts`; the old
+  api-contract test that said "a user can still rate a For Others shot" was updated and annotated as superseded.
+- Verified in Chrome across all combinations (tick For Others, untick Not Rated, Not Rated alone, For Others on top, untick For Others, Did Not Finish independent). Typecheck clean,
+  API tests 150/150, build passes.
+- Existing data left untouched: 12 For Others shots, 10 not marked Not Rated. The rule applies only when boxes are ticked or unticked from now on.
+- Audit findings L1-L4 are recorded in the walkthrough doc; none changed. Not committed or deployed at time of writing.
+
+## Audit follow-ups: ratings off while Not Rated, Data Health link, onboarding docs — 2026-10-02
+
+Carl: "They all sound great"; a lot of the jargon items will live in the AI onboarding .md files (a project named BSE) where users are tutored by AI.
+
+- Jargon (R2): left in the screens; explained in the onboarding files instead. Added a "Shots served to others, and shots not rated" section (For Others / Not Rated / Did Not Finish rules and coaching guidance)
+  to `docs/product/BSE_AI_UPLOAD_BRIEF_FREE_TIER.md` and `docs/product/BSE_AI_UPLOAD_MANUAL_PAID_TIER.md`. The other terms (System Phase, Reference/Signature, dose correction, hopper workflow) were already covered there.
+- L2: rating boxes are switched off while Not Rated is ticked, with an explanatory note. A first version still pre-filled a stray 7 when the disabled box was clicked; found in the browser check and fixed with a guard (and a test).
+- Data Health (R6): link removed from the sidebar and the mobile menus; the page and `/data-health` route are unchanged. The RC Gate 9 test that required the nav link was updated and annotated.
+- L3 was a mistaken finding: the card counts already matched the Reference list. A first fix was written, found redundant when the new test passed on the old code too, and reverted; the test stays as a guard.
+- L1 not done: enforcing For Others implies Not Rated on the server could wipe ratings on the 10 existing For Others shots that were rated. Needs Carl's decision.
+- Verification: typecheck clean; API tests 153/153; build passes; behavior checked in Chrome on a fresh database. Not committed or deployed at time of writing.
+
+## Server enforces For Others implies Not Rated — 2026-10-02
+
+Carl: "Enforce For Others. Don't worry about the ten for others rated shots. Then commit and push."
+
+- `artifacts/api-server/src/routes/shots.ts` (`normalizeShotInput`, used on create and update): a write with `isForOthers: true` is stored with `rated = false`, `rating = null`, `preferenceRating = null`.
+  Unticking For Others does not touch Not Rated; shots that are not For Others and writes that do not mention For Others are unaffected; CSV/Airtable imports are unchanged.
+- Test: "For Others implies Not Rated on the server, one way only" in `shot-list.route.test.ts` (failed before the change, passes after).
+- Consequence accepted by Carl: the 10 existing For Others shots that were rated stay as they are until one is saved again from the form, which sends For Others and so makes it Not Rated and clears its ratings.
+- Verification: typecheck clean; API tests 154/154; `build:render` passes; `pnpm audit --prod` clean.

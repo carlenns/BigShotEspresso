@@ -39,3 +39,25 @@ test("S3: Bags UI edits/ends via the generated PATCH hook and never deletes a ho
   assert.match(bags, /nothing is deleted/);
   assert.doesNotMatch(bags, /useDeleteHopper|method: "DELETE"[\s\S]{0,80}hoppers|\/api\/hoppers\/\$\{[^}]+\}`,\s*\{\s*method: "DELETE"/);
 });
+
+// B1 (found in the 2026-10-02 browser walkthrough): starting a phase whose name already exists
+// (same bag, same phase, same day) returned a raw 500. The route has a friendly 409, but
+// drizzle-orm 0.45 wraps driver errors in DrizzleQueryError and keeps the Postgres code (23505)
+// on `cause`, so the old `err.code === "23505"` check never matched.
+test("B1: starting a hopper phase with a name that already exists returns a clear 409, not a 500", async () => {
+  const bag = await api("POST", "/bags", { bagName: "Duplicate Phase Bag", isActive: true });
+  assert.equal(bag.status, 201);
+  const name = `Bag #${bag.json.id} — Phase 1 — duplicate-test`;
+  const first = await api("POST", "/hoppers", { name, bagId: bag.json.id, isActive: true, phase: "Phase 1", startingBeans: 250 });
+  assert.equal(first.status, 201, JSON.stringify(first.json));
+
+  const second = await api("POST", "/hoppers", { name, bagId: bag.json.id, isActive: true, phase: "Phase 1", startingBeans: 250 });
+  assert.equal(second.status, 409, JSON.stringify(second.json));
+  assert.match(second.json.error, /already exists/i);
+
+  // The original phase is untouched: still active, and no duplicate row was created.
+  const list = await api("GET", "/hoppers");
+  const rows = list.json.filter((h: { name: string }) => h.name === name);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].isActive, true);
+});

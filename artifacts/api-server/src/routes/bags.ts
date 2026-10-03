@@ -119,7 +119,7 @@ router.get("/bags", async (_req, res): Promise<void> => {
 
 router.get("/bags/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
 
   const [bag] = await db
     .select({
@@ -254,7 +254,7 @@ router.post("/bags", async (req, res): Promise<void> => {
 
 router.patch("/bags/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const isActive = req.body.isActive === true;
   const [row] = await db.transaction(async (tx) => {
     if (isActive) {
@@ -269,7 +269,7 @@ router.patch("/bags/:id", async (req, res): Promise<void> => {
 
 router.delete("/bags/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const [existing] = await db.select({ id: bagsTable.id }).from(bagsTable).where(eq(bagsTable.id, id));
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
   const [{ shotCount }] = await db

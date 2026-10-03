@@ -54,7 +54,7 @@ export default function Beans() {
       qc.invalidateQueries({ queryKey: ["beans"] });
       toast({ title: "Bean deleted" });
     },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const active = beans.filter((b) => b.isActive);

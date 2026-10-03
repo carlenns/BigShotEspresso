@@ -22,8 +22,16 @@ const router: IRouter = Router();
 // start UI names new rows "<Bag Name> — <Phase> — <date>", so starting the
 // same phase on the same bag on the same day collides. Safety net that turns
 // the raw DB exception into a clean, human 409 instead of an unhandled 500.
+// drizzle-orm >= 0.44 wraps driver errors in a DrizzleQueryError and keeps the original
+// error, with its Postgres SQLSTATE `code`, on `cause`. Walk the cause chain so the check
+// works for both wrapped and unwrapped errors.
 function isUniqueViolation(err: unknown): boolean {
-  return typeof err === "object" && err !== null && (err as { code?: unknown }).code === "23505";
+  let current: unknown = err;
+  for (let depth = 0; depth < 5 && typeof current === "object" && current !== null; depth++) {
+    if ((current as { code?: unknown }).code === "23505") return true;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
 }
 
 // Same list the Log Shot / Bags UI offers (HOPPER_PHASE_OPTIONS in Bags.tsx).
@@ -79,7 +87,7 @@ router.post("/hoppers", async (req, res): Promise<void> => {
   } catch (err) {
     if (isUniqueViolation(err)) {
       res.status(409).json({
-        error: "A hopper phase with this name already exists for today — try again in a moment, or edit the existing phase instead.",
+        error: "A hopper phase with this name already exists for today. Pick a different phase, or edit the existing one.",
       });
       return;
     }
@@ -155,7 +163,7 @@ router.patch("/hoppers/:id", async (req, res): Promise<void> => {
 
 router.delete("/hoppers/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const [row] = await db.delete(hoppersTable).where(eq(hoppersTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.status(204).end();

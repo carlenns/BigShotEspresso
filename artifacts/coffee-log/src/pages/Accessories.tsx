@@ -95,7 +95,7 @@ export default function Accessories() {
       return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["accessories"] }); setOpen(false); toast({ title: editing ? "Updated" : "Added" }); },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -104,7 +104,7 @@ export default function Accessories() {
       if (!response.ok) throw new Error(await errorMessageFrom(response));
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["accessories"] }); toast({ title: "Removed" }); },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));

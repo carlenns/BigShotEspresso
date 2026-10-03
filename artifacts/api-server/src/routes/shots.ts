@@ -42,6 +42,16 @@ function normalizeShotInput<T extends Partial<InsertShot>>(data: T): T {
   if (normalized.signatureShot === true) normalized.isReference = true;
   if (normalized.isReference === false) normalized.signatureShot = false;
 
+  // For Others always means Not Rated (Carl, 2026-10-02), so a For Others shot is stored Not Rated with
+  // its ratings cleared, mirroring what Not Rated does in the form. Only acts when the write itself says
+  // isForOthers is true: ticking it off leaves Not Rated alone, shots that are not For Others are
+  // untouched, and the CSV/Airtable import paths do not go through here.
+  if (normalized.isForOthers === true) {
+    normalized.rated = false;
+    normalized.rating = null;
+    normalized.preferenceRating = null;
+  }
+
   // A Sour shot is a fault-tasting result: it can never be a Reference or
   // Signature exemplar, even when the client also sends those flags. This runs
   // after the signature/reference coupling above so Sour wins. It does not
@@ -312,7 +322,7 @@ router.get("/shots", async (req, res): Promise<void> => {
   if (p.bagId) {
     const bagId = Number(p.bagId);
     if (!Number.isInteger(bagId)) {
-      res.status(400).json({ error: "bagId must be an integer." });
+      res.status(400).json({ error: "Bag ID must be a whole number." });
       return;
     }
     conditions.push(eq(shotsTable.bagId, bagId));
@@ -320,7 +330,7 @@ router.get("/shots", async (req, res): Promise<void> => {
   if (p.systemPhase) {
     const systemPhase = Number(p.systemPhase);
     if (!Number.isInteger(systemPhase)) {
-      res.status(400).json({ error: "systemPhase must be an integer." });
+      res.status(400).json({ error: "System phase must be a whole number." });
       return;
     }
     conditions.push(eq(shotsTable.systemPhase, systemPhase));
@@ -383,7 +393,7 @@ router.post("/shots", async (req, res): Promise<void> => {
     return;
   }
   if (!parsed.data.shotDate) {
-    res.status(400).json({ error: "shotDate is required" });
+    res.status(400).json({ error: "A shot date is required." });
     return;
   }
   const { scaleTime: _scaleTime, ...parsedData } = parsed.data;

@@ -46,8 +46,8 @@ async function nameTaken(name: string, exceptId?: number): Promise<boolean> {
 router.post("/taste-selectors", async (req, res): Promise<void> => {
   const body = req.body as Record<string, unknown>;
   const name = normalizeSelectorName(String(body.name ?? ""));
-  if (!name) { res.status(400).json({ error: "name is required" }); return; }
-  if (body.category != null && !isCategory(body.category)) { res.status(400).json({ error: "Invalid category" }); return; }
+  if (!name) { res.status(400).json({ error: "A name is required." }); return; }
+  if (body.category != null && !isCategory(body.category)) { res.status(400).json({ error: "That category isn't valid." }); return; }
   if (await nameTaken(name)) { res.status(409).json({ error: `A selector named "${name}" already exists (it may be archived).` }); return; }
   const [row] = await db.insert(tasteSelectorsTable).values({
     name,
@@ -63,13 +63,13 @@ router.post("/taste-selectors", async (req, res): Promise<void> => {
 // across profiles; only custom selectors can be renamed or recategorized.
 router.patch("/taste-selectors/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const body = req.body as Record<string, unknown>;
   const [existing] = await db.select().from(tasteSelectorsTable).where(eq(tasteSelectorsTable.id, id));
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
   const name = body.name != null ? normalizeSelectorName(String(body.name)) : undefined;
-  if (name === "") { res.status(400).json({ error: "name is required" }); return; }
-  if (body.category != null && !isCategory(body.category)) { res.status(400).json({ error: "Invalid category" }); return; }
+  if (name === "") { res.status(400).json({ error: "A name is required." }); return; }
+  if (body.category != null && !isCategory(body.category)) { res.status(400).json({ error: "That category isn't valid." }); return; }
   const category = body.category as string | undefined;
   if (existing.origin === "standard" && ((name !== undefined && name !== existing.name) || (category !== undefined && category !== existing.category))) {
     res.status(409).json({ error: "Standard selectors can't be renamed or recategorized. Archive it and add a custom selector instead." });
@@ -88,7 +88,7 @@ router.patch("/taste-selectors/:id", async (req, res): Promise<void> => {
 // tags are untouched. Restore clears it.
 router.post("/taste-selectors/:id/archive", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const [row] = await db.update(tasteSelectorsTable).set({ archivedAt: new Date() })
     .where(eq(tasteSelectorsTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
@@ -97,7 +97,7 @@ router.post("/taste-selectors/:id/archive", async (req, res): Promise<void> => {
 
 router.post("/taste-selectors/:id/restore", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const [row] = await db.update(tasteSelectorsTable).set({ archivedAt: null })
     .where(eq(tasteSelectorsTable.id, id)).returning();
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
@@ -112,9 +112,9 @@ router.post("/taste-selectors/:id/restore", async (req, res): Promise<void> => {
 // (docs/architecture/taste-selector-vocabulary-model.md, D3).
 router.post("/taste-selectors/:id/promote", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const body = (req.body ?? {}) as Record<string, unknown>;
-  if (body.category != null && !isCategory(body.category)) { res.status(400).json({ error: "Invalid category" }); return; }
+  if (body.category != null && !isCategory(body.category)) { res.status(400).json({ error: "That category isn't valid." }); return; }
   const [existing] = await db.select().from(tasteSelectorsTable).where(eq(tasteSelectorsTable.id, id));
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
   if (existing.origin === "standard") { res.status(409).json({ error: "Already a standard selector." }); return; }
@@ -132,7 +132,7 @@ router.post("/taste-selectors/:id/promote", async (req, res): Promise<void> => {
 // so it is limited to custom selectors; standard ones are archived instead.
 router.delete("/taste-selectors/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const [existing] = await db.select({ origin: tasteSelectorsTable.origin }).from(tasteSelectorsTable).where(eq(tasteSelectorsTable.id, id));
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
   if (existing.origin === "standard") {
@@ -146,7 +146,7 @@ router.delete("/taste-selectors/:id", async (req, res): Promise<void> => {
 // GET /shots/:id/taste-selectors
 router.get("/shots/:id/taste-selectors", async (req, res): Promise<void> => {
   const shotId = parseInt(req.params.id, 10);
-  if (isNaN(shotId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(shotId)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const links = await db.select({ tasteSelectorId: shotTasteSelectorsTable.tasteSelectorId })
     .from(shotTasteSelectorsTable)
     .where(eq(shotTasteSelectorsTable.shotId, shotId));
@@ -159,9 +159,9 @@ router.get("/shots/:id/taste-selectors", async (req, res): Promise<void> => {
 // PUT /shots/:id/taste-selectors — replace full set
 router.put("/shots/:id/taste-selectors", async (req, res): Promise<void> => {
   const shotId = parseInt(req.params.id, 10);
-  if (isNaN(shotId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(shotId)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const { ids } = req.body as { ids: number[] };
-  if (!Array.isArray(ids)) { res.status(400).json({ error: "ids array required" }); return; }
+  if (!Array.isArray(ids)) { res.status(400).json({ error: "A list of IDs is required." }); return; }
   await db.delete(shotTasteSelectorsTable).where(eq(shotTasteSelectorsTable.shotId, shotId));
   if (ids.length > 0) {
     await db.insert(shotTasteSelectorsTable).values(ids.map((tid) => ({ shotId, tasteSelectorId: tid })));

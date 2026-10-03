@@ -68,3 +68,83 @@ test("PL-8: switching bags re-seeds only fields the form itself filled", async (
   assert.match(form, /const seededRecipeValues = useRef\(new Map<string, number>\(\)\);/);
   assert.match(form, /const untouched = !blank && seededRecipeValues\.current\.has\(name\) && Number\(current\) === seededRecipeValues\.current\.get\(name\);/);
 });
+
+// B2 (found in the 2026-10-02 browser walkthrough): focusing an empty NumberStepper that has a
+// suggested value (e.g. Rating, suggested 7) pre-fills it, so typing "8.5" on a desktop browser
+// appended to the hidden 7 and produced 78.5. The first edit after seeding must replace the
+// seeded value, while the pre-fill (and its mobile +/- base) stays.
+test("B2: the first edit after a NumberStepper seeds a suggested value replaces it instead of appending", async () => {
+  const form = await ui("pages/ShotForm.tsx");
+  assert.match(form, /const seededRef = useRef<string \| null>\(null\);/);
+  assert.match(form, /if \(wasEmpty && target\.value !== ""\) seededRef\.current = target\.value;/);
+  assert.match(form, /while \(p < seeded\.length && raw\[p\] === seeded\[p\]\) p\+\+;/);
+  assert.match(form, /if \(raw\.slice\(0, p\) \+ raw\.slice\(p \+ inserted\.length\) === seeded\) raw = inserted;/);
+  // The memory is cleared on +/- and on blur so it can never misfire later.
+  assert.match(form, /const adjust = \(direction: 1 \| -1\) => \{\s+seededRef\.current = null;/);
+  assert.match(form, /onBlur=\{\(\) => \{ seededRef\.current = null; \}\}/);
+  assert.match(form, /onChange=\{handleChange\}/);
+  // Rating keeps its suggested starting value.
+  assert.match(form, /<NumberStepper field=\{field\} step=\{0\.05\} min=\{0\} max=\{10\} suggestedValue=\{7\}/);
+});
+
+// 2026-10-02 (Carl): a new tester enters their own machine info; the owner's grinder values are not built in.
+test("Log Shot has no built-in grinder setting or grind time (they start empty for a new user)", async () => {
+  const form = await ui("pages/ShotForm.tsx");
+  assert.doesNotMatch(form, /Number\(settings\.defaultGrindSetting\) : 2\.33/);
+  assert.doesNotMatch(form, /Number\(settings\.defaultGrindTime\) : 8\.1/);
+  assert.match(form, /Number\(settings\.defaultGrindSetting\) : undefined/);
+  assert.match(form, /Number\(settings\.defaultGrindTime\) : undefined/);
+  // The empty case still renders a usable placeholder instead of crashing on undefined.
+  assert.match(form, /defaultGrindSetting\?\.toString\(\) \?\? "Your setting"/);
+  assert.match(form, /defaultGrindTime\?\.toString\(\) \?\? "Seconds"/);
+  const settings = await ui("pages/Settings.tsx");
+  assert.doesNotMatch(settings, /placeholder: "2\.33"/);
+  assert.doesNotMatch(settings, /placeholder: "8\.1"/);
+});
+
+test("User-facing wording: 'dialed in' is spelled the American way, and error messages read as sentences", async () => {
+  const dashboard = await readFile(fileURLToPath(new URL("./routes/dashboard.ts", import.meta.url)), "utf8");
+  assert.match(dashboard, /Bag dialed in/);
+  assert.doesNotMatch(dashboard, /dialled/i);
+  const hopper = await readFile(fileURLToPath(new URL("./routes/hopper.ts", import.meta.url)), "utf8");
+  assert.match(hopper, /Pick a different phase, or edit the existing one\./);
+  const shots = await readFile(fileURLToPath(new URL("./routes/shots.ts", import.meta.url)), "utf8");
+  assert.match(shots, /A shot date is required\./);
+  assert.match(shots, /Bag ID must be a whole number\./);
+});
+
+// 2026-10-02 (Carl): For Others always means Not Rated. Ticking For Others ticks Not Rated; unticking
+// Not Rated also unticks For Others; unticking For Others leaves Not Rated alone (Not Rated can stand
+// alone). Did Not Finish is independent of both.
+test("Serving Context: For Others implies Not Rated one way only, and Did Not Finish is independent", async () => {
+  const form = await ui("pages/ShotForm.tsx");
+  const forOthers = form.match(/name="isForOthers"[\s\S]*?\)\} \/>/)?.[0] ?? "";
+  assert.match(forOthers, /if \(forOthers\) form\.setValue\("rated", false\);/);
+  assert.doesNotMatch(forOthers, /else|!forOthers/, "unticking For Others must not change Not Rated");
+  const notRated = form.match(/name="rated"[\s\S]*?\)\} \/>/)?.[0] ?? "";
+  assert.match(notRated, /if \(!notRated\) form\.setValue\("isForOthers", false\);/);
+  const didNotFinish = form.match(/name="finishedShot"[\s\S]*?\)\} \/>/)?.[0] ?? "";
+  assert.doesNotMatch(didNotFinish, /setValue\(/, "Did Not Finish is independent");
+  assert.match(form, /For Others always means Not Rated, so unticking Not Rated also unticks For Others\./);
+});
+
+// 2026-10-02 (Carl): ratings are switched off while Not Rated is ticked, instead of being silently dropped on save.
+test("Rating boxes are disabled while Not Rated is ticked, with an explanation", async () => {
+  const form = await ui("pages/ShotForm.tsx");
+  assert.match(form, /const notRated = form\.watch\("rated"\) === false;/);
+  assert.match(form, /disabled=\{notRated\}\s+value=\{\[asNumber\(field\.value\) \?\? 7\]\}/);
+  assert.match(form, /<NumberStepper field=\{field\} step=\{0\.05\} min=\{0\} max=\{10\} suggestedValue=\{7\} disabled=\{notRated\}/);
+  assert.match(form, /<NumberStepper field=\{field\} step=\{0\.05\} min=\{0\} max=\{11\} disabled=\{notRated\}/);
+  assert.match(form, /Ratings are off while Not Rated is ticked\./);
+  // The disabled prop reaches the input and both +/- buttons.
+  assert.equal((form.match(/disabled=\{disabled\}/g) ?? []).length, 3);
+  // A disabled box must not pre-fill its suggested value when clicked.
+  assert.match(form, /if \(disabled\) return;\s+const target = event\.currentTarget;/);
+});
+
+test("Data Health is not in the navigation any more, but its page and route still exist", async () => {
+  const shell = await ui("components/layout/Shell.tsx");
+  assert.doesNotMatch(shell, /data-health/);
+  const app = await ui("App.tsx");
+  assert.match(app, /path="\/data-health"/);
+});

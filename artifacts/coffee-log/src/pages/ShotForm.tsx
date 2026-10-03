@@ -360,6 +360,7 @@ function NumberStepper({
   suggestedValue,
   className,
   decimals,
+  disabled,
 }: {
   field: SeedableNumberField;
   step: number;
@@ -370,6 +371,8 @@ function NumberStepper({
   className?: string;
   /** Round +/- results to this many decimals (defaults to the step's own decimals). */
   decimals?: number;
+  /** Greys out the box and its +/- buttons (used while Not Rated is ticked). */
+  disabled?: boolean;
 }) {
   const currentNumeric = (): number | undefined => {
     if (field.value === undefined || field.value === null || field.value === "") return undefined;
@@ -383,7 +386,14 @@ function NumberStepper({
     return Number.isFinite(n) ? n : undefined;
   };
 
+  // A value we pre-filled on focus (not typed by the user). The first edit after seeding
+  // replaces it instead of appending: typing "8.5" into a freshly seeded Rating box used to
+  // append to the hidden 7 and produce 78.5. Deterministic on purpose (a deferred select()
+  // can lose a race with fast typing).
+  const seededRef = useRef<string | null>(null);
+
   const adjust = (direction: 1 | -1) => {
+    seededRef.current = null;
     const base = currentNumeric() ?? suggestedNumeric() ?? 0;
     let next = decimals != null
       ? Math.round((base + direction * step) * Math.pow(10, decimals)) / Math.pow(10, decimals)
@@ -394,7 +404,27 @@ function NumberStepper({
   };
 
   const seed = (event: React.SyntheticEvent<HTMLInputElement>) => {
-    seedSuggestedNumber(field, suggestedValue, event.currentTarget);
+    // A switched-off box must never pre-fill (a click on it still reaches this handler).
+    if (disabled) return;
+    const target = event.currentTarget;
+    const wasEmpty = field.value === undefined || field.value === null || field.value === "";
+    seedSuggestedNumber(field, suggestedValue, target);
+    if (wasEmpty && target.value !== "") seededRef.current = target.value;
+  };
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = event.target.value;
+    const seeded = seededRef.current;
+    seededRef.current = null;
+    if (seeded !== null && raw.length > seeded.length) {
+      // The user typed into the pre-filled value. The caret can be at either end or inside it
+      // (it varies with how the box was clicked), so find what was inserted and keep only that.
+      let p = 0;
+      while (p < seeded.length && raw[p] === seeded[p]) p++;
+      const inserted = raw.slice(p, p + raw.length - seeded.length);
+      if (raw.slice(0, p) + raw.slice(p + inserted.length) === seeded) raw = inserted;
+    }
+    field.onChange(raw === "" ? undefined : raw);
   };
 
   const stepperButtonClass =
@@ -403,7 +433,7 @@ function NumberStepper({
   return (
     <InputGroup className={cn("group", className)}>
       <InputGroupAddon align="inline-start">
-        <InputGroupButton type="button" aria-label="Decrease" onClick={() => adjust(-1)} className={stepperButtonClass}>
+        <InputGroupButton type="button" aria-label="Decrease" onClick={() => adjust(-1)} disabled={disabled} className={stepperButtonClass}>
           <Minus />
         </InputGroupButton>
       </InputGroupAddon>
@@ -414,14 +444,16 @@ function NumberStepper({
         min={min}
         max={max}
         placeholder={placeholder}
+        disabled={disabled}
         value={(field.value as string | number | undefined) ?? ""}
-        onChange={(event) => field.onChange(event.target.value === "" ? undefined : event.target.value)}
+        onChange={handleChange}
+        onBlur={() => { seededRef.current = null; }}
         onPointerDown={seed}
         onFocus={seed}
         className="text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
       <InputGroupAddon align="inline-end">
-        <InputGroupButton type="button" aria-label="Increase" onClick={() => adjust(1)} className={stepperButtonClass}>
+        <InputGroupButton type="button" aria-label="Increase" onClick={() => adjust(1)} disabled={disabled} className={stepperButtonClass}>
           <Plus />
         </InputGroupButton>
       </InputGroupAddon>
@@ -535,6 +567,8 @@ export default function ShotForm() {
   const currentDrinkType = form.watch("drinkType");
   const currentBrewMethod = form.watch("brewMethod");
   const servingForOthers = form.watch("isForOthers") === true;
+  // Not Rated drops both ratings on save, so the rating boxes are switched off while it is ticked.
+  const notRated = form.watch("rated") === false;
   const drinkDiffersFromDefault =
     !!settings?.defaultDrinkType && !!currentDrinkType && currentDrinkType !== settings.defaultDrinkType;
   const revealDrinkPicker =
@@ -862,8 +896,10 @@ export default function ShotForm() {
   const defaultYield = latestShotDefaults?.yield ?? selectedBag?.defaultYield ?? (settings?.defaultTargetYield ? Number(settings.defaultTargetYield) : 36);
   const defaultTemp = selectedBag?.defaultTemp ?? (settings?.defaultBrewTemp ? Number(settings.defaultBrewTemp) : 94);
   const defaultTopUpTime = settings?.grindMinTime ? Number(settings.grindMinTime) : 0.2;
-  const defaultGrindSetting = selectedBag?.currentGrindSetting ?? (settings?.defaultGrindSetting ? Number(settings.defaultGrindSetting) : 2.33);
-  const defaultGrindTime = selectedBag?.currentGrindTime ?? (settings?.defaultGrindTime ? Number(settings.defaultGrindTime) : 8.1);
+  // No built-in grinder setting or grind time: they depend on each person's grinder, so a new
+  // user starts with these empty and enters their own (then they are carried forward).
+  const defaultGrindSetting = selectedBag?.currentGrindSetting ?? (settings?.defaultGrindSetting ? Number(settings.defaultGrindSetting) : undefined);
+  const defaultGrindTime = selectedBag?.currentGrindTime ?? (settings?.defaultGrindTime ? Number(settings.defaultGrindTime) : undefined);
 
   // WYSIWYG number defaults (Carl-reported, primary flow): core recipe fields
   // whose placeholder shows a computed default must SAVE that default when the
@@ -1160,7 +1196,7 @@ export default function ShotForm() {
                   <FormField control={form.control} name="grindSetting" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Grind Setting</FormLabel>
-                      <FormControl><NumberStepper field={field} step={grindStep} decimals={grindDecimals} placeholder={defaultGrindSetting.toString()} suggestedValue={defaultGrindSetting} /></FormControl>
+                      <FormControl><NumberStepper field={field} step={grindStep} decimals={grindDecimals} placeholder={defaultGrindSetting?.toString() ?? "Your setting"} suggestedValue={defaultGrindSetting} /></FormControl>
                       <p className="text-xs text-muted-foreground">{describeGrindStep(selectedGrinder, selectedGrinder ? equipmentLabel(selectedGrinder) : undefined)}</p>
                       <FormMessage />
                     </FormItem>
@@ -1168,7 +1204,7 @@ export default function ShotForm() {
                   <FormField control={form.control} name="grindTime" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Grind Time (s)</FormLabel>
-                      <FormControl><NumberStepper field={field} step={0.1} placeholder={defaultGrindTime.toString()} suggestedValue={defaultGrindTime} /></FormControl>
+                      <FormControl><NumberStepper field={field} step={0.1} placeholder={defaultGrindTime?.toString() ?? "Seconds"} suggestedValue={defaultGrindTime} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -1318,6 +1354,11 @@ export default function ShotForm() {
             </CardHeader>
             {showTasteLater && (
             <CardContent className="space-y-5 animate-in fade-in slide-in-from-top-1 duration-200">
+              {notRated && (
+                <p className="rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
+                  Ratings are off while Not Rated is ticked. To rate this shot, untick Not Rated under Serving Context (this also unticks For Others).
+                </p>
+              )}
               <FormField control={form.control} name="rating" render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center justify-between">
@@ -1328,12 +1369,13 @@ export default function ShotForm() {
                     <FormControl>
                       <Slider
                         min={0} max={10} step={0.05}
+                        disabled={notRated}
                         value={[asNumber(field.value) ?? 7]}
                         onValueChange={(v) => field.onChange(Math.round(v[0] * 100) / 100)}
                         className="flex-1"
                       />
                     </FormControl>
-                    <NumberStepper field={field} step={0.05} min={0} max={10} suggestedValue={7} className="w-36" />
+                    <NumberStepper field={field} step={0.05} min={0} max={10} suggestedValue={7} disabled={notRated} className="w-36" />
                   </div>
                   <FormMessage />
                 </FormItem>
@@ -1352,12 +1394,13 @@ export default function ShotForm() {
                     <FormControl>
                       <Slider
                         min={0} max={11} step={0.05}
+                        disabled={notRated}
                         value={[asNumber(field.value) ?? 0]}
                         onValueChange={(v) => field.onChange(Math.round(v[0] * 100) / 100)}
                         className="flex-1"
                       />
                     </FormControl>
-                    <NumberStepper field={field} step={0.05} min={0} max={11} className="w-36" />
+                    <NumberStepper field={field} step={0.05} min={0} max={11} disabled={notRated} className="w-36" />
                   </div>
                   <FormMessage />
                 </FormItem>
@@ -1593,7 +1636,7 @@ export default function ShotForm() {
                   <Label>Serving Context</Label>
                   <p className="text-xs text-muted-foreground mt-1">
                     Use this to separate your espresso science from guest drinks, milk drinks, or coffees you did not rate.
-                    For Others suggests Not Rated but never changes Drink Type — you can still rate it if you tasted it.
+                    For Others always means Not Rated, so unticking Not Rated also unticks For Others. Not Rated can stand on its own, and Did Not Finish is separate from both. None of them change Drink Type.
                   </p>
                 </div>
 
@@ -1672,7 +1715,13 @@ export default function ShotForm() {
                       <FormControl>
                         <Checkbox
                           checked={field.value === false}
-                          onCheckedChange={(checked) => field.onChange(checked === true ? false : true)}
+                          onCheckedChange={(checked) => {
+                            const notRated = checked === true;
+                            field.onChange(notRated ? false : true);
+                            // For Others always means Not Rated, so removing Not Rated also removes
+                            // For Others. The reverse does not hold: Not Rated can stand on its own.
+                            if (!notRated) form.setValue("isForOthers", false);
+                          }}
                         />
                       </FormControl>
                       <FormLabel className="font-normal cursor-pointer">Not Rated</FormLabel>

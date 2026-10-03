@@ -82,7 +82,7 @@ export default function TasteSelectors() {
       qc.invalidateQueries({ queryKey: ["taste-selectors"] });
       toast({ title: d.seeded > 0 ? `Loaded ${d.seeded} standard selectors` : "All standard selectors are already loaded" });
     },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const archiveMutation = useMutation({
@@ -91,7 +91,7 @@ export default function TasteSelectors() {
       if (!response.ok) throw new Error(await errorMessageFrom(response));
     },
     onSuccess: (_d, { restore }) => { qc.invalidateQueries({ queryKey: ["taste-selectors"] }); toast({ title: restore ? "Restored" : "Archived" }); },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const promoteMutation = useMutation({
@@ -102,7 +102,7 @@ export default function TasteSelectors() {
       if (!response.ok) throw new Error(await errorMessageFrom(response));
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["taste-selectors"] }); toast({ title: "Promoted to standard" }); },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const saveMutation = useMutation({
@@ -114,7 +114,7 @@ export default function TasteSelectors() {
       return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["taste-selectors"] }); setOpen(false); toast({ title: editing ? "Updated" : "Added" }); },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -123,7 +123,7 @@ export default function TasteSelectors() {
       if (!response.ok) throw new Error(await errorMessageFrom(response));
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["taste-selectors"] }); toast({ title: "Removed" }); },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));

@@ -656,7 +656,7 @@ test("Settings lets users add custom Drink Types and pick a Default Drink Type; 
   assert.doesNotMatch(settingsSource, /Choose which fields appear in Quick Log/);
 });
 
-test("Drink Type never forces Not Rated; For Others may suggest it but stays overridable", async () => {
+test("Drink Type never forces Not Rated; For Others implies Not Rated (one way only)", async () => {
   const source = await readFile(
     fileURLToPath(new URL("../../coffee-log/src/pages/ShotForm.tsx", import.meta.url)),
     "utf8",
@@ -668,12 +668,13 @@ test("Drink Type never forces Not Rated; For Others may suggest it but stays ove
   assert.doesNotMatch(source, /setDrinkType/);
   assert.match(source, /name="drinkType"[\s\S]{0,400}onChange=\{field\.onChange\}/);
 
-  // For Others is the only control allowed to suggest Not Rated.
+  // For Others is the only control allowed to set Not Rated.
   assert.match(source, /if \(forOthers\) form\.setValue\("rated", false\)/);
 
-  // The Not Rated checkbox remains its own independent, always-editable
-  // field, so a user can still rate a For Others shot if they tasted it.
-  assert.match(source, /name="rated"[\s\S]{0,300}onCheckedChange=\{\(checked\) => field\.onChange\(checked === true \? false : true\)\}/);
+  // Superseded 2026-10-02 (Carl): For Others now always means Not Rated, so unticking Not Rated
+  // also unticks For Others. Not Rated is still its own field and can stand alone (unticking
+  // For Others leaves it as it is). Previously "a user can still rate a For Others shot".
+  assert.match(source, /name="rated"[\s\S]{0,400}field\.onChange\(notRated \? false : true\);[\s\S]{0,300}if \(!notRated\) form\.setValue\("isForOthers", false\);/);
 });
 
 test("Serving Context collapses the Drink Type picker for the daily flow but reveals it when it matters", async () => {
@@ -1770,7 +1771,7 @@ test("Mobile bottom nav signals it scrolls and marks the active tab without rely
   assert.match(source, /\{ title: "Shot Log",\s+href: "\/shots",\s+icon: BookOpen,\s+shortLabel: "Shots"(, exclude: \["\/shots\/new"\])? \}/);
   assert.match(source, /item\.shortLabel \?\? item\.title\.split\(" "\)\[0\]/);
   // Every page is reachable from the swipeable strip (mobileSwipeNav = tabs + the rest).
-  for (const href of ["/reference", "/beans", "/equipment", "/accessories", "/taste-selectors", "/data-health", "/settings"]) {
+  for (const href of ["/reference", "/beans", "/equipment", "/accessories", "/taste-selectors", "/settings"]) {
     assert.match(source.slice(source.indexOf("const mobileBottomMoreNav")), new RegExp(`href: "${href}"`));
   }
 });
@@ -1837,7 +1838,9 @@ test("Data Health is a routed, read-only owner-diagnostics page (RC Gate 9)", as
   // page is no longer an orphan.
   assert.match(appSource, /path="\/data-health"/);
   assert.match(appSource, /from "@\/pages\/ImportAudit"/);
-  assert.match(shellSource, /href: "\/data-health"/);
+  // Superseded 2026-10-02 (Carl): Data Health is owner diagnostics, so its link is no longer in the
+  // navigation that every user sees. The page and its /data-health route are unchanged.
+  assert.doesNotMatch(shellSource, /href: "\/data-health"/);
 
   // Strictly read-only: no path to the sync or clear write endpoints, and no
   // trace of the removed destructive flow.
@@ -2349,9 +2352,9 @@ test("Catalog pages render the API's graceful 400/404/409 delete-error contract"
     assert.match(del, /if \(!response\.ok\) throw new Error\(await errorMessageFrom\(response\)\)/, `${marker} checks response.ok`);
   }
   const deleteG = equipment.slice(equipment.indexOf("const deleteG = useMutation"), equipment.indexOf("const saveM = useMutation"));
-  assert.match(deleteG, /onError: \(e\) => toast\(\{ title: "Error", description: e instanceof Error \? e\.message : String\(e\), variant: "destructive" \}\)/);
+  assert.match(deleteG, /onError: \(e\) => toast\(\{ title: "Something went wrong", description: e instanceof Error \? e\.message : String\(e\), variant: "destructive" \}\)/);
   const deleteM = equipment.slice(equipment.indexOf("const deleteM = useMutation"));
-  assert.match(deleteM, /onError: \(e\) => toast\(\{ title: "Error", description: e instanceof Error \? e\.message : String\(e\), variant: "destructive" \}\)/);
+  assert.match(deleteM, /onError: \(e\) => toast\(\{ title: "Something went wrong", description: e instanceof Error \? e\.message : String\(e\), variant: "destructive" \}\)/);
 
   // Accessories + TasteSelectors: deleteMutation
   for (const [name, src, route] of [
@@ -2361,7 +2364,7 @@ test("Catalog pages render the API's graceful 400/404/409 delete-error contract"
     const del = src.slice(src.indexOf("const deleteMutation = useMutation"));
     assert.match(del, new RegExp(`fetch\\(\`${route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\`, \\{ method: "DELETE" \\}\\)`), `${name} delete route`);
     assert.match(del, /if \(!response\.ok\) throw new Error\(await errorMessageFrom\(response\)\)/, `${name} delete checks response.ok`);
-    assert.match(del, /onError: \(e\) => toast\(\{ title: "Error", description: e instanceof Error \? e\.message : String\(e\), variant: "destructive" \}\)/, `${name} delete has onError`);
+    assert.match(del, /onError: \(e\) => toast\(\{ title: "Something went wrong", description: e instanceof Error \? e\.message : String\(e\), variant: "destructive" \}\)/, `${name} delete has onError`);
   }
 
   // Beans delete keeps its .ok check, now routed through the helper.

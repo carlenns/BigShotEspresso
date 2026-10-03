@@ -107,3 +107,70 @@ test("Shot Log filters by System Phase, Phase Name (mode) and Experiment", async
   assert.equal((await api("GET", "/shots?systemPhase=3&experimentName=Timed%20Dose%20Stability")).json.total, 1);
   assert.equal((await api("GET", "/shots?systemPhase=x")).status, 400);
 });
+
+// 2026-10-02 audit: the Reference counts on bag and bean cards must match the Reference Shots list, which only
+// shows shots that count for analysis. A shot flagged Reference but excluded (not Good/Dialed In, or with a
+// fault) keeps its flag but is not counted. This already held (all those queries filter to eligible shots);
+// the test pins it so the cards and the list cannot drift apart.
+test("Reference counts on bag and bean cards only include shots that count for analysis", async () => {
+  const bean = await api("POST", "/beans", { name: "Reference Count Bean" });
+  assert.equal(bean.status, 201);
+  const bag = await api("POST", "/bags", { bagName: "Reference Count Bag", beanId: bean.json.id, isActive: true });
+  assert.equal(bag.status, 201);
+  const eligible = await api("POST", "/shots", { shotDate: "2026-10-02T08:00", bagId: bag.json.id, status: "Good", faultStatus: ["Good"], isReference: true, rating: 9 });
+  const excluded = await api("POST", "/shots", { shotDate: "2026-10-02T08:05", bagId: bag.json.id, status: "Needs Work", faultStatus: ["Good"], isReference: true, rating: 5 });
+  assert.equal(eligible.status, 201, JSON.stringify(eligible.json));
+  assert.equal(excluded.status, 201, JSON.stringify(excluded.json));
+  assert.equal(eligible.json.includeInAnalysis, true);
+  assert.equal(excluded.json.includeInAnalysis, false);
+  assert.equal(excluded.json.isReference, true, "premise: the excluded shot really is saved as a Reference shot");
+
+  const bags = await api("GET", "/bags");
+  assert.equal(bags.json.find((b: { id: number }) => b.id === bag.json.id).referenceCount, 1);
+  const detail = await api("GET", `/bags/${bag.json.id}`);
+  assert.equal(detail.json.analysis.referenceShots, 1);
+  assert.equal(detail.json.referenceShots.length, 1);
+  const beans = await api("GET", "/beans");
+  assert.equal(beans.json.find((b: { id: number }) => b.id === bean.json.id).referenceCount, 1);
+  // The Reference Shots list agrees.
+  const list = await api("GET", `/shots?bagId=${bag.json.id}&isReference=true`);
+  assert.equal(list.json.total ?? list.json.shots.length, list.json.shots.length);
+});
+
+// 2026-10-02 (Carl): For Others always means Not Rated, enforced on every create and update, not only in the form.
+// Unticking For Others leaves Not Rated alone. Shots that are not For Others are untouched. (The CSV and Airtable
+// import paths are separate and are not changed; imported history keeps its original values.)
+test("For Others implies Not Rated on the server, one way only", async () => {
+  const bag = await api("POST", "/bags", { bagName: "For Others Rule Bag", isActive: true });
+  const base = { bagId: bag.json.id, status: "Good", faultStatus: ["Good"] };
+
+  // Create: For Others with a rating sent -> stored Not Rated with the ratings cleared.
+  const forOthers = await api("POST", "/shots", { ...base, shotDate: "2026-10-02T09:00", isForOthers: true, rated: true, rating: 9, preferenceRating: 8 });
+  assert.equal(forOthers.status, 201, JSON.stringify(forOthers.json));
+  assert.equal(forOthers.json.isForOthers, true);
+  assert.equal(forOthers.json.rated, false);
+  assert.equal(forOthers.json.rating, null);
+  assert.equal(forOthers.json.preferenceRating, null);
+
+  // A normal rated shot is untouched.
+  const normal = await api("POST", "/shots", { ...base, shotDate: "2026-10-02T09:05", rated: true, rating: 9 });
+  assert.equal(normal.json.rated, true);
+  assert.equal(normal.json.rating, 9);
+  assert.equal(normal.json.isForOthers ?? false, false);
+
+  // Update: marking a rated shot For Others makes it Not Rated and clears the ratings.
+  const patched = await api("PATCH", `/shots/${normal.json.id}`, { isForOthers: true });
+  assert.equal(patched.status, 200, JSON.stringify(patched.json));
+  assert.equal(patched.json.rated, false);
+  assert.equal(patched.json.rating, null);
+
+  // Unticking For Others leaves Not Rated as it is (Not Rated can stand alone).
+  const unticked = await api("PATCH", `/shots/${normal.json.id}`, { isForOthers: false });
+  assert.equal(unticked.json.isForOthers, false);
+  assert.equal(unticked.json.rated, false);
+
+  // Editing an unrelated field on a For Others shot keeps it Not Rated.
+  const noted = await api("PATCH", `/shots/${forOthers.json.id}`, { notes: "for a guest" });
+  assert.equal(noted.json.rated, false);
+  assert.equal(noted.json.isForOthers, true);
+});

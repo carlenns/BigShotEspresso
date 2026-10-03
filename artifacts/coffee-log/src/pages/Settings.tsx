@@ -105,8 +105,8 @@ const SECTIONS: { title: string; icon: React.ElementType; description: string; f
     icon: Zap,
     description: "Grind settings are carried forward until you change them.",
     fields: [
-      { key: "defaultGrindSetting", label: "Default Grind Setting", type: "number", placeholder: "2.33" },
-      { key: "defaultGrindTime", label: "Default Grind Time", type: "number", placeholder: "8.1", unit: "sec" },
+      { key: "defaultGrindSetting", label: "Default Grind Setting", type: "number", placeholder: "Your usual setting" },
+      { key: "defaultGrindTime", label: "Default Grind Time", type: "number", placeholder: "e.g. 8", unit: "sec" },
       {
         key: "grindTimerMode", label: "Grind Output Measurement", type: "select",
         options: ["By Time", "By Weight", "Manual / Single Dose"],

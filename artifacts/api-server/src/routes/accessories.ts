@@ -25,7 +25,7 @@ router.get("/accessories", async (_req, res): Promise<void> => {
 
 router.get("/accessories/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const [row] = await db.select().from(accessoriesTable).where(eq(accessoriesTable.id, id));
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(row);
@@ -33,7 +33,7 @@ router.get("/accessories/:id", async (req, res): Promise<void> => {
 
 router.post("/accessories", async (req, res): Promise<void> => {
   const body = req.body as Record<string, unknown>;
-  if (!body.type) { res.status(400).json({ error: "type is required" }); return; }
+  if (!body.type) { res.status(400).json({ error: "A type is required." }); return; }
   // One default per accessory type: clear the others and insert in one transaction.
   const row = await db.transaction(async (tx) => {
     if (body.isDefault) {
@@ -60,7 +60,7 @@ router.post("/accessories", async (req, res): Promise<void> => {
 
 router.patch("/accessories/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const body = req.body as Record<string, unknown>;
   // EQ-3: marking an accessory as default must clear the other defaults of the
   // same type even when the request does not resend `type` (e.g. a toggle-only
@@ -100,7 +100,7 @@ router.patch("/accessories/:id", async (req, res): Promise<void> => {
 
 router.delete("/accessories/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const [existing] = await db
     .select({ id: accessoriesTable.id, type: accessoriesTable.type, isDefault: accessoriesTable.isDefault })
     .from(accessoriesTable)

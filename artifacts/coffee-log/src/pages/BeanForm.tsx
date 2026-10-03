@@ -124,7 +124,7 @@ export default function BeanForm() {
       toast({ title: isEditing ? "Bean updated" : "Bean added" });
       setLocation("/beans");
     },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const set = (key: keyof BeanFormState, value: string) => setForm((current) => ({ ...current, [key]: value }));

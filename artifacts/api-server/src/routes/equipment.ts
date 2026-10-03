@@ -19,7 +19,7 @@ router.get("/equipment/grinders", async (_req, res): Promise<void> => {
 
 router.post("/equipment/grinders", async (req, res): Promise<void> => {
   const body = req.body as Record<string, unknown>;
-  if (!body.name) { res.status(400).json({ error: "name is required" }); return; }
+  if (!body.name) { res.status(400).json({ error: "A name is required." }); return; }
   // If isDefault, clear other defaults first
   if (body.isDefault) await db.update(grindersTable).set({ isDefault: false });
   const row = await db.insert(grindersTable).values({
@@ -42,7 +42,7 @@ router.post("/equipment/grinders", async (req, res): Promise<void> => {
 
 router.patch("/equipment/grinders/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const body = req.body as Record<string, unknown>;
   if (body.isDefault) await db.update(grindersTable).set({ isDefault: false });
   const row = await db.update(grindersTable).set({
@@ -66,7 +66,7 @@ router.patch("/equipment/grinders/:id", async (req, res): Promise<void> => {
 
 router.delete("/equipment/grinders/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const [existing] = await db.select({ id: grindersTable.id }).from(grindersTable).where(eq(grindersTable.id, id));
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
   const [{ shotCount }] = await db
@@ -100,7 +100,7 @@ router.get("/equipment/machines", async (_req, res): Promise<void> => {
 
 router.post("/equipment/machines", async (req, res): Promise<void> => {
   const body = req.body as Record<string, unknown>;
-  if (!body.name) { res.status(400).json({ error: "name is required" }); return; }
+  if (!body.name) { res.status(400).json({ error: "A name is required." }); return; }
   if (body.isDefault) await db.update(machinesTable).set({ isDefault: false });
   const row = await db.insert(machinesTable).values({
     name: body.name as string,
@@ -118,7 +118,7 @@ router.post("/equipment/machines", async (req, res): Promise<void> => {
 
 router.patch("/equipment/machines/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const body = req.body as Record<string, unknown>;
   if (body.isDefault) await db.update(machinesTable).set({ isDefault: false });
   const row = await db.update(machinesTable).set({
@@ -138,7 +138,7 @@ router.patch("/equipment/machines/:id", async (req, res): Promise<void> => {
 
 router.delete("/equipment/machines/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const [existing] = await db.select({ id: machinesTable.id }).from(machinesTable).where(eq(machinesTable.id, id));
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
   const [{ shotCount }] = await db

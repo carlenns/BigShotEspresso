@@ -75,7 +75,7 @@ export default function Equipment() {
       return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["equipment", "grinders"] }); setGOpen(false); toast({ title: editingG ? "Grinder updated" : "Grinder added" }); },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const deleteG = useMutation({
@@ -84,7 +84,7 @@ export default function Equipment() {
       if (!response.ok) throw new Error(await errorMessageFrom(response));
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["equipment", "grinders"] }); toast({ title: "Grinder removed" }); },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const saveM = useMutation({
@@ -96,7 +96,7 @@ export default function Equipment() {
       return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["equipment", "machines"] }); setMOpen(false); toast({ title: editingM ? "Machine updated" : "Machine added" }); },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const deleteM = useMutation({
@@ -105,7 +105,7 @@ export default function Equipment() {
       if (!response.ok) throw new Error(await errorMessageFrom(response));
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["equipment", "machines"] }); toast({ title: "Machine removed" }); },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const setG = (k: string, v: string) => setGForm((f) => ({ ...f, [k]: v }));

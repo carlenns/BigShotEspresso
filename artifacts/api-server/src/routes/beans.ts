@@ -62,7 +62,7 @@ router.get("/beans", async (_req, res): Promise<void> => {
 
 router.get("/beans/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const [bean] = await db.select().from(beansTable).where(eq(beansTable.id, id));
   if (!bean) { res.status(404).json({ error: "Not found" }); return; }
   res.json(bean);
@@ -70,7 +70,7 @@ router.get("/beans/:id", async (req, res): Promise<void> => {
 
 router.post("/beans", async (req, res): Promise<void> => {
   const body = req.body as Record<string, unknown>;
-  if (!String(body.name ?? "").trim()) { res.status(400).json({ error: "name is required" }); return; }
+  if (!String(body.name ?? "").trim()) { res.status(400).json({ error: "A name is required." }); return; }
   const [row] = await db.insert(beansTable).values({
     name: String(body.name),
     coffeeName: body.coffeeName as string | undefined,
@@ -91,7 +91,7 @@ router.post("/beans", async (req, res): Promise<void> => {
 
 router.patch("/beans/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const body = req.body as Record<string, unknown>;
   const [row] = await db.update(beansTable).set({
     name: body.name as string | undefined,
@@ -114,7 +114,7 @@ router.patch("/beans/:id", async (req, res): Promise<void> => {
 
 router.delete("/beans/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(id)) { res.status(400).json({ error: "That ID isn't valid." }); return; }
   const [existing] = await db.select({ id: beansTable.id }).from(beansTable).where(eq(beansTable.id, id));
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
   const [{ bagCount }] = await db

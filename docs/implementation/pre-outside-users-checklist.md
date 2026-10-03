@@ -29,6 +29,9 @@ Status key: Done · Open · Decision (Carl) · Not re-verified (listed in an old
 | PL-1, PL-2, PL-3, PL-4, PL-6 | Done (Phase 2A S1) |
 | PL-5, PL-7, PL-8 | Not re-verified (PL-7 bottom nav since replaced by the swipeable bar, 2026-09-30) |
 | DI-5 / TS-1 taste-selector archive model | Done (already built; see TS-1) |
+| B1: Start Hopper Phase returns 500 on a duplicate name (isUniqueViolation misses drizzle-wrapped errors) | Done 2026-10-02 (fixed, tested, verified in Chrome); not yet deployed |
+| B2: Edit Shot rating box turned a typed 8.5 into 78.5 (seeded suggested value) | Done 2026-10-02 (fixed, tested, verified in Chrome); not yet deployed |
+| R1-R7 beta-readiness items | Partly done 2026-10-02: grinder defaults now empty for new users, "dialed in" spelling and error wording fixed (uncommitted). Decided 2026-10-02: Log Shot jargon (R2) stays in the screens and is covered by the AI onboarding files; Data Health (R6) link removed from navigation. Open: System Phase seed, first-run wording (R3, R4), Settings decaf wording (R7), single-shot "dialed in" logic (R5). L1 (server enforces For Others implies Not Rated) done 2026-10-02. See walkthrough doc |
 | Empty-string values in Bag #5 and shot #20 | Not re-verified |
 | Days Since Open off-by-one around late-night entries | Not re-verified |
 | GRD-2 timed-dosing, SC-1..3 | Deferred (not needed for beta) |
@@ -36,7 +39,7 @@ Status key: Done · Open · Decision (Carl) · Not re-verified (listed in an old
 ## W3 Verification
 | Item | Status |
 |---|---|
-| One continuous browser lifecycle walkthrough (bean to Dashboard) | Open (launch audit Critical Blocker #2 remainder) |
+| One continuous browser lifecycle walkthrough (bean to Dashboard) | Done 2026-10-02 (desktop, fresh database): [results](browser-lifecycle-walkthrough-2026-10-02.md). Found 2 bugs (B1 hopper-phase 500, B2 rating box) and 7 beta-readiness items; phone layout not covered |
 | Render smoke test on the Prisma-backed service | Partly done at cutover 2026-09-28 (healthz, Dashboard, test shot); full checklist not rerun |
 | Swipeable bottom nav on real phones | Done by Carl 2026-09-30 ("that is better") |
 

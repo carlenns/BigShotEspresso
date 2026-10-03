@@ -146,7 +146,7 @@ export default function Bags() {
       return r.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["bags"] }); setOpen(false); toast({ title: editing ? "Bag updated" : "Bag added" }); },
-    onError: (e) => toast({ title: "Error", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Something went wrong", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   const closeBagMutation = useMutation({
@@ -228,7 +228,7 @@ export default function Bags() {
       setStartPhaseBag(null);
       toast({ title: "Hopper phase started", description: "The new phase is now active for this bag." });
     },
-    onError: (e) => toast({ title: "Could not start phase", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
+    onError: (e) => toast({ title: "Couldn't start the phase", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
   });
 
   // Hopper phase edit / end (Phase 2A S3). Uses the existing PATCH /hoppers/:id.
