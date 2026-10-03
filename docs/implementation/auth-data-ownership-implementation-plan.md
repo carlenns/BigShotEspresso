@@ -52,6 +52,18 @@ ADR-0009 deliberately left the **authentication mechanism** open (Open Question 
 
 **Open, not decided here:** `airtable_sync_evidence`. Recommend it stays unscoped (owner-only operational data) unless/until Airtable sync itself becomes a per-user feature — nothing in current product docs describes per-user Airtable sync, and scoping it now would be speculative. Revisit if that changes.
 
+### Design note: taste selectors and the community aspect (Carl, 2026-10-02)
+
+Agreed with Carl while discussing how existing data is assigned to the owner:
+
+- Users can have their own **custom** taste selectors. Each carries its owner's `user_id` and is visible only to that user.
+- Custom selectors **do not count toward any community aspect**. Only **standard** selectors (the shared, canonical vocabulary) are ever eligible to feed a future community or cross-user view. The existing `origin` column (`standard` | `custom`) and `canonical_key` already model this; community queries must key off `origin = 'standard'`, never off `user_id` alone.
+- The 78 selectors that exist today are all standard and shared (`user_id = NULL`). Carl's own future custom selectors would be personal to Carl.
+- **Promoting** a custom selector to standard (the "Promote to standard" action) is owner-only today. Once there are several users it must become an admin action, so a tester cannot push their own vocabulary into the shared list. The shared library and its moderation stay deferred until accounts, moderation, admin review and privacy controls exist (ADR-0009, equipment capability library model).
+- **Name uniqueness has to change.** Today a selector name must be unique across all selectors, active and archived. With several users it should be unique among the standard selectors plus that user's own custom ones, so one tester's custom name cannot block another's, and so a custom name cannot clash with a standard one.
+- **Consent:** the privacy policy draft says personal records are not shared or aggregated and that any community use needs a separate opt-in and a policy update first. Community features must not count a user's data until they have opted in.
+- The 76 taste links on Carl's existing shots stay with his shots (`shot_taste_selectors` inherits ownership from `shots.user_id`).
+
 ## Phased sequence
 
 Each phase should land, be verified, and be reviewable independently — this plan explicitly avoids proposing one large "add auth" change. Phases are ordered by hard dependency, not by size.
