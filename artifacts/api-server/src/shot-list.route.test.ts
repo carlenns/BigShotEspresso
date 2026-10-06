@@ -175,18 +175,34 @@ test("For Others implies Not Rated on the server, one way only", async () => {
   assert.equal(noted.json.isForOthers, true);
 });
 
-// 2026-10-02 (Carl): "Bag dialed in" must not appear after one lucky shot. It needs at least 3 rated shots
-// (the same rule of thumb the onboarding files give: wait for three comparable shots).
-test("Dashboard says 'Bag dialed in' only once the bag has at least 3 rated shots averaging 8.5+", async () => {
+// 2026-10-06 (Carl): "Bag dialed in" is about consistency, not a high average. The last 5 rated shots must be
+// within 1.0 point of each other (highest minus lowest) and average at least 7.5. Supersedes the 2026-10-02
+// "3 rated shots averaging 8.5+" rule.
+test("Dashboard says 'Bag dialed in' only when the last 5 rated shots are within 1.0 point and average 7.5+", async () => {
   const bag = await api("POST", "/bags", { bagName: "Dialed In Rule Bag", isActive: true });
   assert.equal(bag.status, 201);
-  const shot = (minute: number) => api("POST", "/shots", { bagId: bag.json.id, shotDate: `2026-10-02T10:0${minute}`, status: "Good", faultStatus: ["Good"], rated: true, rating: 9 });
+  let minute = 0;
+  const shot = (rating: number) => api("POST", "/shots", { bagId: bag.json.id, shotDate: `2026-10-02T10:${String(++minute).padStart(2, "0")}`, status: "Good", faultStatus: ["Good"], rated: true, rating });
   const dialed = async () => JSON.stringify((await api("GET", "/dashboard/intelligence")).json).includes("Bag dialed in");
 
-  await shot(1);
-  assert.equal(await dialed(), false, "one rated shot is not enough");
-  await shot(2);
-  assert.equal(await dialed(), false, "two rated shots are not enough");
-  await shot(3);
-  assert.equal(await dialed(), true, "three rated shots averaging 9 is dialed in");
+  for (const r of [8, 8, 8, 8]) await shot(r);
+  assert.equal(await dialed(), false, "four rated shots are not enough");
+  await shot(8.5);
+  assert.equal(await dialed(), true, "five shots within 1.0 point averaging 8.1 is dialed in");
+  await shot(9.5);
+  assert.equal(await dialed(), false, "the last 5 (8,8,8,8.5,9.5) span 1.5, so not dialed in");
+  await shot(8.5);
+  await shot(8.5);
+  await shot(8.5);
+  assert.equal(await dialed(), true, "consistent again once the wide shot leaves the window of 5");
+});
+
+test("Dashboard does not say 'Bag dialed in' when 5 consistent shots average under 7.5", async () => {
+  const bag = await api("POST", "/bags", { bagName: "Consistent But Low Bag", isActive: true });
+  assert.equal(bag.status, 201);
+  for (let i = 1; i <= 5; i++) {
+    await api("POST", "/shots", { bagId: bag.json.id, shotDate: `2026-10-03T10:0${i}`, status: "Good", faultStatus: ["Good"], rated: true, rating: 6.5 });
+  }
+  const text = JSON.stringify((await api("GET", "/dashboard/intelligence")).json);
+  assert.equal(text.includes("Bag dialed in"), false);
 });

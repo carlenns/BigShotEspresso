@@ -10,6 +10,11 @@ import { resolveEquipmentDefaults } from "../lib/equipment-defaults";
 
 const router: IRouter = Router();
 
+// "Dialed in" rule (Carl, 2026-10-06): see dialedInWindow below.
+const DIALED_IN_WINDOW = 5;
+const DIALED_IN_MAX_SPREAD = 1.0;
+const DIALED_IN_MIN_AVG = 7.5;
+
 // ── Robust range helper ───────────────────────────────────────────────────────
 function robustRange(vals: number[]): {
   min: number; max: number; count: number; outliersRemoved: number;
@@ -163,6 +168,17 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
 
   const ratedShots = activeBagShots.filter((s) => s.rating != null && s.rated !== false);
   const topRated = ratedShots.filter((s) => Number(s.rating) >= 8.0);
+
+  // "Dialed in" (Carl, 2026-10-06): the last DIALED_IN_WINDOW rated shots on the bag are within
+  // DIALED_IN_MAX_SPREAD points of each other (highest minus lowest) and average at least
+  // DIALED_IN_MIN_AVG. ratedShots is newest first. Descriptive only, not a causal claim.
+  const dialedInWindow = (() => {
+    const recent = ratedShots.slice(0, DIALED_IN_WINDOW).map((s) => Number(s.rating));
+    if (recent.length < DIALED_IN_WINDOW) return null;
+    const spread = Math.max(...recent) - Math.min(...recent);
+    const avg = recent.reduce((a, r) => a + r, 0) / recent.length;
+    return spread <= DIALED_IN_MAX_SPREAD && avg >= DIALED_IN_MIN_AVG ? { avg } : null;
+  })();
 
   const avgRating = ratedShots.length
     ? Math.round((ratedShots.reduce((a, s) => a + Number(s.rating), 0) / ratedShots.length) * 100) / 100
@@ -413,10 +429,10 @@ router.get("/dashboard/intelligence", async (req, res): Promise<void> => {
       message: `Recent performance declining (last 3 avg ${last3Avg.toFixed(1)}) — check grind and bean age.`,
       suggestedChecks: ["Adjust grind by 0.05 in the direction of your drift", "Check brew temp and pre-infusion time", "Compare dose/yield to your reference shot"],
     });
-  } else if (avgRating != null && avgRating >= 8.5 && ratedShots.length >= 3) {
+  } else if (dialedInWindow) {
     watchlist.push({
       type: "success",
-      message: `Bag dialed in — avg ${avgRating.toFixed(2)} across ${ratedShots.length} rated shot${ratedShots.length !== 1 ? "s" : ""}.`,
+      message: `Bag dialed in — last ${DIALED_IN_WINDOW} rated shots within ${DIALED_IN_MAX_SPREAD.toFixed(1)} point, averaging ${dialedInWindow.avg.toFixed(1)}.`,
     });
   }
   if (activeBagShots.length < 5) {

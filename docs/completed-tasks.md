@@ -4334,3 +4334,9 @@ decided; nothing built. No code changed by this entry.
 
 Carl liked the idea of letting a user mark a bag as not enjoyed when closing it out, so it does not count toward their baseline or phase nudge. Recorded as a possible feature in the auth plan's
 System Phase design note and the Phase 2B tracker. Not designed or scheduled. No code changed by this entry.
+
+## "Bag dialed in" redefined as consistency — 2026-10-06
+
+Carl chose consistency over a high average (his bags average 7.5 to 8.2, so the old 8.5 cutoff almost never fired). Rule: the last 5 rated shots on the active bag (analysis-eligible, rated, not For Others) are within 1.0 point of each other and average at least 7.5. Supersedes the 2026-10-02 "3 rated shots averaging 8.5+" rule. Change in `routes/dashboard.ts` (constants `DIALED_IN_*`), two tests in `shot-list.route.test.ts`. Typecheck clean, API tests 157/157. Not yet committed. The Oct 4 backup (`bse-2026-10-04.dump`) was confirmed present.
+
+A "dialed in since" / "was dialed in, now drifting" memory was recorded as a possible later idea in the auth plan. Not designed; nothing built.
