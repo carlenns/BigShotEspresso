@@ -62,17 +62,27 @@ Size: **S** ≈ hours / one small PR · **M** ≈ a day / a few PRs · **L** ≈
 Closed by Phase 2A ([scope](phase-2a-scope-authorization.md), [completed-tasks](../completed-tasks.md)); the tables below are kept as history:
 
 - **Done:** DI-2 (contract), DI-6, EQ-0, EQ-1, EQ-3 (real gap was PATCH), EQ-4, GRD-1, PL-1, PL-2, PL-3, PL-4 (already done), PL-6, TS-1 (PR #11/#12).
-- **Decided / deferred:** EQ-2 decaf/pour-over defaults deferred (not a launch need). EQ-5 not done — old Settings rows left inert.
-- **Still open:** DI-3 (accessory FKs; less load-bearing now that defaults are flags), DI-4, DI-5 remainder, GRD-2, SC-1..3, TS-2/TS-3, AUTH-1..9.
-- **Done later the same day (branch `phase-2b/next`):** PL-5, PL-7, PL-8; Shot Log System Phase filters.
+- **Decided / deferred:** EQ-2 decaf/pour-over defaults deferred (not a launch need). ~~EQ-5 not done — old Settings rows left inert.~~ (Done 2026-09-29, see below.)
+- **Still open:** DI-5 remainder, GRD-2, SC-1..3, TS-2/TS-3, AUTH-1..9. (DI-3 and DI-4 were closed on 2026-09-29, see below.)
+- **Done later the same day (branch `phase-2b/next`):** PL-5, PL-7, PL-8; Shot Log System Phase filters (System Phase, Phase Name and Experiment; covered by `shot-list.route.test.ts`).
+
+### Status update (2026-09-29)
+
+Checked against `main` at `d177381` and `completed-tasks.md`; the tables below still describe the original scoping.
+
+- **DI-3 — closed (`2f23c02`).** No table references `accessories`, so there were no foreign keys to add; the real gap was that `DELETE /accessories/:id` had no guard. It now returns 400 for a bad id, 404 for a missing one and 409 for the current default of its type. Revisit only if accessories are ever wired to shots (an `accessoryId` column would need a shot-count check like `equipment.ts` has).
+- **EQ-5 — done (`2f23c02`, migration 0018).** The inert pre-Option-A `default*` Settings rows are deleted after `backfillEquipmentDefaultsOnce()`; the `equipmentDefaultsBackfill` marker row stays.
+- **DI-4 — decided, no backfill needed.** `scripts/corpus-rule-check.mjs` (read-only; `--csv` or `--database`) found no signature/reference, sour or rating-bound breaks. Against the live database (280 shots) it flags 3 include-in-analysis mismatches (shots 63, 106, 203); Carl reviewed each and kept them in analysis. No `include_in_analysis` value was changed; shot 203's malformed `fault_status` (split by an import comma) was tidied by a direct update. Still open in that entry: the check only tests status and faults, so a maintenance or bag-change shot with no fault status would not be caught; no rule is guessed until Carl says how to recognise such shots.
+- **Query efficiency — dashboard reads folded.** The dashboard's four small reads (settings, grinders, machines, accessories) are one statement (dashboard is 5 statements; a full "log a shot" visit is 29). Folding `POST /shots`'s bag lookup into the insert was evaluated and declined (see `query-efficiency-2026-09-28.md`).
+- **Bags rework (`3b8f039`).** Guided freshness-dating on Change Bag, a Best-Before Date field, and a Roast Date Method with a two-date Estimated Roast Window replacing the separate Actual/Estimated Roast Date inputs.
 
 ### Open — data integrity / standing rules
 
 | # | Item | Source | Blocking? | Cat | Size | Depends on |
 |---|---|---|---|---|---|---|
 | DI-2 | Negative ratings are **rejected server-side** (`validateRatings`, `56888d3`); remaining gap is cosmetic — the zod/OpenAPI contract still has no `minimum: 0`, only `maximum` | audit Part 2 §1 | Tier-2 correctness (core done) | **A** | XS | — |
-| DI-3 | Accessories have **no FK anywhere** — deleting a "used" accessory succeeds and leaves a dangling Settings string | audit Part 2 §3 | Polish now; real once Option A lands | **B** | S | EQ-4 (Option A Phase 4) makes this load-bearing |
-| DI-4 | Imported corpus is **not rule-consistent** with app-created shots — CSV/Airtable import deliberately skips include-in-analysis recompute, signature⇒reference, sour exclusivity, rating bounds | audit Part 2 §4 | Only if whole-corpus analytics consistency is required | **C** → then A/M | M | all enforcement rules final (DI-2 landing) |
+| DI-3 | **Closed 2026-09-29 (`2f23c02`)** — see the status update above. Originally: accessories have **no FK anywhere** — deleting a "used" accessory succeeds and leaves a dangling Settings string | audit Part 2 §3 | Polish now; real once Option A lands | **B** | S | EQ-4 (Option A Phase 4) makes this load-bearing |
+| DI-4 | **Decided 2026-09-29 — no backfill** (3 flagged shots kept by Carl). Originally: imported corpus is **not rule-consistent** with app-created shots — CSV/Airtable import deliberately skips include-in-analysis recompute, signature⇒reference, sour exclusivity, rating bounds | audit Part 2 §4 | Only if whole-corpus analytics consistency is required | **C** → then A/M | M | all enforcement rules final (DI-2 landing) |
 | DI-5 | `shot_taste_selectors.taste_selector_id` is `ON DELETE CASCADE` — deleting a selector silently strips the tag from every historical shot | audit Part 2 §3 | "preserve historical data" violation | **B** | — | folded into TS-1 (taste-selector archive slice) |
 | DI-6 | Dashboard `activeBag.usePuckScreen` reads a Settings key removed in Blocker #4 → always false, the Puck Screen line never renders | audit Part 2 "Bonus finding" | Cosmetic | **A** | S | fold into EQ-2 (Option A Phase 1) |
 
@@ -87,7 +97,7 @@ Whole track gated on **Carl approving the decision doc** (a **C** gate).
 | EQ-2 | Decaf / pour-over grinder default model — launch need or drop? | **C** | S (decision) / L (if "yes" → per-role feature) | Option A approved |
 | EQ-3 | Fix `routes/accessories.ts` POST `isDefault` to clear per-`type` (PATCH already does) | **A** (self-contained bug fix) | S | — |
 | EQ-4 | `routes/dashboard.ts` L509/L511 read accessory `isDefault` for basket/puck-screen; Settings drops those rows; resolves DI-3 | **B** | M | EQ-3, backfill |
-| EQ-5 | Delete the orphaned `default*` Settings rows | **A** (optional cleanup) | S | EQ-4 |
+| EQ-5 | **Done 2026-09-29 (`2f23c02`, migration 0018).** Delete the orphaned `default*` Settings rows | **A** (optional cleanup) | S | EQ-4 |
 
 ### Open — taste-selector vocabulary (from `taste-selector-vocabulary-model.md`)
 
@@ -234,3 +244,8 @@ unblocks TS-3 and everything public-launch.
 | **D** — blocked on ADR-0009 | TS-3, AUTH-1..9 → **2 lines (a program)** |
 
 (EQ-5 and SMK-2 straddle a boundary — counted where they mostly sit.)
+
+> **These counts are from 2026-08-27 and are history.** Since then EQ-0, EQ-1, EQ-3, EQ-4,
+> EQ-5, GRD-1, DI-3, DI-6, PL-1..PL-8 and TS-1 are done and DI-4 is decided (see the Phase 2A
+> and 2026-09-29 status blocks above). What remains open is DI-5 remainder, EQ-2 (deferred),
+> GRD-2, TS-2/TS-3, SC-1..3 and AUTH-1..9.
